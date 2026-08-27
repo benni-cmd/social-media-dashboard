@@ -52,9 +52,17 @@ Offene Fragen fuer Ben unten gesammelt.
 - Regieplan als reiner Text ok, oder brauchst du den (wie im Prompt) als PDF-Export?
 - Reihen-Kontext: reicht "Titel der anderen Reihen-Videos", oder auch deren Skript-Inhalt?
 
+## Nachtrag (autonome Runde, 2026-08-27)
+
+- Ergebnis-Archiv pro Karte gebaut (aufklappbar je Aufgabe, Kopieren, Sprechzeit-Schaetzung),
+  end-to-end im Browser verifiziert (Button -> KI -> gespeichert -> Archiv-Block).
+- `recherche` und `skript` live getestet: Struktur + 50-s/CTA-Regel + Reihen-Kontinuitaet sitzen.
+- Bug gefunden+behoben: `claude` las die Werkbank-CLAUDE.md und haengte Arbeitsregeln
+  ("Geprueft gegen:") an die Texte -> KI-Aufrufe laufen jetzt im neutralen Temp-cwd.
+
 ## Definition of Done
 
-Geprueft gegen: `POST /api/ai` je Aufgabe liefert Ben-konformen Text (System-Regeln sichtbar
-befolgt) · neue Felder rendern und speichern · Dateiname-Vorschlag stimmt · Reihen-Kontext im
-Prompt · Server laeuft.
+Geprueft gegen: `POST /api/ai` (recherche + skript) liefert Ben-konformen Text ohne Fremd-
+Artefakte · Archiv rendert im Browser · neue Felder rendern/speichern · Dateiname stimmt ·
+Reihen-Kontext im Prompt · Server laeuft (`HTTP 200`).
 Offen: optische Abnahme (Ben) · offene Fragen oben · PDF-Export (evtl.) · Google-Phasen (v2).
