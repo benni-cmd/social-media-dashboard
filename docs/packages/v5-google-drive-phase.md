@@ -58,14 +58,23 @@ Die drei Unterordner eines Projekts werden im Dashboard an der jeweiligen Stelle
 ## Plan (phasiert)
 
 1. [x] rclone-Zugang verifiziert (lesen+schreiben im Testordner).
-2. [ ] Drive-Grundgeruest anlegen: In Bearbeitung / Videoauswertung / Kontext.
-3. [ ] Server: rclone-Anbindung (Ordner anlegen, Datei schreiben/lesen, Links holen).
-4. [ ] Projekt anlegen erzeugt `In Bearbeitung/<Projekt>/` mit den drei Unterordnern.
-5. [ ] Skript-Workflow mit Freigaben + finalem Textfeld + Speichern nach Drive.
-6. [ ] Ordner-Links im Dashboard je Karte/Spalte.
-7. [ ] Automationen aus Ordner-Inhalt (Rohmaterial/Fertiges Video) per Polling.
-8. [ ] Lifecycle: nach Upload Projekt nach `Videoauswertung/` verschieben.
-9. [ ] KPI-Phase (IG/LinkedIn-API) — spaeter.
+2. [x] Drive-Grundgeruest angelegt: In Bearbeitung / Videoauswertung / Kontext (+ Kontext/_global).
+3. [x] Server: rclone-Anbindung `drive.js` (mkdir, rcat, cat, lsf, link, move).
+4. [x] Projekt anlegen erzeugt `In Bearbeitung/<Serie_EPnn_Thema>/` + 3 Unterordner + Links.
+5. [x] Skript-Workflow: Freigabe-Feld -> KI-Entwurf -> finales editierbares Textfeld -> Drive.
+6. [x] Ordner-Links im Dashboard je Karte (Skript und Caption / Rohmaterial / Fertiges Video).
+7. [ ] Auto-Uebergaenge an DRIVE-Scan haengen (aktuell lokaler Scan) + Polling.
+8. [ ] Lifecycle: nach Upload Projekt nach `Videoauswertung/` verschieben (Endpoint da: drive.moveDir).
+9. [ ] Kontext-Inhalte pflegen (aktuell Ordner leer -> Anreicherung greift, sobald Dateien da sind).
+10. [ ] Ben-Rechner: rclone + gdrive-Remote einrichten (fuer eigene lokale Nutzung; Dev laeuft in Agent-Umgebung).
+11. [ ] KPI-Phase (IG/LinkedIn-API) — spaeter.
+
+## Nachtrag (Bau 2026-08-27)
+
+Backend end-to-end in Bens Drive verifiziert: `POST /api/drive/create` legte
+`In Bearbeitung/ProjectOasis_EP02_AquaponikfuerdenGarten/` + 3 Unterordner + Links an;
+`POST /api/drive/save` schrieb `10_skript.md`; `GET /api/drive/scan` erkannte sie. Als Demo
+liegt dieses Projekt jetzt im Testordner. Frontend rendert Links + Workflow, keine JS-Fehler.
 
 ## Offene Punkte fuer Ben (nicht blockierend)
 
