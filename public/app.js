@@ -52,6 +52,7 @@ const datumHinweisEl = document.getElementById("datum-hinweis");
 const notizenEl = document.getElementById("detail-notizen");
 const stufeBlockEl = document.getElementById("stufe-block");
 const archivEl = document.getElementById("ki-archiv");
+const scanEl = document.getElementById("projekt-scan");
 const ergebnisEl = document.getElementById("ki-ergebnis");
 const ergebnisTextEl = document.getElementById("ki-ergebnis-text");
 const ergebnisTitelEl = document.getElementById("ki-ergebnis-titel");
@@ -243,6 +244,7 @@ function oeffneDetail(id) {
   zeichneDatumHinweis(karte);
   zeichneStufenBlock(karte);
   zeichneArchiv(karte);
+  ladeScan(karte);
   ergebnisEl.hidden = true;
   ergebnisEl.classList.remove("fehler");
   letztesKiErgebnis = "";
@@ -312,6 +314,81 @@ function zeichneStufenBlock(karte) {
     zeile.appendChild(document.createTextNode(" " + stufe.haken.label + " — Karte rueckt weiter"));
     stufeBlockEl.appendChild(zeile);
   }
+}
+
+// Zeigt, was der Server deterministisch im Projektordner erkannt hat (ohne Token).
+const SCAN_LABEL = {
+  recherche: "00_recherche.md",
+  skript: "10_skript.md",
+  regieplan: "20_regieplan.md",
+  caption: "30_caption.md",
+};
+
+async function ladeScan(karte) {
+  scanEl.innerHTML = "";
+  try {
+    const q = new URLSearchParams({
+      serie: karte.serie || "",
+      episode: karte.episode || "",
+      title: karte.title || "",
+    });
+    const r = await fetch("/api/project?" + q.toString());
+    const s = await r.json();
+
+    const kopf = document.createElement("div");
+    kopf.className = "scan-kopf";
+    kopf.textContent = "Im Projektordner erkannt (ohne Token)";
+    scanEl.appendChild(kopf);
+
+    const liste = document.createElement("ul");
+    liste.className = "scan-liste";
+    const zeile = (da, text) => {
+      const li = document.createElement("li");
+      li.className = da ? "scan-da" : "scan-fehlt";
+      li.textContent = (da ? "✓ " : "· ") + text;
+      liste.appendChild(li);
+    };
+    for (const [task, name] of Object.entries(SCAN_LABEL)) zeile(s.files && s.files[task], name);
+    zeile(s.rohmaterial > 0, `rohmaterial/ (${s.rohmaterial} Dateien)`);
+    zeile(s.final > 0, `final/ (${s.final} Videos)`);
+    scanEl.appendChild(liste);
+
+    const hint = uebergangsHinweis(karte, s);
+    if (hint) scanEl.appendChild(hint);
+  } catch {
+    scanEl.textContent = "Projektordner konnte nicht gelesen werden.";
+  }
+}
+
+// Erkannter Auto-Uebergang (lokal per Knopf; spaeter automatisch per Drive-Polling).
+function uebergangsHinweis(karte, s) {
+  let ziel = null;
+  let grund = null;
+  if (karte.column === "videodreh" && s.rohmaterial > 0) {
+    ziel = "schnitt";
+    grund = "Rohmaterial liegt im Ordner";
+  } else if (karte.column === "schnitt" && s.final > 0) {
+    ziel = "caption";
+    grund = "Fertiges Video liegt im Ordner";
+  }
+  if (!ziel) return null;
+  const box = document.createElement("div");
+  box.className = "scan-hint";
+  const text = document.createElement("span");
+  text.textContent = `${grund} — Karte kann weiter nach "${(STUFEN[ziel] || {}).name || ziel}".`;
+  const knopf = document.createElement("button");
+  knopf.className = "archiv-knopf";
+  knopf.textContent = "Jetzt verschieben";
+  knopf.addEventListener("click", () => {
+    const k = karteById(aktiveKarteId);
+    if (!k) return;
+    k.column = ziel;
+    speichere();
+    schliesseDetail();
+  });
+  box.appendChild(text);
+  box.appendChild(knopf);
+  return box;
 }
 
 // Grobe Sprechzeit-Schaetzung (fuer die 50-Sekunden-Regel beim Skript).
@@ -422,6 +499,7 @@ async function ladeKi(task, knopf) {
       karte.ai = karte.ai || {};
       karte.ai[task] = letztesKiErgebnis;
       zeichneArchiv(karte);
+      ladeScan(karte);
       render();
       speichere();
     }

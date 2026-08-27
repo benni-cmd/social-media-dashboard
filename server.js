@@ -5,7 +5,7 @@
 // so laeuft die KI ueber das Abo, nicht ueber die kostenpflichtige API.
 
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,65 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
 const BOARD_FILE = join(__dirname, "data", "board.json");
 const PUBLIC_DIR = join(__dirname, "public");
+// Wurzel der Projekt-Dateien (spaeter = Google-Drive-Wurzel). Siehe docs/drive-convention.md.
+const PROJECTS_DIR = join(__dirname, "projects");
+
+// Dateiname je KI-Aufgabe (Zahlen-Praefix haelt die Reihenfolge fuer Menschen in Drive).
+const TASK_DATEI = {
+  recherche: "00_recherche.md",
+  skript: "10_skript.md",
+  regieplan: "20_regieplan.md",
+  caption: "30_caption.md",
+};
+const VIDEO_ENDUNGEN = [".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"];
+
+// Macht aus Text ein datei-/ordnertaugliches Stueck (spiegelt die Frontend-Logik).
+function slug(s) {
+  return (
+    (s || "")
+      .replace(/[äÄ]/g, "ae").replace(/[öÖ]/g, "oe").replace(/[üÜ]/g, "ue").replace(/ß/g, "ss")
+      .replace(/[^a-zA-Z0-9]+/g, "")
+      .slice(0, 24) || "Ohne"
+  );
+}
+
+// Ordnerpfad eines Projekts: projects/<Serie>/EP<NN>__<ThemaSlug>/
+function projektDir(card) {
+  const serie = slug(card.serie) || "OhneReihe";
+  const ep = (card.episode || "00").toString().padStart(2, "0");
+  const thema = slug(card.title);
+  return join(PROJECTS_DIR, serie, `EP${ep}__${thema}`);
+}
+
+// Zaehlt Dateien in einem Unterordner (optional nur Videos).
+async function zaehleOrdner(dir, nurVideos) {
+  try {
+    const eintraege = await readdir(dir, { withFileTypes: true });
+    const dateien = eintraege.filter((e) => e.isFile()).map((e) => e.name.toLowerCase());
+    if (nurVideos) return dateien.filter((n) => VIDEO_ENDUNGEN.some((x) => n.endsWith(x))).length;
+    return dateien.length;
+  } catch {
+    return 0;
+  }
+}
+
+// Deterministische Erkennung: welche Dateien/Ordner-Inhalte hat das Projekt? Keine KI, keine Token.
+async function scanProjekt(card) {
+  const dir = projektDir(card);
+  const vorhanden = async (name) => {
+    try {
+      await readFile(join(dir, name));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const files = {};
+  for (const [task, name] of Object.entries(TASK_DATEI)) files[task] = await vorhanden(name);
+  const rohmaterial = await zaehleOrdner(join(dir, "rohmaterial"), false);
+  const final = await zaehleOrdner(join(dir, "final"), true);
+  return { dir, files, rohmaterial, final };
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -185,7 +244,23 @@ const server = createServer(async (req, res) => {
       }
       try {
         const text = await runClaude(MARKE_REGELN + "\n\n---\n\n" + build(card || {}));
-        sendJson(res, 200, { text });
+        // Ergebnis zusaetzlich als menschenlesbare Datei in die Projekt-Konvention schreiben.
+        let datei = null;
+        if (card && TASK_DATEI[task]) {
+          try {
+            const dir = projektDir(card);
+            await mkdir(dir, { recursive: true });
+            const kopf = `# ${task.toUpperCase()} — ${card.title || "(ohne Titel)"}\n` +
+              `Reihe: ${card.serie || "-"} · Episode: ${card.episode || "-"} · Format: ${
+                card.format || "Reel"
+              }\n\n`;
+            datei = join(dir, TASK_DATEI[task]);
+            await writeFile(datei, kopf + text + "\n", "utf8");
+          } catch (schreibFehler) {
+            datei = null; // Datei-Schreiben ist Beiwerk, nicht kritisch.
+          }
+        }
+        sendJson(res, 200, { text, datei });
       } catch (e) {
         // Haeufigster Fall: CLI nicht installiert oder nicht eingeloggt.
         const hint =
@@ -194,6 +269,17 @@ const server = createServer(async (req, res) => {
             : "Die KI-Aktion konnte nicht ausgefuehrt werden. Ist `claude` installiert und eingeloggt (`claude` einmal interaktiv starten)?";
         sendJson(res, 502, { error: e.message, hint });
       }
+      return;
+    }
+
+    // --- Projekt-Scan: erkennt Dateien/Ordner deterministisch (ohne KI/Token) ---
+    if (path === "/api/project" && req.method === "GET") {
+      const card = {
+        serie: url.searchParams.get("serie") || "",
+        episode: url.searchParams.get("episode") || "",
+        title: url.searchParams.get("title") || "",
+      };
+      sendJson(res, 200, await scanProjekt(card));
       return;
     }
 

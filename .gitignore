@@ -1,6 +1,9 @@
 node_modules/
 .DS_Store
 
+# Projekt-Dateien = Inhalt (spaeter Google Drive), nicht ins Repo.
+projects/
+
 # Rechnerlokale Einmal-Helfer und ihre Ergebnisdateien, nicht committen.
 Claude-Login.cmd
 Diagnose.cmd
