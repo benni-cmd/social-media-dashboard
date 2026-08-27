@@ -1,31 +1,52 @@
-// Frontend des Content-Pipeline-Boards (Phase 1: lokal, ohne Google).
-// Board-Stand im Speicher, Rendern der Spalten + Karten, Drag&Drop, Detail-Panel.
-// Pro Pipeline-Stufe gibt es genau die Aktion, die dort gebraucht wird:
-// KI-Button (Idee/Skript/Caption) oder Haken (Videodreh/Schnitt/Upload), der die
-// Karte eine Spalte weiterschiebt. Upload-Datum steuert die Ampel-Farbe der Karte.
+// Frontend des Content-Pipeline-Boards.
+// Bildet Bens Arbeitsweise ab: Marken-Regeln stecken im Server-Vorspann, die Pipeline-Spalten
+// setzen die Zwei-Phasen-Logik durch. Pro Stufe genau die Aktion(en), die dort gebraucht werden.
 
 let board = { columns: [], cards: [] };
 let aktiveKarteId = null;
 let letztesKiErgebnis = "";
 
-// Was jede Spalte im Detail-Panel anbietet.
+const MARKE = "WEE"; // Praefix fuer den Dateinamen-Vorschlag.
+
+// Was jede Spalte anbietet: KI-Aktionen (kis) und/oder ein Haken, der die Karte weiterschiebt.
 const STUFEN = {
-  idee: { name: "Idee", ki: { task: "fokus", label: "Fokus schaerfen" } },
-  skript: { name: "Skript", ki: { task: "skript", label: "Skript schreiben" } },
+  idee: {
+    name: "Idee — Phase 1: Jam",
+    kis: [{ task: "recherche", label: "Phase 1: Recherche, Fokus & Hooks" }],
+  },
+  skript: {
+    name: "Skript — Phase 2: Produktion",
+    kis: [
+      { task: "skript", label: "Skript & Teleprompter schreiben" },
+      { task: "regieplan", label: "Regieplan & Metadaten erstellen" },
+    ],
+  },
   videodreh: { name: "Videodreh", haken: { key: "dreh", label: "Dreh ist durch", nach: "schnitt" } },
   schnitt: { name: "Schnitt", haken: { key: "schnitt", label: "Schnitt ist fertig", nach: "caption" } },
-  caption: { name: "Caption", ki: { task: "caption", label: "Caption schreiben" } },
+  caption: {
+    name: "Caption — Phase 2",
+    kis: [{ task: "caption", label: "Captions (2 Varianten + 5 Hashtags)" }],
+  },
   upload: { name: "Upload", haken: { key: "upload", label: "Ist veroeffentlicht", nach: "fertig" } },
   fertig: { name: "Fertig", archiv: true },
 };
 
-const KI_TITEL = { fokus: "Fokus", skript: "Skript", caption: "Caption" };
+const KI_TITEL = {
+  recherche: "Recherche, Fokus & Hooks",
+  skript: "Skript / Teleprompter",
+  regieplan: "Regieplan & Metadaten",
+  caption: "Captions",
+};
 
 const boardEl = document.getElementById("board");
 const detailEl = document.getElementById("detail");
 const standEl = document.getElementById("speicher-stand");
 const stufeEl = document.getElementById("detail-stufe");
 const titelEl = document.getElementById("detail-titel");
+const serieEl = document.getElementById("detail-serie");
+const episodeEl = document.getElementById("detail-episode");
+const formatEl = document.getElementById("detail-format");
+const dateinameEl = document.getElementById("dateiname");
 const datumEl = document.getElementById("detail-datum");
 const datumHinweisEl = document.getElementById("datum-hinweis");
 const notizenEl = document.getElementById("detail-notizen");
@@ -63,6 +84,28 @@ function karteById(id) {
   return board.cards.find((c) => c.id === id);
 }
 
+// Titel zu einem dateinamen-tauglichen Stueck machen.
+function slug(s) {
+  return (s || "Thema")
+    .replace(/[äÄ]/g, "ae").replace(/[öÖ]/g, "oe").replace(/[üÜ]/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-zA-Z0-9]+/g, "")
+    .slice(0, 24) || "Thema";
+}
+
+function dateinameFuer(card) {
+  const reihe = slug(card.serie) || "Reihe";
+  const ep = (card.episode || "00").toString().padStart(2, "0");
+  return `${MARKE}_${reihe}_EP${ep}_${slug(card.title)}_${card.format || "Reel"}.mp4`;
+}
+
+// Titel anderer Karten derselben Reihe (fuer Reihen-Kontinuitaet in der KI).
+function reihenGeschwister(card) {
+  if (!card.serie) return [];
+  return board.cards
+    .filter((c) => c.id !== card.id && c.serie && c.serie === card.serie)
+    .map((c) => c.title || "(ohne Titel)");
+}
+
 // --- Upload-Datum: Tage bis dahin und Ampel-Farbe ---
 function tageBis(iso) {
   const heute = new Date();
@@ -71,8 +114,6 @@ function tageBis(iso) {
   return Math.round((ziel - heute) / 86400000);
 }
 
-// Ampel: >10 Tage gruen, ab 10 gelb, ab 5 rot. In Spalte Upload immer gruen,
-// in Fertig neutral. Ohne Datum neutral.
 function ampel(card) {
   if (!card.uploadDate) return { klasse: "ampel-grau", text: "Kein Upload-Datum" };
   const tage = tageBis(card.uploadDate);
@@ -141,6 +182,9 @@ function render() {
         column: col.id,
         title: "Neue Idee",
         notes: "",
+        serie: "",
+        episode: "",
+        format: "Reel",
         uploadDate: null,
         checks: {},
         ai: {},
@@ -163,11 +207,18 @@ function karteEl(karte) {
   el.draggable = true;
   const a = ampel(karte);
   const hatKi = karte.ai && Object.keys(karte.ai).length > 0;
+  const reihenMarke =
+    karte.serie || karte.episode
+      ? `<span class="karte-reihe">${escape(karte.serie || "Reihe")}${
+          karte.episode ? " · EP" + escape(karte.episode) : ""
+        } · ${escape(karte.format || "Reel")}</span>`
+      : "";
   el.innerHTML =
     `<div class="karte-titel">${escape(karte.title || "(ohne Titel)")}</div>` +
+    reihenMarke +
     `<div class="karte-datum ${a.klasse}">${escape(a.text)}</div>` +
     (hatKi
-      ? `<div class="karte-hat-ki">KI-Ergebnis: ${Object.keys(karte.ai)
+      ? `<div class="karte-hat-ki">KI fertig: ${Object.keys(karte.ai)
           .map((k) => KI_TITEL[k] || k)
           .join(", ")}</div>`
       : "");
@@ -182,8 +233,12 @@ function oeffneDetail(id) {
   if (!karte) return;
   stufeEl.textContent = (STUFEN[karte.column] || {}).name || karte.column;
   titelEl.value = karte.title || "";
+  serieEl.value = karte.serie || "";
+  episodeEl.value = karte.episode || "";
+  formatEl.value = karte.format || "Reel";
   datumEl.value = karte.uploadDate || "";
   notizenEl.value = karte.notes || "";
+  dateinameEl.textContent = "Dateiname: " + dateinameFuer(karte);
   zeichneDatumHinweis(karte);
   zeichneStufenBlock(karte);
   ergebnisEl.hidden = true;
@@ -205,7 +260,7 @@ function zeichneDatumHinweis(karte) {
   datumHinweisEl.className = "datum-hinweis " + a.klasse;
 }
 
-// Baut den stufen-spezifischen Block: KI-Button ODER Haken ODER Archiv-Hinweis.
+// Baut den stufen-spezifischen Block: KI-Buttons und/oder Haken und/oder Archiv-Hinweis.
 function zeichneStufenBlock(karte) {
   const stufe = STUFEN[karte.column] || {};
   stufeBlockEl.innerHTML = "";
@@ -218,18 +273,20 @@ function zeichneStufenBlock(karte) {
     return;
   }
 
-  if (stufe.ki) {
+  if (stufe.kis && stufe.kis.length) {
     const erklaer = document.createElement("p");
     erklaer.className = "ki-erklaer";
     erklaer.textContent =
-      "Die KI-Aktion laeuft lokal ueber deine Claude-Code-CLI und kostet keine API-Tokens.";
+      "Die KI-Aktionen laufen lokal ueber deine Claude-CLI (dein Abo, keine API-Tokens) und " +
+      "folgen automatisch den World-Eden-Regeln.";
     stufeBlockEl.appendChild(erklaer);
-
-    const knopf = document.createElement("button");
-    knopf.className = "ki-knopf";
-    knopf.textContent = stufe.ki.label;
-    knopf.addEventListener("click", () => ladeKi(stufe.ki.task, knopf));
-    stufeBlockEl.appendChild(knopf);
+    for (const k of stufe.kis) {
+      const knopf = document.createElement("button");
+      knopf.className = "ki-knopf";
+      knopf.textContent = k.label;
+      knopf.addEventListener("click", () => ladeKi(k.task, knopf));
+      stufeBlockEl.appendChild(knopf);
+    }
   }
 
   if (stufe.haken) {
@@ -242,7 +299,6 @@ function zeichneStufenBlock(karte) {
       karte.checks = karte.checks || {};
       karte.checks[stufe.haken.key] = box.checked;
       if (box.checked) {
-        // Haken gesetzt -> Karte rueckt eine Spalte weiter.
         karte.column = stufe.haken.nach;
         speichere();
         schliesseDetail();
@@ -259,7 +315,8 @@ function zeichneStufenBlock(karte) {
 async function ladeKi(task, knopf) {
   const karte = karteById(aktiveKarteId);
   if (!karte) return;
-  knopf.disabled = true;
+  const alle = stufeBlockEl.querySelectorAll(".ki-knopf");
+  alle.forEach((b) => (b.disabled = true));
   ergebnisEl.hidden = false;
   ergebnisEl.classList.remove("fehler");
   ergebnisTitelEl.textContent = (KI_TITEL[task] || "Ergebnis") + " — die KI arbeitet …";
@@ -268,7 +325,17 @@ async function ladeKi(task, knopf) {
     const r = await fetch("/api/ai", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ task, card: { title: karte.title, notes: karte.notes } }),
+      body: JSON.stringify({
+        task,
+        card: {
+          title: karte.title,
+          notes: karte.notes,
+          serie: karte.serie,
+          episode: karte.episode,
+          format: karte.format,
+          seriesSiblings: reihenGeschwister(karte),
+        },
+      }),
     });
     const data = await r.json();
     if (!r.ok) {
@@ -289,19 +356,28 @@ async function ladeKi(task, knopf) {
     ergebnisTitelEl.textContent = "Das hat nicht geklappt";
     ergebnisTextEl.textContent = "Server nicht erreichbar: " + e.message;
   } finally {
-    knopf.disabled = false;
+    alle.forEach((b) => (b.disabled = false));
   }
 }
 
 // --- Detail-Felder binden ---
-titelEl.addEventListener("input", () => {
+function feldGeaendert(prop, el, mitRender) {
   const k = karteById(aktiveKarteId);
-  if (k) {
-    k.title = titelEl.value;
-    render();
-  }
-});
+  if (!k) return;
+  k[prop] = el.value;
+  dateinameEl.textContent = "Dateiname: " + dateinameFuer(k);
+  if (mitRender) render();
+}
+titelEl.addEventListener("input", () => feldGeaendert("title", titelEl, true));
 titelEl.addEventListener("change", speichere);
+serieEl.addEventListener("input", () => feldGeaendert("serie", serieEl, true));
+serieEl.addEventListener("change", speichere);
+episodeEl.addEventListener("input", () => feldGeaendert("episode", episodeEl, false));
+episodeEl.addEventListener("change", speichere);
+formatEl.addEventListener("change", () => {
+  feldGeaendert("format", formatEl, true);
+  speichere();
+});
 datumEl.addEventListener("change", () => {
   const k = karteById(aktiveKarteId);
   if (k) {

@@ -19,8 +19,29 @@
       <button class="detail-schliessen" id="detail-schliessen" aria-label="Karte schliessen">&times;</button>
       <span class="detail-stufe" id="detail-stufe">Idee</span>
 
-      <label class="feld-label" for="detail-titel">Titel der Karte</label>
+      <label class="feld-label" for="detail-titel">Titel / Thema der Karte</label>
       <input class="feld-eingabe" id="detail-titel" type="text" />
+
+      <div class="feld-reihe">
+        <div class="feld-spalte">
+          <label class="feld-label" for="detail-serie">Reihe</label>
+          <input class="feld-eingabe" id="detail-serie" type="text" placeholder="z. B. ProjectOasis" />
+        </div>
+        <div class="feld-spalte feld-schmal">
+          <label class="feld-label" for="detail-episode">Episode</label>
+          <input class="feld-eingabe" id="detail-episode" type="text" placeholder="01" />
+        </div>
+        <div class="feld-spalte">
+          <label class="feld-label" for="detail-format">Format</label>
+          <select class="feld-eingabe" id="detail-format">
+            <option>Reel</option>
+            <option>Short</option>
+            <option>TikTok</option>
+            <option>LinkedIn</option>
+          </select>
+        </div>
+      </div>
+      <p class="dateiname" id="dateiname"></p>
 
       <label class="feld-label" for="detail-datum">Geplantes Upload-Datum</label>
       <input class="feld-eingabe" id="detail-datum" type="date" />

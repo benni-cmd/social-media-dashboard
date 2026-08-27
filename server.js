@@ -24,23 +24,89 @@ const MIME = {
   ".svg": "image/svg+xml",
 };
 
-// --- KI-Aufgaben: fester Katalog, je Pipeline-Stufe genau eine. ---
+// --- Fester Marken-/Regel-Rahmen: geht als System-Vorspann in JEDEN KI-Aufruf. ---
+// Adaptiert aus Bens Arbeitsweise (World Eden Era / Project Oasis), nicht 1:1 uebernommen.
+const MARKE_REGELN =
+  `Du bist erfahrener Social-Media-Content-Creator und Video-Producer fuer die NGO World Eden ` +
+  `Era (Projekte "World Eden" und "Project Oasis"): Naturschutz, Umweltschutz, Agraroekologie, ` +
+  `Systemoekologie. Ziel jedes Stuecks: hohe Conversion (Follows, Kommentare, DMs, Spenden) und ` +
+  `wissenschaftliche Autoritaet auf Augenhoehe.\n\n` +
+  `Immer geltende Regeln:\n` +
+  `- Ein Videoskript ist NIE laenger als etwa 50 Sekunden Sprechzeit.\n` +
+  `- Wissenschaftlich praezise, aber umgangssprachlich uebersetzt: erklaer es wie einem Kumpel, ` +
+  `mit Alltags-Metaphern (z. B. "Schwamm" statt "Wasserspeicherkapazitaet").\n` +
+  `- Positiv und konstruktiv: keine kuenstliche Dramatik, keine Weltuntergangs-Bilder; ` +
+  `motivierende Framings.\n` +
+  `- Natuerlicher Sprechfluss: keine typischen KI-Floskeln, kein aufgesetzter Slang; muss sich ` +
+  `stolperfrei laut vorlesen lassen.\n` +
+  `- Hooks sprechen die persoenliche Lebensrealitaet der Zielgruppe an ("Was brauchst DU fuer ` +
+  `deine Farm?" statt "Wie funktioniert Aquaponik?").\n` +
+  `- Jeder Call-to-Action endet mit einer offenen oder leicht polarisierenden Frage an die ` +
+  `Community und danach einem kurzen, natuerlichen Follow-Aufruf.\n` +
+  `- Bei einer Videoreihe inhaltlich auf die vorherigen Videos aufbauen, keine Dopplungen.\n` +
+  `Antworte auf Deutsch.`;
+
+// Baut den Karten-Kontext-Block (Thema, Notizen, Reihe, bisherige Reihen-Videos).
+function kontext(card) {
+  const reihe = card.serie ? card.serie : "-";
+  const geschwister =
+    card.seriesSiblings && card.seriesSiblings.length
+      ? card.seriesSiblings.join(" | ")
+      : "keine";
+  return (
+    `\n\nThema: ${card.title || "(ohne Titel)"}\n` +
+    `Notizen / bisheriger Stand: ${card.notes || "(keine)"}\n` +
+    `Reihe: ${reihe} (bisherige Videos dieser Reihe: ${geschwister})`
+  );
+}
+
+// --- KI-Aufgaben nach Bens Zwei-Phasen-Logik. ---
 const AI_TASKS = {
-  // Idee -> Skript: erst den Fokus schaerfen, damit das Skript praezise wird.
-  fokus: (card) =>
-    `Du hilfst, aus einer groben Idee einen praezisen Content-Fokus zu machen. Schaerfe ` +
-    `Kernaussage, Zielgruppe und den Winkel und nenne 3 konkrete inhaltliche Punkte, die ` +
-    `ins Skript gehoeren. Kurz und klar, auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${
-      card.notes || "(keine)"
-    }`,
+  // PHASE 1 (Idee): iterativer Jam.
+  recherche: (card) =>
+    `Wir sind in PHASE 1 (iterativer Jam: Idee & Recherche). Liefere GENAU diese Struktur:\n` +
+    `1. Zusammenfassung & Recherche: fundierte Hard Facts zum Thema, keine Oeko-Romantik.\n` +
+    `2. Hauptfokus: welcher inhaltliche Schwerpunkt erzielt die hoechste Wirkung?\n` +
+    `3. Fokus-Alternativen: 2 alternative Fokus-Vorschlaege.\n` +
+    `4. Haupt-Hook (verbal & visuell): ein packender Pattern-Interrupt-Einstieg, persoenlich.\n` +
+    `5. Hook-Alternativen: 2 alternative Hooks.\n` +
+    `Schreib in dieser Phase KEIN fertiges Skript.` +
+    kontext(card),
+
+  // PHASE 2a (Skript): One-Screen-Teleprompter.
   skript: (card) =>
-    `Du bist Kurzvideo-Autor fuer Instagram Reels und LinkedIn. Schreibe aus dieser Idee ` +
-    `ein knappes Skript (Hook, 3-4 Kernpunkte, Call-to-Action), maximal 45 Sekunden ` +
-    `Sprechzeit, auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${card.notes || "(keine)"}`,
+    `Wir sind in PHASE 2 (Produktion). Schreibe den reinen Sprechertext als One-Screen-` +
+    `Teleprompter:\n` +
+    `- maximal etwa 50 Sekunden Sprechzeit,\n` +
+    `- in sehr kurze, gut ablesbare Absaetze unterteilt, jeweils markiert als [CHUNK 1], ` +
+    `[CHUNK 2] usw.,\n` +
+    `- KEINE Regieanweisungen im Text,\n` +
+    `- Schluss exakt nach der CTA-Regel (offene/polarisierende Frage + kurzer Follow-Aufruf).` +
+    kontext(card),
+
+  // PHASE 2a (Skript): Produktions-Unterlage.
+  regieplan: (card) =>
+    `Wir sind in PHASE 2 (Produktion). Erstelle die Produktions-Unterlage als Text:\n` +
+    `A) VIDEO-METADATEN: Format/Laenge (max 50 s), Dateiname nach Konvention ` +
+    `WEE_<Reihe>_EP<Episode>_<Thema>_<Format>.mp4, Musik-Prompt fuer Suno/Udio, ` +
+    `Schnitt-Rhythmus (extrem dynamisch).\n` +
+    `B) REGIEPLAN als Tabelle mit Spalten: Zeit (sekundengenau) | Typ & Location (A-Roll/` +
+    `B-Roll) | Visuell (Action am Set ODER englische Bild/Video-Prompts) | Audio (exakter ` +
+    `Sprechertext + SFX wie Whoosh/Plopp/Klick/Glitch) | Schnitt & VFX. Zwingend alle 3-6 ` +
+    `Sekunden Wechsel zwischen A-Roll/B-Roll oder Perspektive, dynamische Uebergaenge ` +
+    `(Zoom Crash, Whip Pan, Slide).\n` +
+    `Reihe: ${card.serie || "-"}, Episode: ${card.episode || "-"}, Format: ${
+      card.format || "Reel"
+    }.` +
+    kontext(card),
+
+  // PHASE 2b (Caption).
   caption: (card) =>
-    `Schreibe eine Caption fuer Instagram und LinkedIn zu diesem Content. Erst ein ` +
-    `packender erster Satz, dann 2-3 Saetze Kontext, am Ende 5-8 passende Hashtags. ` +
-    `Auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${card.notes || "(keine)"}`,
+    `Wir sind in PHASE 2 (Produktion). Schreibe die Social-Media-Captions:\n` +
+    `- Zwei optimierte Varianten: Variante A Fokus Instagram/TikTok, Variante B Fokus LinkedIn.\n` +
+    `- Danach EXAKT 5 Hashtags: #WorldEdenEra, #ProjectOasis und 3 themenspezifische, ` +
+    `reichweitenstarke Tags. Keine Ausnahme.` +
+    kontext(card),
 };
 
 function sendJson(res, code, obj) {
@@ -114,7 +180,7 @@ const server = createServer(async (req, res) => {
         return;
       }
       try {
-        const text = await runClaude(build(card || {}));
+        const text = await runClaude(MARKE_REGELN + "\n\n---\n\n" + build(card || {}));
         sendJson(res, 200, { text });
       } catch (e) {
         // Haeufigster Fall: CLI nicht installiert oder nicht eingeloggt.
