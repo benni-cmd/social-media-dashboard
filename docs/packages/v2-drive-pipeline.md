@@ -47,7 +47,10 @@ Server bleibt der KI- und Drive-Proxy; die Oberflaeche bleibt lokal.
 
 ## Plan (phasiert)
 
-1. [ ] Phase 0: Claude-CLI-Login (Ben) — `claude auth login`, geprueft mit `claude auth status`.
+1. [x] Phase 0: Claude-CLI auf Bens Rechner installiert (node v26 vorhanden) + eingeloggt
+       (`auth status`: loggedIn true, Abo pro). KI-Pfad live verifiziert: `claude -p` und der
+       Board-Endpoint `/api/ai` liefern echten Text ueber das Abo, ohne API-Tokens.
+       Board-Starter `Start-Board.cmd` und Setup `Setup-Claude.cmd` als Doppelklick angelegt.
 2. [x] Phase 1 (lokal, ohne Google): Spalten Videodreh + Fertig ergaenzt, Upload-Datum-Feld,
        Ampel-Farbe, Haken-getriebene Uebergaenge, kontext-spezifische Buttons pro Spalte.
        (Struktur per DOM verifiziert; optische Abnahme offen — Browser-Pane nicht anzeigbar.)

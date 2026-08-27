@@ -1,8 +1,10 @@
 node_modules/
 .DS_Store
 
-# Rechnerlokaler Login-Helfer (enthaelt absoluten Pfad), nicht committen.
+# Rechnerlokale Einmal-Helfer und ihre Ergebnisdateien, nicht committen.
 Claude-Login.cmd
+Diagnose.cmd
+*-ergebnis.txt
 
 # Zugaenge: nie committen.
 .env
