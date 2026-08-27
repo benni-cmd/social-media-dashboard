@@ -48,6 +48,18 @@ body {
   color: var(--muted);
   font-size: 13px;
 }
+.kopf-knopf {
+  background: var(--accent-weich);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.kopf-knopf:hover {
+  background: var(--accent);
+}
 
 /* --- Board --- */
 .board {

@@ -312,11 +312,8 @@ function zeichneStufenBlock(karte) {
       karte.checks = karte.checks || {};
       karte.checks[stufe.haken.key] = box.checked;
       if (box.checked) {
-        const alt = karte.column;
-        karte.column = stufe.haken.nach;
-        driveMove(karte, alt, stufe.haken.nach);
         speichere();
-        schliesseDetail();
+        phaseWeiter(karte, stufe.haken.nach);
       } else {
         speichere();
       }
@@ -350,6 +347,56 @@ async function driveMove(karte, from, to) {
   } catch {
     /* Verschieben ist Beiwerk; das Board bleibt fuehrend. */
   }
+}
+
+// Reihenfolge der Pipeline fuer die "weiter"-Aktion.
+const NEXT_COLUMN = {
+  idee: "skript",
+  skript: "videodreh",
+  videodreh: "schnitt",
+  schnitt: "caption",
+  caption: "upload",
+  upload: "fertig",
+};
+
+// Legt den Drive-Projektordner in der aktuellen Spalte an (ohne UI-Neuzeichnen).
+async function driveCreateStill(karte) {
+  const r = await fetch("/api/drive/create", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      serie: karte.serie,
+      episode: karte.episode,
+      title: karte.title,
+      format: karte.format,
+      column: karte.column,
+      uploadDate: karte.uploadDate,
+    }),
+  });
+  await r.json();
+  karte.driveCreated = true;
+  speichere(); // Flag persistieren, sonst legt der naechste Wechsel ein Duplikat an statt zu verschieben.
+}
+
+// Schiebt eine Karte in die naechste (oder angegebene) Phase und zieht Drive mit.
+async function phaseWeiter(karte, ziel) {
+  const zielCol = ziel || NEXT_COLUMN[karte.column];
+  if (!zielCol) return;
+  const alt = karte.column;
+  const weg = fortschrittAn(stufeBlockEl, "Wechsle Phase …");
+  karte.column = zielCol;
+  speichere();
+  if (karte.title) {
+    try {
+      if (karte.driveCreated) await driveMove(karte, alt, zielCol);
+      else await driveCreateStill(karte);
+    } catch {
+      /* Drive-Spiegelung best-effort; Board bleibt fuehrend. */
+    }
+  }
+  weg();
+  render();
+  oeffneDetail(karte.id);
 }
 
 async function driveProjektAnlegen(karte, statusEl) {
@@ -495,10 +542,16 @@ function zeichneDriveBlock(karte, s) {
     speichern.textContent = "Skript nach Drive speichern (10_skript.md)";
     speichern.addEventListener("click", () => skriptNachDrive(karte, skript.value, status));
 
+    const weiter = document.createElement("button");
+    weiter.className = "ki-knopf";
+    weiter.textContent = "Weiter zu Videodreh →";
+    weiter.addEventListener("click", () => phaseWeiter(karte, "videodreh"));
+
     const reihe = document.createElement("div");
     reihe.className = "drive-workflow-knoepfe";
     reihe.appendChild(uebernehmen);
     reihe.appendChild(speichern);
+    reihe.appendChild(weiter);
     driveBlockEl.appendChild(reihe);
   }
 }
@@ -538,7 +591,10 @@ async function ladeDrive(karte) {
     /* Drive nicht erreichbar — Board bleibt nutzbar. */
   }
   laden.remove();
-  if (s.vorhanden) karte.driveCreated = true;
+  if (s.vorhanden && !karte.driveCreated) {
+    karte.driveCreated = true;
+    speichere();
+  }
   zeichneErkennung(karte, s);
   zeichneDriveBlock(karte, s);
 }
@@ -589,11 +645,7 @@ function uebergangsHinweis(karte, s) {
   knopf.addEventListener("click", () => {
     const k = karteById(aktiveKarteId);
     if (!k) return;
-    const alt = k.column;
-    k.column = ziel;
-    driveMove(k, alt, ziel);
-    speichere();
-    schliesseDetail();
+    phaseWeiter(k, ziel);
   });
   box.appendChild(text);
   box.appendChild(knopf);
@@ -806,7 +858,7 @@ function renderFokusHookAuswahl(karte, container) {
   status.className = "drive-status";
   const uebernehmen = document.createElement("button");
   uebernehmen.className = "ki-knopf";
-  uebernehmen.textContent = "Fokus & Hook uebernehmen (Freigabe fuer Skript)";
+  uebernehmen.textContent = "Fokus & Hook uebernehmen → weiter zu Skript";
   uebernehmen.addEventListener("click", () => {
     if (karte.chosenFokus == null || karte.chosenHook == null) {
       status.textContent = "Bitte je einen Fokus und einen Hook waehlen.";
@@ -818,7 +870,7 @@ function renderFokusHookAuswahl(karte, container) {
       `Fokus: ${f.titel} — ${f.text}\n` +
       `Hook verbal: ${h.verbal}\nHook visuell: ${h.visuell}`;
     speichere();
-    status.textContent = "Uebernommen. Fliesst ins Skript (Spalte Skript).";
+    phaseWeiter(karte, "skript");
   });
   container.appendChild(uebernehmen);
   container.appendChild(status);
@@ -897,9 +949,14 @@ function renderCaptionAuswahl(karte, container) {
     const st2 = document.createElement("p");
     st2.className = "drive-status";
     speichern.addEventListener("click", () => dateiNachDrive(karte, "30_caption.md", ta.value, st2));
+    const weiter = document.createElement("button");
+    weiter.className = "ki-knopf";
+    weiter.textContent = "Weiter zu Upload →";
+    weiter.addEventListener("click", () => phaseWeiter(karte, "upload"));
     container.appendChild(label);
     container.appendChild(ta);
     container.appendChild(speichern);
+    container.appendChild(weiter);
     container.appendChild(st2);
   }
 }
@@ -987,5 +1044,13 @@ function escape(s) {
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
   );
 }
+
+document.getElementById("aktualisieren").addEventListener("click", async () => {
+  const offen = aktiveKarteId;
+  standEl.textContent = "Aktualisiere …";
+  await ladeBoard();
+  standEl.textContent = "Aktualisiert.";
+  if (offen && karteById(offen)) oeffneDetail(offen);
+});
 
 ladeBoard();

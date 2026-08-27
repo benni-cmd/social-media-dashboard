@@ -1,17 +1,38 @@
 {
   "columns": [
-    { "id": "idee", "title": "Idee" },
-    { "id": "skript", "title": "Skript" },
-    { "id": "videodreh", "title": "Videodreh" },
-    { "id": "schnitt", "title": "Schnitt" },
-    { "id": "caption", "title": "Caption" },
-    { "id": "upload", "title": "Upload" },
-    { "id": "fertig", "title": "Fertig" }
+    {
+      "id": "idee",
+      "title": "Idee"
+    },
+    {
+      "id": "skript",
+      "title": "Skript"
+    },
+    {
+      "id": "videodreh",
+      "title": "Videodreh"
+    },
+    {
+      "id": "schnitt",
+      "title": "Schnitt"
+    },
+    {
+      "id": "caption",
+      "title": "Caption"
+    },
+    {
+      "id": "upload",
+      "title": "Upload"
+    },
+    {
+      "id": "fertig",
+      "title": "Fertig"
+    }
   ],
   "cards": [
     {
       "id": "test-oasis-01",
-      "column": "skript",
+      "column": "fertig",
       "title": "Digitaler Sandkasten",
       "notes": "Testprojekt 1 — gematcht mit Drive: In Bearbeitung/Skript/ProjectOasis_EP01_DigitalerSandkasten",
       "serie": "ProjectOasis",
@@ -33,6 +54,58 @@
       "uploadDate": null,
       "checks": {},
       "ai": {},
+      "driveCreated": true
+    },
+    {
+      "id": "cmtbicpmpuzv8",
+      "column": "skript",
+      "title": "Hühnernahrung mit Maden",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "uploadDate": null,
+      "checks": {},
+      "ai": {
+        "recherche": "# 1. Zusammenfassung & Recherche\n\n**Was Maden (Black Soldier Fly / Hermetia illucens-Larven) ernährungsphysiologisch bringen:**\n- Getrocknete Larven enthalten ca. 40–45 % Rohprotein und 30–35 % Fett – vergleichbar mit Fischmehl, in der Aminosäurenzusammensetzung (v. a. Lysin, Methionin) sehr nah an Sojaschrot.\n- Kalziumgehalt ist hoch, besonders wenn die Larven auf kalziumreichem Substrat gezüchtet werden – relevant für Legehennen und Eierschalenqualität.\n- Studien (u. a. Wageningen, Poultry Science) zeigen: Einsatzraten von 5–15 % in der Ration bei Broilern und Legehennen ohne negative Effekte auf Wachstum, teils sogar verbesserte Darmgesundheit durch das enthaltene Chitin (präbiotische Wirkung in moderater Dosis).\n- Hühner sind von Natur aus Allesfresser – Insektenjagd ist arteigenes Verhalten. Studien zur Legehennenhaltung zeigen: aktives Picken nach Maden reduziert Federpicken und Stressverhalten in der Gruppe.\n- Bioökonomischer Fakt: BSF-Larven verdoppeln ihre Biomasse in ca. 24 Stunden, Zuchtzyklus bis zur Erntereife liegt bei 2 Wochen, sie verwerten organische Reststoffe (Küchenabfälle, Ernterückstände) sehr effizient – deutlich höhere Futterverwertung als klassische Nutztierproduktion.\n- Regulatorisch in der EU seit 2021 (VO 2021/1372) offiziell als Geflügelfutter zugelassen – kein Nischen- oder Grauzonenthema mehr.\n- Ökologischer Hebel: Reduziert Bedarf an importiertem Sojaschrot (Haupttreiber für Landnutzungsänderung/Abholzung in Südamerika) und an Fischmehl (Überfischung/Beifang) – beides Importe, die kleine Betriebe ohnehin selten sich leisten oder logistisch stemmen können.\n\nKein Wunderkäfer, aber ein solide belegter Baustein für dezentrale, kreislauffähige Tierhaltung.\n\n# 2. Hauptfokus\n\n**Kreislauf auf dem eigenen Hof: Aus Essensresten wird Hühnerfutter – lokal, kostenlos, artgerecht.**\n\nDas trifft die Zielgruppe (Menschen mit eigener Farm, Garten, Kleintierhaltung, Selbstversorger-Mindset) direkt an ihrem Alltagsproblem: Futterkosten und Abfall. Es ist konkret nachmachbar, visuell stark (Maden wuseln, Hühner picken begeistert), und liefert gleichzeitig den wissenschaftlichen Unterbau (Aminosäureprofil, Effizienz), der World Eden Era als seriöse Autorität positioniert – nicht nur \"nice Öko-Idee\", sondern belastbare Systemökologie.\n\n# 3. Fokus-Alternativen\n\n**A) Unabhängigkeit von Soja & Fischmehl**\nFokus auf den globalen Fußabdruck: Jede Made, die zuhause gezüchtet wird, ersetzt ein Stück importiertes Sojaschrot oder Fischmehl. Stärker politisch/global gedacht, weniger \"Do-it-yourself-Anleitung\", eher Bewusstseinsarbeit für den größeren Zusammenhang zwischen Tierfutter und Landnutzung.\n\n**B) Tierwohl & artgerechtes Verhalten**\nFokus darauf, dass Hühner biologisch auf Insektenjagd ausgelegt sind – Maden als Verhaltensbereicherung, die Stress und Federpicken reduziert. Emotional zugänglicher Einstieg über Tierwohl statt Effizienz, spricht eher Hobbyhalter:innen an, die primär glückliche Hühner wollen, nicht in erster Linie Kosteneffizienz.\n\n# 4. Haupt-Hook (verbal & visuell)\n\n**Verbal:**\n\"Du kippst gerade Gemüsereste in den Müll – und kaufst nebenan Hühnerfutter für 30 Euro den Sack. Das hier beendet beides gleichzeitig.\"\n\n**Visuell:**\nHarter Schnitt-Einstieg: Zuerst 1 Sekunde jemand, der Küchenabfälle in die Mülltonne wirft – dann sofort Schnitt auf denselben Abfall in einer Zuchtbox voller wuselnder weißer Maden, Kamera zoomt rein, dann Schnitt auf Hühner, die begeistert danach picken. Kein erklärender Text vorher, der Widerspruch (Müll vs. Futter) trägt den Hook allein.\n\n# 5. Hook-Alternativen\n\n**Alternative 1 – persönliche Kostenfrage:**\nVerbal: \"Wie viel gibst du im Monat für Hühnerfutter aus? Ich zeig dir, wie du das auf fast null bringst – mit was aus deiner eigenen Küche.\"\nVisuell: Nahaufnahme einer Hand, die Futtersackpreis-Etikett zeigt, dann Wisch-Transition zur selbstgebauten Madenbox.\n\n**Alternative 2 – Verhaltens-Overraschung:**\nVerbal: \"Deine Hühner picken den ganzen Tag im Boden rum – nicht weil sie gelangweilt sind, sondern weil ihnen was fehlt. Und das kannst du in einer Kiste züchten.\"\nVisuell: Zeitlupenaufnahme pickender Hühner im leeren Auslauf, dann Schnitt zur vollen Madenbox als \"Auflösung\".\n\nWelche Richtung soll ich für Phase 2 (Skript) ausbauen – Hauptfokus wie vorgeschlagen, oder eine der Alternativen?"
+      },
+      "recherche": {
+        "zusammenfassung": "Die Larve der Schwarzen Soldatenfliege (Hermetia illucens, oft vereinfacht 'Made' genannt) enthaelt getrocknet 40-45% Rohprotein und 30-35% Fett und liegt damit ernaehrungsphysiologisch nah an Fischmehl, das aktuell in vielen Huehnerfuttermischungen als Proteinquelle dient. Huehner sind evolutionaer Allesfresser, die in freier Haltung einen erheblichen Teil ihres Proteinbedarfs aus Insekten, Wuermern und Larven decken; kommerzielles Futter basiert dagegen meist auf importiertem Soja, dessen Anbau in Suedamerika mit Landnutzungsaenderung und Regenwaldrodung verknuepft ist. BSF-Larven lassen sich auf organischen Reststoffen (Kuechenabfaelle, Ernterueckstaende, Trester) aufziehen und reduzieren dabei das Ausgangsmaterial um bis zu 70-80% des Volumens, waehrend sie es in essbare Biomasse umwandeln - ein in der Kreislaufwirtschaft und Agraroekologie zunehmend eingesetztes Verfahren. Studien zu Legehennen und Broilern zeigen, dass ein Teilersatz von Soja- oder Fischmehlanteilen durch BSF-Larvenmehl (haeufig 5-15% der Ration) Legeleistung und Gewichtszunahme im Rahmen der Kontrollgruppen haelt, bei gleichzeitig sinkenden Futterkosten fuer Kleinbetriebe, da die Larvenproduktion vor Ort mit geringem Flaechen- und Wasserbedarf moeglich ist. Relevant fuer Systemoekologie-Kontexte wie Project Oasis: die Larvenzucht laesst sich mit Kompostierung, Aquaponik-Resten und Gemueseanbau zu einem geschlossenen Naehrstoffkreislauf verbinden, in dem nichts aus dem System entnommen werden muss, ausser dem fertigen Protein am Ende der Kette.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Kreislauf statt Import: Kuechen- und Ernteabfaelle werden ueber BSF-Larven in Huehnerfutter verwandelt, das sonst importiertes Soja- oder Fischmehl ersetzt - konkreter Baustein im geschlossenen System von Project Oasis, nicht nur ein netter Trick."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Artgerechte Fuetterung: Huehner sind von Natur aus Insektenfresser, kein reines Koernertier. Maden als Futter entsprechen dem natuerlichen Verhalten, sichtbar am Pick- und Jagdverhalten der Tiere - ein Tierwohl-Argument mit biologischer Grundlage."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Oekonomie fuer Kleinbauern: Lokale Larvenproduktion senkt Futterkosten und macht unabhaengig von schwankenden Weltmarktpreisen fuer Soja und Fischmehl - Autarkie als handfester wirtschaftlicher Vorteil, nicht nur oekologisches Ideal."
+          }
+        ],
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Wenn du Huehner hast: Was kostet dich eigentlich am meisten am Monat - das Futter, oder?",
+            "visuell": "Nahaufnahme eines Futtersacks/Preisschilds, dann Schnitt zu Huehnern, die aktiv nach etwas picken"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Du wirfst Gemueseresten weg und kaufst gleichzeitig teures Huehnerfutter - merkst du, wo der Denkfehler liegt?",
+            "visuell": "Kuechenabfaelle in einer Schuessel neben einer Futtertuete, beide nebeneinander im Bild"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Guck mal, wie dein Huhn reagiert, wenn da ploetzlich was Lebendiges im Futter ist - das ist kein Zufall.",
+            "visuell": "Slow-Motion Huhn, das aktiv nach einer Made pickt, sichtbare Erregung/Interesse"
+          }
+        ]
+      },
+      "chosenFokus": 0,
+      "chosenHook": 2,
+      "freigabe": "Fokus: Hauptfokus — Kreislauf statt Import: Kuechen- und Ernteabfaelle werden ueber BSF-Larven in Huehnerfutter verwandelt, das sonst importiertes Soja- oder Fischmehl ersetzt - konkreter Baustein im geschlossenen System von Project Oasis, nicht nur ein netter Trick.\nHook verbal: Guck mal, wie dein Huhn reagiert, wenn da ploetzlich was Lebendiges im Futter ist - das ist kein Zufall.\nHook visuell: Slow-Motion Huhn, das aktiv nach einer Made pickt, sichtbare Erregung/Interesse",
       "driveCreated": true
     }
   ]
