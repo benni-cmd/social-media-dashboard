@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics — Social Media Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Analytics-spezifische Stile */
+      .analytics-main {
+        flex: 1 1 auto;
+        padding: 24px 28px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+
+      .plattform-sektion {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .plattform-kopf {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 12px;
+      }
+      .plattform-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .plattform-icon.ig { background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+      .plattform-icon.li { background: #0a66c2; }
+      .plattform-name {
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .plattform-verbinden {
+        margin-left: auto;
+        background: var(--accent-weich);
+        border: 1px solid var(--accent);
+        color: var(--text);
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .plattform-verbinden:hover { background: var(--accent); }
+
+      .plattform-nicht-verbunden {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 24px;
+        background: var(--panel);
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+      }
+      .plattform-hinweis {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .konto-leiste {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+      .konto-bild {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .konto-info-block {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .konto-nutzername {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .konto-kennzahlen {
+        display: flex;
+        gap: 20px;
+      }
+      .kennzahl {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .kennzahl-wert {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .kennzahl-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      /* Medien-Grid (Instagram) */
+      .medien-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .medien-karte {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        text-decoration: none;
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        transition: border-color 0.15s;
+      }
+      .medien-karte:hover { border-color: var(--accent); }
+      .medien-thumb {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+        background: var(--panel-2);
+      }
+      .medien-kein-bild {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        background: var(--panel-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 28px;
+      }
+      .medien-meta {
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .medien-typ {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .medien-metriken {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .medien-metriken span { color: var(--text); }
+
+      /* Posts-Liste (LinkedIn) */
+      .posts-liste {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .post-karte {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .post-text {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .post-metriken {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 500;
+      }
+      .post-datum {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      /* Fehler-Banner */
+      .fehler-banner {
+        background: rgba(224, 87, 74, 0.12);
+        border: 1px solid var(--gefahr);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--gefahr);
+      }
+
+      /* Lade-Zustand */
+      .lade-hinweis {
+        color: var(--muted);
+        font-size: 13px;
+        padding: 12px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="kopf">
+      <span class="kopf-titel">Content-Pipeline-Board</span>
+      <a href="/" class="kopf-knopf" style="text-decoration:none">&#8592; Board</a>
+      <span class="kopf-pfad">Analytics</span>
+      <span id="meldung" class="kopf-stand"></span>
+    </header>
+
+    <main class="analytics-main">
+
+      <!-- Instagram -->
+      <section class="plattform-sektion" id="ig-sektion">
+        <div class="plattform-kopf">
+          <div class="plattform-icon ig">&#128247;</div>
+          <span class="plattform-name">Instagram</span>
+          <a class="plattform-verbinden" id="ig-verbinden-knopf" href="/api/auth/instagram" style="display:none">Verbinden</a>
+        </div>
+        <div id="ig-inhalt">
+          <p class="lade-hinweis">Wird geladen …</p>
+        </div>
+      </section>
+
+      <!-- LinkedIn -->
+      <section class="plattform-sektion" id="li-sektion">
+        <div class="plattform-kopf">
+          <div class="plattform-icon li">in</div>
+          <span class="plattform-name">LinkedIn</span>
+          <a class="plattform-verbinden" id="li-verbinden-knopf" href="/api/auth/linkedin" style="display:none">Verbinden</a>
+        </div>
+        <div id="li-inhalt">
+          <p class="lade-hinweis">Wird geladen …</p>
+        </div>
+      </section>
+
+    </main>
+
+    <script src="analytics.js" type="module"></script>
+  </body>
+</html>

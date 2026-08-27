@@ -17,3 +17,6 @@ Diagnose.cmd
 *.pem
 credentials.json
 *service-account*.json
+
+# OAuth-Tokens: lokal, nie im Repo.
+data/tokens.json

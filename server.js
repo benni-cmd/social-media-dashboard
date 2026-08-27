@@ -15,8 +15,31 @@ import * as drive from "./drive.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
+
+// Laedt .env falls vorhanden (kein dotenv-Paket noetig).
+async function ladeEnv() {
+  try {
+    const inhalt = await readFile(join(__dirname, ".env"), "utf8");
+    for (const zeile of inhalt.split("\n")) {
+      const m = zeile.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (m && m[2] && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  } catch { /* .env nicht vorhanden */ }
+}
 const BOARD_FILE = join(__dirname, "data", "board.json");
+const TOKEN_FILE = join(__dirname, "data", "tokens.json");
 const PUBLIC_DIR = join(__dirname, "public");
+
+async function leseTokens() {
+  try { return JSON.parse(await readFile(TOKEN_FILE, "utf8")); }
+  catch { return {}; }
+}
+async function speichereToken(plattform, daten) {
+  const t = await leseTokens();
+  t[plattform] = { ...daten, verbundenAm: new Date().toISOString() };
+  await mkdir(join(__dirname, "data"), { recursive: true });
+  await writeFile(TOKEN_FILE, JSON.stringify(t, null, 2), "utf8");
+}
 // Wurzel der Projekt-Dateien (spaeter = Google-Drive-Wurzel). Siehe docs/drive-convention.md.
 const PROJECTS_DIR = join(__dirname, "projects");
 
@@ -473,6 +496,248 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // ------------------------------------------------------------------ //
+    // --- OAuth: Instagram                                              --- //
+    // ------------------------------------------------------------------ //
+
+    if (path === "/api/auth/instagram" && req.method === "GET") {
+      const appId = process.env.INSTAGRAM_APP_ID;
+      if (!appId) { sendJson(res, 500, { error: "INSTAGRAM_APP_ID fehlt in .env" }); return; }
+      const p = new URLSearchParams({
+        client_id: appId,
+        redirect_uri: `http://localhost:${PORT}/api/auth/instagram/callback`,
+        scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
+        response_type: "code",
+      });
+      res.writeHead(302, { location: `https://www.facebook.com/v21.0/dialog/oauth?${p}` });
+      res.end();
+      return;
+    }
+
+    if (path === "/api/auth/instagram/callback" && req.method === "GET") {
+      const code = url.searchParams.get("code");
+      const errMsg = url.searchParams.get("error_description");
+      if (!code) {
+        res.writeHead(302, { location: `/analytics.html?fehler=${encodeURIComponent(errMsg || "Verbindung abgebrochen")}` });
+        res.end();
+        return;
+      }
+      try {
+        const appId = process.env.INSTAGRAM_APP_ID;
+        const appSecret = process.env.INSTAGRAM_APP_SECRET;
+        const redirectUri = `http://localhost:${PORT}/api/auth/instagram/callback`;
+        const base = "https://graph.facebook.com/v21.0";
+
+        // Kurzzeit-Token
+        const tokRes = await fetch(`${base}/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`);
+        const tokData = await tokRes.json();
+        if (tokData.error) throw new Error(tokData.error.message);
+
+        // Langzeit-Token (60 Tage)
+        const langRes = await fetch(`${base}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokData.access_token}`);
+        const langData = await langRes.json();
+        const userToken = langData.access_token || tokData.access_token;
+
+        // Facebook-Seiten (liefert Seiten-Access-Token, der dauerhaft gueltig ist)
+        const seitenRes = await fetch(`${base}/me/accounts?access_token=${userToken}`);
+        const seitenData = await seitenRes.json();
+        if (!seitenData.data?.length) throw new Error("Keine Facebook-Seite gefunden. Bitte zuerst eine Facebook-Seite mit dem Instagram-Account verknüpfen.");
+
+        const seite = seitenData.data[0];
+        const seitenToken = seite.access_token;
+
+        // Instagram Business Account ID
+        const igRes = await fetch(`${base}/${seite.id}?fields=instagram_business_account&access_token=${seitenToken}`);
+        const igData = await igRes.json();
+        if (!igData.instagram_business_account) throw new Error("Keine Instagram Business/Creator-Account mit dieser Facebook-Seite verknüpft.");
+
+        const igUserId = igData.instagram_business_account.id;
+        const infoRes = await fetch(`${base}/${igUserId}?fields=username&access_token=${seitenToken}`);
+        const infoData = await infoRes.json();
+
+        await speichereToken("instagram", { accessToken: seitenToken, igUserId, username: infoData.username || "" });
+        res.writeHead(302, { location: "/analytics.html?verbunden=instagram" });
+        res.end();
+      } catch (e) {
+        res.writeHead(302, { location: `/analytics.html?fehler=${encodeURIComponent(e.message)}` });
+        res.end();
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------------ //
+    // --- Stats: Instagram                                              --- //
+    // ------------------------------------------------------------------ //
+
+    if (path === "/api/stats/instagram" && req.method === "GET") {
+      const tokens = await leseTokens();
+      const ig = tokens.instagram;
+      if (!ig) { sendJson(res, 200, { verbunden: false }); return; }
+      try {
+        const base = "https://graph.facebook.com/v21.0";
+        const tok = ig.accessToken;
+
+        const infoRes = await fetch(`${base}/${ig.igUserId}?fields=username,followers_count,media_count,profile_picture_url&access_token=${tok}`);
+        const konto = await infoRes.json();
+        if (konto.error) throw new Error(konto.error.message);
+
+        const medienRes = await fetch(`${base}/${ig.igUserId}/media?fields=id,caption,media_type,timestamp,like_count,comments_count,media_url,thumbnail_url,permalink&limit=12&access_token=${tok}`);
+        const medienData = await medienRes.json();
+
+        const medien = await Promise.all(
+          (medienData.data || []).map(async (m) => {
+            try {
+              const metriken = (m.media_type === "VIDEO" || m.media_type === "REEL")
+                ? "impressions,reach,plays,saved"
+                : "impressions,reach,saved";
+              const insRes = await fetch(`${base}/${m.id}/insights?metric=${metriken}&access_token=${tok}`);
+              const ins = await insRes.json();
+              const insMap = {};
+              for (const item of (ins.data || [])) insMap[item.name] = item.values?.[0]?.value ?? 0;
+              return { ...m, insights: insMap };
+            } catch { return { ...m, insights: {} }; }
+          })
+        );
+
+        sendJson(res, 200, { verbunden: true, konto, medien });
+      } catch (e) {
+        sendJson(res, 200, { verbunden: true, fehler: e.message });
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------------ //
+    // --- OAuth: LinkedIn                                               --- //
+    // ------------------------------------------------------------------ //
+
+    if (path === "/api/auth/linkedin" && req.method === "GET") {
+      const clientId = process.env.LINKEDIN_CLIENT_ID;
+      if (!clientId) { sendJson(res, 500, { error: "LINKEDIN_CLIENT_ID fehlt in .env" }); return; }
+      const p = new URLSearchParams({
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: `http://localhost:${PORT}/api/auth/linkedin/callback`,
+        scope: "r_organization_social rw_organization_admin",
+        state: "li_" + Date.now(),
+      });
+      res.writeHead(302, { location: `https://www.linkedin.com/oauth/v2/authorization?${p}` });
+      res.end();
+      return;
+    }
+
+    if (path === "/api/auth/linkedin/callback" && req.method === "GET") {
+      const code = url.searchParams.get("code");
+      if (!code) {
+        res.writeHead(302, { location: `/analytics.html?fehler=${encodeURIComponent("LinkedIn-Verbindung abgebrochen")}` });
+        res.end();
+        return;
+      }
+      try {
+        const clientId = process.env.LINKEDIN_CLIENT_ID;
+        const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+        const redirectUri = `http://localhost:${PORT}/api/auth/linkedin/callback`;
+
+        const tokRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: redirectUri, client_id: clientId, client_secret: clientSecret }),
+        });
+        const tokData = await tokRes.json();
+        if (tokData.error) throw new Error(tokData.error_description || tokData.error);
+
+        const accessToken = tokData.access_token;
+        const orgRes = await fetch(
+          "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&role=ADMINISTRATOR&count=5",
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const orgData = await orgRes.json();
+        const orgs = orgData.elements || [];
+        if (!orgs.length) throw new Error("Keine LinkedIn-Unternehmensseite mit Administrator-Rolle gefunden.");
+
+        const orgUrn = orgs[0].organizationalTarget;
+        const orgId = orgUrn?.split(":").pop() || "";
+
+        // Organisation-Name holen
+        const nameRes = await fetch(
+          `https://api.linkedin.com/v2/organizations/${orgId}?fields=id,localizedName`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const nameData = await nameRes.json();
+        const orgName = nameData.localizedName || orgId;
+
+        await speichereToken("linkedin", { accessToken, orgUrn, orgId, orgName });
+        res.writeHead(302, { location: "/analytics.html?verbunden=linkedin" });
+        res.end();
+      } catch (e) {
+        res.writeHead(302, { location: `/analytics.html?fehler=${encodeURIComponent(e.message)}` });
+        res.end();
+      }
+      return;
+    }
+
+    // ------------------------------------------------------------------ //
+    // --- Stats: LinkedIn                                               --- //
+    // ------------------------------------------------------------------ //
+
+    if (path === "/api/stats/linkedin" && req.method === "GET") {
+      const tokens = await leseTokens();
+      const li = tokens.linkedin;
+      if (!li) { sendJson(res, 200, { verbunden: false }); return; }
+      try {
+        const headers = { Authorization: `Bearer ${li.accessToken}` };
+
+        // Follower
+        const follRes = await fetch(
+          `https://api.linkedin.com/v2/networkSizes/${encodeURIComponent(li.orgUrn)}?edgeType=CompanyFollowedByMember`,
+          { headers }
+        );
+        const follData = await follRes.json();
+
+        // Letzte Posts
+        const postsRes = await fetch(
+          `https://api.linkedin.com/v2/ugcPosts?q=authors&authors=List(${encodeURIComponent(li.orgUrn)})&count=10`,
+          { headers }
+        );
+        const postsData = await postsRes.json();
+
+        const posts = await Promise.all(
+          (postsData.elements || []).map(async (post) => {
+            try {
+              const actRes = await fetch(
+                `https://api.linkedin.com/v2/socialActions/${encodeURIComponent(post.id)}`,
+                { headers }
+              );
+              const act = await actRes.json();
+              return {
+                id: post.id,
+                text: post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary?.text || "",
+                erstellt: post.firstPublishedAt,
+                likes: act.likesSummary?.totalLikes ?? 0,
+                kommentare: act.commentsSummary?.totalFirstLevelComments ?? 0,
+              };
+            } catch {
+              return {
+                id: post.id,
+                text: post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary?.text || "",
+                erstellt: post.firstPublishedAt,
+                likes: 0,
+                kommentare: 0,
+              };
+            }
+          })
+        );
+
+        sendJson(res, 200, {
+          verbunden: true,
+          konto: { name: li.orgName, follower: follData.firstDegreeSize ?? 0 },
+          posts,
+        });
+      } catch (e) {
+        sendJson(res, 200, { verbunden: true, fehler: e.message });
+      }
+      return;
+    }
+
     // --- Statische Dateien ---
     let rel = path === "/" ? "/index.html" : path;
     const safe = normalize(rel).replace(/^(\.\.[/\\])+/, "");
@@ -492,6 +757,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
+await ladeEnv();
 server.listen(PORT, () => {
   console.log(`Content-Pipeline-Board laeuft auf http://localhost:${PORT}`);
 });
