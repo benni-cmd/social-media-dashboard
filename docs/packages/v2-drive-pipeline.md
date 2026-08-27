@@ -48,8 +48,9 @@ Server bleibt der KI- und Drive-Proxy; die Oberflaeche bleibt lokal.
 ## Plan (phasiert)
 
 1. [ ] Phase 0: Claude-CLI-Login (Ben) — `claude auth login`, geprueft mit `claude auth status`.
-2. [ ] Phase 1 (lokal, ohne Google): Spalten Videodreh + Fertig ergaenzen, Upload-Datum-Feld,
+2. [x] Phase 1 (lokal, ohne Google): Spalten Videodreh + Fertig ergaenzt, Upload-Datum-Feld,
        Ampel-Farbe, Haken-getriebene Uebergaenge, kontext-spezifische Buttons pro Spalte.
+       (Struktur per DOM verifiziert; optische Abnahme offen — Browser-Pane nicht anzeigbar.)
 3. [ ] Phase 2: Google verbinden (OAuth Drive + Calendar), Zugangsweg in `.secrets/` dokumentiert.
 4. [ ] Phase 3: Drive-Projektstruktur automatisch anlegen beim Idee->Skript-Uebergang.
 5. [ ] Phase 4: Drive als Zustandsspeicher (`project.json`), Board rendert aus Drive, Team-Sync.
@@ -67,8 +68,13 @@ Server bleibt der KI- und Drive-Proxy; die Oberflaeche bleibt lokal.
 
 ## Status
 
-2026-08-27 — Plan angelegt. Login-Weg verifiziert (`claude auth login`). Phase 1 ist
-entscheidungsfrei und wird als naechstes gebaut; Google-Phasen warten auf die Entscheidungen.
+2026-08-27 — Plan angelegt, Login-Weg verifiziert (`claude auth login`). Entscheidungen
+getroffen: Drive = Single Point of Truth · OAuth pro Nutzer · Auto-Uebergang per Polling.
+Phase 1 gebaut: 7 Spalten (Videodreh + Fertig neu), Upload-Datum mit Ampel (gruen >10 T,
+gelb ab 10 T, rot ab 5 T, in Upload immer gruen), Haken in Videodreh/Schnitt/Upload schiebt
+die Karte weiter, KI-Buttons stufen-spezifisch (Idee: Fokus schaerfen · Skript: Skript
+schreiben · Caption: Caption schreiben). Server laeuft auf `localhost:4321`. Struktur per
+`read_page` verifiziert. Offen: optische Abnahme (Pane nicht anzeigbar) + CLI-Login (Ben).
 
 ## Definition of Done
 

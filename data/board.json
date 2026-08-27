@@ -2,9 +2,11 @@
   "columns": [
     { "id": "idee", "title": "Idee" },
     { "id": "skript", "title": "Skript" },
+    { "id": "videodreh", "title": "Videodreh" },
     { "id": "schnitt", "title": "Schnitt" },
     { "id": "caption", "title": "Caption" },
-    { "id": "upload", "title": "Upload" }
+    { "id": "upload", "title": "Upload" },
+    { "id": "fertig", "title": "Fertig" }
   ],
   "cards": [
     {
@@ -12,6 +14,17 @@
       "column": "idee",
       "title": "Beispiel: 3 Fehler beim ersten Reel",
       "notes": "Kurzer Erklaer-Clip. Zielgruppe: Leute, die gerade mit Content anfangen.",
+      "uploadDate": null,
+      "checks": {},
+      "ai": {}
+    },
+    {
+      "id": "cmtbavq2odgqy",
+      "column": "idee",
+      "title": "Neue Ideeawdawd",
+      "notes": "wadawd",
+      "uploadDate": null,
+      "checks": {},
       "ai": {}
     }
   ]

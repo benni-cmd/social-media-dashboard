@@ -126,6 +126,36 @@ body {
   margin-top: 4px;
 }
 
+/* --- Upload-Datum-Ampel --- */
+.karte-datum {
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid transparent;
+}
+.ampel-gruen {
+  background: rgba(58, 170, 90, 0.16);
+  color: #7fdba0;
+  border-color: rgba(58, 170, 90, 0.4);
+}
+.ampel-gelb {
+  background: rgba(224, 178, 74, 0.16);
+  color: #f0cd7a;
+  border-color: rgba(224, 178, 74, 0.4);
+}
+.ampel-rot {
+  background: rgba(224, 87, 74, 0.16);
+  color: #f0968c;
+  border-color: rgba(224, 87, 74, 0.45);
+}
+.ampel-grau {
+  background: var(--panel-2);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
 .karte-neu {
   margin: 0 10px 10px;
   padding: 8px;
@@ -188,6 +218,53 @@ body {
 .feld-eingabe:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.detail-stufe {
+  align-self: flex-start;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: var(--accent-weich);
+  border: 1px solid var(--accent);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.datum-hinweis {
+  margin: 0;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+.stufe-block {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stufe-hinweis {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.haken-zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.haken-zeile input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .ki-block {

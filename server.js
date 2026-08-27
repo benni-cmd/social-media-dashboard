@@ -24,8 +24,15 @@ const MIME = {
   ".svg": "image/svg+xml",
 };
 
-// --- KI-Aufgaben: fester Katalog. Jede baut aus dem Karten-Inhalt einen Prompt. ---
+// --- KI-Aufgaben: fester Katalog, je Pipeline-Stufe genau eine. ---
 const AI_TASKS = {
+  // Idee -> Skript: erst den Fokus schaerfen, damit das Skript praezise wird.
+  fokus: (card) =>
+    `Du hilfst, aus einer groben Idee einen praezisen Content-Fokus zu machen. Schaerfe ` +
+    `Kernaussage, Zielgruppe und den Winkel und nenne 3 konkrete inhaltliche Punkte, die ` +
+    `ins Skript gehoeren. Kurz und klar, auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${
+      card.notes || "(keine)"
+    }`,
   skript: (card) =>
     `Du bist Kurzvideo-Autor fuer Instagram Reels und LinkedIn. Schreibe aus dieser Idee ` +
     `ein knappes Skript (Hook, 3-4 Kernpunkte, Call-to-Action), maximal 45 Sekunden ` +
@@ -34,11 +41,6 @@ const AI_TASKS = {
     `Schreibe eine Caption fuer Instagram und LinkedIn zu diesem Content. Erst ein ` +
     `packender erster Satz, dann 2-3 Saetze Kontext, am Ende 5-8 passende Hashtags. ` +
     `Auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${card.notes || "(keine)"}`,
-  hooks: (card) =>
-    `Gib fuenf verschiedene starke Hooks (erste 3 Sekunden) fuer ein Kurzvideo zu diesem ` +
-    `Thema. Nummeriert, je eine Zeile, auf Deutsch.\n\nTitel: ${card.title}\nNotizen: ${
-      card.notes || "(keine)"
-    }`,
 };
 
 function sendJson(res, code, obj) {
