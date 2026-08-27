@@ -56,11 +56,13 @@ function spaltenOrdner(col) {
   return SPALTE_ORDNER[col] || "In Bearbeitung/Idee";
 }
 
-// Projektname im Drive: <Serie>_EP<NN>_<Thema> (ohne WEE-Praefix, Owner-Entscheidung).
+// Projektname im Drive: mit Reihe <Serie>_EP<NN>_<Thema>, ohne Reihe (Einzelvideo) nur <Thema>.
 function projektName(card) {
-  const serie = slug(card.serie) || "OhneReihe";
+  const thema = slug(card.title);
+  if (!card.serie) return thema;
+  const serie = slug(card.serie);
   const ep = (card.episode || "00").toString().padStart(2, "0");
-  return `${serie}_EP${ep}_${slug(card.title)}`;
+  return `${serie}_EP${ep}_${thema}`;
 }
 // Projektordner in der aktuellen Spalte.
 function driveBase(card) {
@@ -185,15 +187,24 @@ function kontext(card) {
 
 // --- KI-Aufgaben nach Bens Zwei-Phasen-Logik. ---
 const AI_TASKS = {
-  // PHASE 1 (Idee): iterativer Jam.
+  // PHASE 1 (Idee): iterativer Jam. Antwort als striktes JSON fuer die Auswahl-UI.
   recherche: (card) =>
-    `Wir sind in PHASE 1 (iterativer Jam: Idee & Recherche). Liefere GENAU diese Struktur:\n` +
-    `1. Zusammenfassung & Recherche: fundierte Hard Facts zum Thema, keine Oeko-Romantik.\n` +
-    `2. Hauptfokus: welcher inhaltliche Schwerpunkt erzielt die hoechste Wirkung?\n` +
-    `3. Fokus-Alternativen: 2 alternative Fokus-Vorschlaege.\n` +
-    `4. Haupt-Hook (verbal & visuell): ein packender Pattern-Interrupt-Einstieg, persoenlich.\n` +
-    `5. Hook-Alternativen: 2 alternative Hooks.\n` +
-    `Schreib in dieser Phase KEIN fertiges Skript.` +
+    `Wir sind in PHASE 1 (Idee & Recherche). Antworte AUSSCHLIESSLICH mit gueltigem JSON, ` +
+    `keine Markdown-Fences, kein Text davor/danach. Schema:\n` +
+    `{\n` +
+    `  "zusammenfassung": "fundierte Hard Facts zum Thema, mehrere Saetze, keine Oeko-Romantik",\n` +
+    `  "fokus": [\n` +
+    `    {"titel": "Hauptfokus", "text": "staerkster inhaltlicher Schwerpunkt"},\n` +
+    `    {"titel": "Alternative A", "text": "..."},\n` +
+    `    {"titel": "Alternative B", "text": "..."}\n` +
+    `  ],\n` +
+    `  "hooks": [\n` +
+    `    {"label": "Haupt-Hook", "verbal": "gesprochener Einstieg, persoenlich", "visuell": "Bild/Idee"},\n` +
+    `    {"label": "Alternative 1", "verbal": "...", "visuell": "..."},\n` +
+    `    {"label": "Alternative 2", "verbal": "...", "visuell": "..."}\n` +
+    `  ]\n` +
+    `}\n` +
+    `Genau 3 fokus- und 3 hook-Eintraege. Kein fertiges Skript.` +
     kontext(card),
 
   // PHASE 2a (Skript): One-Screen-Teleprompter.
@@ -223,14 +234,35 @@ const AI_TASKS = {
     }.` +
     kontext(card),
 
-  // PHASE 2b (Caption).
+  // PHASE 2b (Caption). Antwort als striktes JSON fuer die Auswahl-UI.
   caption: (card) =>
-    `Wir sind in PHASE 2 (Produktion). Schreibe die Social-Media-Captions:\n` +
-    `- Zwei optimierte Varianten: Variante A Fokus Instagram/TikTok, Variante B Fokus LinkedIn.\n` +
-    `- Danach EXAKT 5 Hashtags: #WorldEdenEra, #ProjectOasis und 3 themenspezifische, ` +
-    `reichweitenstarke Tags. Keine Ausnahme.` +
+    `Wir sind in PHASE 2 (Produktion). Antworte AUSSCHLIESSLICH mit gueltigem JSON, keine ` +
+    `Markdown-Fences, kein Text davor/danach. Schema:\n` +
+    `{\n` +
+    `  "varianten": [\n` +
+    `    {"plattform": "Instagram/TikTok", "text": "vollstaendige Caption"},\n` +
+    `    {"plattform": "LinkedIn", "text": "vollstaendige Caption"}\n` +
+    `  ],\n` +
+    `  "hashtags": ["#WorldEdenEra", "#ProjectOasis", "#drei", "#weitere", "#tags"]\n` +
+    `}\n` +
+    `EXAKT 5 Hashtags, die ersten beiden immer #WorldEdenEra und #ProjectOasis.` +
     kontext(card),
 };
+
+// Versucht, aus einer Modellantwort JSON zu ziehen (auch wenn Fences drumstehen).
+function parseJson(text) {
+  let t = (text || "").trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  const s = t.indexOf("{");
+  const e = t.lastIndexOf("}");
+  if (s >= 0 && e > s) t = t.slice(s, e + 1);
+  try {
+    return JSON.parse(t);
+  } catch {
+    return null;
+  }
+}
 
 function sendJson(res, code, obj) {
   const body = JSON.stringify(obj);
@@ -315,9 +347,11 @@ const server = createServer(async (req, res) => {
         const text = await runClaude(
           MARKE_REGELN + kontextBlock + "\n\n---\n\n" + build(card || {})
         );
-        // Ergebnis zusaetzlich als menschenlesbare Datei in die Projekt-Konvention schreiben.
+        // recherche/caption liefern JSON fuer die Auswahl-UI.
+        const data = ["recherche", "caption"].includes(task) ? parseJson(text) : null;
+        // Prosa-Ergebnisse (skript/regieplan) zusaetzlich lokal als menschenlesbare Datei ablegen.
         let datei = null;
-        if (card && TASK_DATEI[task]) {
+        if (card && ["skript", "regieplan"].includes(task) && TASK_DATEI[task]) {
           try {
             const dir = projektDir(card);
             await mkdir(dir, { recursive: true });
@@ -331,7 +365,7 @@ const server = createServer(async (req, res) => {
             datei = null; // Datei-Schreiben ist Beiwerk, nicht kritisch.
           }
         }
-        sendJson(res, 200, { text, datei });
+        sendJson(res, 200, { text, datei, data });
       } catch (e) {
         // Haeufigster Fall: CLI nicht installiert oder nicht eingeloggt.
         const hint =

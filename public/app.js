@@ -96,9 +96,11 @@ function slug(s) {
 }
 
 function dateinameFuer(card) {
-  const reihe = slug(card.serie) || "Reihe";
+  const format = card.format || "Reel";
+  const thema = slug(card.title);
+  if (!card.serie) return `${MARKE}_${thema}_${format}.mp4`; // Einzelvideo, keine Reihe
   const ep = (card.episode || "00").toString().padStart(2, "0");
-  return `${MARKE}_${reihe}_EP${ep}_${slug(card.title)}_${card.format || "Reel"}.mp4`;
+  return `${MARKE}_${slug(card.serie)}_EP${ep}_${thema}_${format}.mp4`;
 }
 
 // Titel anderer Karten derselben Reihe (fuer Reihen-Kontinuitaet in der KI).
@@ -296,6 +298,10 @@ function zeichneStufenBlock(karte) {
     }
   }
 
+  // Multiple-Choice-Auswahl je nach Stufe.
+  if (karte.column === "idee" && karte.recherche) renderFokusHookAuswahl(karte, stufeBlockEl);
+  if (karte.column === "caption" && karte.caption) renderCaptionAuswahl(karte, stufeBlockEl);
+
   if (stufe.haken) {
     const zeile = document.createElement("label");
     zeile.className = "haken-zeile";
@@ -347,7 +353,7 @@ async function driveMove(karte, from, to) {
 }
 
 async function driveProjektAnlegen(karte, statusEl) {
-  statusEl.textContent = "Lege Drive-Projekt an …";
+  const weg = fortschrittAn(driveBlockEl, "Lege Drive-Projekt an …");
   try {
     const r = await fetch("/api/drive/create", {
       method: "POST",
@@ -364,14 +370,17 @@ async function driveProjektAnlegen(karte, statusEl) {
     await r.json();
     karte.driveCreated = true;
     speichere();
+    weg();
     ladeDrive(karte);
   } catch (e) {
+    weg();
     statusEl.textContent = "Anlegen fehlgeschlagen: " + e.message;
   }
 }
 
-async function skriptNachDrive(karte, text, statusEl) {
-  statusEl.textContent = "Speichere nach Drive …";
+// Speichert einen Text als Datei in "Skript und Caption/" des Drive-Projekts (mit Progress).
+async function dateiNachDrive(karte, filename, text, statusEl) {
+  const weg = fortschrittAn(driveBlockEl, "Speichere nach Drive …");
   try {
     const r = await fetch("/api/drive/save", {
       method: "POST",
@@ -381,24 +390,30 @@ async function skriptNachDrive(karte, text, statusEl) {
         episode: karte.episode,
         title: karte.title,
         column: karte.column,
-        filename: "10_skript.md",
+        filename,
         content: text,
       }),
     });
     const data = await r.json();
+    weg();
     if (data.ok) {
-      karte.skriptFinal = text;
-      karte.skriptGespeichert = true;
       karte.driveCreated = true;
       speichere();
-      statusEl.textContent = "Gespeichert: " + data.pfad;
+      standEl.textContent = "In Drive gespeichert: " + filename;
       ladeDrive(karte);
     } else {
       statusEl.textContent = "Speichern fehlgeschlagen.";
     }
   } catch (e) {
+    weg();
     statusEl.textContent = "Speichern fehlgeschlagen: " + e.message;
   }
+}
+
+async function skriptNachDrive(karte, text, statusEl) {
+  karte.skriptFinal = text;
+  karte.skriptGespeichert = true;
+  await dateiNachDrive(karte, "10_skript.md", text, statusEl);
 }
 
 function zeichneDriveBlock(karte, s) {
@@ -656,15 +671,25 @@ function zeichneArchiv(karte) {
   }
 }
 
+// Unbestimmte Fortschritts-Leiste, solange ein Request laeuft. Gibt eine Entfern-Funktion zurueck.
+function fortschrittAn(container, text) {
+  const box = document.createElement("div");
+  box.className = "fortschritt";
+  box.innerHTML =
+    `<div class="fortschritt-text">${text || "Die KI arbeitet …"}</div>` +
+    `<div class="fortschritt-schiene"><div class="fortschritt-balken"></div></div>`;
+  container.appendChild(box);
+  return () => box.remove();
+}
+
 async function ladeKi(task, knopf) {
   const karte = karteById(aktiveKarteId);
   if (!karte) return;
   const alle = stufeBlockEl.querySelectorAll(".ki-knopf");
   alle.forEach((b) => (b.disabled = true));
-  ergebnisEl.hidden = false;
+  const fortschrittWeg = fortschrittAn(stufeBlockEl, (KI_TITEL[task] || "KI") + " wird erstellt …");
+  ergebnisEl.hidden = true;
   ergebnisEl.classList.remove("fehler");
-  ergebnisTitelEl.textContent = (KI_TITEL[task] || "Ergebnis") + " — die KI arbeitet …";
-  ergebnisTextEl.textContent = "";
   try {
     const r = await fetch("/api/ai", {
       method: "POST",
@@ -673,7 +698,6 @@ async function ladeKi(task, knopf) {
         task,
         card: {
           title: karte.title,
-          // Beim Skript fliesst die Freigabe (finaler Fokus & Hook) mit in den Kontext.
           notes:
             task === "skript" && karte.freigabe
               ? `${karte.notes || ""}\n\nFreigegebener Fokus & Hook:\n${karte.freigabe}`
@@ -687,27 +711,223 @@ async function ladeKi(task, knopf) {
     });
     const data = await r.json();
     if (!r.ok) {
+      ergebnisEl.hidden = false;
       ergebnisEl.classList.add("fehler");
       ergebnisTitelEl.textContent = "Das hat nicht geklappt";
       ergebnisTextEl.textContent = data.hint || data.error || "Unbekannter Fehler.";
-    } else {
-      letztesKiErgebnis = data.text || "";
-      ergebnisTitelEl.textContent = KI_TITEL[task] || "Ergebnis";
-      ergebnisTextEl.textContent = letztesKiErgebnis;
-      karte.ai = karte.ai || {};
-      karte.ai[task] = letztesKiErgebnis;
-      zeichneArchiv(karte);
-      ladeDrive(karte);
-      render();
-      speichere();
+      return;
     }
+    // Multiple-Choice-Aufgaben: strukturierte Auswahl rendern.
+    if (task === "recherche") {
+      karte.recherche = data.data || { raw: data.text || "" };
+      speichere();
+      zeichneStufenBlock(karte);
+      return;
+    }
+    if (task === "caption") {
+      karte.caption = data.data || { raw: data.text || "" };
+      speichere();
+      zeichneStufenBlock(karte);
+      return;
+    }
+    // Prosa (skript/regieplan): Ergebnis + Archiv.
+    letztesKiErgebnis = data.text || "";
+    ergebnisEl.hidden = false;
+    ergebnisTitelEl.textContent = KI_TITEL[task] || "Ergebnis";
+    ergebnisTextEl.textContent = letztesKiErgebnis;
+    karte.ai = karte.ai || {};
+    karte.ai[task] = letztesKiErgebnis;
+    zeichneArchiv(karte);
+    ladeDrive(karte);
+    render();
+    speichere();
   } catch (e) {
+    ergebnisEl.hidden = false;
     ergebnisEl.classList.add("fehler");
     ergebnisTitelEl.textContent = "Das hat nicht geklappt";
     ergebnisTextEl.textContent = "Server nicht erreichbar: " + e.message;
   } finally {
+    fortschrittWeg();
     alle.forEach((b) => (b.disabled = false));
   }
+}
+
+// --- Multiple-Choice: Fokus + Hook (Idee) ---
+function renderFokusHookAuswahl(karte, container) {
+  const r = karte.recherche;
+  if (!r) return;
+  const kopf = document.createElement("div");
+  kopf.className = "archiv-kopf";
+  kopf.textContent = "Phase-1-Vorschlaege — waehle Fokus & Hook";
+  container.appendChild(kopf);
+
+  if (r.raw || !Array.isArray(r.fokus) || !Array.isArray(r.hooks)) {
+    const pre = document.createElement("pre");
+    pre.className = "archiv-text";
+    pre.textContent = r.raw || JSON.stringify(r, null, 2);
+    container.appendChild(pre);
+    return;
+  }
+
+  if (r.zusammenfassung) {
+    const det = document.createElement("details");
+    det.className = "archiv-eintrag";
+    det.innerHTML = `<summary>Recherche / Hard Facts</summary>`;
+    const p = document.createElement("pre");
+    p.className = "archiv-text";
+    p.textContent = r.zusammenfassung;
+    det.appendChild(p);
+    container.appendChild(det);
+  }
+
+  const fokusGruppe = mcGruppe(
+    "Fokus",
+    r.fokus.map((f, i) => ({ i, titel: f.titel, text: f.text })),
+    karte.chosenFokus,
+    (i) => {
+      karte.chosenFokus = i;
+      speichere();
+    }
+  );
+  container.appendChild(fokusGruppe);
+
+  const hookGruppe = mcGruppe(
+    "Hook",
+    r.hooks.map((h, i) => ({ i, titel: h.label, text: `Verbal: ${h.verbal}\nVisuell: ${h.visuell}` })),
+    karte.chosenHook,
+    (i) => {
+      karte.chosenHook = i;
+      speichere();
+    }
+  );
+  container.appendChild(hookGruppe);
+
+  const status = document.createElement("p");
+  status.className = "drive-status";
+  const uebernehmen = document.createElement("button");
+  uebernehmen.className = "ki-knopf";
+  uebernehmen.textContent = "Fokus & Hook uebernehmen (Freigabe fuer Skript)";
+  uebernehmen.addEventListener("click", () => {
+    if (karte.chosenFokus == null || karte.chosenHook == null) {
+      status.textContent = "Bitte je einen Fokus und einen Hook waehlen.";
+      return;
+    }
+    const f = r.fokus[karte.chosenFokus];
+    const h = r.hooks[karte.chosenHook];
+    karte.freigabe =
+      `Fokus: ${f.titel} — ${f.text}\n` +
+      `Hook verbal: ${h.verbal}\nHook visuell: ${h.visuell}`;
+    speichere();
+    status.textContent = "Uebernommen. Fliesst ins Skript (Spalte Skript).";
+  });
+  container.appendChild(uebernehmen);
+  container.appendChild(status);
+}
+
+// --- Multiple-Choice: Caption-Variante (Caption) ---
+function renderCaptionAuswahl(karte, container) {
+  const c = karte.caption;
+  if (!c) return;
+  const kopf = document.createElement("div");
+  kopf.className = "archiv-kopf";
+  kopf.textContent = "Caption-Varianten — waehle eine";
+  container.appendChild(kopf);
+
+  if (c.raw || !Array.isArray(c.varianten)) {
+    const pre = document.createElement("pre");
+    pre.className = "archiv-text";
+    pre.textContent = c.raw || JSON.stringify(c, null, 2);
+    container.appendChild(pre);
+    return;
+  }
+
+  const gruppe = mcGruppe(
+    "Caption",
+    c.varianten.map((v, i) => ({ i, titel: v.plattform, text: v.text })),
+    karte.chosenCaption,
+    (i) => {
+      karte.chosenCaption = i;
+      speichere();
+    }
+  );
+  container.appendChild(gruppe);
+
+  if (Array.isArray(c.hashtags)) {
+    const tags = document.createElement("p");
+    tags.className = "drive-status";
+    tags.textContent = "Hashtags: " + c.hashtags.join(" ");
+    container.appendChild(tags);
+  }
+
+  const status = document.createElement("p");
+  status.className = "drive-status";
+  const uebernehmen = document.createElement("button");
+  uebernehmen.className = "ki-knopf";
+  uebernehmen.textContent = "Caption uebernehmen (editierbar)";
+  uebernehmen.addEventListener("click", () => {
+    if (karte.chosenCaption == null) {
+      status.textContent = "Bitte eine Variante waehlen.";
+      return;
+    }
+    const v = c.varianten[karte.chosenCaption];
+    const tags = Array.isArray(c.hashtags) ? "\n\n" + c.hashtags.join(" ") : "";
+    karte.captionFinal = v.text + tags;
+    speichere();
+    zeichneStufenBlock(karte);
+  });
+  container.appendChild(uebernehmen);
+  container.appendChild(status);
+
+  // Editierbarer Gesamttext + Speichern nach Drive (30_caption.md).
+  if (karte.captionFinal != null) {
+    const label = document.createElement("label");
+    label.className = "feld-label";
+    label.textContent = "Finale Caption (anpassen, dann speichern)";
+    const ta = document.createElement("textarea");
+    ta.className = "feld-eingabe";
+    ta.rows = 6;
+    ta.value = karte.captionFinal;
+    ta.addEventListener("change", () => {
+      karte.captionFinal = ta.value;
+      speichere();
+    });
+    const speichern = document.createElement("button");
+    speichern.className = "ki-knopf";
+    speichern.textContent = "Caption nach Drive speichern (30_caption.md)";
+    const st2 = document.createElement("p");
+    st2.className = "drive-status";
+    speichern.addEventListener("click", () => dateiNachDrive(karte, "30_caption.md", ta.value, st2));
+    container.appendChild(label);
+    container.appendChild(ta);
+    container.appendChild(speichern);
+    container.appendChild(st2);
+  }
+}
+
+// Baut eine Multiple-Choice-Gruppe (Radios). onWahl(index) beim Anklicken.
+function mcGruppe(name, optionen, gewaehlt, onWahl) {
+  const box = document.createElement("div");
+  box.className = "mc-gruppe";
+  for (const opt of optionen) {
+    const label = document.createElement("label");
+    label.className = "mc-option" + (gewaehlt === opt.i ? " mc-aktiv" : "");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "mc-" + name + "-" + aktiveKarteId;
+    radio.checked = gewaehlt === opt.i;
+    radio.addEventListener("change", () => {
+      onWahl(opt.i);
+      for (const l of box.querySelectorAll(".mc-option")) l.classList.remove("mc-aktiv");
+      label.classList.add("mc-aktiv");
+    });
+    const txt = document.createElement("div");
+    txt.className = "mc-text";
+    txt.innerHTML = `<strong>${escape(opt.titel || "")}</strong><br>${escape(opt.text || "")}`;
+    label.appendChild(radio);
+    label.appendChild(txt);
+    box.appendChild(label);
+  }
+  return box;
 }
 
 // --- Detail-Felder binden ---
