@@ -51,6 +51,7 @@ const datumEl = document.getElementById("detail-datum");
 const datumHinweisEl = document.getElementById("datum-hinweis");
 const notizenEl = document.getElementById("detail-notizen");
 const stufeBlockEl = document.getElementById("stufe-block");
+const archivEl = document.getElementById("ki-archiv");
 const ergebnisEl = document.getElementById("ki-ergebnis");
 const ergebnisTextEl = document.getElementById("ki-ergebnis-text");
 const ergebnisTitelEl = document.getElementById("ki-ergebnis-titel");
@@ -241,6 +242,7 @@ function oeffneDetail(id) {
   dateinameEl.textContent = "Dateiname: " + dateinameFuer(karte);
   zeichneDatumHinweis(karte);
   zeichneStufenBlock(karte);
+  zeichneArchiv(karte);
   ergebnisEl.hidden = true;
   ergebnisEl.classList.remove("fehler");
   letztesKiErgebnis = "";
@@ -312,6 +314,77 @@ function zeichneStufenBlock(karte) {
   }
 }
 
+// Grobe Sprechzeit-Schaetzung (fuer die 50-Sekunden-Regel beim Skript).
+function sprechzeit(text) {
+  const woerter = (text || "").trim().split(/\s+/).filter(Boolean).length;
+  return Math.round(woerter / 2.3); // ~2,3 Woerter pro Sekunde
+}
+
+// Zeigt alle gespeicherten KI-Ergebnisse dieser Karte als aufklappbare Bloecke.
+function zeichneArchiv(karte) {
+  archivEl.innerHTML = "";
+  const tasks = karte.ai ? Object.keys(karte.ai) : [];
+  if (!tasks.length) return;
+
+  const kopf = document.createElement("div");
+  kopf.className = "archiv-kopf";
+  kopf.textContent = "Gespeicherte KI-Ergebnisse";
+  archivEl.appendChild(kopf);
+
+  for (const task of tasks) {
+    const text = karte.ai[task] || "";
+    const box = document.createElement("details");
+    box.className = "archiv-eintrag";
+
+    const titel = document.createElement("summary");
+    let label = KI_TITEL[task] || task;
+    if (task === "skript") {
+      const s = sprechzeit(text);
+      label += ` — ~${s}s Sprechzeit` + (s > 50 ? " (zu lang!)" : "");
+    }
+    titel.textContent = label;
+    box.appendChild(titel);
+
+    const pre = document.createElement("pre");
+    pre.className = "archiv-text";
+    pre.textContent = text;
+    box.appendChild(pre);
+
+    const reihe = document.createElement("div");
+    reihe.className = "archiv-knoepfe";
+    const kopieren = document.createElement("button");
+    kopieren.className = "archiv-knopf";
+    kopieren.textContent = "Kopieren";
+    kopieren.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        await navigator.clipboard.writeText(text);
+        kopieren.textContent = "Kopiert ✓";
+        setTimeout(() => (kopieren.textContent = "Kopieren"), 1500);
+      } catch {
+        kopieren.textContent = "Ging nicht";
+      }
+    });
+    const uebernehmen = document.createElement("button");
+    uebernehmen.className = "archiv-knopf";
+    uebernehmen.textContent = "In Notizen uebernehmen";
+    uebernehmen.addEventListener("click", (e) => {
+      e.preventDefault();
+      const k = karteById(aktiveKarteId);
+      if (!k) return;
+      const trenner = notizenEl.value.trim() ? "\n\n" : "";
+      notizenEl.value = notizenEl.value + trenner + text;
+      k.notes = notizenEl.value;
+      speichere();
+    });
+    reihe.appendChild(kopieren);
+    reihe.appendChild(uebernehmen);
+    box.appendChild(reihe);
+
+    archivEl.appendChild(box);
+  }
+}
+
 async function ladeKi(task, knopf) {
   const karte = karteById(aktiveKarteId);
   if (!karte) return;
@@ -348,6 +421,7 @@ async function ladeKi(task, knopf) {
       ergebnisTextEl.textContent = letztesKiErgebnis;
       karte.ai = karte.ai || {};
       karte.ai[task] = letztesKiErgebnis;
+      zeichneArchiv(karte);
       render();
       speichere();
     }

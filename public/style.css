@@ -378,6 +378,57 @@ body {
   color: var(--gefahr);
 }
 
+.ki-archiv {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.archiv-kopf {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.archiv-eintrag {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.archiv-eintrag summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.archiv-text {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.archiv-knoepfe {
+  display: flex;
+  gap: 6px;
+}
+.archiv-knopf {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.archiv-knopf:hover {
+  border-color: var(--accent);
+}
+
 .karte-loeschen {
   margin-top: auto;
   background: transparent;
