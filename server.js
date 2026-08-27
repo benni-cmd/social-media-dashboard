@@ -11,6 +11,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { tmpdir } from "node:os";
+import * as drive from "./drive.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -36,6 +37,35 @@ function slug(s) {
       .replace(/[^a-zA-Z0-9]+/g, "")
       .slice(0, 24) || "Ohne"
   );
+}
+
+// --- Google-Drive-Struktur (siehe v5-google-drive-phase.md) ---
+const DRIVE_SUBS = ["Skript und Caption", "Rohmaterial", "Fertiges Video"];
+
+// Projektname im Drive: <Serie>_EP<NN>_<Thema> (ohne WEE-Praefix, Owner-Entscheidung).
+function projektName(card) {
+  const serie = slug(card.serie) || "OhneReihe";
+  const ep = (card.episode || "00").toString().padStart(2, "0");
+  return `${serie}_EP${ep}_${slug(card.title)}`;
+}
+function driveBase(card) {
+  return `In Bearbeitung/${projektName(card)}`;
+}
+
+// Liest den Kontext (global + pro Serie) fuer die Prompt-Anreicherung. Best-effort.
+async function leseKontext(serie) {
+  const ordner = ["Kontext/_global"];
+  if (serie) ordner.push(`Kontext/${serie}`);
+  const teile = [];
+  for (const o of ordner) {
+    const dateien = await drive.list(o, { filesOnly: true }).catch(() => []);
+    for (const d of dateien) {
+      if (!/\.(md|txt)$/i.test(d)) continue;
+      const inhalt = await drive.readFile(`${o}/${d}`).catch(() => "");
+      if (inhalt.trim()) teile.push(`# Kontext: ${o}/${d}\n${inhalt.trim()}`);
+    }
+  }
+  return teile.join("\n\n");
 }
 
 // Ordnerpfad eines Projekts: projects/<Serie>/EP<NN>__<ThemaSlug>/
@@ -243,7 +273,15 @@ const server = createServer(async (req, res) => {
         return;
       }
       try {
-        const text = await runClaude(MARKE_REGELN + "\n\n---\n\n" + build(card || {}));
+        // Projekt-Kontext aus Drive (global + pro Serie) mit in den Prompt geben.
+        let kontextBlock = "";
+        if (card && card.serie && ["recherche", "skript", "regieplan"].includes(task)) {
+          const kt = await leseKontext(slug(card.serie)).catch(() => "");
+          if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
+        }
+        const text = await runClaude(
+          MARKE_REGELN + kontextBlock + "\n\n---\n\n" + build(card || {})
+        );
         // Ergebnis zusaetzlich als menschenlesbare Datei in die Projekt-Konvention schreiben.
         let datei = null;
         if (card && TASK_DATEI[task]) {
@@ -280,6 +318,64 @@ const server = createServer(async (req, res) => {
         title: url.searchParams.get("title") || "",
       };
       sendJson(res, 200, await scanProjekt(card));
+      return;
+    }
+
+    // --- Drive: Projektordner anlegen (In Bearbeitung/<Name>/ + drei Unterordner) ---
+    if (path === "/api/drive/create" && req.method === "POST") {
+      const card = JSON.parse(await readBody(req));
+      const base = driveBase(card);
+      await drive.mkdir(base);
+      for (const s of DRIVE_SUBS) await drive.mkdir(`${base}/${s}`);
+      const links = {};
+      for (const s of DRIVE_SUBS) links[s] = await drive.link(`${base}/${s}`);
+      links["_projekt"] = await drive.link(base);
+      sendJson(res, 200, { name: projektName(card), base, links });
+      return;
+    }
+
+    // --- Drive: finales Skript/Caption speichern ---
+    if (path === "/api/drive/save" && req.method === "POST") {
+      const { serie, episode, title, filename, content } = JSON.parse(await readBody(req));
+      const base = driveBase({ serie, episode, title });
+      await drive.mkdir(base);
+      await drive.mkdir(`${base}/Skript und Caption`);
+      await drive.writeFile(`${base}/Skript und Caption/${filename}`, content);
+      sendJson(res, 200, { ok: true, pfad: `${base}/Skript und Caption/${filename}` });
+      return;
+    }
+
+    // --- Drive: Projekt scannen (Rohmaterial/Fertiges Video/Skript erkennen) + Links ---
+    if (path === "/api/drive/scan" && req.method === "GET") {
+      const card = {
+        serie: url.searchParams.get("serie") || "",
+        episode: url.searchParams.get("episode") || "",
+        title: url.searchParams.get("title") || "",
+      };
+      const base = driveBase(card);
+      const roh = await drive.count(`${base}/Rohmaterial`).catch(() => 0);
+      const finDateien = await drive
+        .list(`${base}/Fertiges Video`, { filesOnly: true })
+        .catch(() => []);
+      const final = finDateien.filter((n) =>
+        VIDEO_ENDUNGEN.some((x) => n.toLowerCase().endsWith(x))
+      ).length;
+      const skriptDateien = await drive
+        .list(`${base}/Skript und Caption`, { filesOnly: true })
+        .catch(() => []);
+      sendJson(res, 200, {
+        name: projektName(card),
+        rohmaterial: roh,
+        final,
+        skriptDateien,
+      });
+      return;
+    }
+
+    // --- Drive: Kontext lesen (fuer Prompt-Anreicherung, auch manuell abrufbar) ---
+    if (path === "/api/drive/kontext" && req.method === "GET") {
+      const text = await leseKontext(slug(url.searchParams.get("serie") || "")).catch(() => "");
+      sendJson(res, 200, { text });
       return;
     }
 

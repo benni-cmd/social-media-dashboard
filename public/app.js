@@ -53,6 +53,7 @@ const notizenEl = document.getElementById("detail-notizen");
 const stufeBlockEl = document.getElementById("stufe-block");
 const archivEl = document.getElementById("ki-archiv");
 const scanEl = document.getElementById("projekt-scan");
+const driveBlockEl = document.getElementById("drive-block");
 const ergebnisEl = document.getElementById("ki-ergebnis");
 const ergebnisTextEl = document.getElementById("ki-ergebnis-text");
 const ergebnisTitelEl = document.getElementById("ki-ergebnis-titel");
@@ -245,6 +246,7 @@ function oeffneDetail(id) {
   zeichneStufenBlock(karte);
   zeichneArchiv(karte);
   ladeScan(karte);
+  zeichneDriveBlock(karte);
   ergebnisEl.hidden = true;
   ergebnisEl.classList.remove("fehler");
   letztesKiErgebnis = "";
@@ -313,6 +315,155 @@ function zeichneStufenBlock(karte) {
     zeile.appendChild(box);
     zeile.appendChild(document.createTextNode(" " + stufe.haken.label + " — Karte rueckt weiter"));
     stufeBlockEl.appendChild(zeile);
+  }
+}
+
+// --- Google-Drive-Block: Projektordner, Links und Skript-Freigabe-Workflow ---
+const DRIVE_SUBS = ["Skript und Caption", "Rohmaterial", "Fertiges Video"];
+
+async function driveProjektAnlegen(karte, statusEl) {
+  statusEl.textContent = "Lege Drive-Projekt an …";
+  try {
+    const r = await fetch("/api/drive/create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ serie: karte.serie, episode: karte.episode, title: karte.title }),
+    });
+    const data = await r.json();
+    karte.drive = { name: data.name, links: data.links };
+    speichere();
+    zeichneDriveBlock(karte);
+  } catch (e) {
+    statusEl.textContent = "Anlegen fehlgeschlagen: " + e.message;
+  }
+}
+
+async function skriptNachDrive(karte, text, statusEl) {
+  statusEl.textContent = "Speichere nach Drive …";
+  try {
+    const r = await fetch("/api/drive/save", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        serie: karte.serie,
+        episode: karte.episode,
+        title: karte.title,
+        filename: "10_skript.md",
+        content: text,
+      }),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      karte.skriptFinal = text;
+      karte.skriptGespeichert = true;
+      speichere();
+      statusEl.textContent = "Gespeichert: " + data.pfad;
+      ladeScan(karte);
+    } else {
+      statusEl.textContent = "Speichern fehlgeschlagen.";
+    }
+  } catch (e) {
+    statusEl.textContent = "Speichern fehlgeschlagen: " + e.message;
+  }
+}
+
+function zeichneDriveBlock(karte) {
+  driveBlockEl.innerHTML = "";
+  const kopf = document.createElement("div");
+  kopf.className = "archiv-kopf";
+  kopf.textContent = "Google Drive";
+  driveBlockEl.appendChild(kopf);
+
+  if (!karte.serie || !karte.title) {
+    const p = document.createElement("p");
+    p.className = "stufe-hinweis";
+    p.textContent = "Reihe und Titel setzen, dann laesst sich der Drive-Projektordner anlegen.";
+    driveBlockEl.appendChild(p);
+    return;
+  }
+
+  const status = document.createElement("p");
+  status.className = "drive-status";
+
+  if (karte.drive && karte.drive.links) {
+    const links = document.createElement("div");
+    links.className = "drive-links";
+    for (const sub of DRIVE_SUBS) {
+      const url = karte.drive.links[sub];
+      if (!url) continue;
+      const a = document.createElement("a");
+      a.className = "drive-link";
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "↗ " + sub;
+      links.appendChild(a);
+    }
+    driveBlockEl.appendChild(links);
+  } else {
+    const knopf = document.createElement("button");
+    knopf.className = "ki-knopf";
+    knopf.textContent = "Drive-Projektordner anlegen";
+    knopf.addEventListener("click", () => driveProjektAnlegen(karte, status));
+    driveBlockEl.appendChild(knopf);
+  }
+  driveBlockEl.appendChild(status);
+
+  // Skript-Stufe: Freigabe-Workflow + finales, editierbares Skript-Textfeld + Speichern.
+  if (karte.column === "skript") {
+    const trenner = document.createElement("div");
+    trenner.className = "archiv-kopf";
+    trenner.textContent = "Skript-Workflow";
+    driveBlockEl.appendChild(trenner);
+
+    const fLabel = document.createElement("label");
+    fLabel.className = "feld-label";
+    fLabel.textContent = "Freigabe: finaler Fokus & Hook (fliesst ins Skript)";
+    const freigabe = document.createElement("textarea");
+    freigabe.className = "feld-eingabe";
+    freigabe.rows = 3;
+    freigabe.value = karte.freigabe || "";
+    freigabe.addEventListener("change", () => {
+      karte.freigabe = freigabe.value;
+      speichere();
+    });
+    driveBlockEl.appendChild(fLabel);
+    driveBlockEl.appendChild(freigabe);
+
+    const sLabel = document.createElement("label");
+    sLabel.className = "feld-label";
+    sLabel.textContent = "Finales Skript (aus Entwurf anpassen, dann nach Drive speichern)";
+    const skript = document.createElement("textarea");
+    skript.className = "feld-eingabe";
+    skript.rows = 8;
+    skript.value = karte.skriptFinal || (karte.ai && karte.ai.skript) || "";
+    skript.addEventListener("change", () => {
+      karte.skriptFinal = skript.value;
+      speichere();
+    });
+    driveBlockEl.appendChild(sLabel);
+    driveBlockEl.appendChild(skript);
+
+    const uebernehmen = document.createElement("button");
+    uebernehmen.className = "archiv-knopf";
+    uebernehmen.textContent = "Entwurf aus KI uebernehmen";
+    uebernehmen.addEventListener("click", () => {
+      if (karte.ai && karte.ai.skript) {
+        skript.value = karte.ai.skript;
+        karte.skriptFinal = skript.value;
+        speichere();
+      }
+    });
+    const speichern = document.createElement("button");
+    speichern.className = "ki-knopf";
+    speichern.textContent = "Skript nach Drive speichern (10_skript.md)";
+    speichern.addEventListener("click", () => skriptNachDrive(karte, skript.value, status));
+
+    const reihe = document.createElement("div");
+    reihe.className = "drive-workflow-knoepfe";
+    reihe.appendChild(uebernehmen);
+    reihe.appendChild(speichern);
+    driveBlockEl.appendChild(reihe);
   }
 }
 
@@ -479,7 +630,11 @@ async function ladeKi(task, knopf) {
         task,
         card: {
           title: karte.title,
-          notes: karte.notes,
+          // Beim Skript fliesst die Freigabe (finaler Fokus & Hook) mit in den Kontext.
+          notes:
+            task === "skript" && karte.freigabe
+              ? `${karte.notes || ""}\n\nFreigegebener Fokus & Hook:\n${karte.freigabe}`
+              : karte.notes,
           serie: karte.serie,
           episode: karte.episode,
           format: karte.format,
