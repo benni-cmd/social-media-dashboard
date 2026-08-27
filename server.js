@@ -10,6 +10,7 @@ import { spawn } from "node:child_process";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -127,8 +128,11 @@ function runClaude(prompt) {
   return new Promise((resolve, reject) => {
     // Auf Windows ist `claude` eine .cmd -> shell:true. Der Prompt steht NICHT in den
     // Argumenten (kommt ueber stdin), darum ist shell:true hier unkritisch.
+    // cwd bewusst auf ein neutrales Temp-Verzeichnis: sonst liest `claude` die
+    // CLAUDE.md der Werkbank mit und deren Arbeitsregeln sickern in die Texte.
     const child = spawn("claude", ["-p", "--output-format", "text"], {
       shell: true,
+      cwd: tmpdir(),
     });
     let out = "";
     let err = "";
