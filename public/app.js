@@ -160,7 +160,9 @@ function render() {
       const id = e.dataTransfer.getData("text/plain");
       const karte = karteById(id);
       if (karte && karte.column !== col.id) {
+        const alt = karte.column;
         karte.column = col.id;
+        driveMove(karte, alt, col.id);
         render();
         speichere();
       }
@@ -245,8 +247,7 @@ function oeffneDetail(id) {
   zeichneDatumHinweis(karte);
   zeichneStufenBlock(karte);
   zeichneArchiv(karte);
-  ladeScan(karte);
-  zeichneDriveBlock(karte);
+  ladeDrive(karte);
   ergebnisEl.hidden = true;
   ergebnisEl.classList.remove("fehler");
   letztesKiErgebnis = "";
@@ -305,7 +306,9 @@ function zeichneStufenBlock(karte) {
       karte.checks = karte.checks || {};
       karte.checks[stufe.haken.key] = box.checked;
       if (box.checked) {
+        const alt = karte.column;
         karte.column = stufe.haken.nach;
+        driveMove(karte, alt, stufe.haken.nach);
         speichere();
         schliesseDetail();
       } else {
@@ -321,18 +324,47 @@ function zeichneStufenBlock(karte) {
 // --- Google-Drive-Block: Projektordner, Links und Skript-Freigabe-Workflow ---
 const DRIVE_SUBS = ["Skript und Caption", "Rohmaterial", "Fertiges Video"];
 
+// Verschiebt den Drive-Projektordner beim Spaltenwechsel mit (nur wenn ein Projekt existiert).
+async function driveMove(karte, from, to) {
+  if (!karte.driveCreated || from === to) return;
+  try {
+    await fetch("/api/drive/move", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        serie: karte.serie,
+        episode: karte.episode,
+        title: karte.title,
+        format: karte.format,
+        uploadDate: karte.uploadDate,
+        from,
+        to,
+      }),
+    });
+  } catch {
+    /* Verschieben ist Beiwerk; das Board bleibt fuehrend. */
+  }
+}
+
 async function driveProjektAnlegen(karte, statusEl) {
   statusEl.textContent = "Lege Drive-Projekt an …";
   try {
     const r = await fetch("/api/drive/create", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ serie: karte.serie, episode: karte.episode, title: karte.title }),
+      body: JSON.stringify({
+        serie: karte.serie,
+        episode: karte.episode,
+        title: karte.title,
+        format: karte.format,
+        column: karte.column,
+        uploadDate: karte.uploadDate,
+      }),
     });
-    const data = await r.json();
-    karte.drive = { name: data.name, links: data.links };
+    await r.json();
+    karte.driveCreated = true;
     speichere();
-    zeichneDriveBlock(karte);
+    ladeDrive(karte);
   } catch (e) {
     statusEl.textContent = "Anlegen fehlgeschlagen: " + e.message;
   }
@@ -348,6 +380,7 @@ async function skriptNachDrive(karte, text, statusEl) {
         serie: karte.serie,
         episode: karte.episode,
         title: karte.title,
+        column: karte.column,
         filename: "10_skript.md",
         content: text,
       }),
@@ -356,9 +389,10 @@ async function skriptNachDrive(karte, text, statusEl) {
     if (data.ok) {
       karte.skriptFinal = text;
       karte.skriptGespeichert = true;
+      karte.driveCreated = true;
       speichere();
       statusEl.textContent = "Gespeichert: " + data.pfad;
-      ladeScan(karte);
+      ladeDrive(karte);
     } else {
       statusEl.textContent = "Speichern fehlgeschlagen.";
     }
@@ -367,29 +401,16 @@ async function skriptNachDrive(karte, text, statusEl) {
   }
 }
 
-function zeichneDriveBlock(karte) {
-  driveBlockEl.innerHTML = "";
-  const kopf = document.createElement("div");
-  kopf.className = "archiv-kopf";
-  kopf.textContent = "Google Drive";
-  driveBlockEl.appendChild(kopf);
-
-  if (!karte.serie || !karte.title) {
-    const p = document.createElement("p");
-    p.className = "stufe-hinweis";
-    p.textContent = "Reihe und Titel setzen, dann laesst sich der Drive-Projektordner anlegen.";
-    driveBlockEl.appendChild(p);
-    return;
-  }
-
+function zeichneDriveBlock(karte, s) {
   const status = document.createElement("p");
   status.className = "drive-status";
 
-  if (karte.drive && karte.drive.links) {
+  const hatLinks = s && s.links && Object.values(s.links).some(Boolean);
+  if (hatLinks) {
     const links = document.createElement("div");
     links.className = "drive-links";
     for (const sub of DRIVE_SUBS) {
-      const url = karte.drive.links[sub];
+      const url = s.links[sub];
       if (!url) continue;
       const a = document.createElement("a");
       a.className = "drive-link";
@@ -467,48 +488,68 @@ function zeichneDriveBlock(karte) {
   }
 }
 
-// Zeigt, was der Server deterministisch im Projektordner erkannt hat (ohne Token).
-const SCAN_LABEL = {
-  recherche: "00_recherche.md",
-  skript: "10_skript.md",
-  regieplan: "20_regieplan.md",
-  caption: "30_caption.md",
-};
-
-async function ladeScan(karte) {
+// Laedt den Drive-Stand einer Karte und zeichnet Erkennung + Links + Workflow.
+async function ladeDrive(karte) {
   scanEl.innerHTML = "";
+  driveBlockEl.innerHTML = "";
+  const kopf = document.createElement("div");
+  kopf.className = "archiv-kopf";
+  kopf.textContent = "Google Drive";
+  driveBlockEl.appendChild(kopf);
+
+  if (!karte.serie || !karte.title) {
+    const p = document.createElement("p");
+    p.className = "stufe-hinweis";
+    p.textContent = "Reihe und Titel setzen, dann laesst sich der Drive-Projektordner anlegen.";
+    driveBlockEl.appendChild(p);
+    return;
+  }
+
+  let s = { rohmaterial: 0, final: 0, skriptDateien: [], links: {}, vorhanden: false };
+  const laden = document.createElement("p");
+  laden.className = "drive-status";
+  laden.textContent = "Lese Drive …";
+  driveBlockEl.appendChild(laden);
   try {
     const q = new URLSearchParams({
       serie: karte.serie || "",
       episode: karte.episode || "",
       title: karte.title || "",
+      column: karte.column || "",
     });
-    const r = await fetch("/api/project?" + q.toString());
-    const s = await r.json();
-
-    const kopf = document.createElement("div");
-    kopf.className = "scan-kopf";
-    kopf.textContent = "Im Projektordner erkannt (ohne Token)";
-    scanEl.appendChild(kopf);
-
-    const liste = document.createElement("ul");
-    liste.className = "scan-liste";
-    const zeile = (da, text) => {
-      const li = document.createElement("li");
-      li.className = da ? "scan-da" : "scan-fehlt";
-      li.textContent = (da ? "✓ " : "· ") + text;
-      liste.appendChild(li);
-    };
-    for (const [task, name] of Object.entries(SCAN_LABEL)) zeile(s.files && s.files[task], name);
-    zeile(s.rohmaterial > 0, `rohmaterial/ (${s.rohmaterial} Dateien)`);
-    zeile(s.final > 0, `final/ (${s.final} Videos)`);
-    scanEl.appendChild(liste);
-
-    const hint = uebergangsHinweis(karte, s);
-    if (hint) scanEl.appendChild(hint);
+    const r = await fetch("/api/drive/scan?" + q.toString());
+    s = await r.json();
   } catch {
-    scanEl.textContent = "Projektordner konnte nicht gelesen werden.";
+    /* Drive nicht erreichbar — Board bleibt nutzbar. */
   }
+  laden.remove();
+  if (s.vorhanden) karte.driveCreated = true;
+  zeichneErkennung(karte, s);
+  zeichneDriveBlock(karte, s);
+}
+
+// Was liegt im Drive-Projektordner (deterministisch, ohne Token)?
+function zeichneErkennung(karte, s) {
+  scanEl.innerHTML = "";
+  const kopf = document.createElement("div");
+  kopf.className = "scan-kopf";
+  kopf.textContent = "Aus Drive erkannt (ohne Token)";
+  scanEl.appendChild(kopf);
+  const liste = document.createElement("ul");
+  liste.className = "scan-liste";
+  const zeile = (da, text) => {
+    const li = document.createElement("li");
+    li.className = da ? "scan-da" : "scan-fehlt";
+    li.textContent = (da ? "✓ " : "· ") + text;
+    liste.appendChild(li);
+  };
+  const n = (s.skriptDateien || []).length;
+  zeile(n > 0, `Skript und Caption/ (${n} Dateien)`);
+  zeile(s.rohmaterial > 0, `Rohmaterial/ (${s.rohmaterial || 0} Dateien)`);
+  zeile(s.final > 0, `Fertiges Video/ (${s.final || 0} Videos)`);
+  scanEl.appendChild(liste);
+  const hint = uebergangsHinweis(karte, s);
+  if (hint) scanEl.appendChild(hint);
 }
 
 // Erkannter Auto-Uebergang (lokal per Knopf; spaeter automatisch per Drive-Polling).
@@ -533,7 +574,9 @@ function uebergangsHinweis(karte, s) {
   knopf.addEventListener("click", () => {
     const k = karteById(aktiveKarteId);
     if (!k) return;
+    const alt = k.column;
     k.column = ziel;
+    driveMove(k, alt, ziel);
     speichere();
     schliesseDetail();
   });
@@ -654,7 +697,7 @@ async function ladeKi(task, knopf) {
       karte.ai = karte.ai || {};
       karte.ai[task] = letztesKiErgebnis;
       zeichneArchiv(karte);
-      ladeScan(karte);
+      ladeDrive(karte);
       render();
       speichere();
     }

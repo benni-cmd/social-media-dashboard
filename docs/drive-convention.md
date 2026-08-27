@@ -6,23 +6,31 @@
 > Google Drive (nur die Wurzel wird getauscht). So kann jedes Teammitglied lokal mit KI
 > arbeiten, und der gesamte Board-Zustand ist nichts als eine Spiegelung der Drive-Struktur.
 
-## Ordnerstruktur pro Projekt
+## Struktur: Pipeline-Spalten SIND Ordner, Projekte wandern
+
+Der Stand eines Projekts = in welchem Spalten-Ordner es liegt. Beim Spaltenwechsel im Dashboard
+wird der Projektordner physisch verschoben. So liest das Dashboard den Stand direkt aus Drive,
+und Menschen sehen ihn im Drive sofort.
 
 ```
-projects/                             (= Drive-Wurzel, spaeter)
-  <Serie>/                            z. B. ProjectOasis
-    EP<NN>__<ThemaSlug>/              z. B. EP02__AquaponikFuerDenGarten
-      00_recherche.md                 Phase 1: Recherche, Fokus & Hooks
-      10_skript.md                    Phase 2: Teleprompter ([CHUNK n])
-      20_regieplan.md                 Phase 2: Regieplan & Metadaten
-      30_caption.md                   Phase 2: Captions (2 Varianten + 5 Hashtags)
-      projekt.json                    Maschinen-Index (Spalte, Upload-Datum, Haken)
-      rohmaterial/                    Rohclips (vom Dreh)
-      final/                          fertiges Video: WEE_<Serie>_EP<NN>_<Thema>_<Format>.mp4
+<Drive-Wurzel>/
+  In Bearbeitung/
+    Idee/  Skript/  Videodreh/  Schnitt/  Caption/  Upload/     (Pipeline-Spalten)
+      <Serie_EPnn_Thema>/                 Projektordner liegt in GENAU einer Spalte
+        projekt.json                      Maschinen-Index (Spalte, Titel, Upload-Datum)
+        Skript und Caption/               10_skript.md, 30_caption.md
+        Rohmaterial/                      Rohclips -> Automation
+        Fertiges Video/                   fertiges Video -> Automation
+  Videoauswertung/                        = Spalte "Fertig"; hochgeladene Projekte + KPIs
+    <Serie_EPnn_Thema>/
+  Kontext/
+    _global/                              markeweite Infos fuer Prompts
+    <Serie>/                              reihen-spezifische Infos + "schon behandelt"
 ```
 
-- **Zahlen-Praefixe** (00/10/20/30) halten die Dateien fuer Menschen in Drive sortiert und geben
-  der Software stabile Anker.
+- Projektname: `<Serie>_EP<NN>_<Thema>` (ohne WEE-Praefix, Owner-Entscheidung).
+- Verschieben = Zustandswechsel. Da rclone beim Verschieben neue Ordner-IDs erzeugt, holt das
+  Dashboard Ordner-Links immer LIVE (nicht gespeichert).
 - **Markdown** ist gleichzeitig menschenlesbar (Drive-Vorschau) und ohne KI parsebar.
 
 ## Erkennungsregeln (rein Dateiname/Pfad, keine Token)

@@ -69,12 +69,26 @@ Die drei Unterordner eines Projekts werden im Dashboard an der jeweiligen Stelle
 10. [ ] Ben-Rechner: rclone + gdrive-Remote einrichten (fuer eigene lokale Nutzung; Dev laeuft in Agent-Umgebung).
 11. [ ] KPI-Phase (IG/LinkedIn-API) — spaeter.
 
-## Nachtrag (Bau 2026-08-27)
+## Nachtrag 1 (Bau 2026-08-27)
 
-Backend end-to-end in Bens Drive verifiziert: `POST /api/drive/create` legte
-`In Bearbeitung/ProjectOasis_EP02_AquaponikfuerdenGarten/` + 3 Unterordner + Links an;
-`POST /api/drive/save` schrieb `10_skript.md`; `GET /api/drive/scan` erkannte sie. Als Demo
-liegt dieses Projekt jetzt im Testordner. Frontend rendert Links + Workflow, keine JS-Fehler.
+Backend end-to-end verifiziert: create/save/scan in Drive. Frontend rendert Links + Workflow.
+
+## Nachtrag 2 — Spalten SIND Ordner, Projekte wandern (2026-08-27)
+
+Umgebaut: `In Bearbeitung/<Spalte>/<Projekt>/`, Spalte = Ordner. Neue Endpunkte: `/api/drive/move`
+(verschiebt beim Spaltenwechsel, schreibt `projekt.json` neu) und `/api/drive/board` (liest den
+Board-Stand DIREKT aus den Spalten-Ordnern). Frontend verschiebt bei Drag&Drop/Haken/Auto-Sprung
+den Drive-Ordner mit; Erkennung + Links kommen live aus `/api/drive/scan`.
+
+Verifiziert: 2 Testprojekte angelegt und mit dem Dashboard gematcht —
+`In Bearbeitung/Skript/ProjectOasis_EP01_DigitalerSandkasten` (+ 10_skript.md) und
+`In Bearbeitung/Videodreh/WorldEden_EP03_BodenwieeinSchwamm` (+ Rohmaterial). `/api/drive/board`
+gab beide mit korrekter Spalte zurueck; Move skript->schnitt->skript sauber gelesen. Board zeigt
+beide Karten in den richtigen Spalten, keine JS-Fehler.
+
+**Wichtig fuer Bens eigene Nutzung:** rclone-Config liegt in `AppData\Roaming` (nicht mit der
+Agent-Umgebung geteilt) -> Bens Rechner braucht rclone + `gdrive`-Remote fuer die Drive-Funktionen
+(Setup-Drive.cmd offen). Board + KI (claude) laufen bei ihm ohne das.
 
 ## Offene Punkte fuer Ben (nicht blockierend)
 

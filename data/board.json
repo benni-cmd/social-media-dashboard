@@ -10,22 +10,30 @@
   ],
   "cards": [
     {
-      "id": "seed-1",
-      "column": "idee",
-      "title": "Beispiel: 3 Fehler beim ersten Reel",
-      "notes": "Kurzer Erklaer-Clip. Zielgruppe: Leute, die gerade mit Content anfangen.",
+      "id": "test-oasis-01",
+      "column": "skript",
+      "title": "Digitaler Sandkasten",
+      "notes": "Testprojekt 1 — gematcht mit Drive: In Bearbeitung/Skript/ProjectOasis_EP01_DigitalerSandkasten",
+      "serie": "ProjectOasis",
+      "episode": "01",
+      "format": "Reel",
       "uploadDate": null,
       "checks": {},
-      "ai": {}
+      "ai": {},
+      "driveCreated": true
     },
     {
-      "id": "cmtbavq2odgqy",
-      "column": "idee",
-      "title": "Neue Ideeawdawd",
-      "notes": "wadawd",
+      "id": "test-worldeden-03",
+      "column": "videodreh",
+      "title": "Boden wie ein Schwamm",
+      "notes": "Testprojekt 2 — gematcht mit Drive: In Bearbeitung/Videodreh/WorldEden_EP03_BodenwieeinSchwamm (Rohmaterial liegt schon drin).",
+      "serie": "WorldEden",
+      "episode": "03",
+      "format": "Reel",
       "uploadDate": null,
       "checks": {},
-      "ai": {}
+      "ai": {},
+      "driveCreated": true
     }
   ]
 }

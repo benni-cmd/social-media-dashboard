@@ -39,8 +39,22 @@ function slug(s) {
   );
 }
 
-// --- Google-Drive-Struktur (siehe v5-google-drive-phase.md) ---
+// --- Google-Drive-Struktur (siehe docs/drive-convention.md) ---
 const DRIVE_SUBS = ["Skript und Caption", "Rohmaterial", "Fertiges Video"];
+
+// Pipeline-Spalte -> Drive-Ordner. Ein Projekt liegt in genau einem davon; Verschieben = Zustand.
+const SPALTE_ORDNER = {
+  idee: "In Bearbeitung/Idee",
+  skript: "In Bearbeitung/Skript",
+  videodreh: "In Bearbeitung/Videodreh",
+  schnitt: "In Bearbeitung/Schnitt",
+  caption: "In Bearbeitung/Caption",
+  upload: "In Bearbeitung/Upload",
+  fertig: "Videoauswertung",
+};
+function spaltenOrdner(col) {
+  return SPALTE_ORDNER[col] || "In Bearbeitung/Idee";
+}
 
 // Projektname im Drive: <Serie>_EP<NN>_<Thema> (ohne WEE-Praefix, Owner-Entscheidung).
 function projektName(card) {
@@ -48,8 +62,27 @@ function projektName(card) {
   const ep = (card.episode || "00").toString().padStart(2, "0");
   return `${serie}_EP${ep}_${slug(card.title)}`;
 }
+// Projektordner in der aktuellen Spalte.
 function driveBase(card) {
-  return `In Bearbeitung/${projektName(card)}`;
+  return `${spaltenOrdner(card.column)}/${projektName(card)}`;
+}
+
+// Maschinen-Index eines Projekts, menschenlesbar als projekt.json.
+function projektJson(card) {
+  return JSON.stringify(
+    {
+      name: projektName(card),
+      serie: card.serie || "",
+      episode: card.episode || "",
+      title: card.title || "",
+      format: card.format || "",
+      column: card.column || "",
+      uploadDate: card.uploadDate || null,
+      aktualisiert: new Date().toISOString(),
+    },
+    null,
+    2
+  );
 }
 
 // Liest den Kontext (global + pro Serie) fuer die Prompt-Anreicherung. Best-effort.
@@ -321,12 +354,13 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // --- Drive: Projektordner anlegen (In Bearbeitung/<Name>/ + drei Unterordner) ---
+    // --- Drive: Projektordner in der aktuellen Spalte anlegen (+ Unterordner + projekt.json) ---
     if (path === "/api/drive/create" && req.method === "POST") {
       const card = JSON.parse(await readBody(req));
       const base = driveBase(card);
       await drive.mkdir(base);
       for (const s of DRIVE_SUBS) await drive.mkdir(`${base}/${s}`);
+      await drive.writeFile(`${base}/projekt.json`, projektJson(card));
       const links = {};
       for (const s of DRIVE_SUBS) links[s] = await drive.link(`${base}/${s}`);
       links["_projekt"] = await drive.link(base);
@@ -334,10 +368,35 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // --- Drive: finales Skript/Caption speichern ---
+    // --- Drive: Projektordner beim Spaltenwechsel verschieben ---
+    if (path === "/api/drive/move" && req.method === "POST") {
+      const card = JSON.parse(await readBody(req)); // { serie, episode, title, from, to }
+      const name = projektName(card);
+      const von = `${spaltenOrdner(card.from)}/${name}`;
+      const nach = `${spaltenOrdner(card.to)}/${name}`;
+      if (von !== nach) {
+        await drive.moveDir(von, nach);
+        await drive.writeFile(`${nach}/projekt.json`, projektJson({ ...card, column: card.to }));
+      }
+      sendJson(res, 200, { ok: true, nach });
+      return;
+    }
+
+    // --- Drive: Board-Stand direkt aus den Spalten-Ordnern lesen ---
+    if (path === "/api/drive/board" && req.method === "GET") {
+      const projekte = [];
+      for (const [col, ordner] of Object.entries(SPALTE_ORDNER)) {
+        const namen = await drive.list(ordner, { dirsOnly: true }).catch(() => []);
+        for (const name of namen) projekte.push({ name, column: col });
+      }
+      sendJson(res, 200, { projekte });
+      return;
+    }
+
+    // --- Drive: finales Skript/Caption speichern (in der aktuellen Spalte) ---
     if (path === "/api/drive/save" && req.method === "POST") {
-      const { serie, episode, title, filename, content } = JSON.parse(await readBody(req));
-      const base = driveBase({ serie, episode, title });
+      const { serie, episode, title, column, filename, content } = JSON.parse(await readBody(req));
+      const base = driveBase({ serie, episode, title, column });
       await drive.mkdir(base);
       await drive.mkdir(`${base}/Skript und Caption`);
       await drive.writeFile(`${base}/Skript und Caption/${filename}`, content);
@@ -345,12 +404,13 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // --- Drive: Projekt scannen (Rohmaterial/Fertiges Video/Skript erkennen) + Links ---
+    // --- Drive: Projekt scannen (Rohmaterial/Fertiges Video/Skript erkennen) + Live-Links ---
     if (path === "/api/drive/scan" && req.method === "GET") {
       const card = {
         serie: url.searchParams.get("serie") || "",
         episode: url.searchParams.get("episode") || "",
         title: url.searchParams.get("title") || "",
+        column: url.searchParams.get("column") || "",
       };
       const base = driveBase(card);
       const roh = await drive.count(`${base}/Rohmaterial`).catch(() => 0);
@@ -363,12 +423,12 @@ const server = createServer(async (req, res) => {
       const skriptDateien = await drive
         .list(`${base}/Skript und Caption`, { filesOnly: true })
         .catch(() => []);
-      sendJson(res, 200, {
-        name: projektName(card),
-        rohmaterial: roh,
-        final,
-        skriptDateien,
-      });
+      const vorhanden = skriptDateien.length + roh + final > 0;
+      const links = {};
+      if (vorhanden) {
+        for (const s of DRIVE_SUBS) links[s] = await drive.link(`${base}/${s}`).catch(() => "");
+      }
+      sendJson(res, 200, { name: projektName(card), rohmaterial: roh, final, skriptDateien, links, vorhanden });
       return;
     }
 
