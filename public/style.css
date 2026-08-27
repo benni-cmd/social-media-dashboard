@@ -1,0 +1,285 @@
+:root {
+  --bg: #0f1216;
+  --panel: #171b21;
+  --panel-2: #1e242c;
+  --line: #2a323c;
+  --text: #e6e9ee;
+  --muted: #9aa4b2;
+  --accent: #4f8cff;
+  --accent-weich: #23324d;
+  --gefahr: #e0574a;
+  --radius: 10px;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Kopfzeile: Projektname steht NUR hier --- */
+.kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.kopf-titel {
+  font-weight: 600;
+  font-size: 15px;
+}
+.kopf-pfad {
+  color: var(--muted);
+  font-size: 13px;
+}
+.kopf-stand {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* --- Board --- */
+.board {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.spalte {
+  flex: 0 0 260px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+.spalte-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.spalte-anzahl {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.spalte-liste {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 40px;
+}
+.spalte-liste.zielt {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+  border-radius: var(--radius);
+}
+.spalte-leer {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 4px;
+}
+
+.karte {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: grab;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.karte:hover {
+  border-color: var(--accent);
+}
+.karte.aktiv {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.karte-titel {
+  font-weight: 500;
+}
+.karte-hat-ki {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.karte-neu {
+  margin: 0 10px 10px;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.karte-neu:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* --- Detail-Panel --- */
+.detail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100vh;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  padding: 44px 18px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
+}
+.detail-schliessen {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+.feld-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.feld-eingabe {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.feld-eingabe:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ki-block {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ki-erklaer {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.ki-knopfreihe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ki-knopf {
+  background: var(--accent-weich);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.ki-knopf:hover {
+  background: var(--accent);
+}
+.ki-knopf:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.ki-ergebnis {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+.ki-ergebnis-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ki-uebernehmen {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ki-uebernehmen:hover {
+  border-color: var(--accent);
+}
+#ki-ergebnis-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.ki-ergebnis.fehler {
+  border-color: var(--gefahr);
+}
+.ki-ergebnis.fehler #ki-ergebnis-text {
+  color: var(--gefahr);
+}
+
+.karte-loeschen {
+  margin-top: auto;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.karte-loeschen:hover {
+  border-color: var(--gefahr);
+  color: var(--gefahr);
+}

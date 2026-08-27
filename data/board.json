@@ -1,0 +1,18 @@
+{
+  "columns": [
+    { "id": "idee", "title": "Idee" },
+    { "id": "skript", "title": "Skript" },
+    { "id": "schnitt", "title": "Schnitt" },
+    { "id": "caption", "title": "Caption" },
+    { "id": "upload", "title": "Upload" }
+  ],
+  "cards": [
+    {
+      "id": "seed-1",
+      "column": "idee",
+      "title": "Beispiel: 3 Fehler beim ersten Reel",
+      "notes": "Kurzer Erklaer-Clip. Zielgruppe: Leute, die gerade mit Content anfangen.",
+      "ai": {}
+    }
+  ]
+}

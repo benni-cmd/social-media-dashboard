@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Content-Pipeline-Board</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="kopf">
+      <span class="kopf-titel">Content-Pipeline-Board</span>
+      <span class="kopf-pfad">Idee &rsaquo; Skript &rsaquo; Schnitt &rsaquo; Caption &rsaquo; Upload</span>
+      <span id="speicher-stand" class="kopf-stand">Bereit.</span>
+    </header>
+
+    <main class="board" id="board"><!-- Spalten werden aus board.json gerendert --></main>
+
+    <aside class="detail" id="detail" hidden>
+      <button class="detail-schliessen" id="detail-schliessen" aria-label="Karte schliessen">&times;</button>
+      <label class="feld-label" for="detail-titel">Titel der Karte</label>
+      <input class="feld-eingabe" id="detail-titel" type="text" />
+
+      <label class="feld-label" for="detail-notizen">Notizen und Rohmaterial</label>
+      <textarea class="feld-eingabe feld-notizen" id="detail-notizen" rows="6"></textarea>
+
+      <div class="ki-block">
+        <p class="ki-erklaer">
+          Die KI-Aktionen laufen lokal ueber deine Claude-Code-CLI und kosten keine API-Tokens.
+        </p>
+        <div class="ki-knopfreihe">
+          <button class="ki-knopf" data-task="skript">Skript-Entwurf schreiben</button>
+          <button class="ki-knopf" data-task="caption">Caption schreiben</button>
+          <button class="ki-knopf" data-task="hooks">Fuenf Hook-Ideen geben</button>
+        </div>
+        <div class="ki-ergebnis" id="ki-ergebnis" hidden>
+          <div class="ki-ergebnis-kopf">
+            <span id="ki-ergebnis-titel">Ergebnis</span>
+            <button class="ki-uebernehmen" id="ki-uebernehmen">In Notizen uebernehmen</button>
+          </div>
+          <pre id="ki-ergebnis-text"></pre>
+        </div>
+      </div>
+
+      <button class="karte-loeschen" id="karte-loeschen">Diese Karte loeschen</button>
+    </aside>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

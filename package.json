@@ -1,0 +1,13 @@
+{
+  "name": "social-media-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lokales Content-Pipeline-Board fuer Social Media mit token-freien KI-Buttons ueber die Claude-Code-CLI.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
