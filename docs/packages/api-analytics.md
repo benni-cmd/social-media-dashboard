@@ -31,11 +31,11 @@ Instagram Graph API und LinkedIn API anbinden — OAuth-Flow lokal, Token-Speich
 
 ## Stand
 
-- [ ] B1 — .gitignore + .env.example
-- [ ] B2 — OAuth-Routen
-- [ ] B3 — Stats-Routen
-- [ ] B4 — Analytics-Seite
-- [ ] B5 — Navigation
+- [x] B1 — .gitignore + .env.example (commit f3203cf)
+- [x] B2 — OAuth-Routen (commit f3203cf)
+- [x] B3 — Stats-Routen (commit f3203cf)
+- [x] B4 — Analytics-Seite (commit f3203cf)
+- [x] B5 — Navigation (commit f3203cf)
 
 ---
 
