@@ -182,10 +182,20 @@ alten Freitextfeld `freigabe`.
    7-Phasen-Board scrollt horizontal (normal); UI-Text mischt echte Umlaute mit ASCII-Digraphen
    („Veroeffentlichung" neben „Hühnernahrung"). **Dauerhafte Folge:** der Screenshot-Weg über
    Edge headless steht jetzt als Verify-Werkzeug bereit, unabhängig vom Pane.
-2. **Kein einziger KI-Aufruf ist live durchgelaufen.** Recherche, Skript, Regieplan, Caption,
-   Ideen und Redaktionsplan sind gebaut und die Prompts stehen, aber `claude -p` wurde über die
-   neue Oberfläche nie ausgeführt. Besonders zu prüfen: liefern `caption` und `ideen` wirklich
-   das erwartete JSON-Schema, und greift der neue Fünf-Minuten-Zeitgeber.
+2. **KI-Aufrufe live — erledigt 28.08.2026.** `claude -p` (v2.1.247, Bens Abo) lief über den
+   Endpunkt `/api/ai` durch, den die Oberfläche aufruft. Vier Aufgaben gemessen: `ideen` (33 s,
+   JSON `{ideen:[3× titel,warum,hook,visuell,saeule]}`, gültige Säulen-IDs), `caption` (29 s,
+   JSON `{varianten,keywords,hashtags,cta}` — beide Leads ≤125 Zeichen, Hashtags gegenläufig je
+   Plattform: Instagram 2, TikTok 7, CTA indirekt und einzeln), `recherche` (38 s, JSON
+   `{zusammenfassung,fokus[3],hooks[3× label/verbal/visuell],frame,keywords[6]}`), `skript`
+   (43 s, Text, `data:null` korrekt, `[CHUNK 1..5]`, hält die 50-Sekunden-Hausregel). Der
+   Fünf-Minuten-Zeitgeber ist `runClaude`'s `timeoutMs=300000` (`lib/ai.js:242,254`) — im Code
+   belegt und genutzt; die realen Läufe blieben bei 29–43 s weit darunter. Zusätzlich ein echter
+   UI-Klick über Edge headless: „Ideen von der KI holen" → 6 Vorschläge live gerendert
+   (`scratchpad/shot-ki.mjs`, Screenshot). **Ein offener Nit:** der `skript`-Prompt erzeugt einen
+   Vorspann vor `[CHUNK 1]` („Hier ist der Sprechertext… Geschätzte Sprechzeit…"), der
+   unverändert ins Skript-Feld läuft und den Sprechzeit-Zähler verfälscht — Prompt sollte „ohne
+   Vorspann, direkt mit [CHUNK 1] beginnen" erzwingen.
 3. **Die Recherche zu LinkedIn und Redaktionsplanung ist nie zurückgekommen.** Der Agent lief
    noch, als die Sitzung endete. Die LinkedIn-Regeln in `lib/pipeline.js` (Hashtag-Grenze 3,
    Längen-Korridor) sind deshalb **geschätzt, nicht belegt** — sie stehen bewusst noch nicht in
@@ -208,6 +218,8 @@ Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davo
 belegt, zwei im Code behoben ohne verbundenes Konto, einer bei Ben) · Board, Kalender und
 Detailspalte im Browser ohne Konsolenfehler · Migration aller Bestandskarten auf Schema 2 ·
 Abgleich heilt eine absichtlich erzeugte Abweichung in beide Richtungen.
-Offen: KI-Aufrufe live · LinkedIn-Recherche · Kalender- und Tasks-Anbindung · `analytics.html` ·
-rclone-client_id (Ben). — Optische Abnahme am 28.08.2026 erbracht (Edge headless, vier PNGs
-gegen die sieben ui-standard-Punkte, alle erfüllt).
+Offen: LinkedIn-Recherche · Kalender- und Tasks-Anbindung · `analytics.html` · rclone-client_id
+(Ben). — Am 28.08.2026 erbracht: optische Abnahme (Edge headless, vier PNGs gegen die sieben
+ui-standard-Punkte, alle erfüllt) · KI-Aufrufe live (ideen/caption/recherche/skript über
+`/api/ai`, JSON-Schemata und Grenzwerte geprüft, ein UI-Klick per Screenshot). Offener Nit:
+`skript`-Prompt-Vorspann.
