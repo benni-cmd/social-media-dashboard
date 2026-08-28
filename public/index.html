@@ -3,75 +3,44 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Content-Pipeline-Board</title>
+    <title>Content-Maschine</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header class="kopf">
-      <span class="kopf-titel">Content-Pipeline-Board</span>
-      <span class="kopf-pfad">Idee &rsaquo; Skript &rsaquo; Videodreh &rsaquo; Schnitt &rsaquo; Caption &rsaquo; Upload &rsaquo; Fertig</span>
-      <span id="speicher-stand" class="kopf-stand">Bereit.</span>
-      <a href="/analytics.html" class="kopf-knopf" style="text-decoration:none">&#128202; Analytics</a>
-      <button id="aktualisieren" class="kopf-knopf" title="Board neu laden">&#8635; Aktualisieren</button>
+      <span class="kopf-titel">Content-Maschine</span>
+      <span class="kopf-pfad" id="kopf-pfad"></span>
+
+      <div class="ansichten" role="group" aria-label="Ansicht waehlen">
+        <button class="ansicht-knopf" id="zu-board" aria-pressed="true">Board</button>
+        <button class="ansicht-knopf" id="zu-kalender" aria-pressed="false">Kalender</button>
+        <button class="ansicht-knopf" id="zu-auswertung" aria-pressed="false">Auswertung</button>
+      </div>
+
+      <div class="kopf-rechts">
+        <span id="stand" class="kopf-stand">Bereit.</span>
+        <button class="knopf" id="abgleichen" title="Board gegen die Ordner in Google Drive pruefen und heilen">
+          Mit Drive abgleichen
+        </button>
+        <button class="knopf" id="neuladen" title="Board-Stand neu laden">Aktualisieren</button>
+      </div>
     </header>
 
-    <main class="board" id="board"><!-- Spalten werden aus board.json gerendert --></main>
+    <div class="meldung" id="meldung" hidden></div>
 
-    <aside class="detail" id="detail" hidden>
-      <button class="detail-schliessen" id="detail-schliessen" aria-label="Karte schliessen">&times;</button>
-      <span class="detail-stufe" id="detail-stufe">Idee</span>
+    <div class="hauptflaeche">
+      <section class="ansicht" id="ansicht-board">
+        <div class="wochenlast" id="wochenlast"></div>
+        <div class="nachschub" id="nachschub"></div>
+        <div class="board" id="board"></div>
+      </section>
 
-      <label class="feld-label" for="detail-titel">Titel / Thema der Karte</label>
-      <input class="feld-eingabe" id="detail-titel" type="text" />
+      <section class="ansicht" id="ansicht-kalender" hidden></section>
 
-      <div class="feld-reihe">
-        <div class="feld-spalte">
-          <label class="feld-label" for="detail-serie">Reihe</label>
-          <input class="feld-eingabe" id="detail-serie" type="text" placeholder="z. B. ProjectOasis" />
-        </div>
-        <div class="feld-spalte feld-schmal">
-          <label class="feld-label" for="detail-episode">Episode</label>
-          <input class="feld-eingabe" id="detail-episode" type="text" placeholder="01" />
-        </div>
-        <div class="feld-spalte">
-          <label class="feld-label" for="detail-format">Format</label>
-          <select class="feld-eingabe" id="detail-format">
-            <option>Reel</option>
-            <option>Short</option>
-            <option>TikTok</option>
-            <option>LinkedIn</option>
-          </select>
-        </div>
-      </div>
-      <p class="dateiname" id="dateiname"></p>
-      <div class="projekt-scan" id="projekt-scan"></div>
+      <section class="ansicht" id="ansicht-auswertung" hidden></section>
 
-      <label class="feld-label" for="detail-datum">Geplantes Upload-Datum</label>
-      <input class="feld-eingabe" id="detail-datum" type="date" />
-      <p class="datum-hinweis" id="datum-hinweis"></p>
-
-      <label class="feld-label" for="detail-notizen">Notizen und Rohmaterial</label>
-      <textarea class="feld-eingabe feld-notizen" id="detail-notizen" rows="6"></textarea>
-
-      <!-- Stufen-Block: wird je nach Spalte gefuellt (KI-Button oder Haken). -->
-      <div class="stufe-block" id="stufe-block"></div>
-
-      <!-- Archiv aller gespeicherten KI-Ergebnisse dieser Karte. -->
-      <div class="ki-archiv" id="ki-archiv"></div>
-
-      <!-- Drive: Projektordner, Links und (in der Skript-Stufe) der Freigabe-Workflow. -->
-      <div class="drive-block" id="drive-block"></div>
-
-      <div class="ki-ergebnis" id="ki-ergebnis" hidden>
-        <div class="ki-ergebnis-kopf">
-          <span id="ki-ergebnis-titel">Ergebnis</span>
-          <button class="ki-uebernehmen" id="ki-uebernehmen">In Notizen uebernehmen</button>
-        </div>
-        <pre id="ki-ergebnis-text"></pre>
-      </div>
-
-      <button class="karte-loeschen" id="karte-loeschen">Diese Karte loeschen</button>
-    </aside>
+      <aside class="detail" id="detail" hidden></aside>
+    </div>
 
     <script src="app.js" type="module"></script>
   </body>
