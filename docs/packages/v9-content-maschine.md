@@ -298,6 +298,32 @@ Edge-headless-Screenshots (Leerzustand echt + Mock nur im Screenshot per fetch-S
 keine Konsolenfehler, KPI-Aggregate rechnerisch geprüft (Follower 43.200 = 24.800+18.400). Offener
 Nit: „ggue." liest sich holprig — Umlaut-Vereinheitlichung app-weit offen.
 
+## P10: Detailspalte verschlanken, Fristen als Mini-Kalender (28.08.2026)
+
+**PIG.** Problem: Die Seitenleiste beim Öffnen einer Karte trägt zu viele Felder auf einmal
+(Stamm mit sieben Feldern, sechs gestapelte Datumsfelder für die Fristen) — lange Klickwege,
+unübersichtlich. Intent: schneller erfassen und schneller planen. Goal: (1) deutlich weniger
+sichtbare Felder — Sekundäres unter eine Klappe; (2) alle sechs Fristen als **ein kleiner
+Monats-Kalender mit farbigen Markern** je Meilenstein statt sechs Eingaben; (3) kürzere
+Klickwege für den Normalfall (Upload-Datum setzen → rückwärts planen).
+
+**Plan.** `detail.js`: (a) Stamm teilen — sichtbar nur Thema, Content-Säule, Ziel, Plattformen;
+Reihe/Episode/Format, Verantwortlich, Notizen unter „Weitere Angaben" (`details`). (b) Termine
+neu — Fälligkeitssatz + **Mini-Kalender** (Monatsraster mit Meilenstein-Punkten + kompakte
+Legende) + Upload-Datum/Uhrzeit als Anker + „Rückwärts planen"-Knopf; die sechs Einzelfelder
+unter „Termine einzeln setzen" (`details`) zum Überschreiben/Löschen. (c) Drive-Block standardmäßig
+eingeklappt. `style.css`: `.mini-kalender`-Klassen, Punktfarben wie die Termin-Streifen. Verify:
+Screenshot der geöffneten Karte (Dark) gegen ui-standard, Feldzahl sichtbar reduziert, keine
+Konsolenfehler.
+
+**Stand: erledigt 28.08.2026.** `detail.js`: Stamm geteilt (sichtbar Thema/Säule/Ziel/Plattformen,
+Rest unter „Weitere Angaben"), Termine als Mini-Kalender (`miniKalender`, ein Punkt je Meilenstein
+in den Termin-Farben) + Upload-Anker + Rückwärtsplan, Einzelfelder unter „Termine einzeln setzen",
+Drive-Block eingeklappt; neuer `klappe()`-Helfer. `ui.js` um `zurueck`-Chevron ergänzt. `style.css`
+um `.mini-kalender`/`.unterklappe`. Verify (Edge headless, Board per Stub für eine Karte mit
+gesetzten Fristen, echte board.json unangetastet): sichtbare Felder 7 statt ~13, 6 Marker im
+Kalender + 6 in der Legende, alle Klappen korrekt zu, keine Konsolenfehler.
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

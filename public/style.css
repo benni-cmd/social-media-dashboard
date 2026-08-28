@@ -1281,3 +1281,131 @@ body {
 .kalender-widget .kalender-tag {
   min-height: 78px;
 }
+
+/* ============================================================
+   Detailspalte-Verschlankung (P10): aufklappbare Unterbloecke
+   und der Mini-Kalender der Fristen.
+   ============================================================ */
+
+.unterklappe {
+  margin-top: 4px;
+  background: transparent;
+  border-style: dashed;
+}
+.unterklappe > .gruppe-kopf .gruppe-titel {
+  color: var(--text-leise);
+  font-weight: 600;
+}
+
+/* Mini-Kalender der Fristen */
+.mini-kalender {
+  margin: 4px 0 12px;
+}
+.mini-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.mini-monat {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-still);
+}
+.mini-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--linie);
+  border-radius: 6px;
+  background: var(--flaeche-tief);
+  color: var(--text-still);
+  cursor: pointer;
+}
+.mini-nav:hover {
+  border-color: var(--akzent);
+  color: var(--text);
+}
+.mini-nav .icon {
+  width: 13px;
+  height: 13px;
+}
+.mini-raster {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.mini-wt {
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-leise);
+  padding-bottom: 2px;
+}
+.mini-tag {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 5px;
+  background: var(--flaeche-tief);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 3px;
+  gap: 2px;
+}
+.mini-tag.fremd {
+  opacity: 0.35;
+}
+.mini-tag.heute {
+  border-color: var(--akzent);
+  background: var(--akzent-tief);
+}
+.mini-tag-zahl {
+  font-size: 10.5px;
+  color: var(--text-still);
+  line-height: 1;
+}
+.mini-punkte {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.mini-punkt {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--saeule-ohne);
+  flex: 0 0 auto;
+}
+.mini-punkt.marke-idee { background: var(--text-leise); }
+.mini-punkt.marke-skript { background: var(--akzent); }
+.mini-punkt.marke-dreh { background: var(--hinweis); }
+.mini-punkt.marke-schnitt { background: var(--unlesbar); }
+.mini-punkt.marke-freigabe { background: #4fd6d0; }
+.mini-punkt.marke-upload { background: var(--ok); }
+
+.mini-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin-top: 9px;
+}
+.mini-legende-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--text-leise);
+}
+.mini-legende-leer {
+  font-size: 11px;
+  color: var(--text-leise);
+  line-height: 1.4;
+}

@@ -18,6 +18,7 @@ import {
   tore,
   sperren,
   rueckwaertsplan,
+  isoDatum,
   sprechzeit,
   saeuleName,
   plattformName,
@@ -153,21 +154,6 @@ function blockStamm(k, merke) {
   titel.addEventListener("change", () => zeichne());
   box.appendChild(feld("Thema", titel));
 
-  const reihe = document.createElement("div");
-  reihe.className = "feld-reihe";
-  const serie = eingabe(k.serie, { platzhalter: "z. B. ProjectOasis" });
-  serie.addEventListener("change", () => merke("serie", serie.value, true));
-  const episode = eingabe(k.episode, { platzhalter: "01" });
-  episode.addEventListener("change", () => merke("episode", episode.value, true));
-  const format = auswahl(FORMATE, k.format);
-  format.addEventListener("change", () => merke("format", format.value, true));
-  reihe.appendChild(feld("Reihe", serie));
-  const epFeld = feld("Episode", episode);
-  epFeld.classList.add("feld-schmal");
-  reihe.appendChild(epFeld);
-  reihe.appendChild(feld("Format", format));
-  box.appendChild(reihe);
-
   const saeule = auswahl(SAEULEN, k.pillar, { leerText: "— keine Saeule gewaehlt —" });
   saeule.addEventListener("change", () => merke("pillar", saeule.value, true));
   box.appendChild(
@@ -199,16 +185,34 @@ function blockStamm(k, merke) {
     plattformen.appendChild(l);
   }
   box.appendChild(feld("Plattformen", plattformen, "Hashtag- und Laengen-Regeln unterscheiden sich je Plattform."));
+  g.appendChild(box);
+
+  // Sekundaeres nicht auf einmal zeigen — kuerzere Spalte, klarer Blick.
+  const { d, box: mehr } = klappe("Weitere Angaben");
+  const reihe = document.createElement("div");
+  reihe.className = "feld-reihe";
+  const serie = eingabe(k.serie, { platzhalter: "z. B. ProjectOasis" });
+  serie.addEventListener("change", () => merke("serie", serie.value, true));
+  const episode = eingabe(k.episode, { platzhalter: "01" });
+  episode.addEventListener("change", () => merke("episode", episode.value, true));
+  const format = auswahl(FORMATE, k.format);
+  format.addEventListener("change", () => merke("format", format.value, true));
+  reihe.appendChild(feld("Reihe", serie));
+  const epFeld = feld("Episode", episode);
+  epFeld.classList.add("feld-schmal");
+  reihe.appendChild(epFeld);
+  reihe.appendChild(feld("Format", format));
+  mehr.appendChild(reihe);
 
   const wer = eingabe(k.owner, { platzhalter: "Wer macht das?" });
   wer.addEventListener("change", () => merke("owner", wer.value));
-  box.appendChild(feld("Verantwortlich", wer));
+  mehr.appendChild(feld("Verantwortlich", wer));
 
-  const notizen = textfeld(k.notes, 4, "Was gehoert noch dazu?");
+  const notizen = textfeld(k.notes, 3, "Was gehoert noch dazu?");
   notizen.addEventListener("change", () => merke("notes", notizen.value));
-  box.appendChild(feld("Notizen", notizen));
+  mehr.appendChild(feld("Notizen", notizen));
 
-  g.appendChild(box);
+  g.appendChild(d);
   return g;
 }
 
@@ -222,28 +226,23 @@ function blockTermine(k, merke) {
   satz.innerHTML = statusChip(f.status) + `<span class="befund-satz">${escape(f.satz)}</span>`;
   box.appendChild(satz);
 
-  for (const t of TERMINE) {
-    const zeile = document.createElement("div");
-    zeile.className = "feld-reihe";
-    const datum = eingabe((k.dates || {})[t.key] || "", { typ: "date" });
-    datum.addEventListener("change", () => {
-      const neu = { ...(k.dates || {}) };
-      if (datum.value) neu[t.key] = datum.value;
-      else delete neu[t.key];
-      merke("dates", neu, true);
-    });
-    zeile.appendChild(feld(t.name, datum));
-    if (t.key === "upload") {
-      const zeit = eingabe(k.uploadTime || "", { typ: "time" });
-      zeit.addEventListener("change", () => merke("uploadTime", zeit.value, true));
-      const zf = feld("Uhrzeit", zeit);
-      zf.classList.add("feld-schmal");
-      zeile.appendChild(zf);
-    }
-    box.appendChild(zeile);
-  }
+  // Alle Fristen auf einen Blick: ein kleiner Kalender mit einem Marker je Meilenstein.
+  box.appendChild(miniKalender(k));
 
-  const plan = knopf("Rueckwaertsplan aus dem Upload-Datum", {
+  // Anker: das Veroeffentlichungsdatum, aus dem der Rueckwaertsplan die uebrigen ableitet.
+  const uZeile = document.createElement("div");
+  uZeile.className = "feld-reihe";
+  const uDatum = eingabe((k.dates || {}).upload || "", { typ: "date" });
+  uDatum.addEventListener("change", () => setzeTermin(k, "upload", uDatum.value, merke));
+  uZeile.appendChild(feld("Veroeffentlichung", uDatum));
+  const uZeit = eingabe(k.uploadTime || "", { typ: "time" });
+  uZeit.addEventListener("change", () => merke("uploadTime", uZeit.value, true));
+  const zf = feld("Uhrzeit", uZeit);
+  zf.classList.add("feld-schmal");
+  uZeile.appendChild(zf);
+  box.appendChild(uZeile);
+
+  const plan = knopf("Restliche Termine rueckwaerts planen", {
     zeichen: "kalender",
     titel: "Setzt Idee, Skript, Dreh, Schnitt und Freigabe rueckwaerts vom Veroeffentlichungsdatum.",
     klick: () => {
@@ -252,15 +251,165 @@ function blockTermine(k, merke) {
         melde("hinweis", "Setz zuerst das Veroeffentlichungsdatum — daraus rechnet der Plan rueckwaerts.");
         return;
       }
-      merke("dates", { ...rueckwaertsplan(upload), ...{ upload } }, true);
+      merke("dates", { ...rueckwaertsplan(upload), upload }, true);
       setStand("Die uebrigen Termine stehen jetzt rueckwaerts vom Upload-Datum.");
     },
   });
   plan.classList.add("knopf-breit");
   box.appendChild(plan);
-
   g.appendChild(box);
+
+  // Feineinstellung selten gebraucht — deshalb hinter eine Klappe.
+  const { d, box: einzeln } = klappe("Termine einzeln setzen");
+  for (const t of TERMINE) {
+    const zeile = document.createElement("div");
+    zeile.className = "feld-reihe";
+    const datum = eingabe((k.dates || {})[t.key] || "", { typ: "date" });
+    datum.addEventListener("change", () => setzeTermin(k, t.key, datum.value, merke));
+    zeile.appendChild(feld(t.name, datum));
+    einzeln.appendChild(zeile);
+  }
+  g.appendChild(d);
   return g;
+}
+
+// Ein Fristfeld setzen oder loeschen, ohne die anderen anzutasten.
+function setzeTermin(k, key, wert, merke) {
+  const neu = { ...(k.dates || {}) };
+  if (wert) neu[key] = wert;
+  else delete neu[key];
+  merke("dates", neu, true);
+}
+
+// Aufklappbarer Unterblock — Sekundaeres ausblenden, ohne es zu verlieren.
+function klappe(titel) {
+  const d = document.createElement("details");
+  d.className = "gruppe unterklappe";
+  d.innerHTML = `<summary class="gruppe-kopf"><span class="gruppe-titel">${escape(titel)}</span></summary>`;
+  const box = document.createElement("div");
+  d.appendChild(box);
+  return { d, box };
+}
+
+// --- Mini-Kalender der Fristen -------------------------------------------
+
+const MINI_MONATE = [
+  "Januar", "Februar", "Maerz", "April", "Mai", "Juni",
+  "Juli", "August", "September", "Oktober", "November", "Dezember",
+];
+let miniMonat = null;
+let miniKarteId = null;
+
+function standardMonat(k) {
+  const gesetzt = Object.values(k.dates || {}).filter(Boolean).sort();
+  const anker = gesetzt[0] || isoDatum(new Date());
+  const d = new Date(anker + "T00:00:00");
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+function miniNav(zeichen, klick) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "mini-nav";
+  b.innerHTML = icon(zeichen);
+  b.addEventListener("click", klick);
+  return b;
+}
+
+function miniKalender(k) {
+  if (miniKarteId !== k.id) {
+    miniKarteId = k.id;
+    miniMonat = null;
+  }
+  const monat = miniMonat || standardMonat(k);
+
+  const wrap = document.createElement("div");
+  wrap.className = "mini-kalender";
+
+  const kopf = document.createElement("div");
+  kopf.className = "mini-kopf";
+  kopf.appendChild(miniNav("zurueck", () => {
+    miniMonat = new Date(monat.getFullYear(), monat.getMonth() - 1, 1);
+    zeichne();
+  }));
+  const name = document.createElement("span");
+  name.className = "mini-monat";
+  name.textContent = `${MINI_MONATE[monat.getMonth()]} ${monat.getFullYear()}`;
+  kopf.appendChild(name);
+  kopf.appendChild(miniNav("weiter", () => {
+    miniMonat = new Date(monat.getFullYear(), monat.getMonth() + 1, 1);
+    zeichne();
+  }));
+  wrap.appendChild(kopf);
+
+  const raster = document.createElement("div");
+  raster.className = "mini-raster";
+  for (const wt of ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]) {
+    const z = document.createElement("div");
+    z.className = "mini-wt";
+    z.textContent = wt;
+    raster.appendChild(z);
+  }
+
+  const proTag = new Map();
+  for (const t of TERMINE) {
+    const d = (k.dates || {})[t.key];
+    if (!d) continue;
+    if (!proTag.has(d)) proTag.set(d, []);
+    proTag.get(d).push(t);
+  }
+
+  const erster = new Date(monat.getFullYear(), monat.getMonth(), 1);
+  const start = new Date(erster);
+  start.setDate(start.getDate() - ((erster.getDay() + 6) % 7));
+  const heute = isoDatum(new Date());
+
+  for (let i = 0; i < 42; i++) {
+    const tag = new Date(start);
+    tag.setDate(start.getDate() + i);
+    const iso = isoDatum(tag);
+    const zelle = document.createElement("div");
+    zelle.className =
+      "mini-tag" +
+      (tag.getMonth() !== monat.getMonth() ? " fremd" : "") +
+      (iso === heute ? " heute" : "");
+    const zahl = document.createElement("span");
+    zahl.className = "mini-tag-zahl";
+    zahl.textContent = tag.getDate();
+    zelle.appendChild(zahl);
+
+    const treffer = proTag.get(iso);
+    if (treffer) {
+      const punkte = document.createElement("span");
+      punkte.className = "mini-punkte";
+      for (const t of treffer) {
+        const p = document.createElement("span");
+        p.className = `mini-punkt marke-${t.key}`;
+        p.title = `${t.name} am ${new Date(iso + "T00:00:00").toLocaleDateString("de-DE")}`;
+        punkte.appendChild(p);
+      }
+      zelle.appendChild(punkte);
+    }
+    raster.appendChild(zelle);
+  }
+  wrap.appendChild(raster);
+
+  const gesetzt = TERMINE.filter((t) => (k.dates || {})[t.key]);
+  const leg = document.createElement("div");
+  leg.className = "mini-legende";
+  if (gesetzt.length) {
+    leg.innerHTML = gesetzt
+      .map(
+        (t) =>
+          `<span class="mini-legende-item"><span class="mini-punkt marke-${t.key}"></span>${escape(t.kurz)} ` +
+          `${new Date((k.dates)[t.key] + "T00:00:00").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>`
+      )
+      .join("");
+  } else {
+    leg.innerHTML = `<span class="mini-legende-leer">Noch keine Fristen gesetzt — Datum unten, dann rueckwaerts planen.</span>`;
+  }
+  wrap.appendChild(leg);
+  return wrap;
 }
 
 function blockTore(k, toreListe, stand) {
@@ -635,7 +784,7 @@ function felderUpload(k, box, merke) {
 // --- Drive ----------------------------------------------------------------
 
 function blockDrive(k, stand) {
-  const g = gruppe("Google Drive", null, true);
+  const g = gruppe("Google Drive", null, false);
   const box = document.createElement("div");
 
   if (!k.title) {
