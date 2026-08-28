@@ -126,6 +126,33 @@ umstellen mit `rclone config update gdrive client_id=… client_secret=… confi
 danach `rclone config reconnect gdrive:` · einmalig den Browser-Login des Dashboards durchlaufen.
 Zugänge als Umgebungsvariablen, nie in Dateien.
 
+## Anschluss-Recherche 28.08.2026: CLI vs MCP vs API je Dienst
+
+Owner-Vorgabe: weiter CLI-first, aber API oder MCP nehmen, wo CLI schwach ist; Fokus Google,
+Meta, LinkedIn. Architektur-Grundsatz: **MCP verbindet Claude mit einem Dienst, nicht das
+eigenständige Node-Dashboard.** Das Dashboard bindet per CLI-Shell-Aufruf (rclone, claude) oder
+HTTP-API an — MCP ist für Bens interaktive Claude-Workflows, nicht für den Stats-Abruf im Server.
+
+| Dienst | Bester Weg fürs Dashboard | Beleg / Hürde |
+|---|---|---|
+| Google Drive | **rclone-CLI** (läuft), eigene `client_id` nötig | Geteilte `client_id` wird 2026 abgeschaltet, Google verlangt dann Geld; eigener Client Pflicht (rclone #9580, Forum) |
+| Google Kalender | **`.ics`-Feed** (reines Node, kein API/Login) zuerst; optional später offizielle Google-Calendar-MCP/-API (zwei-Wege) | Google-MCP existiert offiziell (Gmail/Drive/Calendar), braucht aber denselben Cloud-Client; ICS braucht gar keinen (Google „Per URL abonnieren") |
+| Google Tasks | **streichen** — Board ist die Aufgabenliste | Kein CLI, nicht in Googles offizieller MCP, nur API |
+| Meta / Instagram | **Graph-API mit Standard Access** (self-serve, eigenes Konto) | Für das EIGENE Konto kein App Review nötig (nur Tester-Rolle auf eigener Meta-App); App Review/Business-Verifizierung erst beim Bedienen fremder Konten. Kein offizielles organic-MCP (nur Meta-Ads-Connector), Community-MCPs sind Graph-API-Wrapper |
+| LinkedIn | **vorerst zurückstellen** | API ist seit 2015 partner-gated: Antrag als Firma, Wochen Review, Kategorie-Zwang; kein offizielles MCP, Community entweder gated-Wrapper oder ToS-Bruch (Session-Cookie). World Eden Era gUG qualifiziert, aber es ist ein eigenes Projekt |
+
+**Konsequenz für Punkt 4/7:** Der eine unvermeidbare Google-Cloud-Client entsteht ohnehin für
+rclone (B11) und deckt später Calendar mit ab. Kalender-Ausgabe geht sofort über ICS ohne jedes
+Setup. Instagram ist **leichter erreichbar als in der v9-Notiz angenommen** (Standard Access,
+kein Review fürs eigene Konto). LinkedIn ist der echte Engpass — nicht gegen die API bauen, bevor
+der Partner-Zugang steht.
+
+Quellen: Google Workspace MCP (developers.google.com/workspace/guides/configure-mcp-servers) ·
+rclone-Retirement (github.com/rclone/rclone #9580, rclone-Forum) · Instagram Graph API Access
+(Meta-Doku, unabhängig aufbereitet Phyllo/Singh) · LinkedIn-Gating (Scalekit, usecarly, LinkedIn
+Developer-Katalog) · Google-Kalender ICS-Abo (Google-Feature, OneCal/Simon Willison). Zwei
+unabhängige Quellen je Aussage.
+
 ## Status
 
 **2026-08-27 abends** — Audit abgeschlossen, zwölf Befunde gemessen, Plan geschrieben,
