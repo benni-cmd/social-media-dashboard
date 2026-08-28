@@ -170,12 +170,18 @@ alten Freitextfeld `freigabe`.
 
 ## Offen — Einstieg für die nächste Sitzung
 
-1. **Optische Abnahme steht aus, und das ist ein Blocker, kein übersprungener Schritt.**
-   Der Browser-Bereich wird auf Bens Rechner nicht angezeigt, deshalb schlug jeder Screenshot
-   fehl („the Browser pane is not displayed"); ein verbundener Chrome existiert auch nicht
-   (`list_connected_browsers` → leer). Geprüft ist bisher nur DOM und Konsole. **Zuerst in der
-   nächsten Sitzung:** Browser-Bereich einblenden, Screenshot von Board, Kalender, Auswertung
-   und Detailspalte, gegen die sieben Punkte in `../../docs/ui-standard.md` der Werkbank prüfen.
+1. **Optische Abnahme — erledigt 28.08.2026.** Der Browser-Pane wird auf Bens Rechner weiterhin
+   nicht komponiert (`computer{screenshot}` → „the Browser pane is not displayed"), ein Chrome
+   ist nicht verbunden. Umgangen über **Edge headless mit Remote-Debugging, gefahren durch einen
+   reinen-Node-CDP-Treiber** (`scratchpad/shot.mjs`: `Page.navigate` → View-Knöpfe klicken →
+   Karte öffnen → `Page.captureScreenshot`; Node 26 bringt globales `WebSocket` mit, keine
+   Abhängigkeit). Vier echte PNGs (Board, Kalender, Auswertung, Detailspalte) einzeln gegen die
+   sieben Punkte in `../../docs/ui-standard.md` geprüft — alle sieben erfüllt (Sätze statt
+   Fragmente, getrenntes Klassen-Vokabular, Status als Wort+Zeichen, wiederverwendete Bausteine,
+   Lucide-SVGs statt Unicode-Icons, keine verbotenen Wörter). Zwei Nits ohne Blocker-Rang:
+   7-Phasen-Board scrollt horizontal (normal); UI-Text mischt echte Umlaute mit ASCII-Digraphen
+   („Veroeffentlichung" neben „Hühnernahrung"). **Dauerhafte Folge:** der Screenshot-Weg über
+   Edge headless steht jetzt als Verify-Werkzeug bereit, unabhängig vom Pane.
 2. **Kein einziger KI-Aufruf ist live durchgelaufen.** Recherche, Skript, Regieplan, Caption,
    Ideen und Redaktionsplan sind gebaut und die Prompts stehen, aber `claude -p` wurde über die
    neue Oberfläche nie ausgeführt. Besonders zu prüfen: liefern `caption` und `ideen` wirklich
@@ -202,5 +208,6 @@ Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davo
 belegt, zwei im Code behoben ohne verbundenes Konto, einer bei Ben) · Board, Kalender und
 Detailspalte im Browser ohne Konsolenfehler · Migration aller Bestandskarten auf Schema 2 ·
 Abgleich heilt eine absichtlich erzeugte Abweichung in beide Richtungen.
-Offen: optische Abnahme per Screenshot · KI-Aufrufe live · LinkedIn-Recherche · Kalender- und
-Tasks-Anbindung · `analytics.html` · rclone-client_id (Ben).
+Offen: KI-Aufrufe live · LinkedIn-Recherche · Kalender- und Tasks-Anbindung · `analytics.html` ·
+rclone-client_id (Ben). — Optische Abnahme am 28.08.2026 erbracht (Edge headless, vier PNGs
+gegen die sieben ui-standard-Punkte, alle erfüllt).
