@@ -10,6 +10,7 @@ export const S = {
   monat: new Date(), // fuer die Kalenderansicht
   driveStand: new Map(), // Karten-id -> Ergebnis von /api/drive/scan
   zahlen: null, // zuletzt geholte Instagram-Zahlen
+  zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
 };
 
 const abonnenten = new Set();

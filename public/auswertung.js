@@ -5,10 +5,14 @@
 //     Blogs. Die kursierenden Benchmarks sind unbelegt.
 //   - Welche Zahl zaehlt, haengt am Ziel der Karte: Weiterleitungen bewegen Nicht-Follower,
 //     Likes bewegen den Bestand (Mosseri, 22.01.2025).
+//
+// Die Verbindung zu den Konten laeuft seit v9 inline hier, nicht mehr auf einer eigenen
+// Seite: ein Klick fuehrt in den OAuth-Fluss (/api/auth/<plattform>), der Rueckweg landet
+// wieder in dieser Ansicht (app.js liest die Rueckkehr-Parameter).
 
 import { zielInfo, einordnung } from "/lib/pipeline.js";
 import { S, instagramZahlen, linkedinZahlen, zeichne } from "./store.js";
-import { icon, statusChip, escape, knopf, leer, fortschritt } from "./ui.js";
+import { icon, statusChip, escape, knopf, leer, gruppe, fortschritt } from "./ui.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
@@ -31,17 +35,14 @@ export async function zeichneAuswertung(el) {
       zeichen: "neuladen",
       klick: () => {
         S.zahlen = null;
+        S.zahlenLi = null;
         zeichne();
       },
     })
   );
-  const zurVerbindung = document.createElement("a");
-  zurVerbindung.className = "knopf knopf-still";
-  zurVerbindung.href = "/analytics.html";
-  zurVerbindung.innerHTML = icon("extern") + `<span>Konten verbinden</span>`;
-  kopf.appendChild(zurVerbindung);
   el.appendChild(kopf);
 
+  // --- Instagram ---
   if (S.zahlen === null) {
     const weg = fortschritt(el, "Hole die Zahlen von Instagram …");
     try {
@@ -51,30 +52,57 @@ export async function zeichneAuswertung(el) {
     }
     weg();
   }
-  const z = S.zahlen || {};
+  el.appendChild(instagramBlock(S.zahlen || {}));
+
+  // --- LinkedIn ---
+  if (S.zahlenLi === null) {
+    const weg = fortschritt(el, "Hole die Zahlen von LinkedIn …");
+    try {
+      S.zahlenLi = await linkedinZahlen();
+    } catch (e) {
+      S.zahlenLi = { verbunden: false, fehler: e.message };
+    }
+    weg();
+  }
+  el.appendChild(linkedinBlock(S.zahlenLi || {}));
+}
+
+// --- Verbinden -------------------------------------------------------------
+
+function verbindenKnopf(plattform, name) {
+  return knopf(`Mit ${name} verbinden`, {
+    art: "haupt",
+    zeichen: "extern",
+    titel: `Fuehrt zum Anmelde- und Zustimmungsfenster von ${name}.`,
+    klick: () => {
+      location.href = `/api/auth/${plattform}`;
+    },
+  });
+}
+
+// --- Instagram-Block -------------------------------------------------------
+
+function instagramBlock(z) {
+  const g = gruppe("Instagram", null, true);
 
   if (!z.verbunden) {
-    el.appendChild(
+    g.appendChild(
       leer({
         zeichen: "saeulen",
-        titel: "Noch kein Konto verbunden",
-        satz:
-          "Ohne Verbindung zu Instagram oder LinkedIn gibt es keine Zahlen. Die Verbindung laeuft ueber die Seite „Konten verbinden“.",
+        titel: "Instagram ist nicht verbunden",
+        satz: "Ohne Verbindung gibt es keine Zahlen. Der Weg fuehrt einmal durch das Anmeldefenster von Instagram.",
+        handlung: verbindenKnopf("instagram", "Instagram"),
       })
     );
-    return;
+    return g;
   }
 
   if (z.fehler) {
-    const b = document.createElement("div");
-    b.className = "befund";
-    b.innerHTML =
-      statusChip("befund") + `<span class="befund-satz">${escape(z.hinweis || z.fehler)}</span>`;
-    el.appendChild(b);
-    return;
+    g.appendChild(befund(z.hinweis || z.fehler));
+    g.appendChild(verbindenKnopf("instagram", "Instagram"));
+    return g;
   }
 
-  // Kontozahlen
   const konto = z.konto || {};
   const reihe = document.createElement("div");
   reihe.className = "zahlenreihe";
@@ -90,14 +118,9 @@ export async function zeichneAuswertung(el) {
       "Prozent Weiterleitungen je Reichweite im Median — die Groesse, die Nicht-Follower bewegt.",
       "%"
     );
-  el.appendChild(reihe);
+  g.appendChild(reihe);
 
-  // Beitraege
-  const liste = document.createElement("div");
-  liste.style.display = "flex";
-  liste.style.flexDirection = "column";
-  liste.style.gap = "9px";
-
+  const liste = spalte();
   for (const m of z.medien || []) {
     const k = karteZuBeitrag(m.permalink);
     const ziel = k ? zielInfo(k.goal) : zielInfo("reach_new");
@@ -138,8 +161,7 @@ export async function zeichneAuswertung(el) {
     liste.appendChild(
       leer({ zeichen: "saeulen", titel: "Keine Beitraege gefunden", satz: "Das Konto ist verbunden, liefert aber keine Beitraege." })
     );
-
-  el.appendChild(liste);
+  g.appendChild(liste);
 
   const fuss = document.createElement("p");
   fuss.className = "feld-hinweis";
@@ -147,7 +169,80 @@ export async function zeichneAuswertung(el) {
   fuss.textContent =
     "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt. " +
     "Trag den Link eines Beitrags in der Karte unter „Upload“ ein, damit er hier seiner Karte zugeordnet wird.";
-  el.appendChild(fuss);
+  g.appendChild(fuss);
+  return g;
+}
+
+// --- LinkedIn-Block --------------------------------------------------------
+
+function linkedinBlock(z) {
+  const g = gruppe("LinkedIn", null, true);
+
+  if (!z.verbunden) {
+    g.appendChild(
+      leer({
+        zeichen: "saeulen",
+        titel: "LinkedIn ist nicht verbunden",
+        satz: "Ohne Verbindung gibt es keine Zahlen. Der Weg fuehrt einmal durch das Anmeldefenster von LinkedIn.",
+        handlung: verbindenKnopf("linkedin", "LinkedIn"),
+      })
+    );
+    return g;
+  }
+
+  if (z.fehler) {
+    g.appendChild(befund(z.hinweis || z.fehler));
+    g.appendChild(verbindenKnopf("linkedin", "LinkedIn"));
+    return g;
+  }
+
+  const konto = z.konto || {};
+  const reihe = document.createElement("div");
+  reihe.className = "zahlenreihe";
+  reihe.innerHTML = zahlKachel(konto.follower, `Menschen folgen ${konto.name || "dem Konto"} auf LinkedIn.`);
+  g.appendChild(reihe);
+
+  const liste = spalte();
+  for (const p of z.posts || []) {
+    const zeile = document.createElement("article");
+    zeile.className = "eintrag";
+    const text = (p.text || "").split("\n")[0].slice(0, 90) || "(ohne Text)";
+    zeile.innerHTML =
+      `<div class="eintrag-titel">${escape(text)}</div>` +
+      `<div class="eintrag-untertitel">${escape(
+        p.erstellt ? `Veroeffentlicht am ${new Date(p.erstellt).toLocaleDateString("de-DE")}` : "Datum unbekannt"
+      )}</div>` +
+      `<div class="eintrag-fuss"><span class="eintrag-fuss-rechts">${escape(
+        [p.likes != null ? `${p.likes} Likes` : null, p.kommentare != null ? `${p.kommentare} Kommentare` : null]
+          .filter(Boolean)
+          .join(" · ")
+      )}</span></div>`;
+    liste.appendChild(zeile);
+  }
+
+  if (!(z.posts || []).length)
+    liste.appendChild(
+      leer({ zeichen: "saeulen", titel: "Keine Beitraege gefunden", satz: "Das Konto ist verbunden, liefert aber keine Beitraege." })
+    );
+  g.appendChild(liste);
+  return g;
+}
+
+// --- Hilfen ----------------------------------------------------------------
+
+function spalte() {
+  const d = document.createElement("div");
+  d.style.display = "flex";
+  d.style.flexDirection = "column";
+  d.style.gap = "9px";
+  return d;
+}
+
+function befund(satz) {
+  const b = document.createElement("div");
+  b.className = "befund";
+  b.innerHTML = statusChip("befund") + `<span class="befund-satz">${escape(satz)}</span>`;
+  return b;
 }
 
 function zahlKachel(wert, satz, einheit = "") {

@@ -273,7 +273,7 @@ const server = createServer(async (req, res) => {
       if (!code) {
         umleitung(
           res,
-          `/analytics.html?fehler=${encodeURIComponent(url.searchParams.get("error_description") || "Verbindung abgebrochen")}`
+          `/?fehler=${encodeURIComponent(url.searchParams.get("error_description") || "Verbindung abgebrochen")}`
         );
         return;
       }
@@ -312,9 +312,9 @@ const server = createServer(async (req, res) => {
         const igUserId = igDaten.instagram_business_account.id;
         const info = await (await fetch(`${base}/${igUserId}?fields=username&access_token=${seitenToken}`)).json();
         await speichereToken("instagram", { accessToken: seitenToken, igUserId, username: info.username || "" });
-        umleitung(res, "/analytics.html?verbunden=instagram");
+        umleitung(res, "/?verbunden=instagram");
       } catch (e) {
-        umleitung(res, `/analytics.html?fehler=${encodeURIComponent(e.message)}`);
+        umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
       }
       return;
     }
@@ -341,7 +341,7 @@ const server = createServer(async (req, res) => {
     if (pfad === "/api/auth/linkedin/callback" && req.method === "GET") {
       const code = url.searchParams.get("code");
       if (!code) {
-        umleitung(res, `/analytics.html?fehler=${encodeURIComponent("LinkedIn-Verbindung abgebrochen")}`);
+        umleitung(res, `/?fehler=${encodeURIComponent("LinkedIn-Verbindung abgebrochen")}`);
         return;
       }
       try {
@@ -383,9 +383,9 @@ const server = createServer(async (req, res) => {
         ).json();
 
         await speichereToken("linkedin", { accessToken, orgUrn, orgId, orgName: name.localizedName || orgId });
-        umleitung(res, "/analytics.html?verbunden=linkedin");
+        umleitung(res, "/?verbunden=linkedin");
       } catch (e) {
-        umleitung(res, `/analytics.html?fehler=${encodeURIComponent(e.message)}`);
+        umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
       }
       return;
     }

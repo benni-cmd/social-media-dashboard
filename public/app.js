@@ -118,7 +118,23 @@ el("abgleichen").addEventListener("click", async (e) => {
   } catch (e) {
     await melde("befund", `Das Board liess sich nicht laden: ${e.message}`);
   }
-  wechsle("board");
+
+  // Rueckkehr aus dem OAuth-Verbindungsfluss: Meldung zeigen und in die Auswertung springen.
+  const rueck = new URLSearchParams(location.search);
+  let ziel = "board";
+  if (rueck.has("verbunden")) {
+    const name = rueck.get("verbunden") === "linkedin" ? "LinkedIn" : "Instagram";
+    S.zahlen = null;
+    S.zahlenLi = null;
+    await melde("ok", `${name} ist verbunden. Die Zahlen stehen jetzt unter „Auswertung“.`);
+    history.replaceState({}, "", "/");
+    ziel = "auswertung";
+  } else if (rueck.has("fehler")) {
+    await melde("befund", `Die Verbindung ist fehlgeschlagen: ${rueck.get("fehler")}`);
+    history.replaceState({}, "", "/");
+    ziel = "auswertung";
+  }
+  wechsle(ziel);
 
   // Drive einmal beim Start pruefen — damit ein Ausfall sofort sichtbar ist und nicht
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.

@@ -212,13 +212,36 @@ alten Freitextfeld `freigabe`.
    beide, ein gemeinsames OAuth-Modul mit Loopback und PKCE, reines Node. Bens Handlungen
    (Cloud-Projekt, drei APIs, Zustimmungsbildschirm auf External + PUBLISH, zwei Desktop-Clients)
    stehen oben im Rechercheteil und müssen vor dem Bau erledigt sein.
-5. **`public/analytics.html` und `public/analytics.js` sind unangetastet** — sie tragen noch die
-   alte Gestaltung und das alte Vokabular. Die Verbindungsseite gehört auf die neuen Bausteine
-   aus `ui.js` umgestellt, oder ganz in die Auswertungs-Ansicht hineingezogen.
+5. **`analytics.html`/`.js` — erledigt 28.08.2026, in die Auswertung gezogen.** Beide Dateien
+   gelöscht. Die Auswertungs-Ansicht (`auswertung.js`) rendert jetzt Instagram UND LinkedIn als
+   je einen `gruppe`-Block auf `ui.js`-Bausteinen, mit Inline-Verbinden-Knopf pro Plattform
+   (`/api/auth/<p>`); die alten Unicode-Glyphen (♥ 💬 ▶) und die toten `impressions`/`plays` sind
+   damit weg. Der OAuth-Redirect in `server.js` kehrt zu `/?verbunden=…` bzw. `/?fehler=…` zurück,
+   `app.js` liest das, zeigt eine Meldung, springt in die Auswertung und säubert die URL. Verify:
+   Screenshot der neuen Ansicht gegen ui-standard (zwei Blöcke, Lucide-Icons, Sätze, kein Unicode,
+   keine Konsolenfehler) · Rückkehr-Test `/?verbunden=instagram` → Meldung, Sprung, URL auf `/`.
+   Offen bleibt nur der verbundene Zustand (echte Zahlen/Posts) — ungetestet mangels Konto, wie
+   B9/B10.
 
 Kleinere offene Punkte: die alten Dateien unter `projects/` liegen noch auf der Platte (nicht
 im Repo, `.gitignore` deckt sie) und können weg; `Diagnose.cmd`, `Setup-Claude.cmd` und
 `Start-Board.cmd` erwähnen noch das „Content-Pipeline-Board".
+
+## P5-Nachtrag: analytics.html in die Auswertung ziehen (28.08.2026)
+
+**PIG.** Problem: `analytics.html`/`analytics.js` sind eine verwaiste Seite mit eigenen
+Inline-Styles, altem Titel und Unicode-Glyphen (♥ 💬 ▶, ui-standard Punkt 5 verletzt) und tragen
+sogar noch die toten `impressions`/`plays` (B9). Intent: eine Fläche, ein System — die
+Verbindung und die Zahlen gehören dorthin, wo man sie liest. Goal: `analytics.html`/`.js` sind
+gelöscht; die Auswertungs-Ansicht verbindet Instagram UND LinkedIn inline (auf `ui.js`) und zeigt
+beide Zahlen; der OAuth-Redirect kehrt zu `/` zurück und die App springt in die Auswertung.
+
+**Plan.** (1) `server.js`: die sechs `/analytics.html?…`-Redirects auf `/?…` umstellen.
+(2) `app.js`: nach Start `?verbunden`/`?fehler` lesen, `melde()` + Sprung in die Auswertung, URL
+säubern. (3) `store.js`: `zahlenLi` in `S`. (4) `auswertung.js`: je Plattform ein `gruppe`-Block
+mit Inline-Verbinden-Knopf (`/api/auth/<p>`), Instagram-Median-Logik erhalten, LinkedIn-Anzeige
+ergänzt. (5) `analytics.html`/`analytics.js` löschen. Verify: Screenshot der Auswertung gegen
+ui-standard (Owner-Regel).
 
 ## Definition of Done
 
@@ -226,9 +249,10 @@ Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davo
 belegt, zwei im Code behoben ohne verbundenes Konto, einer bei Ben) · Board, Kalender und
 Detailspalte im Browser ohne Konsolenfehler · Migration aller Bestandskarten auf Schema 2 ·
 Abgleich heilt eine absichtlich erzeugte Abweichung in beide Richtungen.
-Offen: Kalender- und Tasks-Anbindung · `analytics.html` · rclone-client_id (Ben). — Am
-28.08.2026 erbracht: optische Abnahme (Edge headless, vier PNGs gegen die sieben
-ui-standard-Punkte) · KI-Aufrufe live (ideen/caption/recherche/skript über `/api/ai`,
-JSON-Schemata und Grenzwerte geprüft, ein UI-Klick per Screenshot) · LinkedIn-Recherche
-(Korridor belegt und korrigiert, Hashtag-Grenze entfernt, in best-practices.md verankert).
-Offener Nit: `skript`-Prompt-Vorspann.
+Offen: Kalender- und Tasks-Anbindung (Ben) · rclone-client_id (Ben). — Am 28.08.2026 erbracht:
+optische Abnahme (Edge headless, vier PNGs gegen die sieben ui-standard-Punkte) · KI-Aufrufe
+live (ideen/caption/recherche/skript über `/api/ai`, JSON-Schemata und Grenzwerte geprüft, ein
+UI-Klick per Screenshot) · LinkedIn-Recherche (Korridor belegt und korrigiert, Hashtag-Grenze
+entfernt, in best-practices.md verankert) · `analytics.html` in die Auswertung gezogen (Inline-
+Verbinden für IG+LinkedIn, OAuth-Rückkehr auf `/`, Screenshot- und Rückkehr-Test). Offene Nits:
+`skript`-Prompt-Vorspann · verbundener Stats-Zustand ungetestet mangels Konto.
