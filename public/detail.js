@@ -36,6 +36,7 @@ import {
   driveAnlegen,
   driveSpeichern,
   ki,
+  kiStream,
   melde,
   setStand,
 } from "./store.js";
@@ -52,13 +53,15 @@ import {
   befundZeile,
   eigenschaft,
   fortschritt,
+  denkPanel,
 } from "./ui.js";
 
 let schiebe = async () => {};
 export const beiSchieben = (f) => (schiebe = f);
 
 const KI_NAMEN = {
-  recherche: "Recherche, Fokus und Hooks",
+  recherche: "Recherche und Fokus",
+  hooks: "Hooks zum gewaehlten Fokus",
   skript: "Skript und Teleprompter",
   regieplan: "Regieplan und Metadaten",
   caption: "Captions je Plattform",
@@ -497,7 +500,7 @@ function blockPhase(k, toreListe, stand) {
 function auswahlFokusHook(k, box, merke) {
   const r = k.recherche;
   if (!r) return;
-  if (r.raw || !Array.isArray(r.fokus) || !Array.isArray(r.hooks)) {
+  if (r.raw || !Array.isArray(r.fokus)) {
     const pre = document.createElement("pre");
     pre.className = "textblock";
     pre.textContent = r.raw || JSON.stringify(r, null, 2);
@@ -516,28 +519,16 @@ function auswahlFokusHook(k, box, merke) {
     box.appendChild(d);
   }
 
+  // Stufe 1: Fokus waehlen. Ein Wechsel verwirft die Hooks — sie bauen auf dem Fokus auf.
   box.appendChild(
     wahlgruppe(
-      "Fokus",
+      "Fokus — worum es im Kern geht",
       r.fokus.map((f, i) => ({ i, titel: f.titel, text: f.text })),
       k.chosenFokus,
-      (i) => merke("chosenFokus", i, true)
-    )
-  );
-
-  box.appendChild(
-    wahlgruppe(
-      "Hook — gesprochen und sichtbar",
-      r.hooks.map((h, i) => ({
-        i,
-        titel: h.label,
-        text: `Gesprochen: ${h.verbal}\nSichtbar: ${h.visuell}`,
-      })),
-      k.chosenHook,
       (i) => {
-        const h = r.hooks[i];
-        setzeTief(k, "chosenHook", i);
-        setzeTief(k, "hook", { text: h.verbal || "", visual: h.visuell || "" });
+        setzeTief(k, "chosenFokus", i);
+        delete k.hooksVorschlag;
+        delete k.chosenHook;
         speichere();
         zeichne();
       }
@@ -560,6 +551,52 @@ function auswahlFokusHook(k, box, merke) {
       })
     );
   }
+
+  // Stufe 2: Hooks — erst nach der Fokuswahl, genau auf diesen Fokus zugeschnitten.
+  if (k.chosenFokus == null) {
+    const p = document.createElement("p");
+    p.className = "feld-hinweis";
+    p.textContent = "Waehle zuerst einen Fokus — danach schneidet die KI drei Hooks genau darauf zu.";
+    box.appendChild(p);
+    return;
+  }
+
+  const hv = k.hooksVorschlag;
+  if (!hv || !Array.isArray(hv.hooks)) {
+    box.appendChild(
+      knopf("Drei Hooks zu diesem Fokus holen", {
+        art: "haupt",
+        zeichen: "funken",
+        klick: (e) => rufeKi("hooks", k, e.currentTarget, box),
+      })
+    );
+    if (hv && hv.raw) {
+      const pre = document.createElement("pre");
+      pre.className = "textblock";
+      pre.textContent = hv.raw;
+      box.appendChild(pre);
+    }
+    return;
+  }
+
+  box.appendChild(
+    wahlgruppe(
+      "Hook — gesprochen und sichtbar",
+      hv.hooks.map((h, i) => ({
+        i,
+        titel: h.label,
+        text: `Gesprochen: ${h.verbal}\nSichtbar: ${h.visuell}`,
+      })),
+      k.chosenHook,
+      (i) => {
+        const h = hv.hooks[i];
+        setzeTief(k, "chosenHook", i);
+        setzeTief(k, "hook", { text: h.verbal || "", visual: h.visuell || "" });
+        speichere();
+        zeichne();
+      }
+    )
+  );
 }
 
 function felderSkript(k, box, merke) {
@@ -1008,24 +1045,14 @@ function schalterFeld(k, box, merke, paare) {
 async function rufeKi(task, k, knopfEl, box) {
   const alle = box.querySelectorAll(".knopf");
   alle.forEach((b) => (b.disabled = true));
-  const weg = fortschritt(box, `${KI_NAMEN[task] || task} wird erstellt — das dauert eine Weile.`);
+  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`);
   try {
-    const antwort = await ki(task, {
-      title: k.title,
-      notes: k.notes,
-      serie: k.serie,
-      episode: k.episode,
-      format: k.format,
-      pillar: k.pillar,
-      goal: k.goal,
-      platforms: k.platforms,
-      frame: k.frame,
-      hook: k.hook,
-      seriesSiblings: S.cards
-        .filter((c) => c.id !== k.id && c.serie && c.serie === k.serie)
-        .map((c) => c.title || "(ohne Titel)"),
+    const antwort = await kiStream(task, kiNutzlast(k), (e) => {
+      if (e.delta) panel.delta(e.delta);
+      if (e.status) panel.status(e.status);
     });
     if (task === "recherche") setzeTief(k, "recherche", antwort.data || { raw: antwort.text || "" });
+    else if (task === "hooks") setzeTief(k, "hooksVorschlag", antwort.data || { raw: antwort.text || "" });
     else if (task === "caption") setzeTief(k, "captionVorschlag", antwort.data || { raw: antwort.text || "" });
     else {
       k.ai = k.ai || {};
@@ -1033,13 +1060,37 @@ async function rufeKi(task, k, knopfEl, box) {
       if (task === "skript" && !k.skriptFinal) k.skriptFinal = antwort.text || "";
     }
     await speichere();
-    zeichne();
+    zeichne(); // baut die Detailspalte neu auf — das Panel verschwindet mit ihr.
   } catch (e) {
-    await melde("befund", (e.daten && e.daten.hint) || e.message);
-  } finally {
-    weg();
+    panel.weg();
     alle.forEach((b) => (b.disabled = false));
+    await melde("befund", (e.daten && e.daten.hint) || e.message);
   }
+}
+
+// Nutzlast fuer den KI-Aufruf. Der gewaehlte Fokus wandert mit, damit Hooks und Skript
+// darauf aufbauen — die Stufen bauen aufeinander auf.
+function kiNutzlast(k) {
+  const n = {
+    title: k.title,
+    notes: k.notes,
+    serie: k.serie,
+    episode: k.episode,
+    format: k.format,
+    pillar: k.pillar,
+    goal: k.goal,
+    platforms: k.platforms,
+    frame: k.frame,
+    hook: k.hook,
+    seriesSiblings: S.cards
+      .filter((c) => c.id !== k.id && c.serie && c.serie === k.serie)
+      .map((c) => c.title || "(ohne Titel)"),
+  };
+  if (k.recherche && Array.isArray(k.recherche.fokus) && k.chosenFokus != null) {
+    const f = k.recherche.fokus[k.chosenFokus];
+    if (f) n.fokus = `${f.titel}: ${f.text}`;
+  }
+  return n;
 }
 
 async function nachDrive(k, dateiname, inhalt, knopfEl, box) {

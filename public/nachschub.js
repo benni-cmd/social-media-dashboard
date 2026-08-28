@@ -6,23 +6,31 @@
 //   Plan    — Termine fuer die naechsten Wochen, mindestens drei je Woche.
 
 import { SAEULEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE } from "/lib/pipeline.js";
-import { S, ki, speichere, zeichne, melde, setStand } from "./store.js";
-import { icon, statusChip, escape, knopf, fortschritt } from "./ui.js";
+import { S, kiStream, speichere, zeichne, melde, setStand } from "./store.js";
+import { icon, statusChip, escape, knopf, denkPanel } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
 
 export async function holeIdeen(anker) {
-  const weg = fortschritt(anker, "Die KI sucht Ideen, die noch nicht da sind …");
+  const panel = denkPanel(anker, "Die KI sucht Ideen, die noch nicht da sind …");
   try {
     const verteilung = saeulenVerteilung(S.cards.filter((c) => c.pillar))
       .map((s) => `${s.name}: ${s.anzahl}`)
       .join(", ");
-    const antwort = await ki("ideen", {
-      anzahl: 6,
-      vorhandene: S.cards.map((c) => c.title).filter(Boolean),
-      verteilung,
-      pillar: "",
-    });
+    const antwort = await kiStream(
+      "ideen",
+      {
+        anzahl: 6,
+        vorhandene: S.cards.map((c) => c.title).filter(Boolean),
+        verteilung,
+        pillar: "",
+      },
+      (e) => {
+        if (e.delta) panel.delta(e.delta);
+        if (e.status) panel.status(e.status);
+      }
+    );
+    panel.weg();
     const ideen = (antwort.data && antwort.data.ideen) || [];
     if (!ideen.length) {
       await melde("hinweis", "Die KI hat keine verwertbare Liste geliefert. Versuch es noch einmal.");
@@ -30,9 +38,8 @@ export async function holeIdeen(anker) {
     }
     zeigeIdeen(ideen, anker);
   } catch (e) {
+    panel.weg();
     await melde("befund", (e.daten && e.daten.hint) || e.message);
-  } finally {
-    weg();
   }
 }
 
@@ -95,13 +102,21 @@ function zeigeIdeen(ideen, anker) {
 // --- Redaktionsplan -------------------------------------------------------
 
 export async function holePlan(anker) {
-  const weg = fortschritt(anker, "Die KI baut einen Redaktionsplan fuer die naechsten Wochen …");
+  const panel = denkPanel(anker, "Die KI baut einen Redaktionsplan fuer die naechsten Wochen …");
   try {
     const geplant = S.cards
       .filter((c) => (c.dates || {}).upload)
       .map((c) => `${c.title} am ${c.dates.upload}`);
     const vorrat = S.cards.filter((c) => c.column === "idee" && !(c.dates || {}).upload).map((c) => c.title);
-    const antwort = await ki("plan", { wochen: 4, ab: isoDatum(new Date()), geplant, vorrat });
+    const antwort = await kiStream(
+      "plan",
+      { wochen: 4, ab: isoDatum(new Date()), geplant, vorrat },
+      (e) => {
+        if (e.delta) panel.delta(e.delta);
+        if (e.status) panel.status(e.status);
+      }
+    );
+    panel.weg();
     const plan = (antwort.data && antwort.data.vorschlag) || [];
     if (!plan.length) {
       await melde("hinweis", "Die KI hat keinen verwertbaren Plan geliefert. Versuch es noch einmal.");
@@ -109,9 +124,8 @@ export async function holePlan(anker) {
     }
     zeigePlan(plan, antwort.data.hinweis || "", anker);
   } catch (e) {
+    panel.weg();
     await melde("befund", (e.daten && e.daten.hint) || e.message);
-  } finally {
-    weg();
   }
 }
 

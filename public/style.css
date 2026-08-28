@@ -1409,3 +1409,67 @@ body {
   color: var(--text-leise);
   line-height: 1.4;
 }
+
+/* Live-Denkpanel: zeigt den KI-Text, waehrend er entsteht */
+.denk {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  margin: 9px 0;
+  overflow: hidden;
+}
+.denk-kopf {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--linie);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-still);
+}
+.denk-kopf .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--akzent);
+  flex: 0 0 auto;
+}
+.denk-titel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.denk-punkte {
+  display: inline-flex;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+.denk-punkte span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--akzent);
+  animation: denk-blink 1s infinite;
+}
+.denk-punkte span:nth-child(2) { animation-delay: 0.2s; }
+.denk-punkte span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes denk-blink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+.denk-text {
+  margin: 0;
+  padding: 10px 11px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-still);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+  font-family: inherit;
+}
+.denk-text:empty {
+  display: none;
+}

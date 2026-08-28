@@ -191,6 +191,40 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // Gleiche Aufgabe, aber der Text kommt live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"}.
+    if (pfad === "/api/ai/stream" && req.method === "POST") {
+      const { task, card } = JSON.parse(await readBody(req));
+      const bauen = ki.AUFGABEN[task];
+      if (!bauen) {
+        sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
+        return;
+      }
+      res.writeHead(200, {
+        "content-type": "application/x-ndjson; charset=utf-8",
+        "cache-control": "no-cache",
+        "x-accel-buffering": "no",
+      });
+      const schreib = (o) => res.write(JSON.stringify(o) + "\n");
+      try {
+        let kontextBlock = "";
+        if (card && card.serie && ["recherche", "hooks", "skript", "regieplan"].includes(task)) {
+          const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
+          if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
+        }
+        const prompt = ki.MARKE_REGELN + kontextBlock + "\n\n---\n\n" + bauen(card || {});
+        const text = await ki.runClaudeStream(prompt, (delta, status) => {
+          if (delta) schreib({ t: "delta", text: delta });
+          if (status) schreib({ t: "status", text: status });
+        });
+        const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
+        schreib({ t: "done", text, data });
+      } catch (e) {
+        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e) });
+      }
+      res.end();
+      return;
+    }
+
     // ---- Drive -----------------------------------------------------------
 
     if (pfad === "/api/drive/status" && req.method === "GET") {

@@ -324,6 +324,39 @@ um `.mini-kalender`/`.unterklappe`. Verify (Edge headless, Board per Stub für e
 gesetzten Fristen, echte board.json unangetastet): sichtbare Felder 7 statt ~13, 6 Marker im
 Kalender + 6 in der Legende, alle Klappen korrekt zu, keine Konsolenfehler.
 
+## P11: KI-Denkprozess sichtbar + zweistufiger Fokus→Hook-Zyklus (28.08.2026)
+
+**PIG.** Problem: (1) Die KI-Knöpfe zeigen nur einen Spinner — man weiß nicht, ob wirklich
+gearbeitet wird. (2) Recherche liefert Fokus UND Hooks in einem Rutsch, die passen nur paarweise
+lose zusammen; es fehlt der aufeinander aufbauende Weg. Intent: Vertrauen durch Sichtbarkeit, und
+ein Zyklus, in dem jede Stufe auf der vorherigen Wahl aufbaut. Goal: (1) beim KI-Aufruf läuft der
+Text der KI live sichtbar mit; (2) Recherche → Fokus wählen → **erst dann** drei Hooks GENAU zu
+diesem Fokus → Hook wählen → Skript baut auf Fokus+Hook auf.
+
+**Belegte Technik (empirisch geprüft 28.08.2026):** `claude -p --output-format stream-json
+--verbose --include-partial-messages` liefert `{"type":"stream_event","event":{"type":
+"content_block_delta","delta":{"type":"text_delta","text":"…"}}}` (Token-Deltas) und am Ende
+`{"type":"result","result":"…"}` (finaler Text). Läuft über Bens Abo (`apiKeySource:none`).
+
+**Plan.** (a) `lib/ai.js`: `runClaudeStream(prompt,onDelta)`; `recherche`-Prompt ohne Hooks; neue
+Aufgabe `hooks(card)` mit dem gewählten Fokus; Fokus in `kontext()`, damit Skript darauf aufbaut.
+(b) `server.js`: `/api/ai/stream` (POST, NDJSON) — `delta`-Zeilen live, am Ende `done` mit
+`{text,data}`. (c) `store.js`: `kiStream(task,card,onEreignis)` liest den Stream per
+`getReader()`. (d) `detail.js`: Live-„Denkprozess"-Panel bei jedem KI-Lauf; `auswahlFokusHook`
+zweistufig (Fokus → „Hooks holen" → Hooks). (e) `nachschub.js`: Ideen/Plan ebenfalls mit
+Live-Panel. (f) `style.css`: Panel-Stil. Verify: echter gestreamter Lauf (Delta sichtbar) +
+UI-Screenshots der zwei Stufen, keine Konsolenfehler.
+
+**Stand: erledigt 28.08.2026.** Gebaut: `lib/ai.js` `runClaudeStream` + `hooks`-Aufgabe + Fokus/
+Hook im `kontext`, Recherche ohne Hooks; `server.js` `/api/ai/stream` (NDJSON); `store.js`
+`kiStream`; `ui.js` `denkPanel`; `detail.js` `rufeKi` streamt ins Panel, `auswahlFokusHook`
+zweistufig; `nachschub.js` Ideen/Plan mit Panel; `style.css` `.denk*`. Verify (Edge headless,
+echte KI über `/api/ai/stream`): (1) Stream liefert Token-`delta` + `status` + `done` — Panel
+füllt sich live (Auszug „{ \"zusammenfassung\": …", Ideen-Panel-Bild); (2) nach Recherche 3
+Fokus-Optionen + Hinweis „zuerst Fokus", nach Fokuswahl erscheint Hooks-Knopf, nach Hooks 6
+Optionen (3 Fokus + 3 zum Fokus gebaute Hooks); keine Konsolenfehler. Der gewählte Fokus wandert
+über `kontext()` in Hooks UND Skript — die Stufen bauen aufeinander auf.
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

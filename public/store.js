@@ -190,6 +190,51 @@ export async function ki(task, nutzlast) {
   });
 }
 
+// Wie ki(), aber der Text kommt live: onEreignis({delta}|{status}) waehrend des Laufs,
+// zurueck kommt {text, data} wie bei ki(). So sieht man, dass die KI wirklich arbeitet.
+export async function kiStream(task, nutzlast, onEreignis) {
+  const res = await fetch("/api/ai/stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ task, card: nutzlast }),
+  });
+  if (!res.ok || !res.body) {
+    let d = {};
+    try { d = await res.json(); } catch {}
+    const f = new Error(d.error || `Der Server antwortete mit ${res.status}.`);
+    f.daten = d;
+    throw f;
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let puffer = "";
+  let ergebnis = null;
+  let fehler = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    puffer += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = puffer.indexOf("\n")) >= 0) {
+      const zeile = puffer.slice(0, nl).trim();
+      puffer = puffer.slice(nl + 1);
+      if (!zeile) continue;
+      let o;
+      try { o = JSON.parse(zeile); } catch { continue; }
+      if (o.t === "delta") onEreignis({ delta: o.text });
+      else if (o.t === "status") onEreignis({ status: o.text });
+      else if (o.t === "done") ergebnis = { text: o.text, data: o.data };
+      else if (o.t === "error") fehler = o;
+    }
+  }
+  if (fehler) {
+    const f = new Error(fehler.error);
+    f.daten = fehler;
+    throw f;
+  }
+  return ergebnis || { text: "", data: null };
+}
+
 // --- Zahlen ---------------------------------------------------------------
 
 export async function instagramZahlen() {
