@@ -534,8 +534,8 @@ body {
 /* --- Auswertung --- */
 
 .auswertung {
-  padding: 18px 20px 26px;
-  max-width: 980px;
+  padding: 18px 22px 28px;
+  max-width: 1180px;
 }
 
 /* --- Detailspalte: eigenes Klassen-Vokabular --- */
@@ -966,4 +966,318 @@ body {
 }
 .nachschub:not(:empty) {
   padding: 12px 20px 0;
+}
+
+/* ============================================================
+   Auswertung im Dashboard-Stil (Owner-Screenshot 28.08.2026),
+   uebersetzt in die Dark-Tokens. KPI-Reihe, Bestperformer,
+   Kanaele-Schnappschuss.
+   ============================================================ */
+
+/* KPI-Kacheln */
+.kpi-reihe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.kpi {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  padding: 16px 16px 15px;
+  box-shadow: var(--schatten);
+  display: flex;
+  flex-direction: column;
+}
+.kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  color: var(--text-still);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.kpi-icon .icon {
+  width: 16px;
+  height: 16px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+.kpi-wert {
+  font-size: 27px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 5px 0 6px;
+}
+.kpi-satz {
+  font-size: 11.5px;
+  color: var(--text-leise);
+  line-height: 1.45;
+}
+.kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-top: 9px;
+  color: var(--text-still);
+}
+.kpi-trend .icon {
+  width: 14px;
+  height: 14px;
+}
+.kpi-trend.hoch { color: var(--ok); }
+.kpi-trend.runter { color: var(--befund); }
+
+/* Abschnitte mit Kopf (Bestperformer, Kanaele) */
+.abschnitt {
+  margin-bottom: 26px;
+}
+.abschnitt-kopf {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 13px;
+  color: var(--hinweis);
+}
+.abschnitt-kopf .icon {
+  width: 18px;
+  height: 18px;
+}
+.abschnitt-titel {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+.abschnitt-unter {
+  font-size: 12.5px;
+  color: var(--text-leise);
+  font-weight: 400;
+}
+
+/* Bestperformer: grosse Karte + Rangliste */
+.bestperformer {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .bestperformer { grid-template-columns: 1fr; }
+}
+.bester {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  padding: 18px 20px 20px;
+  box-shadow: var(--schatten);
+}
+.bester-kopf {
+  margin-bottom: 8px;
+}
+.bester-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--akzent);
+}
+.bester-marke .icon {
+  width: 13px;
+  height: 13px;
+}
+.bester-titel {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: 14px;
+}
+.bester-gross {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 18px;
+}
+.bester-wert {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.bester-wert-label {
+  font-size: 12px;
+  color: var(--text-leise);
+}
+.bester-gross .kpi-trend {
+  margin: 0 0 0 auto;
+  font-size: 12px;
+}
+.bester-metriken {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .bester-metriken { grid-template-columns: repeat(2, 1fr); }
+}
+.bester-metrik {
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  padding: 10px 12px;
+}
+.bester-metrik-wert {
+  font-size: 17px;
+  font-weight: 650;
+}
+.bester-metrik-label {
+  font-size: 11px;
+  color: var(--text-leise);
+  margin-top: 2px;
+}
+
+/* Rangliste rechts */
+.rang-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rang {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  padding: 13px 15px;
+  box-shadow: var(--schatten);
+  display: flex;
+  gap: 11px;
+}
+.rang-nr {
+  flex: 0 0 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  color: var(--text-leise);
+  font-size: 11.5px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rang-koerper {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.rang-titel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 9px;
+}
+.rang-titel .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-leise);
+  flex: 0 0 auto;
+}
+.rang-titel span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rang-schiene {
+  height: 5px;
+  background: var(--flaeche-tief);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 7px;
+}
+.rang-balken {
+  display: block;
+  height: 100%;
+  background: var(--akzent);
+  border-radius: 3px;
+}
+.rang-fuss {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+
+/* Kanaele-Schnappschuss */
+.kanaele {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 10px;
+}
+.kanal {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  padding: 13px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kanal-kopf {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.kanal-marke {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--saeule-ohne);
+  flex: 0 0 auto;
+}
+.kanal-marke.marke-instagram { background: #e08bb8; }
+.kanal-marke.marke-tiktok { background: #4fd6d0; }
+.kanal-marke.marke-youtube { background: #e5695c; }
+.kanal-marke.marke-linkedin { background: #5b93ff; }
+.kanal-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-still);
+}
+.kanal-wert {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.kanal-fuss {
+  font-size: 11px;
+  color: var(--text-leise);
+}
+.kanal .knopf {
+  margin-top: 6px;
+  justify-content: center;
+}
+
+/* Kalender als Widget in der Auswertung: etwas gedraengter als die Vollansicht */
+.kalender-widget .kalender-kopf {
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.kalender-widget .kalender-tag {
+  min-height: 78px;
 }

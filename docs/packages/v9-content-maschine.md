@@ -270,6 +270,34 @@ mit Inline-Verbinden-Knopf (`/api/auth/<p>`), Instagram-Median-Logik erhalten, L
 ergänzt. (5) `analytics.html`/`analytics.js` löschen. Verify: Screenshot der Auswertung gegen
 ui-standard (Owner-Regel).
 
+## P9: Zwei Tabs, Kalender-Widget, Auswertung im Dashboard-Stil (28.08.2026)
+
+**PIG.** Problem: Drei gleichrangige Tabs (Board/Kalender/Auswertung), und die Auswertung ist
+eine schlichte Kachelliste statt eines lesbaren Analyse-Dashboards. Intent: eine ruhige
+Oberfläche mit klarer Hierarchie — planen (Board) und auswerten (Auswertung), der Kalender als
+Teil des Auswertens. Goal: (1) nur zwei Haupt-Tabs, Board und Auswertung; (2) der Kalender lebt
+als Widget in der Auswertung; (3) die Auswertung trägt den Stil des Owner-Screenshots
+(KPI-Kacheln mit Icon/Label/Wert, Bestperformer-Block, Kanäle-Schnappschuss) — aber im Dark Mode
+der bestehenden Tokens; (4) keine erfundenen Zahlen: echte Felder wo vorhanden, Leerzustände
+sonst, Trends nur bei echtem Vergleichszeitraum.
+
+**Plan.** (1) `index.html`/`app.js`: Kalender-Tab und -Ansicht entfernen, zwei Knöpfe. (2)
+`auswertung.js`: neue Struktur — KPI-Reihe (Follower, Posts, Views-Median, Weiterleitungen aus
+echten IG-Feldern), Bestperformer (bester echter Beitrag + Rangliste), Kanäle-Schnappschuss
+(IG + LinkedIn, real oder „nicht verbunden"), darunter der Kalender über `zeichneKalender`. (3)
+`style.css`: Klassen `.kpi*`, `.bestperformer*`, `.rang*`, `.kanal*` in den vorhandenen Tokens.
+Verify: Dark-Screenshot gegen ui-standard + Screenshot-Stil; für die Fülle Mock nur im
+Screenshot injiziert, nicht im Code. Datenehrlichkeit: kein fabrizierter Trend/Reichweite.
+
+**Stand: erledigt 28.08.2026.** `index.html`/`app.js` tragen nur noch zwei Tabs; `auswertung.js`
+neu mit KPI-Reihe, Bestperformer (bester Beitrag nach echten Views + Rangliste, Vergleich „ggue.
+Median" real), Kanäle-Schnappschuss (IG/LinkedIn real oder Inline-Verbinden) und dem Kalender als
+Widget über `zeichneKalender`; `ui.js` um Auge/Senden/Pokal/Trend-Pfeile/Chat ergänzt;
+`style.css` um `.kpi*`/`.bestperformer*`/`.rang*`/`.kanal*` in den Dark-Tokens. Verify: zwei
+Edge-headless-Screenshots (Leerzustand echt + Mock nur im Screenshot per fetch-Stub), Tab-Zahl 2,
+keine Konsolenfehler, KPI-Aggregate rechnerisch geprüft (Follower 43.200 = 24.800+18.400). Offener
+Nit: „ggue." liest sich holprig — Umlaut-Vereinheitlichung app-weit offen.
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

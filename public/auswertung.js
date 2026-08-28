@@ -1,23 +1,22 @@
 // Auswertungs-Ansicht: die Zahlen nach der Veroeffentlichung — und was sie heissen.
 //
-// Zwei Regeln aus docs/best-practices.md stecken hier drin:
-//   - Verglichen wird gegen den EIGENEN gleitenden Median, nicht gegen Branchenwerte aus
-//     Blogs. Die kursierenden Benchmarks sind unbelegt.
-//   - Welche Zahl zaehlt, haengt am Ziel der Karte: Weiterleitungen bewegen Nicht-Follower,
-//     Likes bewegen den Bestand (Mosseri, 22.01.2025).
+// Aufbau nach Owner-Screenshot (28.08.2026), aber im Dark-Theme der bestehenden Tokens:
+//   KPI-Reihe · Bestperformer · Kanaele-Schnappschuss · Redaktionskalender (Widget).
+// Zwei Regeln aus docs/best-practices.md stecken drin: verglichen wird gegen den EIGENEN
+// gleitenden Median, nicht gegen Branchenwerte; welche Zahl zaehlt, haengt am Ziel der Karte.
 //
-// Die Verbindung zu den Konten laeuft seit v9 inline hier, nicht mehr auf einer eigenen
-// Seite: ein Klick fuehrt in den OAuth-Fluss (/api/auth/<plattform>), der Rueckweg landet
-// wieder in dieser Ansicht (app.js liest die Rueckkehr-Parameter).
+// Datenehrlichkeit: gezeigt wird nur, was aus echten Feldern kommt. Kein Konto verbunden =
+// Leerzustand und "—", keine erfundenen Trends. Der Vergleich "ggue. Median" ist echt, weil
+// der Median aus den eigenen letzten Beitraegen stammt.
 
-import { zielInfo, einordnung } from "/lib/pipeline.js";
+import { zielInfo, plattformName } from "/lib/pipeline.js";
 import { S, instagramZahlen, linkedinZahlen, zeichne } from "./store.js";
+import { zeichneKalender } from "./kalender.js";
 import { icon, statusChip, escape, knopf, leer, gruppe, fortschritt } from "./ui.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
 
-// Findet die Karte, deren veroeffentlichter Beitrag zu diesem Permalink gehoert.
 function karteZuBeitrag(permalink) {
   if (!permalink) return null;
   return S.cards.find((k) =>
@@ -27,6 +26,7 @@ function karteZuBeitrag(permalink) {
 
 export async function zeichneAuswertung(el) {
   el.innerHTML = "";
+
   const kopf = document.createElement("div");
   kopf.className = "kalender-kopf";
   kopf.innerHTML = `<span class="kalender-monat">Was die Zahlen sagen</span>`;
@@ -42,7 +42,6 @@ export async function zeichneAuswertung(el) {
   );
   el.appendChild(kopf);
 
-  // --- Instagram ---
   if (S.zahlen === null) {
     const weg = fortschritt(el, "Hole die Zahlen von Instagram …");
     try {
@@ -52,9 +51,6 @@ export async function zeichneAuswertung(el) {
     }
     weg();
   }
-  el.appendChild(instagramBlock(S.zahlen || {}));
-
-  // --- LinkedIn ---
   if (S.zahlenLi === null) {
     const weg = fortschritt(el, "Hole die Zahlen von LinkedIn …");
     try {
@@ -64,10 +60,193 @@ export async function zeichneAuswertung(el) {
     }
     weg();
   }
-  el.appendChild(linkedinBlock(S.zahlenLi || {}));
+
+  const ig = S.zahlen || {};
+  const li = S.zahlenLi || {};
+  const igOn = !!ig.verbunden && !ig.fehler;
+  const liOn = !!li.verbunden && !li.fehler;
+
+  if (ig.fehler) el.appendChild(fehlerZeile(ig.hinweis || ig.fehler, "instagram", "Instagram"));
+  if (li.fehler) el.appendChild(fehlerZeile(li.hinweis || li.fehler, "linkedin", "LinkedIn"));
+
+  el.appendChild(kpiReihe(ig, li, igOn, liOn));
+  el.appendChild(bestperformerBlock(ig, igOn));
+  el.appendChild(kanaeleBlock(ig, li, igOn, liOn));
+
+  const fuss = document.createElement("p");
+  fuss.className = "feld-hinweis";
+  fuss.style.margin = "2px 0 18px";
+  fuss.textContent =
+    "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt.";
+  el.appendChild(fuss);
+
+  el.appendChild(kalenderWidget());
 }
 
-// --- Verbinden -------------------------------------------------------------
+// --- KPI-Reihe ------------------------------------------------------------
+
+function kpiReihe(ig, li, igOn, liOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "kpi-reihe";
+  const konto = ig.konto || {};
+  const median = ig.median || {};
+  const lk = li.konto || {};
+  const followerAn = igOn || liOn;
+  const follower = (igOn ? konto.followers_count || 0 : 0) + (liOn ? lk.follower || 0 : 0);
+  const posts = (igOn ? konto.media_count || 0 : 0) + (liOn ? (li.posts || []).length : 0);
+
+  wrap.innerHTML =
+    kpiKarte("auge", "Views im Median", igOn ? fmt(median.views) : "—",
+      igOn ? `Vergleichslinie aus den letzten ${median.grundlage || 0} Beitraegen.` : "Sobald ein Konto verbunden ist.") +
+    kpiKarte("ziel", "Weiterleitungen", igOn && median.sendsProReichweite != null ? proz(median.sendsProReichweite) : "—",
+      "Je Reichweite im Median — die Groesse, die Nicht-Follower bewegt.") +
+    kpiKarte("personen", "Follower", followerAn ? fmt(follower) : "—",
+      "Ueber die verbundenen Konten zusammengezaehlt.") +
+    kpiKarte("senden", "Veroeffentlichte Posts", followerAn ? fmt(posts) : "—",
+      "Liegen insgesamt auf den verbundenen Konten.");
+  return wrap;
+}
+
+function kpiKarte(zeichen, label, wert, satz, trend) {
+  const trendHtml = trend
+    ? `<div class="kpi-trend ${trend.richtung}">${icon(trend.richtung === "hoch" ? "pfeil-hoch" : "pfeil-runter")}<span>${escape(trend.text)}</span></div>`
+    : "";
+  return (
+    `<div class="kpi">` +
+    `<span class="kpi-icon">${icon(zeichen)}</span>` +
+    `<div class="kpi-label">${escape(label)}</div>` +
+    `<div class="kpi-wert">${escape(wert)}</div>` +
+    (satz ? `<div class="kpi-satz">${escape(satz)}</div>` : "") +
+    trendHtml +
+    `</div>`
+  );
+}
+
+// --- Bestperformer --------------------------------------------------------
+
+function bestperformerBlock(ig, igOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "abschnitt";
+  wrap.innerHTML =
+    `<div class="abschnitt-kopf">${icon("pokal")}<span class="abschnitt-titel">Bestperformer</span>` +
+    `<span class="abschnitt-unter">— was diese Periode am besten funktioniert hat</span></div>`;
+
+  const medien = (igOn ? ig.medien : []) || [];
+  if (!medien.length) {
+    wrap.appendChild(
+      leer({
+        zeichen: "pokal",
+        titel: "Noch kein Bestperformer",
+        satz: "Sobald ein Konto verbunden ist und Beitraege liefert, steht hier der staerkste dieser Periode.",
+      })
+    );
+    return wrap;
+  }
+
+  const views = (m) => (m.kennzahlen && m.kennzahlen.views) || 0;
+  const sortiert = [...medien].sort((a, b) => views(b) - views(a));
+  const medianViews = (ig.median || {}).views || 0;
+
+  const grid = document.createElement("div");
+  grid.className = "bestperformer";
+  grid.appendChild(besterKarte(sortiert[0], medianViews));
+
+  const rangListe = document.createElement("div");
+  rangListe.className = "rang-liste";
+  sortiert.slice(1, 3).forEach((m, i) => rangListe.appendChild(rangKarte(m, i + 2, sortiert[0])));
+  if (rangListe.children.length) grid.appendChild(rangListe);
+
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function besterKarte(m, medianViews) {
+  const k = karteZuBeitrag(m.permalink);
+  const kn = m.kennzahlen || {};
+  const titel = k ? k.title : (m.caption || "").split("\n")[0].slice(0, 80) || "(ohne Titel)";
+  const pl = plattformName(m.plattform || "instagram");
+  const vergleich = medianViews ? Math.round(((views(kn) - medianViews) / medianViews) * 100) : null;
+
+  const el = document.createElement("div");
+  el.className = "bester";
+  if (k) {
+    el.style.cursor = "pointer";
+    el.addEventListener("click", () => oeffne(k.id));
+  }
+  el.innerHTML =
+    `<div class="bester-kopf"><span class="bester-marke">${icon("video")}<span>Bester Beitrag · ${escape(pl)}</span></span></div>` +
+    `<div class="bester-titel">${escape(titel)}</div>` +
+    `<div class="bester-gross">` +
+    `<div class="bester-wert">${fmt(kn.views)}</div>` +
+    `<div class="bester-wert-label">Views im Beitrag</div>` +
+    (vergleich != null
+      ? `<div class="kpi-trend ${vergleich >= 0 ? "hoch" : "runter"}">${icon(vergleich >= 0 ? "pfeil-hoch" : "pfeil-runter")}` +
+        `<span>${vergleich >= 0 ? "+" : ""}${String(vergleich).replace(".", ",")} % ggue. Median</span></div>`
+      : "") +
+    `</div>` +
+    `<div class="bester-metriken">` +
+    besterMetrik(fmt(kn.views), "Views") +
+    besterMetrik(fmt(kn.reaktionen), "Reaktionen") +
+    besterMetrik(fmt(kn.kommentare), "Kommentare") +
+    besterMetrik(kn.sendsProReichweite != null ? proz(kn.sendsProReichweite) : "—", "Weitergeleitet") +
+    `</div>`;
+  return el;
+}
+
+function besterMetrik(wert, label) {
+  return `<div class="bester-metrik"><div class="bester-metrik-wert">${escape(wert)}</div><div class="bester-metrik-label">${escape(label)}</div></div>`;
+}
+
+function rangKarte(m, rang, top) {
+  const k = karteZuBeitrag(m.permalink);
+  const kn = m.kennzahlen || {};
+  const titel = k ? k.title : (m.caption || "").split("\n")[0].slice(0, 64) || "(ohne Titel)";
+  const topViews = views(top.kennzahlen || {}) || 1;
+  const anteil = Math.max(5, Math.round((views(kn) / topViews) * 100));
+  const pl = plattformName(m.plattform || "instagram");
+
+  const el = document.createElement("div");
+  el.className = "rang";
+  if (k) {
+    el.style.cursor = "pointer";
+    el.addEventListener("click", () => oeffne(k.id));
+  }
+  el.innerHTML =
+    `<div class="rang-nr">${rang}</div>` +
+    `<div class="rang-koerper">` +
+    `<div class="rang-titel">${icon("chat")}<span>${escape(titel)}</span></div>` +
+    `<div class="rang-schiene"><span class="rang-balken" style="width:${anteil}%"></span></div>` +
+    `<div class="rang-fuss">${escape(pl)} · ${fmt(kn.views)} Views</div>` +
+    `</div>`;
+  return el;
+}
+
+// --- Kanaele-Schnappschuss ------------------------------------------------
+
+function kanaeleBlock(ig, li, igOn, liOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "abschnitt";
+  wrap.innerHTML = `<div class="abschnitt-kopf"><span class="abschnitt-titel">Kanaele-Schnappschuss</span></div>`;
+  const reihe = document.createElement("div");
+  reihe.className = "kanaele";
+  reihe.appendChild(kanalKarte("instagram", "Instagram", igOn, igOn ? (ig.konto || {}).followers_count : null));
+  reihe.appendChild(kanalKarte("linkedin", "LinkedIn", liOn, liOn ? (li.konto || {}).follower : null));
+  wrap.appendChild(reihe);
+  return wrap;
+}
+
+function kanalKarte(id, name, verbunden, wert) {
+  const el = document.createElement("div");
+  el.className = "kanal";
+  const kopf = `<div class="kanal-kopf"><span class="kanal-marke marke-${id}"></span><span class="kanal-name">${escape(name)}</span></div>`;
+  if (verbunden) {
+    el.innerHTML = kopf + `<div class="kanal-wert">${fmt(wert)}</div><div class="kanal-fuss">Follower</div>`;
+  } else {
+    el.innerHTML = kopf + `<div class="kanal-fuss">Nicht verbunden</div>`;
+    el.appendChild(verbindenKnopf(id, name));
+  }
+  return el;
+}
 
 function verbindenKnopf(plattform, name) {
   return knopf(`Mit ${name} verbinden`, {
@@ -80,176 +259,32 @@ function verbindenKnopf(plattform, name) {
   });
 }
 
-// --- Instagram-Block -------------------------------------------------------
+// --- Kalender-Widget ------------------------------------------------------
 
-function instagramBlock(z) {
-  const g = gruppe("Instagram", null, true);
-
-  if (!z.verbunden) {
-    g.appendChild(
-      leer({
-        zeichen: "saeulen",
-        titel: "Instagram ist nicht verbunden",
-        satz: "Ohne Verbindung gibt es keine Zahlen. Der Weg fuehrt einmal durch das Anmeldefenster von Instagram.",
-        handlung: verbindenKnopf("instagram", "Instagram"),
-      })
-    );
-    return g;
-  }
-
-  if (z.fehler) {
-    g.appendChild(befund(z.hinweis || z.fehler));
-    g.appendChild(verbindenKnopf("instagram", "Instagram"));
-    return g;
-  }
-
-  const konto = z.konto || {};
-  const reihe = document.createElement("div");
-  reihe.className = "zahlenreihe";
-  reihe.innerHTML =
-    zahlKachel(konto.followers_count, `Menschen folgen @${konto.username || "dem Konto"} auf Instagram.`) +
-    zahlKachel(konto.media_count, "Beitraege liegen insgesamt auf dem Konto.") +
-    zahlKachel(
-      (z.median || {}).views,
-      `Views im Median der letzten ${(z.median || {}).grundlage || 0} Beitraege — das ist die Vergleichslinie.`
-    ) +
-    zahlKachel(
-      (z.median || {}).sendsProReichweite,
-      "Prozent Weiterleitungen je Reichweite im Median — die Groesse, die Nicht-Follower bewegt.",
-      "%"
-    );
-  g.appendChild(reihe);
-
-  const liste = spalte();
-  for (const m of z.medien || []) {
-    const k = karteZuBeitrag(m.permalink);
-    const ziel = k ? zielInfo(k.goal) : zielInfo("reach_new");
-    const e = einordnung(m, z.median, ziel.kennzahl);
-    const kn = m.kennzahlen || {};
-
-    const zeile = document.createElement("article");
-    zeile.className = "eintrag";
-    zeile.style.cursor = k ? "pointer" : "default";
-    if (k) zeile.dataset.saeule = k.pillar || "";
-
-    const text = (m.caption || "").split("\n")[0].slice(0, 90) || "(ohne Caption)";
-    zeile.innerHTML =
-      `<div class="eintrag-titel">${escape(k ? k.title : text)}</div>` +
-      `<div class="eintrag-untertitel">${escape(
-        `${m.media_product_type || m.media_type || "Beitrag"} vom ${
-          m.timestamp ? new Date(m.timestamp).toLocaleDateString("de-DE") : "unbekannt"
-        }${k ? "" : " — keiner Karte zugeordnet"}`
-      )}</div>` +
-      `<div class="eintrag-status">${statusChip(e.status)}<span>${escape(e.satz)}</span></div>` +
-      `<div class="eintrag-fuss">` +
-      `${icon("ziel")}<span>${escape(ziel.kennzahl)}</span>` +
-      `<span class="eintrag-fuss-rechts">${escape(
-        [
-          kn.views != null ? `${kn.views} Views` : null,
-          kn.sendsProReichweite != null ? `${kn.sendsProReichweite} % weitergeleitet` : null,
-          kn.kommentare != null ? `${kn.kommentare} Kommentare` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      )}</span></div>`;
-
-    if (k) zeile.addEventListener("click", () => oeffne(k.id));
-    liste.appendChild(zeile);
-  }
-
-  if (!(z.medien || []).length)
-    liste.appendChild(
-      leer({ zeichen: "saeulen", titel: "Keine Beitraege gefunden", satz: "Das Konto ist verbunden, liefert aber keine Beitraege." })
-    );
-  g.appendChild(liste);
-
-  const fuss = document.createElement("p");
-  fuss.className = "feld-hinweis";
-  fuss.style.marginTop = "14px";
-  fuss.textContent =
-    "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt. " +
-    "Trag den Link eines Beitrags in der Karte unter „Upload“ ein, damit er hier seiner Karte zugeordnet wird.";
-  g.appendChild(fuss);
+function kalenderWidget() {
+  const g = gruppe("Redaktionskalender", null, true);
+  const box = document.createElement("div");
+  box.className = "kalender-widget";
+  zeichneKalender(box);
+  g.appendChild(box);
   return g;
 }
 
-// --- LinkedIn-Block --------------------------------------------------------
+// --- Hilfen ---------------------------------------------------------------
 
-function linkedinBlock(z) {
-  const g = gruppe("LinkedIn", null, true);
-
-  if (!z.verbunden) {
-    g.appendChild(
-      leer({
-        zeichen: "saeulen",
-        titel: "LinkedIn ist nicht verbunden",
-        satz: "Ohne Verbindung gibt es keine Zahlen. Der Weg fuehrt einmal durch das Anmeldefenster von LinkedIn.",
-        handlung: verbindenKnopf("linkedin", "LinkedIn"),
-      })
-    );
-    return g;
-  }
-
-  if (z.fehler) {
-    g.appendChild(befund(z.hinweis || z.fehler));
-    g.appendChild(verbindenKnopf("linkedin", "LinkedIn"));
-    return g;
-  }
-
-  const konto = z.konto || {};
-  const reihe = document.createElement("div");
-  reihe.className = "zahlenreihe";
-  reihe.innerHTML = zahlKachel(konto.follower, `Menschen folgen ${konto.name || "dem Konto"} auf LinkedIn.`);
-  g.appendChild(reihe);
-
-  const liste = spalte();
-  for (const p of z.posts || []) {
-    const zeile = document.createElement("article");
-    zeile.className = "eintrag";
-    const text = (p.text || "").split("\n")[0].slice(0, 90) || "(ohne Text)";
-    zeile.innerHTML =
-      `<div class="eintrag-titel">${escape(text)}</div>` +
-      `<div class="eintrag-untertitel">${escape(
-        p.erstellt ? `Veroeffentlicht am ${new Date(p.erstellt).toLocaleDateString("de-DE")}` : "Datum unbekannt"
-      )}</div>` +
-      `<div class="eintrag-fuss"><span class="eintrag-fuss-rechts">${escape(
-        [p.likes != null ? `${p.likes} Likes` : null, p.kommentare != null ? `${p.kommentare} Kommentare` : null]
-          .filter(Boolean)
-          .join(" · ")
-      )}</span></div>`;
-    liste.appendChild(zeile);
-  }
-
-  if (!(z.posts || []).length)
-    liste.appendChild(
-      leer({ zeichen: "saeulen", titel: "Keine Beitraege gefunden", satz: "Das Konto ist verbunden, liefert aber keine Beitraege." })
-    );
-  g.appendChild(liste);
-  return g;
-}
-
-// --- Hilfen ----------------------------------------------------------------
-
-function spalte() {
-  const d = document.createElement("div");
-  d.style.display = "flex";
-  d.style.flexDirection = "column";
-  d.style.gap = "9px";
-  return d;
-}
-
-function befund(satz) {
+function fehlerZeile(satz, id, name) {
   const b = document.createElement("div");
   b.className = "befund";
-  b.innerHTML = statusChip("befund") + `<span class="befund-satz">${escape(satz)}</span>`;
+  b.style.marginBottom = "12px";
+  b.innerHTML = statusChip("befund") + `<span class="befund-satz">${escape(`${name}: ${satz}`)}</span>`;
   return b;
 }
 
-function zahlKachel(wert, satz, einheit = "") {
-  return (
-    `<div class="zahl"><div class="zahl-wert">${wert == null ? "—" : escape(String(wert)) + einheit}</div>` +
-    `<div class="zahl-satz">${escape(satz)}</div></div>`
-  );
+const views = (kn) => (kn && kn.views) || 0;
+const proz = (n) => `${String(n).replace(".", ",")} %`;
+function fmt(n) {
+  if (n == null || Number.isNaN(Number(n))) return "—";
+  return new Intl.NumberFormat("de-DE").format(n);
 }
 
 export { linkedinZahlen };

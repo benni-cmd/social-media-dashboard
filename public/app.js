@@ -3,7 +3,7 @@
 import { PHASEN } from "/lib/pipeline.js";
 import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
-import { zeichneKalender, beiOeffnen as kalenderOeffnet } from "./kalender.js";
+import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
 import { fortschritt, statusChip, escape } from "./ui.js";
@@ -12,18 +12,15 @@ const el = (id) => document.getElementById(id);
 
 const boardEl = el("board");
 const lastEl = el("wochenlast");
-const kalenderEl = el("ansicht-kalender");
 const auswertungEl = el("ansicht-auswertung");
 const detailEl = el("detail");
 
 const ansichten = {
   board: el("ansicht-board"),
-  kalender: kalenderEl,
   auswertung: auswertungEl,
 };
 const knoepfe = {
   board: el("zu-board"),
-  kalender: el("zu-kalender"),
   auswertung: el("zu-auswertung"),
 };
 
@@ -60,7 +57,6 @@ beiAenderung(() => {
   zeichnetGerade = true;
   try {
     if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
-    else if (S.ansicht === "kalender") zeichneKalender(kalenderEl);
     else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
     zeichneDetail(detailEl);
   } finally {
