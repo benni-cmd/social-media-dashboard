@@ -196,10 +196,18 @@ alten Freitextfeld `freigabe`.
    Vorspann vor `[CHUNK 1]` („Hier ist der Sprechertext… Geschätzte Sprechzeit…"), der
    unverändert ins Skript-Feld läuft und den Sprechzeit-Zähler verfälscht — Prompt sollte „ohne
    Vorspann, direkt mit [CHUNK 1] beginnen" erzwingen.
-3. **Die Recherche zu LinkedIn und Redaktionsplanung ist nie zurückgekommen.** Der Agent lief
-   noch, als die Sitzung endete. Die LinkedIn-Regeln in `lib/pipeline.js` (Hashtag-Grenze 3,
-   Längen-Korridor) sind deshalb **geschätzt, nicht belegt** — sie stehen bewusst noch nicht in
-   `docs/best-practices.md`. Entweder neu recherchieren oder die Werte entfernen.
+3. **LinkedIn-Recherche — erledigt 28.08.2026.** Nachrecherchiert mit zwei unabhängigen
+   Quellen. **Längen-Korridor: belegt und korrigiert.** LinkedIn selbst (Klasse A, B2B-Video-Blog:
+   15–30 s Awareness, tiefere Formate „under 2 min", nie über 3 min) und Socialinsider (Klasse B:
+   Engagement-Peak ~2 min, Views-Peak ~3 min) tragen gemeinsam. Neu in `pipeline.js`: `kurz [15,30]`,
+   `lang [120,180]` statt der geschätzten `[30,60]/[60,120]`, dokumentiert in `best-practices.md`
+   Abschnitt 7a mit der ehrlichen Spannung (LinkedIn-Anzeigen „unter 2 min" vs. Socialinsider-Peak).
+   **Hashtag-Grenze 3: entfernt.** Für die optimale Hashtag-Zahl gibt es nur widersprüchliche
+   Marketing-Blogs (Klasse D), kein Plattform-Wort, keinen Anbieter-Datensatz — die „3" war sogar
+   ein **blockierendes** Tor. `hashtagsMax` für LinkedIn ist raus (das Tor gegen fehlendes Feld
+   abgesichert, `pipeline.js:569`), die Caption-Anweisung in `ai.js` behandelt LinkedIn-Hashtags
+   neutral, Ausschluss in `best-practices.md` (Abschnitt 7a + Tabelle). Node-Gegenprobe: Korridor
+   neu, `hashtagsMax` undefined, Prompt ohne `undefined`, 10 LinkedIn-Hashtags erzeugen kein Tor.
 4. **Google Kalender und Tasks sind entschieden, aber nicht gebaut.** Weg: direkte HTTP-API für
    beide, ein gemeinsames OAuth-Modul mit Loopback und PKCE, reines Node. Bens Handlungen
    (Cloud-Projekt, drei APIs, Zustimmungsbildschirm auf External + PUBLISH, zwei Desktop-Clients)
@@ -218,8 +226,9 @@ Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davo
 belegt, zwei im Code behoben ohne verbundenes Konto, einer bei Ben) · Board, Kalender und
 Detailspalte im Browser ohne Konsolenfehler · Migration aller Bestandskarten auf Schema 2 ·
 Abgleich heilt eine absichtlich erzeugte Abweichung in beide Richtungen.
-Offen: LinkedIn-Recherche · Kalender- und Tasks-Anbindung · `analytics.html` · rclone-client_id
-(Ben). — Am 28.08.2026 erbracht: optische Abnahme (Edge headless, vier PNGs gegen die sieben
-ui-standard-Punkte, alle erfüllt) · KI-Aufrufe live (ideen/caption/recherche/skript über
-`/api/ai`, JSON-Schemata und Grenzwerte geprüft, ein UI-Klick per Screenshot). Offener Nit:
-`skript`-Prompt-Vorspann.
+Offen: Kalender- und Tasks-Anbindung · `analytics.html` · rclone-client_id (Ben). — Am
+28.08.2026 erbracht: optische Abnahme (Edge headless, vier PNGs gegen die sieben
+ui-standard-Punkte) · KI-Aufrufe live (ideen/caption/recherche/skript über `/api/ai`,
+JSON-Schemata und Grenzwerte geprüft, ein UI-Klick per Screenshot) · LinkedIn-Recherche
+(Korridor belegt und korrigiert, Hashtag-Grenze entfernt, in best-practices.md verankert).
+Offener Nit: `skript`-Prompt-Vorspann.

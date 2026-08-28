@@ -106,6 +106,38 @@ Muster · SocialPilot (4,4 Mio.) · Plattform-Ankuendigungen (Klasse A und B) ·
 > Messfrage — meldet aber, wenn Plattform und Ziel einen anderen Korridor nahelegen.
 > Entscheidung darueber liegt bei Ben.
 
+### 7a. LinkedIn: der Laengen-Korridor ist belegt, die Hashtag-Zahl nicht
+
+Der in Abschnitt 7 versprochene eigene Abschnitt. Nachrecherchiert 28.08.2026 — die frueheren
+Werte in `pipeline.js` (Korridor 30–60 / 60–120, Hashtag-Grenze 3) waren geschaetzt und passten
+zu keiner Quelle.
+
+**Laenge — zwei unabhaengige Haeuser, gleiche Richtung:**
+
+- **LinkedIn selbst:** 15–30 Sekunden fuer Top-of-Funnel und Markenbekanntheit, tiefere Formate
+  „under 2 minutes", die erste 6 Sekunden entscheiden, und Zuschauer erwarten nicht mehr als
+  drei Minuten. (Klasse A, LinkedIn Marketing Blog, „B2B video content on LinkedIn")
+- **Socialinsider:** Engagement-Peak bei rund 2 Minuten, Views-Peak bei rund 3 Minuten, danach
+  faellt beides ab. (Klasse B; Stichprobengroesse im Artikel nicht beziffert)
+
+Beleg: LinkedIn (A) · Socialinsider (B), zwei unabhaengige Quellen · **mittel bis stark**
+
+Das Werkzeug setzt daraus: **kurz `[15, 30]`** fuer Reichweiten-Ziele (neue Leute, Gespraech),
+**lang `[120, 180]`** fuer Tiefe-Ziele (Bindung, Foerderer). Die Untergrenze 120 ist der
+Socialinsider-Engagement-Peak, die Obergrenze 180 der Views-Peak und zugleich LinkedIns eigene
+Drei-Minuten-Decke.
+
+> **Ehrliche Spannung:** LinkedIns Anzeigen-Leitfaden sagt fuer tiefere Formate „unter 2 Minuten",
+> Socialinsider misst 2–3 Minuten als Bestbereich. Der Korridor `[120, 180]` legt sich bewusst auf
+> die gemessene Peak-Seite, nicht auf die Anzeigen-Faustregel. Der Korridor ist ohnehin nur ein
+> Hinweis, keine Sperre.
+
+**Hashtag-Zahl — bewusst KEINE:** Fuer die optimale Zahl auf LinkedIn gibt es kein Plattform-Wort
+und keinen Anbieter-Datensatz, nur Marketing-Blogs (Klasse D), die sich widersprechen (1–3 vs.
+2–4 vs. 3–5). Deshalb traegt `pipeline.js` fuer LinkedIn keine `hashtagsMax`, und die
+Caption-Anweisung sagt neutral: wenige, thematisch enge Hashtags, keine belegte Zahl. Die frueher
+verdrahtete „3" war eine erfundene, sogar sperrende Grenze — sie ist entfernt.
+
 ### 8. Die ersten 125 Zeichen sind der einzige garantiert sichtbare Teil
 
 Danach kappt Instagram mit "mehr". Und seit **10.07.2025** werden oeffentliche Inhalte von
@@ -247,6 +279,7 @@ Das ersetzt eine Annahme durch eine Messung — denn:
 | Behauptung | Warum draussen |
 |---|---|
 | Serienformate performen messbar besser | nur Klasse D; die viel zitierte "LinkedIn-Studie 2024" ist nicht auffindbar. Serien bleiben eine Produktionshilfe, kein Erfolgsversprechen. |
+| Optimale Hashtag-Zahl auf LinkedIn | nur Klasse D, widerspruechlich (1–3 vs. 2–4 vs. 3–5); kein Plattform-Wort, kein Anbieter-Datensatz. Deshalb keine `hashtagsMax` fuer LinkedIn — siehe Abschnitt 7a. |
 | Feste Hook-Zielwerte (60 % Retention, Skip Rate unter 30 %) | keine auffindbare Datengrundlage |
 | Loops zaehlen als eigenes Ranking-Signal, "300 % Retention" | widerspricht Instagrams eigener Formulierung |
 | Optimale Caption-Gesamtlaenge | Quellen widersprechen sich fundamental |
