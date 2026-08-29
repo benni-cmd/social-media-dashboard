@@ -51,12 +51,6 @@ export function kachel(k) {
   for (const p of k.platforms || [])
     marken.push(`<span class="marke marke-${p}">${escape(plattformName(p))}</span>`);
 
-  const jetzt = phaseIndex(k.column);
-  const band = PHASEN.map((p, i) => {
-    const art = i < jetzt ? "erledigt" : i === jetzt ? "hier" : "";
-    return `<span class="phasenband-teil ${art}" title="${escape(p.name)}"></span>`;
-  }).join("");
-
   const f = faelligkeit(k);
   const offen = offenePunkte(k);
   const stand = S.driveStand.get(k.id);
@@ -86,9 +80,8 @@ export function kachel(k) {
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
     `<div class="eintrag-untertitel">${escape(untertitel)}</div>` +
     (marken.length ? `<div class="eintrag-marken">${marken.join("")}</div>` : "") +
-    `<div class="phasenband">${band}</div>` +
     `<div class="eintrag-status">${statusZeile}</div>` +
-    `<div class="eintrag-fuss">${icon("uhr")}<span>${escape(phase(k.column).name)}</span>${driveZeichen}</div>`;
+    (driveZeichen ? `<div class="eintrag-fuss">${driveZeichen}</div>` : "");
 
   el.addEventListener("click", () => oeffne(k.id));
   el.addEventListener("dragstart", (e) => {

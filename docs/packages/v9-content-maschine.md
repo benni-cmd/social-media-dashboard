@@ -357,6 +357,51 @@ Fokus-Optionen + Hinweis „zuerst Fokus", nach Fokuswahl erscheint Hooks-Knopf,
 Optionen (3 Fokus + 3 zum Fokus gebaute Hooks); keine Konsolenfehler. Der gewählte Fokus wandert
 über `kontext()` in Hooks UND Skript — die Stufen bauen aufeinander auf.
 
+## P12: Geführter Skript-Loop, Verworfen-Spalte, Termin-Logik, Karten entschlacken (29.08.2026)
+
+**PIG.** Problem: Der Skript-Weg ist wieder zu verzweigt (zu viele KI-Knöpfe/Felder), die
+Termin-Logik zu granular, die Karten tragen Überflüssiges, und die Kalender-Anbindung fehlt ganz.
+Intent: ein Anstoß führt von Idee bis Fertig durch, so wenig Bedienung wie möglich, Automatiken
+greifen an den richtigen Stellen. Goal siehe Bausteine unten.
+
+### Ziel-Arbeitslogik (ein Loop, Idee → Fertig)
+1. **Idee, Schritt 1 — Kontext & Recherche:** die KI liest den Wiki-Kontext aus Drive
+   (`Kontext/_global` + `Kontext/<Reihe>`), zieht die Website **www.World-Eden-Era.org** hinzu und
+   **erweitert den Wiki** (schreibt Rechercheertrag nach `Kontext/`), damit künftige Recherche
+   billiger wird. Ergebnis: **3 Fokus-Alternativen**.
+2. **Schritt 2 — verbale Hooks:** nach Fokuswahl 3 rein **verbale** Hook-Alternativen.
+3. **Schritt 3 — visuelle Hooks:** nach verbaler Wahl 3 **visuelle** Hook-Alternativen zum selben Fokus+Hook.
+4. **Schritt 4 — Skript als Fließtext:** nach der visuellen Wahl erscheint das Skript als
+   editierbarer Fließtext (rüberlesen, ändern), dann „Nach Drive speichern" → Automatiken laufen.
+   Keine weiteren KI-Knöpfe, keine überzähligen Felder — nur das Wichtige.
+
+### Bausteine
+- **A. Drei-Stufen-Loop** (Fokus → verbaler Hook → visueller Hook → Skript-Fließtext). Baut den
+  jetzigen zweistufigen Fluss (P11) zu dreistufig aus; `ai.js` bekommt `hooks_verbal` und
+  `hooks_visuell` statt eines kombinierten `hooks`. **Baubar jetzt.**
+- **B. Wiki-Erweiterung + Website:** Recherche-Schritt liest `www.World-Eden-Era.org` (server-seitig
+  `fetch`) und schreibt Ertrag nach `Kontext/` in Drive (rclone). **Baubar jetzt** (Drive läuft).
+- **C. Spalte „Verworfen"** ganz am Ende: geparkte Ideen; ihre Titel gehen als „nicht erneut
+  vorschlagen" in die `ideen`-KI. `PHASEN` + Board + `ideen`-Prompt. **Baubar jetzt.**
+- **D. Termin-Modell auf 3 Daten:** nur **Drehtag**, **Schnitt-fertig** (= Upload − 3 Tage, auto),
+  **Upload** (nur Tag). Upload ist **Pflicht beim Übergang Skript → Videodreh**. Dreh braucht ≥ 7
+  Tage Vorlauf vor Schnitt-fertig. Dreh bekommt **einen Zeitraum, kein exaktes Datum**; die Karte
+  zeigt in Videodreh das Dreh-Datum bzw. den Zeitraum. Mini-Kalender/Einzelfelder entsprechend
+  eindampfen. **Datum-Logik jetzt baubar; die Kalender-Kopplung nicht (siehe E).**
+- **E. Google-Kalender-Automatik — BLOCKIERT:** Termine anlegen, den Cutter beim Schritt in den
+  Schnitt einladen, und in ein Kalender-Event „Videodreh" (das erste im Dreh-Zeitraum) Titel +
+  Drive-Skript-Link schreiben. **Nicht baubar, bevor das Google-Cloud-Projekt + OAuth-Kalendermodul
+  stehen** (P8, nie gebaut; grep bestätigt: nur Meta/LinkedIn-OAuth im Code). Bens Handlung nötig.
+- **F. Posting-Zeiten:** hart hinterlegt — **erledigt 29.08.2026** (`POSTZEITEN` in `pipeline.js`,
+  best-practices.md Abschnitt 16, Klasse B Buffer+Sprout).
+- **G. Karten entschlacken:** Phasenband und Phasenname-Fuß raus — **erledigt 29.08.2026**
+  (`board.js`). Später zeigt der Fuß in Videodreh das Dreh-Datum/den Zeitraum (Teil von D).
+
+### Reihenfolge (Vorschlag) & Abhängigkeiten
+G ✓ · F ✓ → **C (Verworfen)** → **A+B (Drei-Stufen-Loop inkl. Wiki/Website)** → **D (Termin-Modell,
+Datum-Teil)** → **E (Kalender) erst nach Bens Google-Cloud-Setup**. E ist der einzige echte Blocker;
+alles andere läuft ohne externen Zugang.
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

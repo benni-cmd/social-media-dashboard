@@ -272,6 +272,27 @@ Beleg: Meta-Newsroom 10.12.2024 (Klasse A) · **stark**
 
 Das ersetzt eine Annahme durch eine Messung — denn:
 
+### 16. Beste Veroeffentlichungszeiten je Plattform — Owner-Vorgabe, Klasse B
+
+Auf Owner-Wunsch (29.08.2026) hart hinterlegt (`POSTZEITEN` in `pipeline.js`), damit die Karte beim
+Terminieren einen Startwert nennt. Die Zahlen sind **Klasse B** — grosse Anbieter-Datensaetze, also
+Richtung, nicht Gesetz:
+
+| Plattform | Beste Tage | Beste Zeit |
+|---|---|---|
+| Instagram Reels | Di · Mi · Do | 11–13 oder 18–21 Uhr |
+| TikTok | Sa (am staerksten) · So · Mo | 6–10 oder 18–22 Uhr |
+| YouTube Shorts | Di · Mi | 14–18 Uhr |
+| LinkedIn | Di · Mi · Do | 15–18 Uhr |
+
+Beleg: Buffer 2026 (Instagram 9,6 Mio., TikTok 7 Mio., LinkedIn 4,8 Mio. Beitraege) · Sprout Social
+2026, unabhaengig mit gleicher Richtung (Klasse B, zwei Haeuser) · **mittel bis stark fuer die
+Richtung, schwach fuer die exakte Stunde**.
+
+**Zwei ehrliche Einschraenkungen:** (1) Die Zeiten haengen an der Zeitzone der Zielgruppe — hier auf
+Mitteleuropa gelesen. (2) Wie ueberall gilt: sobald ein eigenes Konto verbunden ist, schlaegt der
+**eigene gleitende Median** diese Defaults. Sie sind ein Startwert, kein Zielwert.
+
 ---
 
 ## Bewusst NICHT eingebaut, weil unbelegt
