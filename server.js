@@ -207,7 +207,7 @@ const server = createServer(async (req, res) => {
       const schreib = (o) => res.write(JSON.stringify(o) + "\n");
       try {
         let kontextBlock = "";
-        if (card && card.serie && ["recherche", "hooks", "skript", "regieplan"].includes(task)) {
+        if (card && card.serie && ["recherche", "hooks_verbal", "hooks_visuell", "skript", "regieplan"].includes(task)) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }

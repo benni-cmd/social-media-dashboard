@@ -21,7 +21,8 @@ export async function holeIdeen(anker) {
       "ideen",
       {
         anzahl: 6,
-        vorhandene: S.cards.map((c) => c.title).filter(Boolean),
+        vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
+        verworfen: S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
         verteilung,
         pillar: "",
       },

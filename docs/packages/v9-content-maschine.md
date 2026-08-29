@@ -402,6 +402,20 @@ G ✓ · F ✓ → **C (Verworfen)** → **A+B (Drei-Stufen-Loop inkl. Wiki/Webs
 Datum-Teil)** → **E (Kalender) erst nach Bens Google-Cloud-Setup**. E ist der einzige echte Blocker;
 alles andere läuft ohne externen Zugang.
 
+**Stand 29.08.2026 — gebaut und verifiziert (Edge headless, Struktur-Test + Live-KI):**
+- **A Drei-Stufen-Loop erledigt.** `ai.js` `hooks_verbal`+`hooks_visuell` (je live geprüft: verbal-only
+  bzw. visuell-only, aufeinander aufbauend). `detail.js` `guidedIdee`: Recherche → Fokus → verbaler
+  Hook → visueller Hook, Wahl verschwindet je Stufe, „Schritt X von 3", „Einen Schritt zurück", danach
+  `schiebe` nach Skript. `skriptLoop`: drei editierbare Felder + EIN Knopf → Skript-Fließtext editierbar
+  → „Nach Drive speichern und Upload planen" → **Modal** fragt Upload-Datum → setzt Termine → `schiebe`
+  nach Videodreh. „Was noch offen ist" entfernt. Skript speichert als **`.txt`** (Handy-lesbar).
+- **C Verworfen erledigt.** Phase in `PHASEN`, per-Karte „Diese Idee verwerfen" (+ „Zurück zu Idee holen"),
+  `ideen`-Prompt schließt Verworfenes aus (verifiziert: Klick parkt Karte in Verworfen).
+- **Offen:** **B** (Website `world-eden-era.org` lesen + Wiki in `Kontext/` erweitern) · **D** (Termine auf
+  3 Daten reduzieren: Dreh/Schnitt=Upload−3/Upload, Upload-Pflicht bei Skript→Videodreh, ≥7 Tage
+  Dreh→Schnitt, Dreh als Zeitraum, Dreh-Datum auf der Karte in Videodreh) — der Modal setzt aktuell noch
+  den alten 6-Termin-Rückwärtsplan · **E** (Kalender, blockiert).
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

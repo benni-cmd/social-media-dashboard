@@ -54,6 +54,7 @@ import {
   eigenschaft,
   fortschritt,
   denkPanel,
+  modalDatum,
 } from "./ui.js";
 
 let schiebe = async () => {};
@@ -61,17 +62,15 @@ export const beiSchieben = (f) => (schiebe = f);
 
 const KI_NAMEN = {
   recherche: "Recherche und Fokus",
-  hooks: "Hooks zum gewaehlten Fokus",
-  skript: "Skript und Teleprompter",
-  regieplan: "Regieplan und Metadaten",
+  hooks_verbal: "Verbale Hooks",
+  hooks_visuell: "Visuelle Hooks",
+  skript: "Skript schreiben",
   caption: "Captions je Plattform",
   ideen: "Ideen-Nachschub",
 };
 
-// Welche KI-Aktionen gehoeren in welche Phase?
+// Nur Phasen mit einer generischen Knopfreihe. Idee und Skript haben eigene, gefuehrte Abläufe.
 const PHASEN_KI = {
-  idee: ["recherche"],
-  skript: ["skript", "regieplan"],
   caption: ["caption"],
 };
 
@@ -119,9 +118,6 @@ export function zeichneDetail(el) {
 
   // --- Termine ---
   koerper.appendChild(blockTermine(k, merke));
-
-  // --- Was ist offen ---
-  koerper.appendChild(blockTore(k, toreListe, stand));
 
   // --- Die Arbeit dieser Phase ---
   const arbeit = blockPhase(k, toreListe, stand);
@@ -478,8 +474,8 @@ function blockPhase(k, toreListe, stand) {
     box.appendChild(reihe);
   }
 
-  if (k.column === "idee") auswahlFokusHook(k, box, merke);
-  if (k.column === "skript") felderSkript(k, box, merke);
+  if (k.column === "idee") guidedIdee(k, box);
+  if (k.column === "skript") skriptLoop(k, box);
   if (k.column === "videodreh") felderDreh(k, box, merke);
   if (k.column === "schnitt") felderSchnitt(k, box, merke);
   if (k.column === "caption") felderCaption(k, box, merke);
@@ -490,6 +486,12 @@ function blockPhase(k, toreListe, stand) {
     p2.textContent = "Diese Karte ist veroeffentlicht. Die Zahlen dazu stehen unter „Auswertung“.";
     box.appendChild(p2);
   }
+  if (k.column === "verworfen") {
+    const p2 = document.createElement("p");
+    p2.className = "feld-hinweis";
+    p2.textContent = "Verworfen und geparkt. Die KI schlaegt diese Idee bei der Ideensuche nicht mehr vor. Zurueckholen unten.";
+    box.appendChild(p2);
+  }
 
   g.appendChild(box);
   return g;
@@ -497,9 +499,28 @@ function blockPhase(k, toreListe, stand) {
 
 // --- Phasen-Felder --------------------------------------------------------
 
-function auswahlFokusHook(k, box, merke) {
+// Der gefuehrte Idee-Loop: ein Anstoss, dann Schritt fuer Schritt. Jede getroffene Wahl
+// verschwindet, die naechste Stufe erscheint — und baut auf der vorigen auf.
+//   Recherche -> Fokus -> verbaler Hook -> visueller Hook -> rutscht ins Skript.
+function guidedIdee(k, box) {
   const r = k.recherche;
-  if (!r) return;
+
+  // Start: noch nichts recherchiert.
+  if (!r) {
+    const p = document.createElement("p");
+    p.className = "feld-hinweis";
+    p.textContent =
+      "Ein Klick fuehrt dich Schritt fuer Schritt: erst Fokus, dann gesprochener Hook, dann sichtbarer Hook. Danach rutscht die Karte ins Skript.";
+    box.appendChild(p);
+    box.appendChild(
+      knopf("Recherche und Fokus", {
+        art: "haupt",
+        zeichen: "funken",
+        klick: (e) => rufeKi("recherche", k, e.currentTarget, box),
+      })
+    );
+    return;
+  }
   if (r.raw || !Array.isArray(r.fokus)) {
     const pre = document.createElement("pre");
     pre.className = "textblock";
@@ -508,124 +529,178 @@ function auswahlFokusHook(k, box, merke) {
     return;
   }
 
-  if (r.zusammenfassung) {
-    const d = document.createElement("details");
-    d.className = "gruppe";
-    d.innerHTML = `<summary class="gruppe-kopf"><span class="gruppe-titel">Recherche und Hard Facts</span></summary>`;
-    const pre = document.createElement("pre");
-    pre.className = "textblock";
-    pre.textContent = r.zusammenfassung;
-    d.appendChild(pre);
-    box.appendChild(d);
-  }
+  const stufe = k.chosenFokus == null ? 1 : k.chosenVerbal == null ? 2 : 3;
+  box.appendChild(schrittKopf(stufe));
 
-  // Stufe 1: Fokus waehlen. Ein Wechsel verwirft die Hooks — sie bauen auf dem Fokus auf.
-  box.appendChild(
-    wahlgruppe(
-      "Fokus — worum es im Kern geht",
-      r.fokus.map((f, i) => ({ i, titel: f.titel, text: f.text })),
-      k.chosenFokus,
-      (i) => {
-        setzeTief(k, "chosenFokus", i);
-        delete k.hooksVorschlag;
-        delete k.chosenHook;
-        speichere();
-        zeichne();
-      }
-    )
-  );
-
-  if (r.frame && (r.frame.problem || r.frame.solution) && !(k.frame && k.frame.problem)) {
+  // Stufe 1: Fokus.
+  if (stufe === 1) {
+    if (r.zusammenfassung) box.appendChild(rechercheKlappe(r.zusammenfassung));
     box.appendChild(
-      knopf("Problem und Handlung aus der Recherche uebernehmen", {
-        zeichen: "check",
-        klick: () => merke("frame", { problem: r.frame.problem || "", solution: r.frame.solution || "" }, true),
-      })
+      wahlgruppe(
+        "Fokus — worum es im Kern geht",
+        r.fokus.map((f, i) => ({ i, titel: f.titel, text: f.text })),
+        null,
+        (i) => {
+          setzeTief(k, "chosenFokus", i);
+          // Problem/Handlung und Suchbegriffe wandern still mit — keine Extra-Knoepfe.
+          if (r.frame) setzeTief(k, "frame", { problem: r.frame.problem || "", solution: r.frame.solution || "" });
+          if (Array.isArray(r.keywords)) setzeTief(k, "caption.keywords", r.keywords);
+          delete k.hooksVerbal;
+          delete k.chosenVerbal;
+          delete k.hooksVisuell;
+          delete k.chosenVisuell;
+          speichere();
+          rufeKi("hooks_verbal", k, null, box);
+        }
+      )
     );
-  }
-  if (Array.isArray(r.keywords) && r.keywords.length && !(k.caption.keywords || []).length) {
-    box.appendChild(
-      knopf(`${r.keywords.length} Suchbegriffe uebernehmen`, {
-        zeichen: "check",
-        klick: () => merke("caption.keywords", r.keywords, true),
-      })
-    );
-  }
-
-  // Stufe 2: Hooks — erst nach der Fokuswahl, genau auf diesen Fokus zugeschnitten.
-  if (k.chosenFokus == null) {
-    const p = document.createElement("p");
-    p.className = "feld-hinweis";
-    p.textContent = "Waehle zuerst einen Fokus — danach schneidet die KI drei Hooks genau darauf zu.";
-    box.appendChild(p);
     return;
   }
 
-  const hv = k.hooksVorschlag;
-  if (!hv || !Array.isArray(hv.hooks)) {
-    box.appendChild(
-      knopf("Drei Hooks zu diesem Fokus holen", {
-        art: "haupt",
-        zeichen: "funken",
-        klick: (e) => rufeKi("hooks", k, e.currentTarget, box),
-      })
-    );
-    if (hv && hv.raw) {
-      const pre = document.createElement("pre");
-      pre.className = "textblock";
-      pre.textContent = hv.raw;
-      box.appendChild(pre);
+  // Stufe 2: verbaler Hook.
+  if (stufe === 2) {
+    box.appendChild(gewaehltZeile("Fokus", r.fokus[k.chosenFokus].titel));
+    const hv = k.hooksVerbal;
+    if (!hv || !Array.isArray(hv.hooks)) {
+      box.appendChild(
+        knopf("Verbale Hooks holen", { art: "haupt", zeichen: "funken", klick: (e) => rufeKi("hooks_verbal", k, e.currentTarget, box) })
+      );
+    } else {
+      box.appendChild(
+        wahlgruppe(
+          "Verbaler Hook — der gesprochene Einstieg",
+          hv.hooks.map((h, i) => ({ i, titel: h.label, text: h.verbal })),
+          null,
+          (i) => {
+            setzeTief(k, "chosenVerbal", i);
+            setzeTief(k, "hook.text", hv.hooks[i].verbal || "");
+            delete k.hooksVisuell;
+            delete k.chosenVisuell;
+            speichere();
+            rufeKi("hooks_visuell", k, null, box);
+          }
+        )
+      );
     }
+    box.appendChild(
+      zurueckKnopf(() => {
+        delete k.chosenFokus;
+        delete k.hooksVerbal;
+        delete k.chosenVerbal;
+        speichere();
+        zeichne();
+      })
+    );
     return;
   }
 
+  // Stufe 3: visueller Hook -> danach ins Skript.
+  box.appendChild(gewaehltZeile("Fokus", r.fokus[k.chosenFokus].titel));
+  box.appendChild(gewaehltZeile("Verbaler Hook", (k.hook && k.hook.text) || ""));
+  const hvis = k.hooksVisuell;
+  if (!hvis || !Array.isArray(hvis.hooks)) {
+    box.appendChild(
+      knopf("Visuelle Hooks holen", { art: "haupt", zeichen: "funken", klick: (e) => rufeKi("hooks_visuell", k, e.currentTarget, box) })
+    );
+  } else {
+    box.appendChild(
+      wahlgruppe(
+        "Sichtbarer Hook — was man in Sekunde 0 bis 1 sieht",
+        hvis.hooks.map((h, i) => ({ i, titel: h.label, text: h.visuell })),
+        null,
+        async (i) => {
+          setzeTief(k, "chosenVisuell", i);
+          setzeTief(k, "hook.visual", hvis.hooks[i].visuell || "");
+          await speichere();
+          await schiebe(k, "skript"); // rutscht ins Skript — Loop 1 fertig.
+        }
+      )
+    );
+  }
   box.appendChild(
-    wahlgruppe(
-      "Hook — gesprochen und sichtbar",
-      hv.hooks.map((h, i) => ({
-        i,
-        titel: h.label,
-        text: `Gesprochen: ${h.verbal}\nSichtbar: ${h.visuell}`,
-      })),
-      k.chosenHook,
-      (i) => {
-        const h = hv.hooks[i];
-        setzeTief(k, "chosenHook", i);
-        setzeTief(k, "hook", { text: h.verbal || "", visual: h.visuell || "" });
-        speichere();
-        zeichne();
-      }
-    )
+    zurueckKnopf(() => {
+      delete k.chosenVerbal;
+      delete k.hooksVisuell;
+      delete k.chosenVisuell;
+      if (k.hook) delete k.hook.text;
+      speichere();
+      zeichne();
+    })
   );
 }
 
-function felderSkript(k, box, merke) {
-  const hookText = eingabe((k.hook && k.hook.text) || "", { platzhalter: "Der gesprochene Einstieg" });
-  hookText.addEventListener("change", () => merke("hook.text", hookText.value, true));
+function schrittKopf(n) {
+  const p = document.createElement("p");
+  p.className = "schritt-kopf";
+  const namen = ["Fokus", "Verbaler Hook", "Sichtbarer Hook"];
+  p.textContent = `Schritt ${n} von 3 · ${namen[n - 1]}`;
+  return p;
+}
+
+function gewaehltZeile(label, text) {
+  const d = document.createElement("div");
+  d.className = "gewaehlt-zeile";
+  d.innerHTML = icon("check") + `<span><strong>${escape(label)}:</strong> ${escape(text || "")}</span>`;
+  return d;
+}
+
+function zurueckKnopf(klick) {
+  const b = knopf("Einen Schritt zurueck", { zeichen: "zurueck", klick });
+  b.classList.add("schritt-zurueck");
+  return b;
+}
+
+function rechercheKlappe(text) {
+  const d = document.createElement("details");
+  d.className = "gruppe";
+  d.innerHTML = `<summary class="gruppe-kopf"><span class="gruppe-titel">Recherche und Hard Facts</span></summary>`;
+  const pre = document.createElement("pre");
+  pre.className = "textblock";
+  pre.textContent = text;
+  d.appendChild(pre);
+  return d;
+}
+
+// Loop 2: die drei Bausteine aus Loop 1 editierbar, EIN Knopf schreibt alles, danach das
+// fertige Skript als Fliesstext editierbar, Speichern -> .txt in Drive -> Upload-Datum -> Videodreh.
+function skriptLoop(k, box) {
+  const merke = (pfad, wert) => {
+    setzeTief(k, pfad, wert);
+    speichere();
+  };
+
+  const fokusStart =
+    k.fokusText != null
+      ? k.fokusText
+      : k.recherche && k.chosenFokus != null && k.recherche.fokus && k.recherche.fokus[k.chosenFokus]
+      ? `${k.recherche.fokus[k.chosenFokus].titel}: ${k.recherche.fokus[k.chosenFokus].text}`
+      : "";
+  const fokusEl = textfeld(fokusStart, 2, "Der gewaehlte Fokus");
+  fokusEl.addEventListener("change", () => merke("fokusText", fokusEl.value));
+  box.appendChild(feld("Fokus", fokusEl));
+
+  const vEl = eingabe((k.hook && k.hook.text) || "", { platzhalter: "Der gesprochene Einstieg" });
+  vEl.addEventListener("change", () => merke("hook.text", vEl.value));
+  box.appendChild(feld("Verbaler Hook", vEl, `Hoechstens etwa ${MASSE.hookWoerterMax} Woerter.`));
+
+  const viEl = eingabe((k.hook && k.hook.visual) || "", { platzhalter: "Was man in Sekunde 0 bis 1 sieht" });
+  viEl.addEventListener("change", () => merke("hook.visual", viEl.value));
+  box.appendChild(feld("Sichtbarer Hook", viEl, "Vier von fuenf schauen ohne Ton — das Bild muss den Hook tragen."));
+
+  // Ein Knopf, der alles schreibt.
   box.appendChild(
-    feld(
-      "Hook, gesprochen",
-      hookText,
-      `Hoechstens etwa ${MASSE.hookWoerterMax} Woerter — Instagram misst die Abbruchquote bei ${MASSE.hookSekunden} Sekunden.`
-    )
+    knopf(k.skriptFinal || (k.ai && k.ai.skript) ? "Skript neu schreiben" : "Skript schreiben", {
+      art: "haupt",
+      zeichen: "funken",
+      klick: (e) => rufeKi("skript", k, e.currentTarget, box),
+    })
   );
 
-  const hookBild = eingabe((k.hook && k.hook.visual) || "", { platzhalter: "Was sieht man in Sekunde 0 bis 1?" });
-  hookBild.addEventListener("change", () => merke("hook.visual", hookBild.value, true));
-  box.appendChild(feld("Hook, sichtbar", hookBild, "Vier von fuenf schauen ohne Ton — das Bild muss den Hook allein tragen."));
-
-  const problem = textfeld((k.frame && k.frame.problem) || "", 2, "Was ist konkret kaputt?");
-  problem.addEventListener("change", () => merke("frame.problem", problem.value, true));
-  box.appendChild(feld("Problem", problem));
-
-  const loesung = textfeld((k.frame && k.frame.solution) || "", 2, "Was kann jemand konkret tun oder sehen?");
-  loesung.addEventListener("change", () => merke("frame.solution", loesung.value, true));
-  box.appendChild(
-    feld("Handlung", loesung, "Beides zusammen ist der belegte Kompromiss: Problem bringt Reichweite, Handlung bringt Vertrauen.")
-  );
-
+  // Nach der Generierung: der fertige Text zum Rueberlesen und Aendern.
   const text = k.skriptFinal || (k.ai && k.ai.skript) || "";
-  const skript = textfeld(text, 10, "Der Sprechertext, wie er vorgelesen wird");
+  if (!text) return;
+
+  const skript = textfeld(text, 12, "Der fertige Sprechertext");
   const zaehler = document.createElement("p");
   zaehler.className = "zaehler";
   const zaehle = () => {
@@ -635,34 +710,31 @@ function felderSkript(k, box, merke) {
   };
   zaehle();
   skript.addEventListener("input", zaehle);
-  skript.addEventListener("change", () => merke("skriptFinal", skript.value, true));
-  box.appendChild(feld("Finales Skript", skript));
+  skript.addEventListener("change", () => merke("skriptFinal", skript.value));
+  box.appendChild(feld("Fertiges Skript", skript));
   box.appendChild(zaehler);
 
-  const reihe = document.createElement("div");
-  reihe.className = "knopfreihe";
-  if (k.ai && k.ai.skript)
-    reihe.appendChild(
-      knopf("Entwurf der KI uebernehmen", {
-        klick: () => {
-          skript.value = k.ai.skript;
-          zaehle();
-          merke("skriptFinal", skript.value, true);
-        },
-      })
-    );
-  reihe.appendChild(
-    knopf("Skript nach Drive speichern", {
+  box.appendChild(
+    knopf("Nach Drive speichern und Upload planen", {
+      art: "haupt",
       zeichen: "ordner",
       klick: async (e) => {
+        setzeTief(k, "skriptFinal", skript.value);
         await nachDrive(k, DATEINAMEN.skript, skript.value, e.currentTarget, box);
         setzeTief(k, "skriptGespeichert", true);
-        speichere();
-        zeichne();
+        await speichere();
+        modalDatum(
+          "Wann soll das Video veroeffentlicht werden?",
+          "Aus dem Upload-Datum setzt das Board Schnitt- und Drehtermine automatisch, dann rutscht die Karte in Videodreh.",
+          async (datum) => {
+            setzeTief(k, "dates", { ...rueckwaertsplan(datum), upload: datum });
+            await speichere();
+            await schiebe(k, "videodreh");
+          }
+        );
       },
     })
   );
-  box.appendChild(reihe);
 }
 
 function felderDreh(k, box, merke) {
@@ -958,6 +1030,19 @@ function blockAbschluss(k, toreListe) {
   box.style.flexDirection = "column";
   box.style.gap = "10px";
 
+  // Verworfene Karten: nur zurueckholen und loeschen.
+  if (k.column === "verworfen") {
+    const zurueck = knopf("Zurueck zu Idee holen", {
+      art: "haupt",
+      zeichen: "zurueck",
+      klick: async () => await schiebe(k, "idee"),
+    });
+    zurueck.classList.add("knopf-breit");
+    box.appendChild(zurueck);
+    box.appendChild(loeschenKnopf(k));
+    return box;
+  }
+
   const ziel = naechstePhase(k.column);
   if (ziel) {
     const blockiert = sperren(toreListe);
@@ -984,21 +1069,31 @@ function blockAbschluss(k, toreListe) {
     if (blockiert.length) {
       const p = document.createElement("p");
       p.className = "feld-hinweis";
-      p.textContent = `${blockiert.length} Punkt${blockiert.length === 1 ? "" : "e"} halten die Karte auf — sie stehen oben unter „Was noch offen ist“.`;
+      p.textContent = `${blockiert.length} Punkt${blockiert.length === 1 ? "" : "e"} halten die Karte auf.`;
       box.appendChild(p);
     }
   }
 
+  // Verwerfen: parkt die Karte in „Verworfen", die KI schlaegt sie nicht mehr vor.
   box.appendChild(
-    knopf("Diese Karte loeschen", {
-      art: "gefahr",
+    knopf("Diese Idee verwerfen", {
       zeichen: "muell",
-      klick: () => {
-        if (confirm(`"${k.title}" wirklich loeschen? Der Drive-Ordner bleibt bestehen.`)) loescheKarte(k.id);
-      },
+      titel: "Parkt die Karte in „Verworfen“ — sie taucht in der Ideensuche nicht mehr auf.",
+      klick: async () => await schiebe(k, "verworfen"),
     })
   );
+  box.appendChild(loeschenKnopf(k));
   return box;
+}
+
+function loeschenKnopf(k) {
+  return knopf("Diese Karte loeschen", {
+    art: "gefahr",
+    zeichen: "muell",
+    klick: () => {
+      if (confirm(`"${k.title}" wirklich loeschen? Der Drive-Ordner bleibt bestehen.`)) loescheKarte(k.id);
+    },
+  });
 }
 
 // --- Hilfen ---------------------------------------------------------------
@@ -1052,7 +1147,8 @@ async function rufeKi(task, k, knopfEl, box) {
       if (e.status) panel.status(e.status);
     });
     if (task === "recherche") setzeTief(k, "recherche", antwort.data || { raw: antwort.text || "" });
-    else if (task === "hooks") setzeTief(k, "hooksVorschlag", antwort.data || { raw: antwort.text || "" });
+    else if (task === "hooks_verbal") setzeTief(k, "hooksVerbal", antwort.data || { raw: antwort.text || "" });
+    else if (task === "hooks_visuell") setzeTief(k, "hooksVisuell", antwort.data || { raw: antwort.text || "" });
     else if (task === "caption") setzeTief(k, "captionVorschlag", antwort.data || { raw: antwort.text || "" });
     else {
       k.ai = k.ai || {};

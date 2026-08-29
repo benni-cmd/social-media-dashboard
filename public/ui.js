@@ -157,6 +157,41 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
   };
 }
 
+// Zentriertes Pop-up, das ein einzelnes Datum abfragt. onConfirm(iso) bei „Setzen".
+export function modalDatum(frage, hinweis, onConfirm) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  const box = document.createElement("div");
+  box.className = "modal";
+  box.innerHTML =
+    `<div class="modal-frage">${escape(frage)}</div>` +
+    (hinweis ? `<p class="feld-hinweis">${escape(hinweis)}</p>` : "");
+  const input = document.createElement("input");
+  input.type = "date";
+  input.className = "eingabe";
+  box.appendChild(input);
+  const reihe = document.createElement("div");
+  reihe.className = "modal-knoepfe";
+  const zu = () => overlay.remove();
+  reihe.appendChild(
+    knopf("Datum setzen", {
+      art: "haupt",
+      zeichen: "kalender",
+      klick: () => {
+        if (!input.value) { input.focus(); return; }
+        zu();
+        onConfirm(input.value);
+      },
+    })
+  );
+  reihe.appendChild(knopf("Abbrechen", { klick: zu }));
+  box.appendChild(reihe);
+  overlay.appendChild(box);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) zu(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => input.focus(), 0);
+}
+
 export function feld(label, el, hinweis = "") {
   const wrap = document.createElement("div");
   wrap.className = "feld";

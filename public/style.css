@@ -1473,3 +1473,72 @@ body {
 .denk-text:empty {
   display: none;
 }
+
+/* Gefuehrter Loop: Schrittkopf, bereits getroffene Wahl, Zurueck */
+.schritt-kopf {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--akzent);
+  margin: 2px 0 4px;
+}
+.gewaehlt-zeile {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-still);
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  padding: 7px 9px;
+}
+.gewaehlt-zeile .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--ok);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.schritt-zurueck {
+  align-self: flex-start;
+  color: var(--text-leise);
+}
+
+/* Zentriertes Pop-up */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal {
+  width: 100%;
+  max-width: 380px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund);
+  box-shadow: var(--schatten);
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modal-frage {
+  font-size: 14px;
+  font-weight: 650;
+}
+.modal .feld-hinweis {
+  margin: -4px 0 2px;
+}
+.modal-knoepfe {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
