@@ -128,7 +128,9 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
             k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
             k.uploadTime = slot.uhrzeit || "";
             k.contenttyp = slot.typ || "reel";
+            if (slot.kategorie) k.kategorie = slot.kategorie;
             if (slot.ziel) k.goal = slot.ziel;
+            if (slot.plattform) k.platforms = [slot.plattform];
             slotUpdates.push({ slotId: slot.id, karteId: k.id });
           }
 

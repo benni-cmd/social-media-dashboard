@@ -262,11 +262,10 @@ function einzelwahlReihe(optionen, aktuell, beiWahl) {
 function blockTermine(k, merke) {
   const istIdee = k.column === "idee";
 
-  // In der Idee-Phase: vereinfachter Terminblock mit intelligentem Vorschlag.
   if (istIdee) return blockTermineIdee(k, merke);
 
   const f = faelligkeit(k);
-  const g = gruppe("Termine", null, true);
+  const g = gruppe("Termin", null, true);
   const box = document.createElement("div");
 
   const satz = document.createElement("div");
@@ -274,19 +273,45 @@ function blockTermine(k, merke) {
   satz.innerHTML = statusChip(f.status) + `<span class="befund-satz">${escape(f.satz)}</span>`;
   box.appendChild(satz);
 
-  box.appendChild(miniKalender(k));
+  const hatUpload = (k.dates || {}).upload;
+  if (hatUpload) {
+    const zeile = document.createElement("div");
+    zeile.className = "termin-kompakt";
+    zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatUpload)}</strong>${k.uploadTime ? ` · ${k.uploadTime}` : ""}</span>`;
+    const bearbeiten = knopf("bearbeiten", {
+      zeichen: "kalender",
+      klick: () => {
+        modalDatum(
+          "Upload-Datum aendern",
+          "Dreh wird automatisch 2 Wochen vorher gesetzt.",
+          (datum) => {
+            merke("dates", einfacherPlan(datum), true);
+            setStand(`Upload am ${deutschesDatum(datum)}.`);
+          }
+        );
+      },
+    });
+    bearbeiten.classList.add("knopf-inline");
+    zeile.appendChild(bearbeiten);
+    box.appendChild(zeile);
+  } else {
+    const uZeile = document.createElement("div");
+    uZeile.className = "feld-reihe";
+    const uDatum = eingabe("", { typ: "date" });
+    uDatum.addEventListener("change", () => setzeTermin(k, "upload", uDatum.value, merke));
+    uZeile.appendChild(feld("Veroeffentlichung", uDatum));
+    const uZeit = eingabe(k.uploadTime || "", { typ: "time" });
+    uZeit.addEventListener("change", () => merke("uploadTime", uZeit.value, true));
+    const zf = feld("Uhrzeit", uZeit);
+    zf.classList.add("feld-schmal");
+    uZeile.appendChild(zf);
+    box.appendChild(uZeile);
+  }
 
-  const uZeile = document.createElement("div");
-  uZeile.className = "feld-reihe";
-  const uDatum = eingabe((k.dates || {}).upload || "", { typ: "date" });
-  uDatum.addEventListener("change", () => setzeTermin(k, "upload", uDatum.value, merke));
-  uZeile.appendChild(feld("Veroeffentlichung", uDatum));
-  const uZeit = eingabe(k.uploadTime || "", { typ: "time" });
-  uZeit.addEventListener("change", () => merke("uploadTime", uZeit.value, true));
-  const zf = feld("Uhrzeit", uZeit);
-  zf.classList.add("feld-schmal");
-  uZeile.appendChild(zf);
-  box.appendChild(uZeile);
+  g.appendChild(box);
+
+  const { d, box: details } = klappe("Termine verwalten");
+  details.appendChild(miniKalender(k));
 
   const plan = knopf("Restliche Termine rueckwaerts planen", {
     zeichen: "kalender",
@@ -302,17 +327,15 @@ function blockTermine(k, merke) {
     },
   });
   plan.classList.add("knopf-breit");
-  box.appendChild(plan);
-  g.appendChild(box);
+  details.appendChild(plan);
 
-  const { d, box: einzeln } = klappe("Termine einzeln setzen");
   for (const t of TERMINE) {
     const zeile = document.createElement("div");
     zeile.className = "feld-reihe";
     const datum = eingabe((k.dates || {})[t.key] || "", { typ: "date" });
     datum.addEventListener("change", () => setzeTermin(k, t.key, datum.value, merke));
     zeile.appendChild(feld(t.name, datum));
-    einzeln.appendChild(zeile);
+    details.appendChild(zeile);
   }
   g.appendChild(d);
   return g;
