@@ -574,8 +574,15 @@ export function einstellungenModal(onThemeChange) {
       seiten.forEach((s) => s.classList.remove("aktiv"));
       btn.classList.add("aktiv");
       seiten[i].classList.add("aktiv");
+      // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
+      if (i === 1 && aktuellerProvider === "ollama") ladeModelle();
     });
   });
+
+  // Wenn Ollama bereits Standard ist, beim ersten Öffnen des Modals sofort laden
+  if (aktuellerProvider === "ollama") {
+    setTimeout(() => ladeModelle(), 50);
+  }
 
   box.appendChild(links);
   box.appendChild(rechts);
