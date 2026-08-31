@@ -8,16 +8,24 @@ import {
   kategorieName,
   zielInfo,
 } from "/lib/pipeline.js";
-import { slotsForMonth } from "/lib/scheduler.js";
+import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
 import { melde, setStand } from "./store.js";
 import { escape, knopf } from "./ui.js";
 
 const TYP_FARBE = {
-  reel:      "#f97316",
-  slider:    "#3b82f6",
-  beitrag:   "#8b5cf6",
-  story:     "#10b981",
-  highlight: "#f59e0b",
+  reel:       "#f97316",
+  slider:     "#3b82f6",
+  beitrag:    "#8b5cf6",
+  story:      "#10b981",
+  highlight:  "#f59e0b",
+  langformat: "#ef4444",
+};
+
+const ZIEL_FARBE = {
+  reach_new: "#f97316",
+  deepen:    "#3b82f6",
+  community: "#10b981",
+  donations: "#8b5cf6",
 };
 
 let aktivesPanel = null;
@@ -28,9 +36,23 @@ let currentPlan   = null;
 async function ladePlan() {
   try {
     const r = await fetch("/api/plan");
-    if (r.ok) return await r.json();
+    if (r.ok) {
+      const p = await r.json();
+      // Altes anteil%-Format auf perWoche migrieren
+      p.typenmix = migriereTypenmix(p.typenmix, p.kadenz?.postsProWoche);
+      return ergaenzePlan(p);
+    }
   } catch {}
   return defaultPlan();
+}
+
+// Fehlende Typen (z.B. langformat) in bestehenden Plan einfuegen
+function ergaenzePlan(p) {
+  const bekannteTypen = new Set((p.typenmix || []).map((t) => t.typ));
+  for (const t of CONTENTTYPEN) {
+    if (!bekannteTypen.has(t.id)) p.typenmix.push({ typ: t.id, perWoche: 0 });
+  }
+  return p;
 }
 
 async function speicherePlan(plan) {
@@ -45,13 +67,10 @@ async function speicherePlan(plan) {
 function defaultPlan() {
   return {
     kadenz: { postsProWoche: 3 },
-    typenmix: [
-      { typ: "reel",      anteil: 60 },
-      { typ: "slider",    anteil: 25 },
-      { typ: "beitrag",   anteil: 10 },
-      { typ: "story",     anteil:  5 },
-      { typ: "highlight", anteil:  0 },
-    ],
+    typenmix: CONTENTTYPEN.map(({ id }) => ({
+      typ: id,
+      perWoche: { reel: 2, slider: 0.75, beitrag: 0.25, story: 0, highlight: 0, langformat: 0 }[id] ?? 0,
+    })),
     kategorienFokus: INHALTSKATEGORIEN.map((k, i) => ({
       id: k.id,
       aktiv: ["bildung", "spendenaufruf", "umfrage"].includes(k.id),
@@ -84,7 +103,6 @@ function bauePanel(plan, _anker) {
   el.className = "gruppe";
   el.style.marginBottom = "12px";
 
-  // Kopf
   const kopf = document.createElement("div");
   kopf.className = "gruppe-kopf";
   const titel = document.createElement("span");
@@ -99,18 +117,14 @@ function bauePanel(plan, _anker) {
   const koerper = document.createElement("div");
   koerper.style.padding = "0 12px 16px";
 
-  // baueEinstellungen gibt einen Getter zurück, der den aktuellen Formularstand liest
-  const lesePlan = baueEinstellungen(plan, koerper, () => {
-    // nach Speichern Kalender neu rendern
-    if (typeof kalenderRendere === "function") kalenderRendere();
-  });
+  let kalenderRendere = null;
+  baueEinstellungen(plan, koerper, () => { if (kalenderRendere) kalenderRendere(); });
 
   const hr = document.createElement("hr");
   hr.style.cssText = "margin:16px 0;border:none;border-top:1px solid var(--border)";
   koerper.appendChild(hr);
 
-  // baueKalender gibt seine rendere-Funktion zurück
-  let kalenderRendere = baueKalender(koerper);
+  kalenderRendere = baueKalender(koerper);
 
   el.appendChild(koerper);
   return el;
@@ -119,32 +133,36 @@ function bauePanel(plan, _anker) {
 // ── Einstellungen ─────────────────────────────────────────────────────────
 
 function baueEinstellungen(plan, koerper, nachSpeichern) {
-  // ── Posts pro Woche (Stepper) ──────────────────────────────────────────
-  sektionKopf("Posts pro Woche", koerper);
-  let ppw = plan.kadenz.postsProWoche;
-  const { wrap: stepperEl, getValue: getPPW } = stepper(ppw, 1, 14, (v) => { ppw = v; });
-  koerper.appendChild(stepperEl);
 
-  // ── Content-Mix (Slider) ───────────────────────────────────────────────
-  sektionKopf("Content-Mix", koerper, "14px 0 6px");
-  const mixSumEl = sumAnzeige();
-  const mixSlider = {};
+  // ── Posting-Frequenz je Typ ────────────────────────────────────────────
+  sektionKopf("Posting-Frequenz", koerper);
+
+  const freqHinweis = document.createElement("p");
+  freqHinweis.className = "feld-hinweis";
+  freqHinweis.style.marginBottom = "10px";
+  freqHinweis.textContent = "Posts pro Woche je Format — 0,25 = einmal alle 4 Wochen.";
+  koerper.appendChild(freqHinweis);
+
+  const freqGesamt = document.createElement("div");
+  freqGesamt.style.cssText = "font-size:12px;color:var(--fg2);margin-bottom:10px;font-weight:500";
+
+  const freqGetters = {};
   for (const t of CONTENTTYPEN) {
-    const eintrag = plan.typenmix.find((m) => m.typ === t.id) || { anteil: 0 };
-    const { zeile, getValue } = sliderZeile(
+    const eintrag = plan.typenmix.find((m) => m.typ === t.id) || { perWoche: 0 };
+    const { zeile, getValue } = frequenzZeile(
       t.name,
       TYP_FARBE[t.id] || "#888",
-      eintrag.anteil,
-      () => aktualisiereSum(mixSumEl, Object.values(mixSlider).map((f) => f())),
+      eintrag.perWoche,
+      () => aktualisiereGesamt(freqGesamt, Object.values(freqGetters).map((f) => f())),
     );
-    mixSlider[t.id] = getValue;
+    freqGetters[t.id] = getValue;
     koerper.appendChild(zeile);
   }
-  koerper.appendChild(mixSumEl);
-  aktualisiereSum(mixSumEl, Object.values(mixSlider).map((f) => f()));
+  koerper.appendChild(freqGesamt);
+  aktualisiereGesamt(freqGesamt, Object.values(freqGetters).map((f) => f()));
 
   // ── Inhaltskategorien ──────────────────────────────────────────────────
-  sektionKopf("Inhaltskategorien", koerper, "14px 0 6px");
+  sektionKopf("Inhaltskategorien", koerper, "14px 0 8px");
   const katStatus = {};
   const katPrio   = {};
   for (const k of INHALTSKATEGORIEN) {
@@ -155,30 +173,33 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
     koerper.appendChild(zeile);
   }
 
-  // ── Zielgewichte (Slider) ──────────────────────────────────────────────
-  sektionKopf("Zielgewichte", koerper, "14px 0 6px");
+  // ── Zielgewichte ──────────────────────────────────────────────────────
+  sektionKopf("Zielgewichte", koerper, "14px 0 8px");
   const zielSumEl = sumAnzeige();
-  const zielSlider = {};
+  const zielGetters = {};
   for (const z of ZIELE) {
     const zw = plan.zielgewichte.find((w) => w.id === z.id) || { gewicht: 25 };
     const { zeile, getValue } = sliderZeile(
       z.name,
-      "#64748b",
+      ZIEL_FARBE[z.id] || "#64748b",
       zw.gewicht,
-      () => aktualisiereSum(zielSumEl, Object.values(zielSlider).map((f) => f())),
+      0, 100,
+      () => aktualisiereSum(zielSumEl, Object.values(zielGetters).map((f) => f())),
     );
-    zielSlider[z.id] = getValue;
+    zielGetters[z.id] = getValue;
     koerper.appendChild(zeile);
   }
   koerper.appendChild(zielSumEl);
-  aktualisiereSum(zielSumEl, Object.values(zielSlider).map((f) => f()));
+  aktualisiereSum(zielSumEl, Object.values(zielGetters).map((f) => f()));
 
   // ── Kampagnen ──────────────────────────────────────────────────────────
-  sektionKopf("Kampagnen & Serien", koerper, "14px 0 6px");
+  sektionKopf("Kampagnen & Serien", koerper, "14px 0 8px");
   let kampagnen = [...(plan.kampagnen || [])];
   const kampContainer = document.createElement("div");
   koerper.appendChild(kampContainer);
-  const addKampBtn = knopf("+ Kampagne", { klick: () => { kampagnen.push({ id: "k" + Date.now(), name: "", aktiv: true }); renderKamp(); } });
+  const addKampBtn = knopf("+ Kampagne", {
+    klick: () => { kampagnen.push({ id: "k" + Date.now(), name: "", aktiv: true }); renderKamp(); },
+  });
   addKampBtn.style.marginTop = "4px";
   koerper.appendChild(addKampBtn);
 
@@ -208,43 +229,31 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   }
   renderKamp();
 
-  // ── Fehleranzeige + Speichern ──────────────────────────────────────────
+  // ── Fehler + Speichern ─────────────────────────────────────────────────
   const fehlerEl = document.createElement("p");
   fehlerEl.style.cssText = "color:#ef4444;font-size:12px;margin:10px 0 0;display:none";
   koerper.appendChild(fehlerEl);
 
   const speichernBtn = knopf("Einstellungen speichern", { art: "haupt" });
-  speichernBtn.style.marginTop = "12px";
-  speichernBtn.style.width = "100%";
+  speichernBtn.style.cssText += ";margin-top:12px;width:100%";
   speichernBtn.addEventListener("click", async () => {
-    // Validierung
-    const mixSumme  = Object.values(mixSlider).reduce((s, f) => s + f(), 0);
-    const zielSumme = Object.values(zielSlider).reduce((s, f) => s + f(), 0);
-    if (mixSumme !== 100) {
-      fehlerEl.textContent = `Content-Mix ergibt ${mixSumme} % — muss genau 100 % sein.`;
-      fehlerEl.style.display = "";
-      return;
-    }
+    const zielSumme = Object.values(zielGetters).reduce((s, f) => s + f(), 0);
     if (zielSumme !== 100) {
       fehlerEl.textContent = `Zielgewichte ergeben ${zielSumme} % — muss genau 100 % sein.`;
       fehlerEl.style.display = "";
       return;
     }
     fehlerEl.style.display = "none";
-
     speichernBtn.disabled = true;
     try {
       const aktuell = await ladePlan();
       const neuerPlan = {
         ...aktuell,
-        kadenz: { postsProWoche: getPPW() },
-        typenmix: CONTENTTYPEN.map((t) => ({ typ: t.id, anteil: mixSlider[t.id]() })),
+        typenmix: CONTENTTYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
         kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
-          id: k.id,
-          aktiv: katStatus[k.id](),
-          prioritaet: katPrio[k.id](),
+          id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
         })),
-        zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielSlider[z.id]() })),
+        zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id]() })),
         kampagnen: kampagnen.filter((k) => k.name.trim()),
       };
       await speicherePlan(neuerPlan);
@@ -277,7 +286,6 @@ function zeigeTooltip(e, slot) {
     `<div>${escape(zielInfo(slot.ziel).name)}</div>` +
     `<div style="color:var(--fg2);margin-top:4px;font-size:11px">${slot.uhrzeit} · ${escape(slot.plattform)}</div>`;
   document.body.appendChild(tooltipEl);
-
   const r = e.target.getBoundingClientRect();
   const t = tooltipEl.getBoundingClientRect();
   let left = r.left + r.width / 2 - t.width / 2;
@@ -293,24 +301,22 @@ function verbergeTooltip() {
   if (tooltipEl) { tooltipEl.remove(); tooltipEl = null; }
 }
 
-// Gibt seine rendere-Funktion zurück, damit der Aufrufer sie nach Plan-Änderungen auslösen kann.
 function baueKalender(koerper) {
-  sektionKopf("Kalender-Vorschau", koerper, "0 0 6px");
+  sektionKopf("Kalender-Vorschau", koerper, "0 0 8px");
 
   const hinweis = document.createElement("p");
   hinweis.className = "feld-hinweis";
   hinweis.style.marginBottom = "10px";
-  hinweis.textContent = "Algorithmus-Ausgabe — nicht editierbar. Parameter speichern → Vorschau aktualisiert sich.";
+  hinweis.textContent = "Algorithmus-Ausgabe — nicht editierbar. Speichern aktualisiert die Vorschau.";
   koerper.appendChild(hinweis);
 
-  // Legende
   const legende = document.createElement("div");
   legende.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;color:var(--fg1)";
   for (const [typ, farbe] of Object.entries(TYP_FARBE)) {
     const item = document.createElement("span");
     item.style.cssText = "display:flex;align-items:center;gap:5px";
     const dot = document.createElement("span");
-    dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0`;
+    dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${farbe};flex-shrink:0`;
     item.appendChild(dot);
     item.appendChild(document.createTextNode(contenttypName(typ)));
     legende.appendChild(item);
@@ -331,7 +337,6 @@ function baueKalender(koerper) {
     const year  = angezeigterMonat.getFullYear();
     const month = angezeigterMonat.getMonth();
 
-    // Navigation
     const nav = document.createElement("div");
     nav.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:10px";
     const prevBtn = knopf("‹", { titel: "Vorheriger Monat", klick: () => { angezeigterMonat.setMonth(month - 1); rendere(); } });
@@ -344,7 +349,6 @@ function baueKalender(koerper) {
     nav.appendChild(nextBtn);
     kalenderEl.appendChild(nav);
 
-    // Slots
     const slots = slotsForMonth(plan, year, month);
     const byDay = {};
     for (const s of slots) {
@@ -352,7 +356,6 @@ function baueKalender(koerper) {
       (byDay[d] || (byDay[d] = [])).push(s);
     }
 
-    // Grid
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:2px";
 
@@ -363,8 +366,7 @@ function baueKalender(koerper) {
       grid.appendChild(th);
     }
 
-    const ersterWochentag = new Date(year, month, 1).getDay();
-    const leerVor = (ersterWochentag - 1 + 7) % 7;
+    const leerVor = (new Date(year, month, 1).getDay() - 1 + 7) % 7;
     for (let i = 0; i < leerVor; i++) grid.appendChild(document.createElement("div"));
 
     const heuteStr = `${heute.getFullYear()}-${String(heute.getMonth()+1).padStart(2,"0")}-${String(heute.getDate()).padStart(2,"0")}`;
@@ -375,11 +377,7 @@ function baueKalender(koerper) {
       const istHeute = tagStr === heuteStr;
       const zelle = document.createElement("div");
       zelle.style.cssText = [
-        "min-height:52px",
-        "padding:4px",
-        "border:1px solid var(--border)",
-        "border-radius:4px",
-        "background:var(--bg1)",
+        "min-height:52px;padding:4px;border:1px solid var(--border);border-radius:4px;background:var(--bg1)",
         istHeute ? "outline:2px solid var(--akzent,#3b82f6);outline-offset:-1px" : "",
       ].filter(Boolean).join(";");
 
@@ -393,9 +391,8 @@ function baueKalender(koerper) {
         const punkte = document.createElement("div");
         punkte.style.cssText = "display:flex;flex-wrap:wrap;gap:2px";
         for (const slot of tageSlots) {
-          const farbe = TYP_FARBE[slot.typ] || "#888";
           const p = document.createElement("span");
-          p.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0;display:inline-block;cursor:default`;
+          p.style.cssText = `width:10px;height:10px;border-radius:50%;background:${TYP_FARBE[slot.typ]||"#888"};flex-shrink:0;display:inline-block;cursor:default`;
           p.addEventListener("mouseenter", (e) => zeigeTooltip(e, slot));
           p.addEventListener("mouseleave", verbergeTooltip);
           punkte.appendChild(p);
@@ -408,7 +405,7 @@ function baueKalender(koerper) {
   }
 
   rendere();
-  return rendere; // Aufrufer kann rendere() nach Plan-Änderungen aufrufen
+  return rendere;
 }
 
 // ── UI-Bausteine ──────────────────────────────────────────────────────────
@@ -420,69 +417,113 @@ function sektionKopf(titel, container, margin = "12px 0 8px") {
   container.appendChild(h);
 }
 
-function stepper(initWert, min, max, onChange) {
-  let value = Math.max(min, Math.min(max, initWert));
-  const wrap = document.createElement("div");
-  wrap.style.cssText = "display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden;height:36px";
-
-  const btnStyle = "width:36px;height:36px;border:none;background:var(--bg1);color:var(--fg1);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0";
-  const minus = document.createElement("button");
-  minus.type = "button";
-  minus.textContent = "−";
-  minus.style.cssText = btnStyle;
-
-  const display = document.createElement("span");
-  display.style.cssText = "min-width:42px;text-align:center;font-size:17px;font-weight:600;color:var(--fg1);padding:0 4px;border-left:1px solid var(--border);border-right:1px solid var(--border)";
-  display.textContent = value;
-
-  const plus = document.createElement("button");
-  plus.type = "button";
-  plus.textContent = "+";
-  plus.style.cssText = btnStyle;
-
-  minus.addEventListener("click", () => { if (value > min) { value--; display.textContent = value; onChange(value); } });
-  plus.addEventListener("click",  () => { if (value < max) { value++; display.textContent = value; onChange(value); } });
-
-  wrap.appendChild(minus);
-  wrap.appendChild(display);
-  wrap.appendChild(plus);
-  return { wrap, getValue: () => value };
-}
-
-function sliderZeile(label, farbe, initWert, onInput) {
+// Frequenz-Zeile: Slider 0–5/Woche (Schritt 0,25) + Zahlenfeld
+function frequenzZeile(label, farbe, initWert, onInput) {
   let value = initWert;
   const zeile = document.createElement("div");
-  zeile.style.cssText = "display:grid;grid-template-columns:12px 130px 1fr 38px;gap:8px;align-items:center;margin-bottom:7px";
+  zeile.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:7px";
 
   const dot = document.createElement("span");
   dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0`;
 
   const nameEl = document.createElement("span");
-  nameEl.style.cssText = "font-size:13px;color:var(--fg1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+  nameEl.style.cssText = "width:130px;flex-shrink:0;font-size:13px;color:var(--fg1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
   nameEl.textContent = label;
 
   const slider = document.createElement("input");
   slider.type = "range";
   slider.min = "0";
-  slider.max = "100";
+  slider.max = "5";
+  slider.step = "0.25";
   slider.value = value;
-  // accent-color setzt Thumb-Farbe im modernen Browser
-  slider.style.cssText = `width:100%;cursor:pointer;accent-color:${farbe};height:4px`;
+  slider.style.cssText = `width:160px;flex-shrink:0;cursor:pointer;accent-color:${farbe}`;
 
-  const prozEl = document.createElement("span");
-  prozEl.style.cssText = "font-size:13px;font-variant-numeric:tabular-nums;color:var(--fg1);text-align:right";
-  prozEl.textContent = value + " %";
+  const zahlInp = document.createElement("input");
+  zahlInp.type = "number";
+  zahlInp.min = "0";
+  zahlInp.max = "7";
+  zahlInp.step = "0.25";
+  zahlInp.value = value;
+  zahlInp.style.cssText = "width:56px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--fg1);font-size:13px;text-align:center;flex-shrink:0";
+
+  const einheit = document.createElement("span");
+  einheit.style.cssText = "font-size:12px;color:var(--fg2);white-space:nowrap;flex-shrink:0";
+  einheit.textContent = "/ Wo";
 
   slider.addEventListener("input", () => {
-    value = parseInt(slider.value, 10);
-    prozEl.textContent = value + " %";
+    value = parseFloat(slider.value);
+    zahlInp.value = value;
+    onInput(value);
+  });
+  zahlInp.addEventListener("input", () => {
+    value = Math.max(0, Math.min(7, parseFloat(zahlInp.value) || 0));
+    slider.value = Math.min(5, value);
     onInput(value);
   });
 
   zeile.appendChild(dot);
   zeile.appendChild(nameEl);
   zeile.appendChild(slider);
-  zeile.appendChild(prozEl);
+  zeile.appendChild(zahlInp);
+  zeile.appendChild(einheit);
+  return { zeile, getValue: () => value };
+}
+
+function aktualisiereGesamt(el, werte) {
+  const summe = werte.reduce((s, v) => s + v, 0);
+  const gerundet = Math.round(summe * 100) / 100;
+  el.textContent = `Gesamt: ${gerundet} Posts / Woche`;
+}
+
+// Prozent-Slider (fuer Zielgewichte)
+function sliderZeile(label, farbe, initWert, min, max, onInput) {
+  let value = initWert;
+  const zeile = document.createElement("div");
+  zeile.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:7px";
+
+  const dot = document.createElement("span");
+  dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0`;
+
+  const nameEl = document.createElement("span");
+  nameEl.style.cssText = "width:160px;flex-shrink:0;font-size:13px;color:var(--fg1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+  nameEl.textContent = label;
+
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.min = String(min);
+  slider.max = String(max);
+  slider.step = "1";
+  slider.value = value;
+  slider.style.cssText = `width:160px;flex-shrink:0;cursor:pointer;accent-color:${farbe}`;
+
+  const zahlInp = document.createElement("input");
+  zahlInp.type = "number";
+  zahlInp.min = String(min);
+  zahlInp.max = String(max);
+  zahlInp.step = "1";
+  zahlInp.value = value;
+  zahlInp.style.cssText = "width:52px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--fg1);font-size:13px;text-align:center;flex-shrink:0";
+
+  const einheit = document.createElement("span");
+  einheit.style.cssText = "font-size:12px;color:var(--fg2);flex-shrink:0";
+  einheit.textContent = "%";
+
+  slider.addEventListener("input", () => {
+    value = parseInt(slider.value, 10);
+    zahlInp.value = value;
+    onInput(value);
+  });
+  zahlInp.addEventListener("input", () => {
+    value = Math.max(min, Math.min(max, parseInt(zahlInp.value, 10) || 0));
+    slider.value = value;
+    onInput(value);
+  });
+
+  zeile.appendChild(dot);
+  zeile.appendChild(nameEl);
+  zeile.appendChild(slider);
+  zeile.appendChild(zahlInp);
+  zeile.appendChild(einheit);
   return { zeile, getValue: () => value };
 }
 
@@ -506,7 +547,6 @@ function kategorieZeile(k, kf) {
   const zeile = document.createElement("div");
   zeile.style.cssText = "display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)";
 
-  // Toggle-Switch
   const toggleWrap = document.createElement("label");
   toggleWrap.style.cssText = "position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer";
   const cb = document.createElement("input");
@@ -514,18 +554,15 @@ function kategorieZeile(k, kf) {
   cb.checked = aktiv;
   cb.style.cssText = "opacity:0;width:0;height:0;position:absolute";
   const track = document.createElement("span");
-  function updateTrack() {
-    track.style.cssText = [
-      "position:absolute;top:0;left:0;right:0;bottom:0;border-radius:20px;transition:background 0.15s",
-      `background:${aktiv ? "var(--akzent,#3b82f6)" : "var(--border)"}`,
-    ].join(";");
-    const thumb = track.querySelector(".thumb");
-    if (thumb) thumb.style.transform = `translateX(${aktiv ? 16 : 0}px)`;
-  }
   const thumb = document.createElement("span");
   thumb.className = "thumb";
   thumb.style.cssText = "position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.25)";
   track.appendChild(thumb);
+
+  function updateTrack() {
+    track.style.cssText = `position:absolute;top:0;left:0;right:0;bottom:0;border-radius:20px;transition:background 0.15s;background:${aktiv ? "var(--akzent,#3b82f6)" : "var(--border)"}`;
+    thumb.style.transform = `translateX(${aktiv ? 16 : 0}px)`;
+  }
   updateTrack();
   cb.addEventListener("change", () => { aktiv = cb.checked; updateTrack(); });
   toggleWrap.appendChild(cb);
