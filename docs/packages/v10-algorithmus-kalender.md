@@ -46,21 +46,34 @@ Kategorien: Prio-gewichtet (Prio 1 = n Einträge, Prio 2 = n-1, ...), rotierend 
 
 ---
 
-## Stand (31.08.2026)
+## Stand (31.08.2026, v11 eingebaut)
 
-- `lib/scheduler.js` — angelegt, exportiert `generiereWoche`, `slotsForMonth`, `wochenIndexVonDatum`
-- `public/redaktionsplan.js` — Kalender-Vorschau eingebaut; Einstellungen bleiben; KI-Slot-Generierung entfernt
-- `public/nachschub.js` — `ladeOffeneSlots` nutzt jetzt Scheduler, nicht mehr `plan.slots`
-- `plan.json` — `slots`-Feld wird nicht mehr geschrieben (vorhandene Daten ignoriert, nicht gelöscht)
+- `lib/scheduler.js` — exportiert `generiereWoche`, `slotsForMonth`, `wochenIndexVonDatum`, `FORMAT_PLATTFORMEN`; slot.plattformen ist Schnittmenge aus Format-Plattformen und plan.plattformen; highlight als eigenständiger Slot-Typ entfernt
+- `public/redaktionsplan.js` — Plattform-Auswahl-Sektion; PLAN_TYP_NAME-Map (Kurzformat-Video, Story / Highlight); plan.plattformen wird gespeichert; Tooltip zeigt plattformen-Array
+- `public/nachschub.js` — slot.plattformen (Array) für Karten-Vorbelegung
+- `plan.json` — enthält jetzt `plattformen: [...]`
+
+## v11 Architektur (FORMAT_PLATTFORMEN)
+
+| Format | Mögliche Plattformen | Zeitfenster-Logik |
+|---|---|---|
+| Kurzformat (reel) | IG, TK, YT, LI | Schnittmenge IG+LI optimiert; Fr/Sa 20:00 für TK wenn aktiv |
+| Slider | IG, LI | Mi 12:00 (IG Carousel), Mi 16:00 (LI Peak) |
+| Beitrag | IG, LI | Di/Do 11:00–17:00 |
+| Story / Highlight | IG | Werktage 8:00 + Mo/Mi/Fr 19:00 |
+| Langformat | YT, LI | Do/Di/Mi 15:00–17:00 |
+
+highlight ist kein eigener Upload-Typ — wird aus Story erzeugt (Pinnin nach dem Posten).
 
 ---
 
 ## DoD
 
-- [ ] Kalender zeigt korrekte Tage (nicht um 1 verschoben) — Screenshot
-- [ ] Hover-Tooltip zeigt Typ, Kategorie, Ziel, Uhrzeit, Plattform
-- [ ] Einstellungen speichern → Kalender aktualisiert sich sofort
-- [ ] Monats-Navigation vor/zurück funktioniert
-- [ ] Ideen-KI erhält Scheduler-Slots (nicht mehr `plan.slots`)
-
-**Offen:** UI-Abnahme im Browser (Screenshot) — Blocker bis Fertig-Meldung.
+- [x] Kalender zeigt korrekte Tage (nicht um 1 verschoben) — Screenshot v11-04-kalender-echt.png
+- [x] Hover-Tooltip zeigt Typ, Kategorie, Ziel, Uhrzeit, Plattformen (Array)
+- [x] Einstellungen speichern → Kalender aktualisiert sich sofort
+- [x] Monats-Navigation vor/zurück funktioniert
+- [x] Ideen-KI erhält Scheduler-Slots (nicht mehr `plan.slots`)
+- [x] Plattform-Auswahl sichtbar, Instagram + LinkedIn vorausgewählt
+- [x] Story / Highlight als ein Typ, kein separates Highlight
+- [x] Keine JS-Fehler im Browser (Edge headless CDP, 31.08.2026)
