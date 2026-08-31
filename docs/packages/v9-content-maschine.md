@@ -416,6 +416,34 @@ alles andere läuft ohne externen Zugang.
   Dreh→Schnitt, Dreh als Zeitraum, Dreh-Datum auf der Karte in Videodreh) — der Modal setzt aktuell noch
   den alten 6-Termin-Rückwärtsplan · **E** (Kalender, blockiert).
 
+## P13: KPI-Tracking pro Video in Drive (31.08.2026)
+
+**PIG.** Problem: Video-KPIs werden nur live abgefragt — historische Verläufe gehen verloren,
+kein Vergleich über Zeit möglich. Intent: jede Messung einmal erfassen und dauerhaft archivieren,
+damit Muster sichtbar werden (Evergreen vs. Einmal-Spike). Goal: Drive-Ordner
+`Videoauswertung/KPI/` mit JSON-Tabelle pro Projekt. Metriken (Views, Kommentare, Interaktionen,
+Watchtime falls API verfügbar) in 16 Intervallen (24h, 3d, 5d, 2W, 1M, dann monatlich bis 12M)
+je Plattform je Post. Server prüft beim Start automatisch fällige Messungen.
+
+**Gebaut:**
+- `pipeline.js`: `KPI_INTERVALLE` (16 Stufen), `naechsteMessung()`, `faelligeMessungen()`,
+  `kpiMessungen` im Karten-Schema.
+- `lib/kpi.js` (neu): Sammelmodul — `pruefeKarten()` (welche Posts fällig sind),
+  `messeInstagramPost()` (views/reach/shares/saved/interactions + `ig_reels_avg_watch_time`),
+  `messeLinkedinPost()` (impressions/clicks/likes/comments — Watchtime nicht via API),
+  `sammle()` (Batch), `status()` (Übersicht), Drive-Archivierung pro Projekt als JSON.
+- `server.js`: `GET /api/kpi/status` (fällige + erledigte Messungen), `POST /api/kpi/collect`
+  (Batch-Erfassung), Auto-Check beim Serverstart.
+- Drive: Ordner `Videoauswertung/KPI/` angelegt.
+
+**Verify:** Server antwortet auf `/api/kpi/status` (16 Intervalle, 0 Projekte — korrekt, noch
+keine Posts mit `published`); `/api/kpi/collect` gibt `{gesammelt:0,bericht:[]}` (nichts fällig);
+Drive-Ordner existiert (`rclone lsf` → `KPI/`). Kein Konsolenfehler. API-Messung nicht live
+getestet (kein verbundenes Konto mit veröffentlichten Posts).
+
+**Offen:** Live-Test mit echtem veröffentlichtem Post · UI-Anzeige der KPI-Historie in der
+Karten-Detailansicht (noch kein Design entschieden).
+
 ## Definition of Done
 
 Geprueft gegen: die zwölf Befunde einzeln nachgemessen (Tabelle oben, acht davon behoben und

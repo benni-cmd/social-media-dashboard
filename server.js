@@ -19,6 +19,7 @@ import * as drive from "./lib/drive.js";
 import * as projekte from "./lib/projects.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
+import * as kpi from "./lib/kpi.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -454,6 +455,26 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // ---- KPI-Erfassung ----------------------------------------------------
+
+    if (pfad === "/api/kpi/status" && req.method === "GET") {
+      const board = await leseBoard();
+      sendJson(res, 200, kpi.status(board.cards));
+      return;
+    }
+
+    if (pfad === "/api/kpi/collect" && req.method === "POST") {
+      const board = await leseBoard();
+      const tokens = await leseTokens();
+      const ergebnis = await kpi.sammle(board.cards, tokens);
+      if (ergebnis.gesammelt > 0) {
+        const neueVersion = board.version + 1;
+        await schreibeBoard(ergebnis.cards, neueVersion);
+      }
+      sendJson(res, 200, { gesammelt: ergebnis.gesammelt, bericht: ergebnis.bericht });
+      return;
+    }
+
     // ---- Dateien ---------------------------------------------------------
     //
     // lib/ wird mit ausgeliefert: pipeline.js laeuft im Browser genauso wie hier.
@@ -481,6 +502,17 @@ const server = createServer(async (req, res) => {
 });
 
 await ladeEnv();
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Content-Maschine laeuft auf http://localhost:${PORT}`);
+  // KPI-Messungen beim Start pruefen
+  try {
+    const board = await leseBoard();
+    const faellig = kpi.pruefeKarten(board.cards);
+    if (faellig.length) {
+      const anzahl = faellig.reduce((s, f) => s + f.ausstehend.length, 0);
+      console.log(`KPI: ${anzahl} faellige Messung(en) fuer ${faellig.length} Post(s). POST /api/kpi/collect zum Erfassen.`);
+    }
+  } catch {
+    // KPI-Pruefung darf den Start nicht blockieren
+  }
 });
