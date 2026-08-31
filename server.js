@@ -137,6 +137,7 @@ async function leseKontext(serie) {
 // --- Wegweisung -----------------------------------------------------------
 
 async function handler(req, res) {
+  aktivitaetGemeldet();
   try {
     const url = new URL(req.url, `https://localhost:${PORT}`);
     const pfad = url.pathname;
@@ -601,6 +602,39 @@ await ladeEnv();
 
 const tls = await ladeTls();
 const server = createHttpsServer(tls, handler);
+// --- Auto-Shutdown nach 1 Stunde Inaktivitaet ----------------------------
+
+const IDLE_LIMIT_MS = 60 * 60 * 1000;
+let letzteAktivitaet = Date.now();
+
+function aktivitaetGemeldet() {
+  letzteAktivitaet = Date.now();
+}
+
+async function ollamaEntladen() {
+  try {
+    const res = await fetch("http://localhost:11434/api/ps");
+    if (!res.ok) return;
+    const { models } = await res.json();
+    for (const m of (models || [])) {
+      await fetch("http://localhost:11434/api/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: m.name, keep_alive: 0 }),
+      }).catch(() => {});
+    }
+    if ((models || []).length) console.log("Ollama: Modelle entladen.");
+  } catch { /* Ollama war nicht aktiv */ }
+}
+
+setInterval(async () => {
+  if (Date.now() - letzteAktivitaet >= IDLE_LIMIT_MS) {
+    console.log("Auto-Shutdown: 1 Stunde keine Aktivitaet.");
+    await ollamaEntladen();
+    process.exit(0);
+  }
+}, 5 * 60 * 1000);
+
 server.listen(PORT, async () => {
   console.log(`Content-Maschine laeuft auf https://localhost:${PORT}`);
   try {
