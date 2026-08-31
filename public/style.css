@@ -1575,6 +1575,93 @@ body {
   margin-top: 4px;
 }
 
+/* Kalender-Modal */
+.modal-kalender { max-width: 340px; }
+.kal-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.kal-monat {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+}
+.kal-nav {
+  background: none;
+  border: 1px solid var(--linie-hell);
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 3px 6px;
+  color: var(--text-still);
+  display: flex;
+  align-items: center;
+}
+.kal-nav:hover { background: var(--flaeche-tief); }
+.kal-nav .icon { width: 14px; height: 14px; }
+.kal-raster {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.kal-wt {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-leise);
+  padding-bottom: 2px;
+}
+.kal-tag {
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+  background: var(--flaeche-tief);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-still);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+.kal-tag:hover {
+  background: var(--akzent-tief);
+  border-color: var(--akzent);
+  color: var(--text);
+}
+.kal-tag.fremd {
+  opacity: 0.35;
+}
+.kal-tag.heute {
+  border-color: var(--akzent);
+  font-weight: 700;
+}
+.kal-tag.slot {
+  background: var(--akzent-tief);
+  color: var(--text);
+  font-weight: 600;
+}
+.kal-tag.slot:hover {
+  background: var(--akzent);
+  color: #fff;
+}
+.kal-legende {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-leise);
+  margin-top: 4px;
+}
+.kal-legende .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--akzent);
+}
+
 /* --- Info-Tooltip --- */
 .info-tipp {
   position: relative;

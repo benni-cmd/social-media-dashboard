@@ -160,39 +160,118 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
   };
 }
 
-// Zentriertes Pop-up, das ein einzelnes Datum abfragt. onConfirm(iso) bei „Setzen".
-export function modalDatum(frage, hinweis, onConfirm) {
+// Kalender-Pop-up: Monatsraster, Slot-Tage hervorgehoben, Klick waehlt.
+// fenster: [{tag, uhrzeit}] aus scheduler.fensterFuerTyp — leeres Array = kein Highlighting.
+// onConfirm(iso, uhrzeit) — uhrzeit ist die empfohlene Zeit fuer den gewaehlten Wochentag.
+export function modalKalender(frage, hinweis, fenster, onConfirm) {
+  const MONATE = ["Januar","Februar","Maerz","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  const slotTage = new Map();
+  for (const f of fenster) {
+    if (!slotTage.has(f.tag)) slotTage.set(f.tag, f.uhrzeit);
+  }
+
+  let monat = new Date();
+  monat.setDate(1);
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
-  const box = document.createElement("div");
-  box.className = "modal";
-  box.innerHTML =
-    `<div class="modal-frage">${escape(frage)}</div>` +
-    (hinweis ? `<p class="feld-hinweis">${escape(hinweis)}</p>` : "");
-  const input = document.createElement("input");
-  input.type = "date";
-  input.className = "eingabe";
-  box.appendChild(input);
-  const reihe = document.createElement("div");
-  reihe.className = "modal-knoepfe";
   const zu = () => overlay.remove();
-  reihe.appendChild(
-    knopf("Datum setzen", {
-      art: "haupt",
-      zeichen: "kalender",
-      klick: () => {
-        if (!input.value) { input.focus(); return; }
-        zu();
-        onConfirm(input.value);
-      },
-    })
-  );
-  reihe.appendChild(knopf("Abbrechen", { klick: zu }));
-  box.appendChild(reihe);
-  overlay.appendChild(box);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) zu(); });
+
+  function render() {
+    const box = document.createElement("div");
+    box.className = "modal modal-kalender";
+    box.innerHTML = `<div class="modal-frage">${escape(frage)}</div>` +
+      (hinweis ? `<p class="feld-hinweis">${escape(hinweis)}</p>` : "");
+
+    const kopf = document.createElement("div");
+    kopf.className = "kal-kopf";
+    const zurueck = document.createElement("button");
+    zurueck.className = "kal-nav";
+    zurueck.innerHTML = icon("zurueck");
+    zurueck.addEventListener("click", () => {
+      monat = new Date(monat.getFullYear(), monat.getMonth() - 1, 1);
+      aktualisiere();
+    });
+    const weiter = document.createElement("button");
+    weiter.className = "kal-nav";
+    weiter.innerHTML = icon("weiter");
+    weiter.addEventListener("click", () => {
+      monat = new Date(monat.getFullYear(), monat.getMonth() + 1, 1);
+      aktualisiere();
+    });
+    const name = document.createElement("span");
+    name.className = "kal-monat";
+    name.textContent = `${MONATE[monat.getMonth()]} ${monat.getFullYear()}`;
+    kopf.appendChild(zurueck);
+    kopf.appendChild(name);
+    kopf.appendChild(weiter);
+    box.appendChild(kopf);
+
+    const raster = document.createElement("div");
+    raster.className = "kal-raster";
+    for (const wt of ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]) {
+      const z = document.createElement("div");
+      z.className = "kal-wt";
+      z.textContent = wt;
+      raster.appendChild(z);
+    }
+
+    const erster = new Date(monat.getFullYear(), monat.getMonth(), 1);
+    const start = new Date(erster);
+    start.setDate(start.getDate() - ((erster.getDay() + 6) % 7));
+    const heuteISO = new Date().toISOString().slice(0, 10);
+
+    for (let i = 0; i < 42; i++) {
+      const tag = new Date(start);
+      tag.setDate(start.getDate() + i);
+      const iso = tag.toISOString().slice(0, 10);
+      const jsTag = tag.getDay();
+      const istSlot = slotTage.has(jsTag);
+      const zelle = document.createElement("button");
+      zelle.type = "button";
+      zelle.className = "kal-tag" +
+        (tag.getMonth() !== monat.getMonth() ? " fremd" : "") +
+        (iso === heuteISO ? " heute" : "") +
+        (istSlot ? " slot" : "");
+      zelle.textContent = tag.getDate();
+      if (istSlot) {
+        zelle.title = `Empfohlen: ${slotTage.get(jsTag)} Uhr`;
+      }
+      zelle.addEventListener("click", () => {
+        zu();
+        onConfirm(iso, istSlot ? slotTage.get(jsTag) : "");
+      });
+      raster.appendChild(zelle);
+    }
+    box.appendChild(raster);
+
+    if (slotTage.size) {
+      const legende = document.createElement("div");
+      legende.className = "kal-legende";
+      legende.innerHTML = `${icon("funken")}<span>Empfohlene Tage fuer dieses Format</span>`;
+      box.appendChild(legende);
+    }
+
+    const reihe = document.createElement("div");
+    reihe.className = "modal-knoepfe";
+    reihe.appendChild(knopf("Abbrechen", { klick: zu }));
+    box.appendChild(reihe);
+    return box;
+  }
+
+  let aktuell = render();
+  overlay.appendChild(aktuell);
+  function aktualisiere() {
+    const neu = render();
+    overlay.replaceChild(neu, aktuell);
+    aktuell = neu;
+  }
   document.body.appendChild(overlay);
-  setTimeout(() => input.focus(), 0);
+}
+
+// Kompatibilitaet: modalDatum fuer Aufrufe ohne Formatkenntnis.
+export function modalDatum(frage, hinweis, onConfirm) {
+  modalKalender(frage, hinweis, [], (datum) => onConfirm(datum));
 }
 
 export function feld(label, el, hinweis = "") {

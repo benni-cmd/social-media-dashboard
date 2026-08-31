@@ -30,6 +30,7 @@ import {
   deutschesDatum,
   POSTZEITEN,
 } from "/lib/pipeline.js";
+import { fensterFuerTyp } from "/lib/scheduler.js";
 import {
   S,
   karte,
@@ -63,7 +64,7 @@ import {
   eigenschaft,
   fortschritt,
   denkPanel,
-  modalDatum,
+  modalKalender,
   infoTipp,
   meldung,
   bestaetigen,
@@ -281,11 +282,13 @@ function blockTermine(k, merke) {
     const bearbeiten = knopf("bearbeiten", {
       zeichen: "kalender",
       klick: () => {
-        modalDatum(
+        modalKalender(
           "Upload-Datum aendern",
           "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-          (datum) => {
+          fensterFuerTyp(k.contenttyp || ""),
+          (datum, zeit) => {
             merke("dates", einfacherPlan(datum), true);
+            if (zeit) merke("uploadTime", zeit, false);
             setStand(`Upload am ${deutschesDatum(datum)}.`);
           }
         );
@@ -355,11 +358,13 @@ function blockTermineIdee(k, merke) {
     const bearbeiten = knopf("bearbeiten", {
       zeichen: "kalender",
       klick: () => {
-        modalDatum(
+        modalKalender(
           "Upload-Datum aendern",
           "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-          (datum) => {
+          fensterFuerTyp(k.contenttyp || ""),
+          (datum, zeit) => {
             merke("dates", einfacherPlan(datum), true);
+            if (zeit) merke("uploadTime", zeit, false);
             setStand(`Upload am ${deutschesDatum(datum)}.`);
           }
         );
@@ -415,11 +420,13 @@ function blockTermineIdee(k, merke) {
     manuellKachel.className = "termin-kachel termin-kachel-manuell";
     manuellKachel.innerHTML = `<span class="termin-kachel-label">Anderes Datum waehlen</span>`;
     manuellKachel.addEventListener("click", () => {
-      modalDatum(
+      modalKalender(
         "Wann soll das Video veroeffentlicht werden?",
         "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-        (datum) => {
+        fensterFuerTyp(k.contenttyp || ""),
+        (datum, zeit) => {
           merke("dates", einfacherPlan(datum), true);
+          if (zeit) merke("uploadTime", zeit, false);
           setStand(`Upload am ${deutschesDatum(datum)}.`);
         }
       );
@@ -884,11 +891,13 @@ function skriptLoop(k, box) {
         await nachDrive(k, DATEINAMEN.skript, skript.value, e.currentTarget, box);
         setzeTief(k, "skriptGespeichert", true);
         await speichere();
-        modalDatum(
+        modalKalender(
           "Wann soll das Video veroeffentlicht werden?",
           "Aus dem Upload-Datum setzt das Board Schnitt- und Drehtermine automatisch, dann rutscht die Karte in Videodreh.",
-          async (datum) => {
+          fensterFuerTyp(k.contenttyp || ""),
+          async (datum, zeit) => {
             setzeTief(k, "dates", { ...rueckwaertsplan(datum), upload: datum });
+            if (zeit) setzeTief(k, "uploadTime", zeit);
             await speichere();
             await schiebe(k, "videodreh");
           }
