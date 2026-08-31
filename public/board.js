@@ -19,7 +19,8 @@ import {
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand } from "./store.js";
 import { icon, statusChip, escape, knopf, leer } from "./ui.js";
-import { holeIdeen, holePlan } from "./nachschub.js";
+import { holeIdeen } from "./nachschub.js";
+import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
@@ -210,10 +211,10 @@ function zeichneWochenlast(el) {
 
   // Der Redaktionsplan haengt an der Wochenleiste, weil er genau deren Frage beantwortet:
   // wie die naechsten Wochen gefuellt werden.
-  const planKnopf = knopf("Redaktionsplan vorschlagen", {
+  const planKnopf = knopf("Redaktionsplan", {
     zeichen: "kalender",
-    titel: `Verteilt die naechsten vier Wochen mit mindestens ${MASSE.postsProWocheMin} Veroeffentlichungen je Woche.`,
-    klick: () => holePlan(document.getElementById("nachschub")),
+    titel: "Kadenz, Content-Mix, Kategorien und Upload-Slots konfigurieren.",
+    klick: () => zeigeRedaktionsplan(document.getElementById("nachschub")),
   });
   el.appendChild(planKnopf);
 }

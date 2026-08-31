@@ -5,15 +5,31 @@
 //   Ideen   — neue Karten fuer eine Saeule, ohne zu wiederholen, was schon da ist.
 //   Plan    — Termine fuer die naechsten Wochen, mindestens drei je Woche.
 
-import { SAEULEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE } from "/lib/pipeline.js";
+import {
+  SAEULEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE,
+  contenttypName, kategorieName, contenttypFormat,
+} from "/lib/pipeline.js";
+import { zielInfo } from "/lib/pipeline.js";
 import { S, kiStream, speichere, zeichne, melde, setStand } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
 
+async function ladeOffeneSlots() {
+  try {
+    const res = await fetch("/api/plan");
+    if (res.ok) {
+      const plan = await res.json();
+      return (plan.slots || []).filter((s) => !s.karteId);
+    }
+  } catch {}
+  return [];
+}
+
 export async function holeIdeen(anker) {
   const panel = denkPanel(anker, "Die KI sucht Ideen, die noch nicht da sind …");
   try {
+    const offeneSlots = await ladeOffeneSlots();
     const verteilung = saeulenVerteilung(S.cards.filter((c) => c.pillar))
       .map((s) => `${s.name}: ${s.anzahl}`)
       .join(", ");
@@ -25,6 +41,7 @@ export async function holeIdeen(anker) {
         verworfen: S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
         verteilung,
         pillar: "",
+        offeneSlots: offeneSlots.slice(0, 12),
       },
       (e) => {
         if (e.delta) panel.delta(e.delta);
@@ -37,7 +54,7 @@ export async function holeIdeen(anker) {
       await melde("hinweis", "Die KI hat keine verwertbare Liste geliefert. Versuch es noch einmal.");
       return;
     }
-    zeigeIdeen(ideen, anker);
+    zeigeIdeen(ideen, anker, offeneSlots);
   } catch (e) {
     panel.weg();
     await melde("befund", (e.daten && e.daten.hint) || e.message);
@@ -45,7 +62,7 @@ export async function holeIdeen(anker) {
 }
 
 // Vorschlaege erst zeigen, dann uebernehmen — nicht ungefragt sechs Karten anlegen.
-function zeigeIdeen(ideen, anker) {
+function zeigeIdeen(ideen, anker, offeneSlots = []) {
   const box = document.createElement("div");
   box.className = "gruppe";
   box.style.marginTop = "9px";
@@ -57,9 +74,18 @@ function zeigeIdeen(ideen, anker) {
   ideen.forEach((idee, i) => {
     const l = document.createElement("label");
     l.className = "wahl-option gewaehlt";
+
+    // Slot-Empfehlung der KI anzeigen
+    const slot = idee.slotIndex != null ? offeneSlots[idee.slotIndex] : null;
+    const slotHinweis = slot
+      ? `<span style="font-size:11px;color:var(--fg2);display:block;margin-top:3px">` +
+        `${new Date(slot.datum + "T00:00:00").toLocaleDateString("de-DE")} ${slot.uhrzeit || ""} · ` +
+        `${contenttypName(slot.typ)} · ${kategorieName(slot.kategorie)}</span>`
+      : "";
+
     l.innerHTML =
       `<span class="wahl-text"><span class="wahl-titel">${escape(idee.titel || "(ohne Titel)")}</span>` +
-      `${escape(idee.warum || "")}<br><em>Hook: ${escape(idee.hook || "—")}</em></span>`;
+      `${escape(idee.warum || "")}<br><em>Hook: ${escape(idee.hook || "—")}</em>${slotHinweis}</span>`;
     l.addEventListener("click", (e) => {
       e.preventDefault();
       if (gewaehlt.has(i)) gewaehlt.delete(i);
@@ -77,8 +103,9 @@ function zeigeIdeen(ideen, anker) {
     knopf("Ausgewaehlte als Karten anlegen", {
       art: "haupt",
       zeichen: "plus",
-      klick: () => {
+      klick: async () => {
         let n = 0;
+        const slotUpdates = [];
         for (const i of gewaehlt) {
           const idee = ideen[i];
           const k = leereKarte("idee");
@@ -86,12 +113,47 @@ function zeigeIdeen(ideen, anker) {
           k.pillar = SAEULEN.some((s) => s.id === idee.saeule) ? idee.saeule : "";
           k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
           k.notes = idee.warum || "";
+
+          // Slot-Daten vorbelegen wenn vorhanden
+          const slot = idee.slotIndex != null ? offeneSlots[idee.slotIndex] : null;
+          if (slot) {
+            k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
+            k.uploadTime = slot.uhrzeit || "";
+            k.format = contenttypFormat(slot.typ);
+            if (slot.ziel) k.goal = slot.ziel;
+            slotUpdates.push({ slotId: slot.id, karteId: k.id });
+          }
+
           S.cards.push(k);
           n++;
         }
         speichere();
         zeichne();
-        setStand(`${n} Ideen als Karten angelegt.`);
+
+        // Slots als belegt markieren
+        if (slotUpdates.length) {
+          try {
+            const planRes = await fetch("/api/plan");
+            if (planRes.ok) {
+              const plan = await planRes.json();
+              for (const upd of slotUpdates) {
+                const s = plan.slots.find((sl) => sl.id === upd.slotId);
+                if (s) s.karteId = upd.karteId;
+              }
+              await fetch("/api/plan", {
+                method: "PUT",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(plan),
+              });
+            }
+          } catch { /* Slot-Update ist Beiwerk */ }
+        }
+
+        setStand(
+          `${n} Ideen als Karten angelegt` +
+          (slotUpdates.length ? `, ${slotUpdates.length} Slot${slotUpdates.length > 1 ? "s" : ""} belegt` : "") +
+          "."
+        );
       },
     })
   );
@@ -100,9 +162,10 @@ function zeigeIdeen(ideen, anker) {
   anker.appendChild(box);
 }
 
-// --- Redaktionsplan -------------------------------------------------------
+// --- Redaktionsplan (jetzt in redaktionsplan.js) --------------------------
+// holePlan ist ersetzt durch zeigeRedaktionsplan aus redaktionsplan.js.
 
-export async function holePlan(anker) {
+async function holePlan(anker) {
   const panel = denkPanel(anker, "Die KI baut einen Redaktionsplan fuer die naechsten Wochen …");
   try {
     const geplant = S.cards

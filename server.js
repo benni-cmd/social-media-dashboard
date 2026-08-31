@@ -27,6 +27,8 @@ const PORT = process.env.PORT || 4321;
 const DATA_DIR = join(__dirname, "data");
 const BOARD_FILE = join(DATA_DIR, "board.json");
 const TOKEN_FILE = join(DATA_DIR, "tokens.json");
+const DEFAULTS_FILE = join(DATA_DIR, "defaults.json");
+const PLAN_FILE = join(DATA_DIR, "plan.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
 
@@ -166,6 +168,49 @@ async function handler(req, res) {
       const neueVersion = aktuell.version + 1;
       await schreibeBoard(cards.map(pipeline.migriere), neueVersion);
       sendJson(res, 200, { ok: true, version: neueVersion });
+      return;
+    }
+
+    // ---- Benutzer-Defaults ------------------------------------------------
+
+    if (pfad === "/api/defaults" && req.method === "GET") {
+      try {
+        const roh = JSON.parse(await readFile(DEFAULTS_FILE, "utf8"));
+        sendJson(res, 200, roh);
+      } catch {
+        sendJson(res, 200, {});
+      }
+      return;
+    }
+
+    if (pfad === "/api/defaults" && req.method === "PUT") {
+      const daten = JSON.parse(await readBody(req));
+      await mkdir(DATA_DIR, { recursive: true });
+      let alt = {};
+      try { alt = JSON.parse(await readFile(DEFAULTS_FILE, "utf8")); } catch {}
+      const neu = { ...alt, ...daten };
+      await writeFile(DEFAULTS_FILE, JSON.stringify(neu, null, 2), "utf8");
+      sendJson(res, 200, { ok: true, defaults: neu });
+      return;
+    }
+
+    // ---- Redaktionsplan --------------------------------------------------
+
+    if (pfad === "/api/plan" && req.method === "GET") {
+      try {
+        const roh = JSON.parse(await readFile(PLAN_FILE, "utf8"));
+        sendJson(res, 200, roh);
+      } catch {
+        sendJson(res, 200, pipeline.defaultPlan());
+      }
+      return;
+    }
+
+    if (pfad === "/api/plan" && req.method === "PUT") {
+      const daten = JSON.parse(await readBody(req));
+      await mkdir(DATA_DIR, { recursive: true });
+      await writeFile(PLAN_FILE, JSON.stringify(daten, null, 2), "utf8");
+      sendJson(res, 200, { ok: true });
       return;
     }
 
