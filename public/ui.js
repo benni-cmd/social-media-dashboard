@@ -496,51 +496,70 @@ export function einstellungenModal(onThemeChange) {
   ollamaKonfig.className = "einst-ollama-konfig";
   ollamaKonfig.style.display = aktuellerProvider === "ollama" ? "flex" : "none";
 
-  const modellInput = document.createElement("input");
-  modellInput.type = "text";
-  modellInput.placeholder = "Modell, z. B. llama3.2";
-  modellInput.value = aktuellesModell;
-  modellInput.addEventListener("change", () => {
-    try { localStorage.setItem("cm-ollama-model", modellInput.value.trim() || "llama3.2"); } catch {}
+  const ladeZeile = document.createElement("div");
+  ladeZeile.className = "einst-ping-zeile";
+  const ladeBtn = document.createElement("button");
+  ladeBtn.className = "chip";
+  ladeBtn.textContent = "Modelle laden";
+  const ladeStatus = document.createElement("div");
+  ladeStatus.className = "einst-ping-status";
+  ladeStatus.textContent = "↑ Klicken um installierte Modelle zu laden";
+  ladeZeile.appendChild(ladeBtn);
+  ladeZeile.appendChild(ladeStatus);
+
+  const modellWahl = document.createElement("select");
+  modellWahl.className = "einst-modell-select";
+  modellWahl.style.display = "none";
+  const standardOpt = document.createElement("option");
+  standardOpt.value = aktuellesModell;
+  standardOpt.textContent = aktuellesModell;
+  modellWahl.appendChild(standardOpt);
+  modellWahl.addEventListener("change", () => {
+    try { localStorage.setItem("cm-ollama-model", modellWahl.value); } catch {}
   });
 
-  const pingZeile = document.createElement("div");
-  pingZeile.className = "einst-ping-zeile";
-  const pingBtn = document.createElement("button");
-  pingBtn.className = "chip";
-  pingBtn.textContent = "Verbindung testen";
-  const pingStatus = document.createElement("div");
-  pingStatus.className = "einst-ping-status";
-  pingZeile.appendChild(pingBtn);
-  pingZeile.appendChild(pingStatus);
-
-  pingBtn.addEventListener("click", async () => {
-    const modell = modellInput.value.trim() || "llama3.2";
-    pingBtn.disabled = true;
-    pingStatus.textContent = "Prüfe…";
+  async function ladeModelle() {
+    ladeBtn.disabled = true;
+    ladeStatus.textContent = "Verbinde mit Ollama…";
+    modellWahl.style.display = "none";
     try {
       const res = await fetch("/api/ai/ping-ollama", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: modell }),
+        body: JSON.stringify({ model: aktuellesModell }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       if (!d.ok) {
-        pingStatus.textContent = `❌ Nicht erreichbar: ${d.error || "Ollama läuft nicht"}`;
-      } else if (!d.vorhanden) {
-        pingStatus.textContent = `⚠️ Ollama läuft, aber Modell „${modell}" fehlt. Lade es mit: ollama pull ${modell}`;
+        ladeStatus.textContent = `❌ Ollama nicht erreichbar – läuft es? (Taskleisten-Icon oder: ollama serve)`;
+      } else if (!d.modelle || d.modelle.length === 0) {
+        ladeStatus.textContent = `⚠️ Verbunden, aber kein Modell installiert. Terminal: ollama pull qwen2.5:32b`;
       } else {
-        pingStatus.textContent = `✅ Verbunden · Modell „${modell}" bereit`;
+        const gespeichert = (() => { try { return localStorage.getItem("cm-ollama-model") || ""; } catch { return ""; } })();
+        modellWahl.innerHTML = "";
+        for (const m of d.modelle) {
+          const o = document.createElement("option");
+          o.value = m;
+          o.textContent = m;
+          if (m === gespeichert || m === gespeichert + ":latest") o.selected = true;
+          modellWahl.appendChild(o);
+        }
+        if (!modellWahl.value && d.modelle.length) modellWahl.value = d.modelle[0];
+        try { localStorage.setItem("cm-ollama-model", modellWahl.value); } catch {}
+        modellWahl.style.display = "block";
+        ladeStatus.textContent = `✅ ${d.modelle.length} Modell${d.modelle.length !== 1 ? "e" : ""} gefunden`;
       }
     } catch {
-      pingStatus.textContent = "❌ Verbindungstest fehlgeschlagen";
+      ladeStatus.textContent = "❌ Verbindung fehlgeschlagen – Server neu starten?";
     } finally {
-      pingBtn.disabled = false;
+      ladeBtn.disabled = false;
     }
-  });
+  }
 
-  ollamaKonfig.appendChild(modellInput);
-  ollamaKonfig.appendChild(pingZeile);
+  ladeBtn.addEventListener("click", ladeModelle);
+
+  ollamaKonfig.appendChild(ladeZeile);
+  ollamaKonfig.appendChild(modellWahl);
   kiAbschnitt.appendChild(ollamaKonfig);
   seite2.appendChild(kiAbschnitt);
 
