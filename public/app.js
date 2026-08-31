@@ -1,12 +1,21 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
 import { PHASEN } from "/lib/pipeline.js";
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus, ladeDefaults } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, statusChip, escape } from "./ui.js";
+import { fortschritt, statusChip, escape, einstellungenModal, meldung } from "./ui.js";
+
+// --- Theme ---
+function setzeTheme(name) {
+  document.documentElement.setAttribute("data-theme", name);
+  try { localStorage.setItem("cm-theme", name); } catch {}
+}
+const gespeichertesTheme = (() => { try { return localStorage.getItem("cm-theme"); } catch { return null; } })();
+if (gespeichertesTheme) setzeTheme(gespeichertesTheme);
+// Kein gespeichertes Theme = Light (Default, steht in CSS).
 
 const el = (id) => document.getElementById(id);
 
@@ -105,11 +114,17 @@ el("abgleichen").addEventListener("click", async (e) => {
   }
 });
 
+// --- Einstellungen --------------------------------------------------------
+
+el("einstellungen").addEventListener("click", () => {
+  einstellungenModal((theme) => setzeTheme(theme));
+});
+
 // --- Start ----------------------------------------------------------------
 
 (async () => {
   try {
-    await ladeBoard();
+    await Promise.all([ladeBoard(), ladeDefaults()]);
     setStand(`${S.cards.length} Karten geladen.`);
   } catch (e) {
     await melde("befund", `Das Board liess sich nicht laden: ${e.message}`);
@@ -138,5 +153,7 @@ el("abgleichen").addEventListener("click", async (e) => {
     .then((s) => {
       if (!s.ok) melde("unlesbar", s.satz);
     })
-    .catch(() => {});
+    .catch(() => {
+      meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler");
+    });
 })();

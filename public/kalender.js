@@ -24,7 +24,7 @@ function termineNachTag() {
       const datum = (k.dates || {})[t.key];
       if (!datum) continue;
       if (!karte.has(datum)) karte.set(datum, []);
-      karte.get(datum).push({ kartenId: k.id, titel: k.title, art: t.key, kurz: t.kurz, saeule: k.pillar, zeit: t.key === "upload" ? k.uploadTime : "" });
+      karte.get(datum).push({ kartenId: k.id, titel: k.title, art: t.key, kurz: t.kurz, saeule: k.kategorie, zeit: t.key === "upload" ? k.uploadTime : "" });
     }
   }
   return karte;

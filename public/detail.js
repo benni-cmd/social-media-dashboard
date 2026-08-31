@@ -6,10 +6,10 @@
 import {
   PHASEN,
   TERMINE,
-  SAEULEN,
+  CONTENTTYPEN,
+  INHALTSKATEGORIEN,
   ZIELE,
   PLATTFORMEN,
-  FORMATE,
   MASSE,
   DATEINAMEN,
   phase,
@@ -18,12 +18,17 @@ import {
   tore,
   sperren,
   rueckwaertsplan,
+  einfacherPlan,
+  vorschlagUploadDatum,
   isoDatum,
   sprechzeit,
   saeuleName,
   plattformName,
+  contenttypName,
   zielInfo,
   projektName,
+  deutschesDatum,
+  POSTZEITEN,
 } from "/lib/pipeline.js";
 import {
   S,
@@ -39,6 +44,9 @@ import {
   kiStream,
   melde,
   setStand,
+  speichereDefaults,
+  ladePlan,
+  slotBelegen,
 } from "./store.js";
 import {
   icon,
@@ -46,6 +54,7 @@ import {
   escape,
   knopf,
   feld,
+  feldMitInfo,
   eingabe,
   textfeld,
   auswahl,
@@ -55,6 +64,9 @@ import {
   fortschritt,
   denkPanel,
   modalDatum,
+  infoTipp,
+  meldung,
+  bestaetigen,
 } from "./ui.js";
 
 let schiebe = async () => {};
@@ -116,12 +128,16 @@ export function zeichneDetail(el) {
   // --- Worum geht es ---
   koerper.appendChild(blockStamm(k, merke));
 
-  // --- Termine ---
-  koerper.appendChild(blockTermine(k, merke));
+  const istIdee = k.column === "idee";
+  const stammFertig = !!(k.title && k.kategorie && k.goal);
 
-  // --- Die Arbeit dieser Phase ---
+  // --- Termine (in Idee erst nach Stamm-Daten) ---
+  if (!istIdee || stammFertig) koerper.appendChild(blockTermine(k, merke));
+
+  // --- Die Arbeit dieser Phase (in Idee erst nach Termin) ---
+  const terminFertig = !!(k.dates && k.dates.upload);
   const arbeit = blockPhase(k, toreListe, stand);
-  if (arbeit) koerper.appendChild(arbeit);
+  if (arbeit && (!istIdee || (stammFertig && terminFertig))) koerper.appendChild(arbeit);
 
   // --- Drive ---
   koerper.appendChild(blockDrive(k, stand));
@@ -153,22 +169,16 @@ function blockStamm(k, merke) {
   titel.addEventListener("change", () => zeichne());
   box.appendChild(feld("Thema", titel));
 
-  const saeule = auswahl(SAEULEN, k.pillar, { leerText: "— keine Saeule gewaehlt —" });
-  saeule.addEventListener("change", () => merke("pillar", saeule.value, true));
-  box.appendChild(
-    feld(
-      "Content-Saeule",
-      saeule,
-      k.pillar ? (SAEULEN.find((s) => s.id === k.pillar) || {}).satz : "Ohne Saeule laesst sich nicht messen, welche Richtung traegt."
-    )
-  );
+  // Content-Typ: Single-Select Toggle-Buttons
+  box.appendChild(feld("Typ", einzelwahlReihe(CONTENTTYPEN, k.contenttyp || "", (id) => merke("contenttyp", id, true))));
 
-  const ziel = auswahl(ZIELE, k.goal);
-  ziel.addEventListener("change", () => merke("goal", ziel.value, true));
-  box.appendChild(
-    feld("Ziel dieses Videos", ziel, `Gemessen wird an: ${zielInfo(k.goal).kennzahl}. ${zielInfo(k.goal).satz}`)
-  );
+  // Kategorie (ex Content-Saeule): Single-Select Toggle-Buttons
+  box.appendChild(feld("Kategorie", einzelwahlReihe(INHALTSKATEGORIEN, k.kategorie || "", (id) => merke("kategorie", id, true))));
 
+  // Ziel: Single-Select Toggle-Buttons
+  box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE, k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
+
+  // Plattformen: Multi-Select Toggle-Buttons
   const plattformen = document.createElement("div");
   plattformen.className = "schalterreihe";
   for (const pl of PLATTFORMEN) {
@@ -183,10 +193,29 @@ function blockStamm(k, merke) {
     });
     plattformen.appendChild(l);
   }
-  box.appendChild(feld("Plattformen", plattformen, "Hashtag- und Laengen-Regeln unterscheiden sich je Plattform."));
+  const plWrap = feld("Plattformen", plattformen);
+
+  const defaultPl = new Set(S.defaults.plattformen || []);
+  const aktuellPl = new Set(k.platforms || []);
+  const weichtAb = aktuellPl.size !== defaultPl.size || [...aktuellPl].some((p) => !defaultPl.has(p));
+  if (weichtAb && k.platforms && k.platforms.length) {
+    const stdBtn = knopf("Neuen Standard speichern", {
+      klick: async (e) => {
+        try {
+          await speichereDefaults({ plattformen: [...k.platforms] });
+          e.currentTarget.remove();
+          meldung("Plattform-Standard gespeichert.", "erfolg");
+        } catch {
+          meldung("Standard konnte nicht gespeichert werden.", "fehler");
+        }
+      },
+    });
+    stdBtn.classList.add("standard-speichern");
+    plWrap.appendChild(stdBtn);
+  }
+  box.appendChild(plWrap);
   g.appendChild(box);
 
-  // Sekundaeres nicht auf einmal zeigen — kuerzere Spalte, klarer Blick.
   const { d, box: mehr } = klappe("Weitere Angaben");
   const reihe = document.createElement("div");
   reihe.className = "feld-reihe";
@@ -194,13 +223,10 @@ function blockStamm(k, merke) {
   serie.addEventListener("change", () => merke("serie", serie.value, true));
   const episode = eingabe(k.episode, { platzhalter: "01" });
   episode.addEventListener("change", () => merke("episode", episode.value, true));
-  const format = auswahl(FORMATE, k.format);
-  format.addEventListener("change", () => merke("format", format.value, true));
   reihe.appendChild(feld("Reihe", serie));
   const epFeld = feld("Episode", episode);
   epFeld.classList.add("feld-schmal");
   reihe.appendChild(epFeld);
-  reihe.appendChild(feld("Format", format));
   mehr.appendChild(reihe);
 
   const wer = eingabe(k.owner, { platzhalter: "Wer macht das?" });
@@ -215,7 +241,30 @@ function blockStamm(k, merke) {
   return g;
 }
 
+// Single-Select Toggle-Buttons: klick waehlt, nochmal klick deselektiert.
+function einzelwahlReihe(optionen, aktuell, beiWahl) {
+  const reihe = document.createElement("div");
+  reihe.className = "schalterreihe";
+  for (const o of optionen) {
+    const an = aktuell === o.id;
+    const l = document.createElement("label");
+    l.className = "schalter" + (an ? " an" : "");
+    l.innerHTML = `<input type="radio" name="_ew" ${an ? "checked" : ""}><span>${escape(o.name)}</span>`;
+    l.querySelector("input").addEventListener("change", () => beiWahl(o.id));
+    l.addEventListener("click", (e) => {
+      if (an) { e.preventDefault(); beiWahl(""); }
+    });
+    reihe.appendChild(l);
+  }
+  return reihe;
+}
+
 function blockTermine(k, merke) {
+  const istIdee = k.column === "idee";
+
+  // In der Idee-Phase: vereinfachter Terminblock mit intelligentem Vorschlag.
+  if (istIdee) return blockTermineIdee(k, merke);
+
   const f = faelligkeit(k);
   const g = gruppe("Termine", null, true);
   const box = document.createElement("div");
@@ -225,10 +274,8 @@ function blockTermine(k, merke) {
   satz.innerHTML = statusChip(f.status) + `<span class="befund-satz">${escape(f.satz)}</span>`;
   box.appendChild(satz);
 
-  // Alle Fristen auf einen Blick: ein kleiner Kalender mit einem Marker je Meilenstein.
   box.appendChild(miniKalender(k));
 
-  // Anker: das Veroeffentlichungsdatum, aus dem der Rueckwaertsplan die uebrigen ableitet.
   const uZeile = document.createElement("div");
   uZeile.className = "feld-reihe";
   const uDatum = eingabe((k.dates || {}).upload || "", { typ: "date" });
@@ -258,7 +305,6 @@ function blockTermine(k, merke) {
   box.appendChild(plan);
   g.appendChild(box);
 
-  // Feineinstellung selten gebraucht — deshalb hinter eine Klappe.
   const { d, box: einzeln } = klappe("Termine einzeln setzen");
   for (const t of TERMINE) {
     const zeile = document.createElement("div");
@@ -269,6 +315,97 @@ function blockTermine(k, merke) {
     einzeln.appendChild(zeile);
   }
   g.appendChild(d);
+  return g;
+}
+
+// Vereinfachter Terminblock fuer die Idee-Phase: Vorschlag + Akzeptieren oder manuell.
+function blockTermineIdee(k, merke) {
+  const g = gruppe("Termin", null, true);
+  const box = document.createElement("div");
+  const hatDatum = (k.dates || {}).upload;
+
+  if (hatDatum) {
+    // Kompakte Ansicht: eine Zeile + Bearbeiten-Button.
+    const zeile = document.createElement("div");
+    zeile.className = "termin-kompakt";
+    zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatDatum)}</strong></span>`;
+    const bearbeiten = knopf("bearbeiten", {
+      zeichen: "kalender",
+      klick: () => {
+        modalDatum(
+          "Upload-Datum aendern",
+          "Dreh wird automatisch 2 Wochen vorher gesetzt.",
+          (datum) => {
+            merke("dates", einfacherPlan(datum), true);
+            setStand(`Upload am ${deutschesDatum(datum)}.`);
+          }
+        );
+      },
+    });
+    bearbeiten.classList.add("knopf-inline");
+    zeile.appendChild(bearbeiten);
+    box.appendChild(zeile);
+  } else {
+    // 2 Kacheln: oben nächstes freies Datum, unten manuell.
+    const kacheln = document.createElement("div");
+    kacheln.className = "termin-kacheln";
+
+    // Obere Kachel: nächstes freies Datum aus Redaktionsplan (async befüllt).
+    const slotKachel = document.createElement("div");
+    slotKachel.className = "termin-kachel termin-kachel-slot";
+    slotKachel.innerHTML = `<span class="termin-kachel-label">Naechstes freies Datum</span><span class="termin-kachel-datum">Wird geladen …</span>`;
+    slotKachel.style.cursor = "wait";
+    kacheln.appendChild(slotKachel);
+
+    ladePlan().then((plan) => {
+      const heute = isoDatum(new Date());
+      const offen = (plan.slots || [])
+        .filter((s) => !s.karteId && s.datum >= heute)
+        .sort((a, b) => a.datum.localeCompare(b.datum));
+      const naechster = offen[0];
+      if (naechster) {
+        slotKachel.querySelector(".termin-kachel-datum").textContent = deutschesDatum(naechster.datum);
+        slotKachel.style.cursor = "pointer";
+        slotKachel.addEventListener("click", async () => {
+          merke("dates", einfacherPlan(naechster.datum), false);
+          if (naechster.uhrzeit) merke("uploadTime", naechster.uhrzeit, false);
+          await speichere();
+          slotBelegen(naechster.id, k.id).catch(() => {
+            meldung("Slot konnte nicht belegt werden.", "fehler");
+          });
+          zeichne();
+          meldung(`Upload am ${deutschesDatum(naechster.datum)} geplant.`, "erfolg");
+        });
+      } else {
+        slotKachel.querySelector(".termin-kachel-label").textContent = "Kein freier Slot";
+        slotKachel.querySelector(".termin-kachel-datum").textContent = "Erstelle Slots im Redaktionsplan.";
+        slotKachel.style.cursor = "default";
+        slotKachel.classList.add("termin-kachel-leer");
+      }
+    }).catch(() => {
+      slotKachel.querySelector(".termin-kachel-datum").textContent = "Nicht verfuegbar.";
+      slotKachel.style.cursor = "default";
+    });
+
+    // Untere Kachel: manuell.
+    const manuellKachel = document.createElement("div");
+    manuellKachel.className = "termin-kachel termin-kachel-manuell";
+    manuellKachel.innerHTML = `<span class="termin-kachel-label">Anderes Datum waehlen</span>`;
+    manuellKachel.addEventListener("click", () => {
+      modalDatum(
+        "Wann soll das Video veroeffentlicht werden?",
+        "Dreh wird automatisch 2 Wochen vorher gesetzt.",
+        (datum) => {
+          merke("dates", einfacherPlan(datum), true);
+          setStand(`Upload am ${deutschesDatum(datum)}.`);
+        }
+      );
+    });
+    kacheln.appendChild(manuellKachel);
+    box.appendChild(kacheln);
+  }
+
+  g.appendChild(box);
   return g;
 }
 
@@ -507,13 +644,8 @@ function guidedIdee(k, box) {
 
   // Start: noch nichts recherchiert.
   if (!r) {
-    const p = document.createElement("p");
-    p.className = "feld-hinweis";
-    p.textContent =
-      "Ein Klick fuehrt dich Schritt fuer Schritt: erst Fokus, dann gesprochener Hook, dann sichtbarer Hook. Danach rutscht die Karte ins Skript.";
-    box.appendChild(p);
     box.appendChild(
-      knopf("Recherche und Fokus", {
+      knopf("Recherchieren und Definieren", {
         art: "haupt",
         zeichen: "funken",
         klick: (e) => rufeKi("recherche", k, e.currentTarget, box),
@@ -612,7 +744,13 @@ function guidedIdee(k, box) {
           setzeTief(k, "chosenVisuell", i);
           setzeTief(k, "hook.visual", hvis.hooks[i].visuell || "");
           await speichere();
-          await schiebe(k, "skript"); // rutscht ins Skript — Loop 1 fertig.
+          await schiebe(k, "skript");
+          // Drive-Ordner automatisch anlegen, wenn noch nicht vorhanden.
+          if (k.title && !k.driveName) {
+            driveAnlegen(k)
+              .then(() => meldung("Projektordner im Drive angelegt.", "erfolg"))
+              .catch(() => meldung("Drive-Ordner konnte nicht angelegt werden.", "fehler"));
+          }
         }
       )
     );
@@ -931,10 +1069,11 @@ function blockDrive(k, stand) {
           e.currentTarget.disabled = true;
           try {
             await driveAnlegen(k);
+            meldung("Projektordner im Drive angelegt.", "erfolg");
             await driveScan(k, true);
             zeichne();
           } catch (fehler) {
-            await melde("befund", `Der Ordner liess sich nicht anlegen: ${fehler.message}`);
+            meldung(`Ordner konnte nicht angelegt werden: ${fehler.message}`, "fehler");
           } finally {
             weg();
           }
@@ -973,7 +1112,9 @@ function blockDrive(k, stand) {
     knopf("Drive erneut lesen", {
       zeichen: "neuladen",
       klick: async () => {
-        await driveScan(k, true).catch(() => {});
+        await driveScan(k, true).catch(() => {
+          meldung("Drive-Scan fehlgeschlagen.", "fehler");
+        });
         zeichne();
       },
     })
@@ -1091,7 +1232,14 @@ function loeschenKnopf(k) {
     art: "gefahr",
     zeichen: "muell",
     klick: () => {
-      if (confirm(`"${k.title}" wirklich loeschen? Der Drive-Ordner bleibt bestehen.`)) loescheKarte(k.id);
+      bestaetigen(
+        `"${k.title}" loeschen? Der Drive-Ordner bleibt bestehen.`,
+        "Ja, loeschen",
+        () => {
+          loescheKarte(k.id);
+          meldung("Karte geloescht.", "erfolg");
+        }
+      );
     },
   });
 }
@@ -1115,6 +1263,7 @@ function wahlgruppe(name, optionen, gewaehlt, beiWahl) {
       `<span class="wahl-text"><span class="wahl-titel">${escape(o.titel || "")}</span>${escape(o.text || "")}</span>`;
     label.addEventListener("click", (e) => {
       e.preventDefault();
+      wrap.remove();
       beiWahl(o.i);
     });
     box.appendChild(label);
@@ -1156,6 +1305,7 @@ async function rufeKi(task, k, knopfEl, box) {
       if (task === "skript" && !k.skriptFinal) k.skriptFinal = antwort.text || "";
     }
     await speichere();
+    meldung("KI-Ergebnis gespeichert.", "erfolg");
     zeichne(); // baut die Detailspalte neu auf — das Panel verschwindet mit ihr.
   } catch (e) {
     panel.weg();
@@ -1172,8 +1322,8 @@ function kiNutzlast(k) {
     notes: k.notes,
     serie: k.serie,
     episode: k.episode,
-    format: k.format,
-    pillar: k.pillar,
+    contenttyp: k.contenttyp,
+    kategorie: k.kategorie,
     goal: k.goal,
     platforms: k.platforms,
     frame: k.frame,
@@ -1195,6 +1345,7 @@ async function nachDrive(k, dateiname, inhalt, knopfEl, box) {
   try {
     const r = await driveSpeichern(k, dateiname, inhalt);
     setStand(`Gespeichert: ${r.pfad}`);
+    meldung("Datei in Drive gespeichert.", "erfolg");
     await driveScan(k, true).catch(() => {});
     zeichne();
   } catch (e) {

@@ -12,9 +12,10 @@ import {
   sperren,
   saeuleName,
   plattformName,
+  contenttypName,
   wochenlast,
   saeulenVerteilung,
-  SAEULEN,
+  INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand } from "./store.js";
@@ -41,14 +42,14 @@ export function kachel(k) {
   const el = document.createElement("article");
   el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "");
   el.draggable = true;
-  el.dataset.saeule = k.pillar || "";
+  el.dataset.saeule = k.kategorie || "";
 
   const untertitel = k.serie
-    ? `${k.serie} · Episode ${k.episode || "?"} · ${k.format || "Reel"}`
-    : `Einzelvideo · ${k.format || "Reel"}`;
+    ? `${k.serie} · Episode ${k.episode || "?"} · ${contenttypName(k.contenttyp || "reel")}`
+    : `Einzelvideo · ${contenttypName(k.contenttyp || "reel")}`;
 
   const marken = [];
-  if (k.pillar) marken.push(`<span class="marke">${escape(saeuleName(k.pillar))}</span>`);
+  if (k.kategorie) marken.push(`<span class="marke">${escape(saeuleName(k.kategorie))}</span>`);
   for (const p of k.platforms || [])
     marken.push(`<span class="marke marke-${p}">${escape(plattformName(p))}</span>`);
 
@@ -194,12 +195,12 @@ export async function schiebe(k, ziel) {
 function zeichneWochenlast(el) {
   if (!el) return;
   const w = wochenlast(S.cards);
-  const verteilung = saeulenVerteilung(S.cards.filter((c) => c.pillar));
+  const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie));
   el.innerHTML =
     statusChip(w.status) +
     `<span>${escape(w.satz)}</span>` +
     `<span class="wochenlast-saeulen">` +
-    SAEULEN.map((s) => {
+    INHALTSKATEGORIEN.map((s) => {
       const v = verteilung.find((x) => x.id === s.id) || { anzahl: 0 };
       return (
         `<span class="saeulen-punkt" title="${escape(s.satz)}">` +

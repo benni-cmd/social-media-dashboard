@@ -50,6 +50,9 @@ export const ICONS = {
   "pfeil-hoch": '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
   "pfeil-runter": '<path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/>',
   chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  zahnrad:
+    '<circle cx="12" cy="12" r="3"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="m4.22 4.22 1.42 1.42"/><path d="m18.36 18.36 1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="m4.22 19.78 1.42-1.42"/><path d="m18.36 5.64 1.42-1.42"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
 };
 
 export function icon(name, klasse = "") {
@@ -259,9 +262,160 @@ export function fortschritt(container, text) {
   return () => box.remove();
 }
 
+// Info-Tooltip: kleiner "i"-Kreis, Hover zeigt Erklaerung.
+export function infoTipp(text) {
+  const wrap = document.createElement("span");
+  wrap.className = "info-tipp";
+  wrap.innerHTML = icon("info");
+  wrap.setAttribute("tabindex", "0");
+  wrap.setAttribute("aria-label", text);
+  const blase = document.createElement("span");
+  blase.className = "info-tipp-blase";
+  blase.textContent = text;
+  wrap.appendChild(blase);
+  return wrap;
+}
+
+// Feld-Label mit optionalem Info-Tooltip rechts.
+export function feldMitInfo(label, el, tipp = "") {
+  const wrap = document.createElement("div");
+  wrap.className = "feld";
+  const kopf = document.createElement("span");
+  kopf.className = "feld-label feld-label-mit-info";
+  kopf.textContent = label;
+  if (tipp) kopf.appendChild(infoTipp(tipp));
+  wrap.appendChild(kopf);
+  wrap.appendChild(el);
+  return wrap;
+}
+
+// Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
+export function einstellungenModal(onThemeChange) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  const box = document.createElement("div");
+  box.className = "modal einstellungen-modal";
+
+  const links = document.createElement("nav");
+  links.className = "einst-nav";
+  const eintrag = document.createElement("button");
+  eintrag.className = "einst-nav-item aktiv";
+  eintrag.textContent = "Darstellung";
+  links.appendChild(eintrag);
+
+  const rechts = document.createElement("div");
+  rechts.className = "einst-inhalt";
+
+  const titel = document.createElement("div");
+  titel.className = "einst-titel";
+  titel.textContent = "Darstellung";
+  rechts.appendChild(titel);
+
+  const aktuellesTheme = document.documentElement.getAttribute("data-theme") || "light";
+  const optionen = [
+    { id: "light", name: "Light Mode" },
+    { id: "dark", name: "Dark Mode" },
+  ];
+  const reihe = document.createElement("div");
+  reihe.className = "einst-theme-reihe";
+  for (const opt of optionen) {
+    const label = document.createElement("label");
+    label.className = "einst-theme-option" + (aktuellesTheme === opt.id ? " aktiv" : "");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "theme";
+    radio.value = opt.id;
+    radio.checked = aktuellesTheme === opt.id;
+    radio.addEventListener("change", () => {
+      reihe.querySelectorAll(".einst-theme-option").forEach((l) => l.classList.remove("aktiv"));
+      label.classList.add("aktiv");
+      onThemeChange(opt.id);
+    });
+    label.appendChild(radio);
+    const span = document.createElement("span");
+    span.textContent = opt.name;
+    label.appendChild(span);
+    reihe.appendChild(label);
+  }
+  rechts.appendChild(reihe);
+
+  box.appendChild(links);
+  box.appendChild(rechts);
+
+  const schliessen = document.createElement("button");
+  schliessen.className = "detail-schliessen einst-schliessen";
+  schliessen.setAttribute("aria-label", "Einstellungen schliessen");
+  schliessen.innerHTML = icon("schliessen");
+  const zu = () => overlay.remove();
+  schliessen.addEventListener("click", zu);
+  box.appendChild(schliessen);
+
+  overlay.appendChild(box);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) zu(); });
+  document.body.appendChild(overlay);
+}
+
 export function escape(s) {
   return String(s ?? "").replace(
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
   );
+}
+
+// --- Toast-Notifications ---------------------------------------------------
+
+let _stapel = null;
+function _bekommStapel() {
+  if (!_stapel || !document.body.contains(_stapel)) {
+    _stapel = document.createElement("div");
+    _stapel.className = "meldung-stapel";
+    document.body.appendChild(_stapel);
+  }
+  return _stapel;
+}
+
+function _schliesseMeldung(el) {
+  clearTimeout(Number(el.dataset.timer));
+  el.classList.add("meldung-weg");
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+
+// Zeigt einen Toast oben rechts. typ: "erfolg" (gruen) | "fehler" (rot).
+export function meldung(text, typ = "erfolg") {
+  const st = _bekommStapel();
+  const el = document.createElement("div");
+  el.className = `meldung meldung-${typ}`;
+  const iName = typ === "erfolg" ? "check" : "achtung";
+  el.innerHTML =
+    icon(iName) +
+    `<span class="meldung-text">${escape(text)}</span>` +
+    `<button class="meldung-schliessen" aria-label="Schliessen">${icon("schliessen")}</button>`;
+  el.querySelector(".meldung-schliessen").addEventListener("click", () => _schliesseMeldung(el));
+  st.appendChild(el);
+  el.dataset.timer = String(setTimeout(() => _schliesseMeldung(el), 10000));
+}
+
+// Zeigt einen Bestaetigungs-Toast (ersetzt confirm()). Ruft onJa() bei Bestaetigung.
+export function bestaetigen(text, jaText, onJa) {
+  const st = _bekommStapel();
+  const el = document.createElement("div");
+  el.className = "meldung meldung-bestaetigen";
+
+  const kopf = document.createElement("div");
+  kopf.className = "meldung-bestaetigen-kopf";
+  kopf.innerHTML = icon("achtung") + `<span class="meldung-text">${escape(text)}</span>`;
+  el.appendChild(kopf);
+
+  const reihe = document.createElement("div");
+  reihe.className = "meldung-bestaetigen-knoepfe";
+  const jaBtn = knopf(jaText, {
+    art: "gefahr",
+    klick: () => { el.remove(); onJa(); },
+  });
+  const neinBtn = knopf("Abbrechen", { klick: () => el.remove() });
+  reihe.appendChild(jaBtn);
+  reihe.appendChild(neinBtn);
+  el.appendChild(reihe);
+
+  st.appendChild(el);
 }

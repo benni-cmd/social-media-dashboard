@@ -11,7 +11,7 @@ import {
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { S, kiStream, speichere, zeichne, melde, setStand } from "./store.js";
-import { icon, statusChip, escape, knopf, denkPanel } from "./ui.js";
+import { icon, statusChip, escape, knopf, denkPanel, meldung } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
 
@@ -154,13 +154,16 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
                 body: JSON.stringify(plan),
               });
             }
-          } catch { /* Slot-Update ist Beiwerk */ }
+          } catch {
+            meldung("Slot konnte nicht belegt werden.", "fehler");
+          }
         }
 
-        setStand(
-          `${n} Ideen als Karten angelegt` +
+        meldung(
+          `${n} ${n === 1 ? "Idee" : "Ideen"} als Karten angelegt` +
           (slotUpdates.length ? `, ${slotUpdates.length} Slot${slotUpdates.length > 1 ? "s" : ""} belegt` : "") +
-          "."
+          ".",
+          "erfolg"
         );
       },
     })

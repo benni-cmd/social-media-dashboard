@@ -214,6 +214,18 @@ async function handler(req, res) {
       return;
     }
 
+    if (pfad === "/api/plan/slot" && req.method === "PUT") {
+      const { slotId, karteId } = JSON.parse(await readBody(req));
+      let plan;
+      try { plan = JSON.parse(await readFile(PLAN_FILE, "utf8")); } catch { plan = pipeline.defaultPlan(); }
+      const slot = (plan.slots || []).find((s) => s.id === slotId);
+      if (!slot) { sendJson(res, 404, { error: "Slot nicht gefunden." }); return; }
+      slot.karteId = karteId || null;
+      await writeFile(PLAN_FILE, JSON.stringify(plan, null, 2), "utf8");
+      sendJson(res, 200, { ok: true, slot });
+      return;
+    }
+
     // ---- KI --------------------------------------------------------------
 
     if (pfad === "/api/ai" && req.method === "POST") {

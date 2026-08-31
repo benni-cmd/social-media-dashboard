@@ -4,6 +4,44 @@
    Status immer als Wort plus Zeichen, Seitenname nur in der Kopfzeile. */
 
 :root {
+  /* Light Mode (Default) */
+  --grund: #f0f2f5;
+  --flaeche: #ffffff;
+  --flaeche-hoch: #f7f8fa;
+  --flaeche-tief: #e8eaef;
+  --linie: #d4d8e0;
+  --linie-hell: #bcc2cd;
+  --text: #1a1d23;
+  --text-still: #4a5264;
+  --text-leise: #7c8594;
+
+  --akzent: #3b6fdf;
+  --akzent-tief: #e8effc;
+
+  --ok: #1a8a52;
+  --hinweis: #b07d1a;
+  --fehlt: #7c8594;
+  --befund: #c44d3e;
+  --unlesbar: #7b5fb8;
+  --entfaellt: #9aa2b0;
+
+  --saeule-anleitung: #1a8a52;
+  --saeule-hardfacts: #3b6fdf;
+  --saeule-projekt: #b07d1a;
+  --saeule-haltung: #c44d3e;
+  --saeule-mythos: #7b5fb8;
+  --saeule-ohne: #bcc2cd;
+
+  --rund: 10px;
+  --rund-klein: 7px;
+  --schatten: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
   --grund: #0d1014;
   --flaeche: #14181e;
   --flaeche-hoch: #1b2028;
@@ -24,7 +62,6 @@
   --unlesbar: #9b7fd4;
   --entfaellt: #4a5364;
 
-  /* Content-Saeulen — jede Karte traegt ihre Farbe als Streifen. */
   --saeule-anleitung: #4ac48a;
   --saeule-hardfacts: #5b93ff;
   --saeule-projekt: #e0a341;
@@ -32,12 +69,7 @@
   --saeule-mythos: #9b7fd4;
   --saeule-ohne: #3a4351;
 
-  --rund: 10px;
-  --rund-klein: 7px;
   --schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
-
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
   color-scheme: dark;
 }
 
@@ -1541,4 +1573,267 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* --- Info-Tooltip --- */
+.info-tipp {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  margin-left: 5px;
+  color: var(--text-leise);
+  vertical-align: middle;
+}
+.info-tipp .icon {
+  width: 13px;
+  height: 13px;
+}
+.info-tipp:hover .icon,
+.info-tipp:focus .icon {
+  color: var(--akzent);
+}
+.info-tipp-blase {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--flaeche-hoch);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund-klein);
+  padding: 6px 9px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-still);
+  white-space: normal;
+  width: max-content;
+  max-width: 240px;
+  box-shadow: var(--schatten);
+  z-index: 20;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.info-tipp:hover .info-tipp-blase,
+.info-tipp:focus .info-tipp-blase {
+  display: block;
+}
+.feld-label-mit-info {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- Einstellungs-Modal --- */
+.einstellungen-modal {
+  max-width: 520px;
+  flex-direction: row;
+  padding: 0;
+  gap: 0;
+  position: relative;
+  min-height: 260px;
+}
+.einst-nav {
+  flex: 0 0 160px;
+  border-right: 1px solid var(--linie);
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+}
+.einst-nav-item {
+  background: none;
+  border: 0;
+  color: var(--text-still);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+.einst-nav-item:hover {
+  background: var(--flaeche-tief);
+}
+.einst-nav-item.aktiv {
+  color: var(--text);
+  background: var(--akzent-tief);
+  font-weight: 600;
+}
+.einst-inhalt {
+  flex: 1 1 auto;
+  padding: 20px 22px;
+}
+.einst-titel {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: 16px;
+}
+.einst-schliessen {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.einst-theme-reihe {
+  display: flex;
+  gap: 8px;
+}
+.einst-theme-option {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-still);
+}
+.einst-theme-option input { display: none; }
+.einst-theme-option:hover {
+  border-color: var(--linie-hell);
+}
+.einst-theme-option.aktiv {
+  border-color: var(--akzent);
+  color: var(--text);
+  background: var(--akzent-tief);
+}
+
+/* --- Terminvorschlag --- */
+/* --- Termin-Kacheln --- */
+.termin-kacheln {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.termin-kachel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--rand);
+  border-radius: var(--rund-klein);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.termin-kachel:hover:not(.termin-kachel-leer) {
+  border-color: var(--akzent);
+  background: var(--akzent-tief);
+}
+.termin-kachel-slot {
+  background: var(--akzent-tief);
+  border-color: var(--akzent);
+}
+.termin-kachel-leer {
+  opacity: 0.55;
+}
+.termin-kachel-label {
+  font-size: 11px;
+  color: var(--text-still);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.termin-kachel-datum {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.termin-kompakt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.knopf-inline {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+/* --- Standard-speichern-Button --- */
+.standard-speichern {
+  font-size: 11px;
+  padding: 3px 9px;
+  margin-top: 3px;
+  align-self: flex-start;
+}
+
+/* --- Toast-Notifications oben rechts --- */
+
+.meldung-stapel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+.meldung {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 4px solid transparent;
+  border-radius: var(--rund-klein);
+  box-shadow: var(--schatten);
+  min-width: 240px;
+  max-width: 360px;
+  pointer-events: all;
+  animation: meldungRein 0.18s ease;
+}
+
+.meldung-erfolg { border-left-color: var(--ok); }
+.meldung-fehler { border-left-color: var(--befund); }
+.meldung-bestaetigen { border-left-color: var(--hinweis); flex-direction: column; gap: 9px; }
+
+.meldung-erfolg > .icon { color: var(--ok); flex-shrink: 0; margin-top: 1px; }
+.meldung-fehler > .icon { color: var(--befund); flex-shrink: 0; margin-top: 1px; }
+.meldung-bestaetigen-kopf > .icon { color: var(--hinweis); flex-shrink: 0; margin-top: 1px; }
+
+.meldung-text {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.meldung-schliessen {
+  background: none;
+  border: 0;
+  color: var(--text-leise);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.meldung-schliessen:hover { color: var(--text); }
+
+.meldung-bestaetigen-kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.meldung-bestaetigen-knoepfe {
+  display: flex;
+  gap: 6px;
+}
+
+.meldung-weg {
+  animation: meldungWeg 0.18s ease forwards;
+}
+
+@keyframes meldungRein {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes meldungWeg {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(12px); }
 }

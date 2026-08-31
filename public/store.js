@@ -1,6 +1,6 @@
 // Zustand und Serverzugriff. Alles, was mehrere Ansichten teilen, steht hier — genau einmal.
 
-import { migriere, leereKarte } from "/lib/pipeline.js";
+import { migriere, leereKarte, STANDARD_PLATTFORMEN } from "/lib/pipeline.js";
 
 export const S = {
   version: 1,
@@ -11,6 +11,7 @@ export const S = {
   driveStand: new Map(), // Karten-id -> Ergebnis von /api/drive/scan
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
+  defaults: { plattformen: STANDARD_PLATTFORMEN },
 };
 
 const abonnenten = new Set();
@@ -243,4 +244,43 @@ export async function instagramZahlen() {
 
 export async function linkedinZahlen() {
   return hole("/api/stats/linkedin");
+}
+
+// --- Redaktionsplan --------------------------------------------------------
+
+export async function ladePlan() {
+  try {
+    return await hole("/api/plan");
+  } catch {
+    return { slots: [] };
+  }
+}
+
+export async function slotBelegen(slotId, karteId) {
+  return hole("/api/plan/slot", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slotId, karteId }),
+  });
+}
+
+// --- Benutzer-Defaults -----------------------------------------------------
+
+export async function ladeDefaults() {
+  try {
+    const d = await hole("/api/defaults");
+    if (d.plattformen && Array.isArray(d.plattformen)) S.defaults.plattformen = d.plattformen;
+  } catch { /* Defaults sind Beiwerk */ }
+}
+
+export async function speichereDefaults(daten) {
+  const ergebnis = await hole("/api/defaults", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(daten),
+  });
+  if (ergebnis.defaults) {
+    if (ergebnis.defaults.plattformen) S.defaults.plattformen = ergebnis.defaults.plattformen;
+  }
+  return ergebnis;
 }

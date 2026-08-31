@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 126,
   "cards": [
     {
       "id": "test-oasis-01",
@@ -48,7 +48,10 @@
       },
       "uploadTime": "",
       "published": {},
-      "metrics": {}
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
     },
     {
       "id": "test-worldeden-03",
@@ -97,7 +100,10 @@
       },
       "uploadTime": "",
       "published": {},
-      "metrics": {}
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
     },
     {
       "id": "cmtbicpmpuzv8",
@@ -185,7 +191,1449 @@
       },
       "uploadTime": "",
       "published": {},
-      "metrics": {}
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtcwivirlgqi",
+      "schema": 2,
+      "column": "skript",
+      "title": "MachuPicchu",
+      "notes": "",
+      "serie": "tetst",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "hardfacts",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Über 3000 Kartoffelsorten – warum du nicht nur eine anbauen solltest.",
+        "visual": "Nahaufnahme vieler unterschiedlich gefärbter und geformter Kartoffeln nebeneinander, im Hintergrund unscharf die Terrassen von Machu Picchu."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-28",
+        "skript": "2026-09-03",
+        "dreh": "2026-09-03"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "tetst_EP00_MachuPicchu",
+      "published": {},
+      "metrics": {},
+      "recherche": {
+        "zusammenfassung": "Machu Picchu wurde im 15. Jahrhundert unter Inka-Herrscher Pachacuti auf rund 2430 Metern Höhe errichtet und umfasst mehr als 700 Terrassen (andenes), die den Steilhang in nutzbare Anbauflächen verwandeln. Jede Terrasse besteht aus einem mehrschichtigen Aufbau aus grobem Fels, Kies, Sand und Mutterboden – ein Drainagesystem, das bei bis zu rund 1900 mm Niederschlag im Jahr Erosion und Erdrutsche verhindert und die Anlage seit über 500 Jahren, auch unter seismischer Aktivität, stabil hält. Die Wasserversorgung erfolgt rein über Schwerkraft: Ein Kanal leitet Wasser einer natürlichen Quelle etwa 750 Meter entfernt ohne Pumpen zu 16 Brunnen innerhalb der Anlage. Zusätzlich bauten die Inka parallel tausende genetisch unterschiedliche Kartoffelsorten an – eine Diversifizierungsstrategie, die Ernteausfälle durch Schädlinge, Frost oder Trockenheit auf einzelne Sorten begrenzte statt die ganze Ernte zu gefährden.",
+        "fokus": [
+          {
+            "titel": "Terrassen als Erosions- und Klimapuffer",
+            "text": "Der mehrschichtige Terrassenaufbau (Fels, Kies, Sand, Erde) speichert und verzögert Regenwasser statt es abfließen zu lassen – direkt übertragbar auf Terrassen- oder Hügelbeete an Hanglagen im eigenen Garten oder auf der Farm."
+          },
+          {
+            "titel": "Schwerkraft-Wassersystem ohne Pumpe",
+            "text": "Ein Kanal von einer Quelle 750 Meter entfernt versorgt 16 Brunnen rein per Gefälle – ein Prinzip für autarke, energiefreie Wasserverteilung, das sich in kleinerem Maßstab auf eigene Grundstücke übertragen lässt."
+          },
+          {
+            "titel": "Genetische Vielfalt als Ernteversicherung",
+            "text": "Der parallele Anbau tausender Kartoffelsorten verteilte das Risiko von Ernteausfällen – ein Argument für Saatgutvielfalt statt Monokultur bei Selbstversorgern und Kleinbauern."
+          }
+        ],
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Deine Beete schwimmen bei Regen weg? Guck dir das hier an.",
+            "visuell": "Kamera taucht nah in die Steinterrassen von Machu Picchu, Regenwasser läuft sichtbar zwischen den Stufen ab, ohne Erde mitzureißen."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Kein Motor, keine Pumpe – so kommt hier seit 500 Jahren Wasser an.",
+            "visuell": "Wasser fließt sichtbar aus einem schmalen Steinkanal direkt in einen der historischen Brunnen von Machu Picchu."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Über 3000 Kartoffelsorten – warum du nicht nur eine anbauen solltest.",
+            "visuell": "Nahaufnahme vieler unterschiedlich gefärbter und geformter Kartoffeln nebeneinander, im Hintergrund unscharf die Terrassen von Machu Picchu."
+          }
+        ],
+        "frame": {
+          "problem": "Bei Starkregen spült Wasser an Hangbeeten Erde, Dünger und Wurzeln frei, die Ernte leidet und der Boden wird von Jahr zu Jahr dünner.",
+          "solution": "Eine Terrasse mit Drainageschicht aus grobem Material unten und feinerer Erde oben – im Kleinen als Terrassen- oder Hügelbeet nachbaubar – hält Wasser zurück statt es abfließen zu lassen."
+        },
+        "keywords": [
+          "Terrassenanbau",
+          "Erosionsschutz Garten",
+          "Hangbeet anlegen",
+          "Inka Terrassen Machu Picchu",
+          "Regenwassermanagement Garten",
+          "Saatgutvielfalt Selbstversorger"
+        ]
+      },
+      "chosenFokus": 2,
+      "chosenHook": 2,
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtebmd8o6sja",
+      "schema": 2,
+      "column": "skript",
+      "title": "Kompost-Tee aus Küchenresten",
+      "notes": "Selbstversorger mit Garten oder Farm suchen guenstigen, wirksamen Duenger und werfen taeglich Rohstoff dafuer in den Muell",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "anleitung",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Schalen, Kaffeesatz, Wasser: dein Duenger-Rezept in drei Schritten.",
+        "visual": "Nahaufnahme von oben: eine Hand kippt Kartoffelschalen und Kaffeesatz aus einer Küchenschüssel direkt in einen Eimer Wasser, statt in den Mülleimer daneben."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Kuechenreste wie Schalen, Kaffeesatz und Gemueseabschnitte landen taeglich im Muell, waehrend Selbstversorger gleichzeitig Geld fuer Fluessigduenger ausgeben.",
+        "solution": "Die Reste in einem Eimer mit Wasser ansetzen, taeglich umruehren oder belueften und nach ein bis zwei Tagen verduennt an die Pflanzen giessen."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Komposttee selber machen",
+          "Duenger aus Kuechenresten",
+          "Fluessigduenger selbstgemacht",
+          "Komposttee Rezept",
+          "Bokashi Kuechenreste",
+          "Gemueseabfall verwerten Garten"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "upload": "2026-09-03"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1]\nSchalen, Kaffeesatz, Wasser: dein Dünger-Rezept in drei Schritten.\n\n[CHUNK 2]\nJeden Tag landet Dünger-Rohstoff im Müll — und genau dafür kaufst du Flüssigdünger.\n\n[CHUNK 3]\nRechne das mal aufs Jahr hoch: Da steckt locker der Gegenwert von mehreren Flaschen Dünger drin.\n\n[CHUNK 4]\nUnd so holst du sie dir zurück: Reste in einen Eimer mit Wasser, täglich umrühren.\n\n[CHUNK 5]\nNach ein, zwei Tagen ist er fertig — verdünnt ans Gießwasser, direkt an die Wurzeln.\n\n[CHUNK 6]\nWas steckt bei dir in der Biotonne? Wenn du's ausprobierst, schreib mir, wie's gelaufen ist.\n\n---\n\n**Zur Einordnung:** ca. 80 Wörter, damit bei natürlichem Sprechtempo rund 30–32 Sekunden — trifft den Instagram-Korridor für \"Neue Leute erreichen\" und bleibt klar unter der 50-Sekunden-Grenze. Hook hat 8 Wörter. Problem (C2) und machbare Handlung (C4/C5) sind beide benannt, Schluss ist eine offene Frage gefolgt von genau einem indirekten Aufruf, keine Likes erwähnt."
+      },
+      "driveName": "KompostTeeausKuechenresten",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Komposttee entsteht, wenn organisches Material (Kompost oder Küchenreste) in Wasser eingeweicht wird, wobei Mikroorganismen wasserlösliche Nährstoffe und Stoffwechselprodukte ins Wasser abgeben. Wissenschaftlich unterscheidet man zwei Verfahren: belüfteter Komposttee (aktive Sauerstoffzufuhr, 24-48 Stunden, fördert aerobe Bakterien und Pilze) und unbelüfteter Sud (anaerob, riecht faulig, kann bei Fleisch- oder Milchresten Krankheitserreger wie E. coli begünstigen). Der Naehrstoffgehalt ist im Vergleich zu Mineraldünger oder fester Komposterde gering und schwankt stark je nach Ausgangsmaterial; Komposttee wirkt vor allem als mikrobieller Inokulant und Sofort-Nährstoffkick, nicht als vollwertiger Duenger-Ersatz. Universitäre Gartenbau-Institute (u.a. Oregon State, Cornell Cooperative Extension) bestätigen den Nutzen für Bodenleben und Pflanzenwachstum, sehen aber keine ausreichende Evidenz für die oft behauptete Krankheitsresistenz-Wirkung. Rohes Gemüse- und Obstschalen liefern vor allem Kalium und Spurenelemente, kaum Stickstoff in nutzbarer Form – dafür braucht es stickstoffreichere Reste wie Kaffeesatz oder Grasschnitt im Ansatz.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Die konkrete Schritt-fuer-Schritt-Anleitung: welche Küchenreste rein duerfen, welches Verhaeltnis zu Wasser, wie lange und wie belüftet ziehen lassen, bis der fertige Duenger gegossen werden kann."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Die Wissenschaft dahinter entmystifizieren: Komposttee ist kein Wunderduenger, sondern liefert Mikroben und wenig Naehrstoff – was er wirklich kann und wo Kompost oder Duenger noetig bleiben."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Die Rechnung hinterm Muelleimer: wie viel Duengerwert taeglich in der Biotonne landet und was das über ein ganzes Gartenjahr gerechnet an Kaufduenger einspart."
+          }
+        ],
+        "frame": {
+          "problem": "Kuechenreste wie Schalen, Kaffeesatz und Gemueseabschnitte landen taeglich im Muell, waehrend Selbstversorger gleichzeitig Geld fuer Fluessigduenger ausgeben.",
+          "solution": "Die Reste in einem Eimer mit Wasser ansetzen, taeglich umruehren oder belueften und nach ein bis zwei Tagen verduennt an die Pflanzen giessen."
+        },
+        "keywords": [
+          "Komposttee selber machen",
+          "Duenger aus Kuechenresten",
+          "Fluessigduenger selbstgemacht",
+          "Komposttee Rezept",
+          "Bokashi Kuechenreste",
+          "Gemueseabfall verwerten Garten"
+        ]
+      },
+      "chosenFokus": 2,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Wirfst du deine Küchenreste einfach weg?"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Komposttee soll wie Wunderdünger wirken – stimmt das wirklich?"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Was kann Komposttee aus deinen Küchenresten wirklich für deine Pflanzen tun?"
+          }
+        ]
+      },
+      "chosenVerbal": 1,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Nahaufnahme von Hand, die Kartoffelschalen und Kaffeesatz in einen Eimer mit Wasser wirft, direkt über dem offenen Muelleimer"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Drei Zutaten in einer Reihe aufgestellt: Schuessel mit Gemueseresten, Kaffeesatz, Wasserkanne, dahinter unscharf der volle Muelleimer"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Splitscreen: links Hand wirft Bio-Abfall in Muelltonne, rechts dieselbe Hand ruehrt den Eimer mit Wasser und Resten um"
+          }
+        ]
+      },
+      "chosenVisuell": 0,
+      "skriptFinal": "[CHUNK 1]\nSchalen, Kaffeesatz, Wasser: dein Dünger-Rezept in drei Schritten.\n\n[CHUNK 2]\nJeden Tag landet Dünger-Rohstoff im Müll — und genau dafür kaufst du Flüssigdünger.\n\n[CHUNK 3]\nRechne das mal aufs Jahr hoch: Da steckt locker der Gegenwert von mehreren Flaschen Dünger drin.\n\n[CHUNK 4]\nUnd so holst du sie dir zurück: Reste in einen Eimer mit Wasser, täglich umrühren.\n\n[CHUNK 5]\nNach ein, zwei Tagen ist er fertig — verdünnt ans Gießwasser, direkt an die Wurzeln.\n\n[CHUNK 6]\nWas steckt bei dir in der Biotonne? Wenn du's ausprobierst, schreib mir, wie's gelaufen ist.\n\n---\n\n**Zur Einordnung:** ca. 80 Wörter, damit bei natürlichem Sprechtempo rund 30–32 Sekunden — trifft den Instagram-Korridor für \"Neue Leute erreichen\" und bleibt klar unter der 50-Sekunden-Grenze. Hook hat 8 Wörter. Problem (C2) und machbare Handlung (C4/C5) sind beide benannt, Schluss ist eine offene Frage gefolgt von genau einem indirekten Aufruf, keine Likes erwähnt.",
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtebmd8odtl3",
+      "schema": 2,
+      "column": "skript",
+      "title": "Mischkultur in drei Schritten",
+      "notes": "Kleine Gaerten und Hobbyfarmen wollen mehr Ertrag auf wenig Flaeche ohne Kunstduenger",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "anleitung",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Diese drei Pflanzen gehören zusammen ins Beet",
+        "visual": "Von oben gefilmt: eine Hand setzt gleichzeitig drei verschiedene Jungpflanzen (Tomate, Basilikum, Ringelblume) nebeneinander in dieselbe Erdmulde eines Beets."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1]\nDiese drei Pflanzen gehören zusammen ins Beet.\n\n[CHUNK 2]\nEin Beet bringt wenig, wenn jede Pflanze für sich allein kämpft.\n\n[CHUNK 3]\nDie alte Drei-Schwestern-Idee ist eigentlich ein Bauplan, der immer funktioniert.\n\n[CHUNK 4]\nSchritt eins: eine Pflanze, die nach oben klettert – deine Stütze.\n\n[CHUNK 5]\nSchritt zwei: eine Pflanze, die Stickstoff aus der Luft holt – dein Gratis-Dünger.\n\n[CHUNK 6]\nSchritt drei: eine Pflanze, die den Boden abdeckt wie eine Decke.\n\n[CHUNK 7]\nDas geht auch ohne Mais, Bohne und Kürbis – mit heimischen Pflanzen für dein Beet.\n\n[CHUNK 8]\nWelche drei Pflanzen stehen bei dir schon zusammen?\n\n[CHUNK 9]\nWenn du deine eigene Kombination gefunden hast, schreib sie mir.\n\n---\nWortzahl gesamt: 84 Wörter → ca. 30–34 Sekunden Sprechzeit bei natürlichem Tempo, damit im Korridor für \"Neue Leute erreichen\" und deutlich unter der 50-Sekunden-Grenze.",
+        "regieplan": "# Produktions-Unterlage — Phase 2\n\n**Thema:** Mischkultur in drei Schritten | **Hook:** \"Diese drei Pflanzen gehören zusammen ins Beet\"\n**Reihe:** Mischkultur (Start einer neuen Mini-Reihe, EP01) — Begründung siehe Dateiname\n\n---\n\n## A) VIDEO-METADATEN\n\n| Feld | Angabe |\n|---|---|\n| **Format** | Reel, 9:16, 1080×1920, 30fps, H.264 mp4 |\n| **Länge** | ca. 50 Sekunden |\n| **Dateiname** | `WEE_Mischkultur_EP01_DreiSchwestern_Reel.mp4` |\n| **Musik-Prompt (Suno/Udio)** | \"Uplifting organic folk-pop instrumental, warm acoustic guitar and light hand percussion (shaker, wood block), gentle build with soft synth pad underneath, optimistic and grounded mood, nature-documentary-meets-indie feel, no vocals, tempo ~104 BPM, subtle energy lift at 0:36 into a soft drop, clean fade-out ending, 50 seconds, loopable\" |\n| **Schnitt-Rhythmus** | Extrem dynamisch — Wechsel zwischen A-Roll/B-Roll bzw. Perspektive alle 3–6 Sekunden, durchgehend Zoom Crash / Whip Pan / Slide als Übergänge |\n| **Untertitel** | Pflicht — eingebrannt (Burned-in, groß, kontrastreich) **und** als separate SRT-Datei |\n| **Wasserzeichen** | Export **darf kein** Wasserzeichen anderer Plattformen tragen (kein TikTok-/CapCut-/Reels-Export-Logo) — Rohexport aus Schnittprogramm, plattformneutral |\n\n---\n\n## B) REGIEPLAN\n\n| Zeit | Typ & Location | Visuell | Audio | Schnitt & Effekte |\n|---|---|---|---|---|\n| 00:00–00:03 | **A-Roll**, Garten/Beet, Nahaufnahme, **Blick direkt in Kamera** | Presenter hält drei Samentütchen/Jungpflanzen hoch, Text-Overlay blendet den Hook-Satz sofort ein (Hook muss ohne Ton funktionieren) | VO: *\"Diese drei Pflanzen gehören zusammen ins Beet.\"* SFX: Whoosh bei Text-Einblendung | Harter Schnitt in die Szene, Zoom Crash auf die drei Pflanzen, Text-Kinetik synchron zu Wortbetonung |\n| 00:03–00:07 | **B-Roll**, Hochbeet/Gartenbeet, Vogelperspektive | Hand fährt über schmale Beetfläche, zeigt begrenzten Platz | VO (läuft weiter): *\"Mehr Ernte auf wenig Fläche, ganz ohne Kunstdünger –\"* | Whip Pan von Row 1 in Vogelperspektive, leichter Speed-Ramp |\n| 00:07–00:11 | **A-Roll**, Garten, Halbtotale | Presenter gestikuliert \"drei\" mit den Fingern, Grafik-Overlay \"Drei-Schwestern-Logik\" fliegt seitlich ein | VO: *\"...das schafft die Drei-Schwestern-Logik aus der indigenen Landwirtschaft.\"* | Slide-Übergang, Grafik-Insert von rechts, Klick-SFX beim Erscheinen |\n| 00:11–00:15 | **B-Roll**, Beet, Makro | Hand steckt Maiskorn/Sonnenblumenkern in die Erde | VO: *\"Schritt eins: eine Stützpflanze, die nach oben wächst.\"* | Match Cut auf Erde, Zahlen-Symbol \"1\" blendet ein mit Plopp-SFX |\n| 00:15–00:19 | **B-Roll**, Beet, Low-Angle | Schnellschnitt-Serie: ausgewachsener Mais → Sonnenblume → Topinambur | VO (läuft weiter): *\"Klassisch Mais – bei uns auch Sonnenblume oder Topinambur.\"* | Whip Pan nach oben, Speed Ramp, leichter Glitch-Cut zwischen den drei Arten |\n| 00:19–00:23 | **A-Roll**, Garten, **Blick in Kamera** | Presenter hält eine Bohnenpflanze in der Hand | VO: *\"Schritt zwei: eine Stickstofflieferantin, die daran hochrankt.\"* | Zoom Crash auf die Bohne, Zahlen-Symbol \"2\" mit Plopp |\n| 00:23–00:28 | **B-Roll**, Makro | Bohnenranke am Maisstängel, Grafik-Insert zeigt Wurzelknöllchen mit Pfeilen (N₂ → Boden) | VO (läuft weiter): *\"Die Bohne holt Stickstoff aus der Luft und düngt den Boden gratis mit.\"* | Slide-in der Grafik, Whoosh beim Pfeilflug, Schnitt im Takt zur Musik |\n| 00:28–00:32 | **B-Roll**, Beet, Kamera tief über Boden | Kürbisblatt bzw. Kapuzinerkresse breitet sich über die Erde aus | VO: *\"Schritt drei: eine Bodendeckerin für den Rest.\"* | Harter Schnitt, Zahlen-Symbol \"3\" mit Plopp, leichte Slow-Motion |\n| 00:32–00:36 | **B-Roll**, Beet, Nahaufnahme | Beschatteter, feuchter Boden unter dem Blätterdach, Tropfen sichtbar | VO (läuft weiter): *\"Kürbis oder bei uns Kapuzinerkresse beschattet den Boden wie ein lebender Mulch.\"* | Whip Pan, Speed Ramp, Klick-Übergang |\n| 00:36–00:41 | **A-Roll**, Garten, Halbtotale, **Blick in Kamera** | Presenter steht zwischen den drei Pflanzengruppen, breitet die Arme aus | VO: *\"Drei Pflanzen, drei Jobs, ein Beet, das sich fast selbst versorgt.\"* | Zoom Crash raus in Totale, Musik-Break/Drop als Zäsur |\n| 00:41–00:48 | **A-Roll**, Garten, Nahaufnahme, **Blick direkt in Kamera** | Presenter ruhig, einladender Blick, CTA-Text blendet unten ein | VO: *\"Wenn du das in deinem Beet ausprobierst, schreib mir, welche Kombination du nimmst.\"* SFX: sanfter Whoosh bei Text-Einblendung | Langsamer Zoom-in, Text-Kinetik, Übergang in Outro |\n| 00:48–00:50 | Endkarte/Bumper | Logo World Eden Era + Handle eingeblendet | Musik-Outro (Fade) | Fade to Logo |\n\n**Anmerkung zur Regel-Einhaltung:** Ein CTA (indirekt, konditional formuliert), kein Like-Aufruf, Problem (wenig Fläche/kein Kunstdünger) und Handlung (Drei-Schritte-Prinzip) beide klar benannt, drei direkte Kamerablicke eingeplant (00:00, 00:19, 00:36–00:48)."
+      },
+      "driveName": "MischkulturindreiSchritten",
+      "published": {},
+      "metrics": {},
+      "recherche": {
+        "zusammenfassung": "Mischkultur nutzt drei messbare Mechanismen, keine Harmonie-Mystik: Stickstofffixierung durch Leguminosen-Knöllchenbakterien (Rhizobium) versorgt Nachbarpflanzen mit bis zu 60-80 kg N pro Hektar und Jahr, räumliche Stratifikation (hoch-mittel-niedrig wachsende Arten) reduziert Lichtkonkurrenz und erhöht die Flächenausnutzung nachweislich um 20-30 Prozent gegenüber Monokultur, und Duft- beziehungsweise Sekundärstoff-Mischungen verwirren die Wirtsfindung von Schadinsekten, die sich per Geruch orientieren. Das klassische Beispiel Mais-Bohne-Kuerbis ('Drei Schwestern') aus mesoamerikanischer Landwirtschaft ist die am besten dokumentierte Kombination: Mais liefert Rankhilfe, Bohne liefert Stickstoff, Kuerbisblaetter beschatten den Boden gegen Verdunstung und Unkraut. Nicht jede Kombination funktioniert automatisch positiv - manche Arten konkurrieren um dieselben Nährstoffe oder hemmen sich durch Allelopathie (z. B. Fenchel gegen viele Nachbarn), deshalb braucht es klare Regeln statt Bauchgefuehl.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Die Drei-Schwestern-Logik als uebertragbares Prinzip: eine Stuetzpflanze, eine Stickstofflieferantin, eine Bodendeckerin - in drei Schritten fuers eigene Beet nachbaubar, auch mit heimischen Arten statt Mais-Bohne-Kuerbis."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Schaedlingsabwehr durch Duftmischung: konkrete, wissenschaftlich geprüfte Paarungen wie Tomate-Basilikum-Ringelblume, die Schaedlinge per Geruchsverwirrung fernhalten, statt zum Spritzmittel zu greifen."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Die drei häufigsten Kombinationsfehler: Pflanzenpaare, die sich um Naehrstoffe oder Licht bekaempfen oder sich allelopathisch hemmen - Fokus auf das, was man in drei Schritten vermeiden sollte."
+          }
+        ],
+        "frame": {
+          "problem": "Viele setzen Gemuese wahllos nebeneinander, weil es 'so ins Beet passt' - Ertrag bleibt trotzdem aus, weil Pflanzen um Licht, Wasser und Stickstoff konkurrieren statt sich zu ergaenzen.",
+          "solution": "Eine feste Drei-Schritte-Formel fuers naechste Beet: Stuetzpflanze plus Stickstofflieferantin plus Bodendeckerin auswaehlen und in dieser Reihenfolge pflanzen."
+        },
+        "keywords": [
+          "Mischkultur",
+          "Mischkultur Tabelle",
+          "Beetnachbarn",
+          "Drei Schwestern Pflanzung",
+          "Fruchtfolge Garten",
+          "Gemuese kombinieren"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVorschlag": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Diese drei Pflanzen gehören zusammen ins Beet",
+            "visuell": "Von oben gefilmt: eine Hand setzt gleichzeitig drei verschiedene Jungpflanzen (Tomate, Basilikum, Ringelblume) nebeneinander in dieselbe Erdmulde eines Beets."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Ein Beet, drei Pflanzen, deutlich mehr Ernte",
+            "visuell": "Nahaufnahme eines dicht bewachsenen Beets, in dem Tomatenstrauch, Basilikum und orangene Ringelblume eng nebeneinander stehen, Kamera fährt langsam heran."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Diese Kombi im Beet ersetzt deinen Kunstdünger",
+            "visuell": "Eine Hand schiebt eine Kunstdünger-Flasche aus dem Bild und setzt stattdessen drei Jungpflanzen nacheinander ins offene Beet."
+          }
+        ]
+      },
+      "chosenHook": 0,
+      "skriptFinal": "[CHUNK 1]\nDiese drei Pflanzen gehören zusammen ins Beet.\n\n[CHUNK 2]\nEin Beet bringt wenig, wenn jede Pflanze für sich allein kämpft.\n\n[CHUNK 3]\nDie alte Drei-Schwestern-Idee ist eigentlich ein Bauplan, der immer funktioniert.\n\n[CHUNK 4]\nSchritt eins: eine Pflanze, die nach oben klettert – deine Stütze.\n\n[CHUNK 5]\nSchritt zwei: eine Pflanze, die Stickstoff aus der Luft holt – dein Gratis-Dünger.\n\n[CHUNK 6]\nSchritt drei: eine Pflanze, die den Boden abdeckt wie eine Decke.\n\n[CHUNK 7]\nDas geht auch ohne Mais, Bohne und Kürbis – mit heimischen Pflanzen für dein Beet.\n\n[CHUNK 8]\nWelche drei Pflanzen stehen bei dir schon zusammen?\n\n[CHUNK 9]\nWenn du deine eigene Kombination gefunden hast, schreib sie mir.\n\n---\nWortzahl gesamt: 84 Wörter → ca. 30–34 Sekunden Sprechzeit bei natürlichem Tempo, damit im Korridor für \"Neue Leute erreichen\" und deutlich unter der 50-Sekunden-Grenze.",
+      "skriptGespeichert": true,
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtebmd8o939l",
+      "schema": 2,
+      "column": "skript",
+      "title": "Warum wir Unkraut stehen lassen",
+      "notes": "Viele Hobbygaertner zermuerbt der Kampf gegen Wildkraut, obwohl Beikraut oft mehr nuetzt als schadet",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "haltung",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Ich reisse kein Unkraut mehr aus.",
+        "visual": "Nahaufnahme: Eine Hand greift einen Löwenzahn mitten im Beet, wie zum Ausreissen – dann lässt sie ihn bewusst wieder los."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "recherche": {
+        "zusammenfassung": "Löwenzahn, Wegerich und Co. entwickeln Pfahlwurzeln, die 1 bis 3 Meter tief reichen und dort Phosphor, Kalium und Kalzium aus Bodenschichten ziehen, die Kulturpflanzen nie erreichen — die Nährstoffe landen über abgestorbene Wurzeln und Blattfall wieder in der obersten, für Gemüse nutzbaren Schicht. Diese Wurzelkanäle bleiben nach dem Absterben als Poren im Boden erhalten und verbessern Wasserinfiltration und Durchlüftung messbar, besonders auf verdichteten Böden. Wer stattdessen jätet, reißt genau dieses Kanalsystem und die daran hängenden Mykorrhiza-Netzwerke ab und holt gleichzeitig neue Samen aus der Bodenbank ans Licht, was den Aufwuchs oft beschleunigt statt bremst — der Kampf erzeugt also einen Teil seines eigenen Nachschubs. Kleeartige Beikräuter fixieren zudem über Rhizobium-Symbiose Luftstickstoff und düngen den Boden nebenbei, während durchgehende Bodenbedeckung Verdunstung und Erosion senkt. Für Hobbygärtner bedeutet das: ein erheblicher Teil der Jätezeit ist nicht nur unnötig, sondern arbeitet gegen das eigene Ziel eines gesunden, tragfähigen Bodens.",
+        "fokus": [
+          {
+            "titel": "Nährstoffpumpe & Bodenstruktur",
+            "text": "Tiefwurzler wie Löwenzahn holen Mineralien aus dem Unterboden und lockern verdichtete Erde — konkreter, messbarer Nutzen fürs eigene Beet."
+          },
+          {
+            "titel": "Nahrung für Insekten und Nützlinge",
+            "text": "Viele Beikräuter sind die einzige Futterquelle für bestimmte Schmetterlingsraupen und frühe Bestäuber — wer sie stehen lässt, zieht Nützlinge statt Schädlinge an."
+          },
+          {
+            "titel": "Warum Jäten den Aufwand nur vermehrt",
+            "text": "Jedes Ausreißen zerstört Wurzelkanäle und Pilznetzwerke und bringt neue Samen ans Licht — der Kampf gegen Unkraut erzeugt einen Teil seines eigenen Nachschubs."
+          }
+        ],
+        "frame": {
+          "problem": "Stundenlanges Jäten zerreißt Wurzelkanäle und Pilznetzwerke im Boden und holt gleichzeitig neue Samen aus der Bodenbank ans Licht — der Boden wird dadurch nicht sauberer, sondern ärmer und der Aufwuchs oft schlimmer.",
+          "solution": "Bestimmte Beikräuter gezielt stehen lassen, vor allem Randzonen und Tiefwurzler, statt großflächig zu jäten."
+        },
+        "keywords": [
+          "Beikraut statt Unkraut",
+          "Wildkraut Garten nützlich",
+          "Unkraut ausreißen sinnlos",
+          "Bodenleben Wurzeln",
+          "Permakultur Unkraut jäten",
+          "Löwenzahn Nährstoffpumpe"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVorschlag": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Ich reisse kein Unkraut mehr aus.",
+            "visuell": "Nahaufnahme: Eine Hand greift einen Löwenzahn mitten im Beet, wie zum Ausreissen – dann lässt sie ihn bewusst wieder los."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Dieser Löwenzahn arbeitet gerade für mein Beet.",
+            "visuell": "Ein Löwenzahn wird behutsam aus lockerer Erde gehoben, seine lange, tief reichende Pfahlwurzel kommt zum Vorschein."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Mein steinharter Boden wurde von Unkraut gelockert.",
+            "visuell": "Schwenk von rissiger, verdichteter Erde ohne Bewuchs zu krümeliger, lockerer Erde direkt um eine Löwenzahnwurzel."
+          }
+        ]
+      },
+      "chosenHook": 0,
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtebmd8okz16",
+      "schema": 2,
+      "column": "skript",
+      "title": "Nicht jeder Regenwurm hilft deinem Boden",
+      "notes": "Regenwuermer gelten als Garant fuer guten Boden, dabei koennen manche Arten heimischen Boeden sogar schaden",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "mythos",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Dieser Wurm frisst deine Laubschicht in wenigen Wochen leer",
+        "visual": "Harter Schnitt: links Waldboden dick mit Laub bedeckt, rechts derselbe Fleck kahl und krümelig"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1]\nDieser Wurm frisst deine Laubschicht in wenigen Wochen leer.\n\n[CHUNK 2]\nViele Würmer bedeuten nicht automatisch gesunden Boden.\n\n[CHUNK 3]\nDer asiatische Springwurm vermehrt sich explosionsartig und frisst binnen Wochen die komplette Streuschicht weg – genau die Schicht, die Feuchtigkeit hält und Boden aufbaut.\n\n[CHUNK 4]\nÜbrig bleibt Erde wie Kaffeesatz, ohne Struktur und ohne Halt für Wurzeln.\n\n[CHUNK 5]\nEr verrät sich, wenn er beim Anfassen wild zappelt, statt sich ruhig zu winden.\n\n[CHUNK 6]\nDeshalb lohnt sich ein Blick: Woher kommt dein Kompost oder Mulch wirklich?\n\n[CHUNK 7]\nHast du schon mal Würmer entdeckt, die sich so ungewöhnlich verhalten?\n\n[CHUNK 8]\nWenn du unsicher bist, was in deinem Boden lebt, schick mir ein Foto.\n\n—\nCa. 100 Wörter, geschätzt 32–38 Sekunden Sprechzeit — innerhalb der Hausregel, etwas über dem 15–30-Sekunden-Zielkorridor wegen der nötigen Erklärung."
+      },
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "recherche": {
+        "zusammenfassung": "In Nordamerika und Teilen Europas gab es nach der letzten Eiszeit vor rund 10.000-12.000 Jahren keine heimischen Regenwuermer mehr - fast alle heute vorkommenden Arten wurden erst spaeter durch Siedler, Angler und Gaertner eingeschleppt. Besonders problematisch sind asiatische Springwuermer (Amynthas agrestis, A. tokioensis, Metaphire hilgendorfi), die sich seit den 2010er Jahren in Nordamerika und zunehmend auch in Europa ausbreiten. Sie vermehren sich parthenogenetisch, also ohne Partner, explosionsartig, fressen die organische Streuschicht binnen weniger Wochen fast vollstaendig auf und hinterlassen statt stabiler Humuskrumen eine lockere, kaffeesatzaehnliche Struktur, die Wasser und Naehrstoffe schlechter haelt und Erosion begunstigt. Das schadet Mykorrhiza-Pilzen, Keimlingen und der Naehrstoffverfuegbarkeit fuer Nutzpflanzen. Verbreitet werden sie meist unwissentlich ueber Kompost, gekaufte Blumenerde, Mulch und Angelkoeder. Klassische europaeische Arten wie der Tauwurm (Lumbricus terrestris) sind fuer landwirtschaftliche Boeden in Europa dagegen meist positiv, koennen aber in urspruenglich wurmfreien nordamerikanischen Waeldern ebenfalls die Streuschicht und die dortige Pflanzenwelt veraendern - 'gut' ist also immer eine Frage von Art und Oekosystem, nicht von Regenwuermern generell.",
+        "fokus": [
+          {
+            "titel": "Der Springwurm als konkrete Bedrohung",
+            "text": "Asiatische Springwuermer vermehren sich explosionsartig und fressen die Streuschicht binnen Wochen leer - konkretes Beispiel dafuer, dass 'mehr Wuermer' nicht automatisch besseren Boden bedeutet."
+          },
+          {
+            "titel": "Alternative A: Boeden ganz ohne Regenwuermer",
+            "text": "Historische Ueberraschung: In vielen Regionen gab es nach der Eiszeit gar keine heimischen Regenwuermer - erst der Mensch hat sie mitgebracht, mit gemischten Folgen fuers Oekosystem."
+          },
+          {
+            "titel": "Alternative B: Was das fuer deinen Kompost bedeutet",
+            "text": "Handlungsfokus fuer Selbstversorger: wie man problematische Arten in Kompost, Blumenerde oder Angelkoeder erkennt und ihre Verbreitung im eigenen Umfeld vermeidet."
+          }
+        ],
+        "frame": {
+          "problem": "Eingeschleppte Springwuermer vermehren sich rasant in Kompost und Gartenerde, fressen die Streuschicht blitzschnell weg und hinterlassen kruemelige, naehrstoffarme Erde statt stabilem Humus - viele Hobbygaertner verbreiten sie unwissentlich weiter.",
+          "solution": "Wurmart am Verhalten erkennen (wildes Zappeln/Springen statt ruhigem Kriechen, helle geschlossene Ringmanschette, kaffeesatzaehnliche statt kruemelige Erde) und keine unbekannte Komposterde oder Koeder aus anderen Regionen weitergeben oder mitbringen."
+        },
+        "keywords": [
+          "Springwurm",
+          "invasive Regenwuermer",
+          "Amynthas",
+          "Regenwurm Boden schaedlich",
+          "Kompost Wuermer erkennen",
+          "heimische Bodenlebewesen"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVorschlag": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Nicht jeder Regenwurm ist gut für deinen Boden",
+            "visuell": "Nahaufnahme einer Hand, in der sich ein Wurm auffällig heftig peitschend windet statt sich normal zu kringeln"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Dieser Wurm frisst deine Laubschicht in wenigen Wochen leer",
+            "visuell": "Harter Schnitt: links Waldboden dick mit Laub bedeckt, rechts derselbe Fleck kahl und krümelig"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Springt dein Regenwurm? Dann solltest du genauer hinschauen",
+            "visuell": "Wurm, der beim Berühren ruckartig hin und her schnellt und fast aus der Hand springt"
+          }
+        ]
+      },
+      "chosenHook": 1,
+      "skriptFinal": "[CHUNK 1]\nDieser Wurm frisst deine Laubschicht in wenigen Wochen leer.\n\n[CHUNK 2]\nViele Würmer bedeuten nicht automatisch gesunden Boden.\n\n[CHUNK 3]\nDer asiatische Springwurm vermehrt sich explosionsartig und frisst binnen Wochen die komplette Streuschicht weg – genau die Schicht, die Feuchtigkeit hält und Boden aufbaut.\n\n[CHUNK 4]\nÜbrig bleibt Erde wie Kaffeesatz, ohne Struktur und ohne Halt für Wurzeln.\n\n[CHUNK 5]\nEr verrät sich, wenn er beim Anfassen wild zappelt, statt sich ruhig zu winden.\n\n[CHUNK 6]\nDeshalb lohnt sich ein Blick: Woher kommt dein Kompost oder Mulch wirklich?\n\n[CHUNK 7]\nHast du schon mal Würmer entdeckt, die sich so ungewöhnlich verhalten?\n\n[CHUNK 8]\nWenn du unsicher bist, was in deinem Boden lebt, schick mir ein Foto.\n\n—\nCa. 100 Wörter, geschätzt 32–38 Sekunden Sprechzeit — innerhalb der Hausregel, etwas über dem 15–30-Sekunden-Zielkorridor wegen der nötigen Erklärung.",
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmth5jsy499im",
+      "schema": 2,
+      "column": "videodreh",
+      "title": "Lehmboden",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "hardfacts",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Dein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.",
+        "visual": "Draufsicht von oben: zwei Haende formen aus feuchtem Lehm eine Kugel, die in Zeitlupe langsam auseinanderbricht und dabei feine, dunkle Kruemel freigibt, die im Licht schimmern wie Muenzen in einer aufgehenden Schatzkiste"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Nach Regen steht das Wasser tagelang auf dem Beet, im Sommer wird derselbe Boden hart wie Estrich und reisst auf -- Wurzeln ersticken oder reissen ab.",
+        "solution": "Organisches Material einarbeiten, tiefwurzelnde Gruendüngung wie Oelrettich einsetzen und den Boden nie bearbeiten oder befahren, solange er noch nass klebt."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Lehmboden verbessern",
+          "Lehmboden lockern",
+          "Boden verdichtet",
+          "Tonboden Garten",
+          "Lehmboden Drainage",
+          "Staunässe Beet"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-04",
+        "skript": "2026-09-06",
+        "dreh": "2026-09-08",
+        "schnitt": "2026-09-11",
+        "freigabe": "2026-09-13",
+        "upload": "2026-09-14"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {
+        "skript": "Hier ist der Sprechertext für Phase 2, Thema Lehmboden (Content-Säule Hard Facts):\n\n[CHUNK 1]\nDein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.\n\n[CHUNK 2]\nLehm speichert mehr Nährstoffe als Sandboden – wie ein Tresor, aus dem nichts einfach rausrutscht.\n\n[CHUNK 3]\nDas eigentliche Problem ist nicht der Mangel, sondern die Struktur: Nach Regen steht das Wasser tagelang, im Sommer wird der Boden hart wie Estrich – Wurzeln ersticken oder reißen ab.\n\n[CHUNK 4]\nDie Lösung: organisches Material einarbeiten, tiefwurzelnden Ölrettich als Gründüngung setzen, und den Boden nie bearbeiten, solange er noch nass klebt.\n\n[CHUNK 5]\nHast du Lehmboden und kämpfst noch mit der Struktur? Wenn du diesen Weg schon gehst, schreib mir gern, was bei dir funktioniert.\n\nKurz zur Einordnung: ~91 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 33–38 Sekunden – nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\", aber innerhalb der 50-Sekunden-Hausregel, weil sowohl die CEC-Erklärung als auch Problem und Handlung Platz brauchen."
+      },
+      "driveName": "Lehmboden",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Lehmboden (Tonanteil > 25 Prozent, Partikelgroesse unter 0,002 mm) hat eine gewaltige spezifische Oberflaeche und dadurch eine hohe Kationenaustauschkapazitaet von 15 bis 50 cmol/kg, gegenueber 3 bis 15 cmol/kg bei Sandboden. Er haelt Kalium, Calcium, Magnesium und Ammonium also deutlich besser fest als leichter Boden. Das Problem liegt in der Porenstruktur: dominierende Mikroporen senken die Wasserleitfaehigkeit oft unter 0,1 cm/h, waehrend Sandboden auf ueber 5 cm/h kommt. Ergebnis ist Staunaesse und Sauerstoffmangel an der Wurzel. Nasser Lehm ist plastisch und verklebt bei Bearbeitung oder Befahrung zu Verdichtungen, die jahrelang bestehen bleiben; trockener Lehm schrumpft und reisst auf (Schwund-Quell-Verhalten), was Feinwurzeln abschert. Der verbreitete Reflex, Sand einzumischen, verschlimmert die Lage fast immer, weil erst ein Sandanteil von deutlich ueber 50 Prozent die Textur veraendert -- darunter entsteht eine betonaehnliche Mischung. Wirksam sind organische Substanz fuer Aggregatstabilitaet, biologische Aktivitaet (Regenwuermer, Pilzhyphen) fuer Biogaenge und tiefwurzelnde Pflanzen wie Oelrettich oder Luzerne, die verdichtete Schichten mechanisch aufbrechen. Zusaetzlich entscheidend: Bearbeitung oder Befahrung oberhalb der Feldkapazitaet vermeiden, da genau das die Verdichtung ausloest.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus: Nährstoff-Tresor statt Problemboden",
+            "text": "Lehm gilt als schwieriger Boden, speichert aber dank hoher Kationenaustauschkapazitaet weit mehr Naehrstoffe als Sandboden -- die Aufgabe ist nicht Naehrstoffe zuzufuehren, sondern die Struktur so zu oeffnen, dass Wurzeln und Wasser durchkommen."
+          },
+          {
+            "titel": "Alternative A: Der Sand-Mythos",
+            "text": "Sand in Lehm einmischen ist der haeufigste Fehler ueberhaupt und macht die Sache schlimmer, weil unterhalb eines Sandanteils von etwa 50 Prozent eine betonaehnliche Masse entsteht -- ein reiner Mythen-Bust-Fokus."
+          },
+          {
+            "titel": "Alternative B: Der Zeitpunkt entscheidet",
+            "text": "Nicht was du in den Lehm einbringst, sondern wann du ihn bearbeitest oder befaehrst, bestimmt ueber jahrelange Verdichtungsschaeden -- ein Fokus auf Bodenfeuchte und Timing statt auf Zusatzstoffe."
+          }
+        ],
+        "frame": {
+          "problem": "Nach Regen steht das Wasser tagelang auf dem Beet, im Sommer wird derselbe Boden hart wie Estrich und reisst auf -- Wurzeln ersticken oder reissen ab.",
+          "solution": "Organisches Material einarbeiten, tiefwurzelnde Gruendüngung wie Oelrettich einsetzen und den Boden nie bearbeiten oder befahren, solange er noch nass klebt."
+        },
+        "keywords": [
+          "Lehmboden verbessern",
+          "Lehmboden lockern",
+          "Boden verdichtet",
+          "Tonboden Garten",
+          "Lehmboden Drainage",
+          "Staunässe Beet"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Dein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Was, wenn dein Lehm mehr Nährstoffe speichert als jeder Sandboden?"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Dein Lehmboden hortet Nährstoffe, die dein Sandboden längst verloren hätte."
+          }
+        ]
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Nahaufnahme: eine Hand drueckt in klatschnassen, glaenzenden Lehmboden, der sich formt wie Knetmasse -- direkt daneben, im selben Bild, oeffnet sich eine kleine Tresortuer (real oder als Aufkleber/Requisite im Beet platziert), aus der Kompost und dunkle Krume statt Geldscheinen rieselt"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Splitscreen in einer Einstellung: links ein Spaten, der auf hartem, rissigem Sommer-Lehmboden abprallt, rechts derselbe Boden nass und glaenzend geknetet -- beide Haelften ueberlagert von einem kurzen Lichtreflex wie auf Metall, der die Szene wie eine Tresortuer wirken laesst"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Draufsicht von oben: zwei Haende formen aus feuchtem Lehm eine Kugel, die in Zeitlupe langsam auseinanderbricht und dabei feine, dunkle Kruemel freigibt, die im Licht schimmern wie Muenzen in einer aufgehenden Schatzkiste"
+          }
+        ]
+      },
+      "chosenVisuell": 2,
+      "skriptFinal": "Hier ist der Sprechertext für Phase 2, Thema Lehmboden (Content-Säule Hard Facts):\n\n[CHUNK 1]\nDein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.\n\n[CHUNK 2]\nLehm speichert mehr Nährstoffe als Sandboden – wie ein Tresor, aus dem nichts einfach rausrutscht.\n\n[CHUNK 3]\nDas eigentliche Problem ist nicht der Mangel, sondern die Struktur: Nach Regen steht das Wasser tagelang, im Sommer wird der Boden hart wie Estrich – Wurzeln ersticken oder reißen ab.\n\n[CHUNK 4]\nDie Lösung: organisches Material einarbeiten, tiefwurzelnden Ölrettich als Gründüngung setzen, und den Boden nie bearbeiten, solange er noch nass klebt.\n\n[CHUNK 5]\nHast du Lehmboden und kämpfst noch mit der Struktur? Wenn du diesen Weg schon gehst, schreib mir gern, was bei dir funktioniert.\n\nKurz zur Einordnung: ~91 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 33–38 Sekunden – nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\", aber innerhalb der 50-Sekunden-Hausregel, weil sowohl die CEC-Erklärung als auch Problem und Handlung Platz brauchen.",
+      "skriptGespeichert": true,
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmthdus43lidh",
+      "schema": 2,
+      "column": "idee",
+      "title": "Test Idee 1",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "hardfacts",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "dreh": "2026-09-08",
+        "upload": "2026-09-22"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": "bildung"
+    },
+    {
+      "id": "cmtheojumdt5g",
+      "schema": 2,
+      "column": "idee",
+      "title": "Wie viel Wasser speichert dein Boden wirklich?",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-21",
+        "skript": "2026-08-23",
+        "dreh": "2026-08-25",
+        "schnitt": "2026-08-28",
+        "freigabe": "2026-08-30",
+        "upload": "2026-08-31"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojum95kr",
+      "schema": 2,
+      "column": "idee",
+      "title": "Was du diese Woche im Garten geschafft hast, zaehlt",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "anleitung",
+      "goal": "community",
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-26",
+        "skript": "2026-08-28",
+        "dreh": "2026-08-30",
+        "schnitt": "2026-09-02",
+        "freigabe": "2026-09-04",
+        "upload": "2026-09-05"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumi8ah",
+      "schema": 2,
+      "column": "idee",
+      "title": "Was du neben Gemuese noch pflanzen solltest",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "deepen",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-28",
+        "skript": "2026-08-30",
+        "dreh": "2026-09-01",
+        "schnitt": "2026-09-04",
+        "freigabe": "2026-09-06",
+        "upload": "2026-09-07"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumupl2",
+      "schema": 2,
+      "column": "idee",
+      "title": "Wie aus Gartenabfall Eier werden",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-30",
+        "skript": "2026-09-01",
+        "dreh": "2026-09-03",
+        "schnitt": "2026-09-06",
+        "freigabe": "2026-09-08",
+        "upload": "2026-09-09"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumyboa",
+      "schema": 2,
+      "column": "idee",
+      "title": "So siehst du, wo deine Spende gerade waechst",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "donations",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-02",
+        "skript": "2026-09-04",
+        "dreh": "2026-09-06",
+        "schnitt": "2026-09-09",
+        "freigabe": "2026-09-11",
+        "upload": "2026-09-12"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumqow4",
+      "schema": 2,
+      "column": "idee",
+      "title": "Halten dich deine Tiere genauso im Kreislauf wie deinen Garten?",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "community",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-07",
+        "skript": "2026-09-09",
+        "dreh": "2026-09-11",
+        "schnitt": "2026-09-14",
+        "freigabe": "2026-09-16",
+        "upload": "2026-09-17"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumh1wm",
+      "schema": 2,
+      "column": "idee",
+      "title": "Was du pflanzt, wenn dein Boden schwer bleibt",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "deepen",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-10",
+        "skript": "2026-09-12",
+        "dreh": "2026-09-14",
+        "schnitt": "2026-09-17",
+        "freigabe": "2026-09-19",
+        "upload": "2026-09-20"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojum7pb9",
+      "schema": 2,
+      "column": "idee",
+      "title": "Die Gratis-Arbeiter, die du schon in deinem Garten hast",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-12",
+        "skript": "2026-09-14",
+        "dreh": "2026-09-16",
+        "schnitt": "2026-09-19",
+        "freigabe": "2026-09-21",
+        "upload": "2026-09-22"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumdrtm",
+      "schema": 2,
+      "column": "idee",
+      "title": "Welches Thema soll als Naechstes dran",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "community",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-14",
+        "skript": "2026-09-16",
+        "dreh": "2026-09-18",
+        "schnitt": "2026-09-21",
+        "freigabe": "2026-09-23",
+        "upload": "2026-09-24"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmtheojumyuob",
+      "schema": 2,
+      "column": "idee",
+      "title": "Was aus eurer Unterstuetzung diesen Monat wurde",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "",
+      "goal": "donations",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-09-16",
+        "skript": "2026-09-18",
+        "dreh": "2026-09-20",
+        "schnitt": "2026-09-23",
+        "freigabe": "2026-09-25",
+        "upload": "2026-09-26"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "contenttyp": "reel",
+      "kategorie": ""
+    },
+    {
+      "id": "cmthexilpbwr6",
+      "schema": 2,
+      "column": "skript",
+      "title": "Neue Idee",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "format": "Reel",
+      "pillar": "anleitung",
+      "goal": "deepen",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Unter deinem Beet koennte gerade ein Schwamm liegen – ungenutzt.",
+        "visual": "Spatenstich hebt eine Erdscholle an, darunter kommt ein dick mit Wasser vollgesogenes, dunkles Holzstueck zum Vorschein, aus dem beim Zusammendruecken sichtbar Wasser tropft"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Wer im eigenen Garten oder auf der Kleinfarm im Sommer taeglich giessen muss und trotzdem Pflanzen welken sieht, verliert Wasser durch Verdunstung an der Oberflaeche statt es im Boden zu halten.",
+        "solution": "Ein Huegelbeet aus geschichtetem Totholz, Gruenschnitt und Erde anlegen, das vergrabene Holz wie einen Schwamm wirken lassen und dadurch spuerbar seltener giessen muessen."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Huegelbeet anlegen",
+          "Huegelkultur",
+          "Wasser sparen im Garten",
+          "Totholz Beet Permakultur",
+          "Hochbeet Selbstversorger",
+          "Boden Wasserspeicher"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "dreh": "2026-09-08",
+        "upload": "2026-09-22"
+      },
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Huegelkultur nutzt vergrabenes und geschichtetes Totholz (idealerweise Laubholz, keine Nadelhoelzer mit hohem Harzanteil) als Basis eines Beethuegels. Verrottendes Holz bindet ueber Pilzgeflecht und Mikroorganismen ein Vielfaches seines Trockengewichts an Wasser und gibt es langsam wieder ab, wirkt also wie ein Schwamm im Boden. Der Zersetzungsprozess ist exotherm: Er erzeugt ueber Monate leichte Bodenwaerme, was die Anbausaison an kuehlen Standorten verlaengern kann. Gleichzeitig setzt das langsam verrottende Holz ueber mehrere Jahre (grob 5 bis 20 Jahre je nach Holzart und Stueckgroesse) kontinuierlich Naehrstoffe frei, sodass nach der Anwachsphase deutlich weniger nachgeduengt werden muss. Die Huegelform selbst vergroessert zudem die nutzbare Anbauflaeche pro Quadratmeter Grundflaeche und schafft durch Sued- und Nordseite unterschiedliche Mikroklimazonen fuer verschiedene Pflanzenansprueche. Wichtig fuer die Praxis: Im ersten Jahr entzieht die Holzzersetzung dem Beet Stickstoff, weshalb anfangs stickstoffhungrige Pflanzen wie Kartoffeln oder Kuerbis besser geeignet sind als Starkzehrer im engeren Sinn.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Der Schwamm-Effekt: Wie vergrabenes Totholz Wasser speichert und die Giesshaeufigkeit im Sommer drastisch reduziert."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Der Langzeit-Duenger: Wie ein einmal angelegter Holzhuegel ueber Jahre kontinuierlich Naehrstoffe freisetzt statt jaehrlich nachduengen zu muessen."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Mehr Flaeche, laengere Saison: Wie die Huegelform Anbauflaeche und Mikroklimazonen auf kleinem Raum vervielfacht."
+          }
+        ],
+        "frame": {
+          "problem": "Wer im eigenen Garten oder auf der Kleinfarm im Sommer taeglich giessen muss und trotzdem Pflanzen welken sieht, verliert Wasser durch Verdunstung an der Oberflaeche statt es im Boden zu halten.",
+          "solution": "Ein Huegelbeet aus geschichtetem Totholz, Gruenschnitt und Erde anlegen, das vergrabene Holz wie einen Schwamm wirken lassen und dadurch spuerbar seltener giessen muessen."
+        },
+        "keywords": [
+          "Huegelbeet anlegen",
+          "Huegelkultur",
+          "Wasser sparen im Garten",
+          "Totholz Beet Permakultur",
+          "Hochbeet Selbstversorger",
+          "Boden Wasserspeicher"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Giesst du im Sommer jeden Tag – und deine Pflanzen welken trotzdem?"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Unter deinem Beet koennte gerade ein Schwamm liegen – ungenutzt."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Was, wenn du im Sommer nur noch halb so oft giessen muesstest?"
+          }
+        ]
+      },
+      "chosenVerbal": 1,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Spatenstich hebt eine Erdscholle an, darunter kommt ein dick mit Wasser vollgesogenes, dunkles Holzstueck zum Vorschein, aus dem beim Zusammendruecken sichtbar Wasser tropft"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Querschnitt durch ein frisch angelegtes Huegelbeet als Aufbauansicht: Schicht fuer Schicht faellt Erde weg und legt eine Lage vergrabener Aeste und Totholz frei, die wie ein Schwamm aussieht"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Nahaufnahme einer Hand, die ein poroeses, morsches Holzstueck in einen Eimer Wasser taucht und wieder herauszieht, komplett durchtraenkt, waehrend im Hintergrund das trockene, welke Sommerbeet zu sehen ist"
+          }
+        ]
+      },
+      "chosenVisuell": 0,
+      "contenttyp": "reel",
+      "kategorie": ""
     }
   ]
 }
