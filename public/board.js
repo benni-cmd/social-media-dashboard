@@ -157,7 +157,16 @@ export function zeichneBoard(boardEl, lastEl) {
       const ideenKnopf = knopf("Ideen von der KI holen", {
         zeichen: "funken",
         titel: "Sechs Vorschlaege, die sich von den vorhandenen Themen unterscheiden.",
-        klick: () => holeIdeen(document.getElementById("nachschub")),
+        klick: async () => {
+          neuKnopf.disabled = true;
+          ideenKnopf.disabled = true;
+          try {
+            await holeIdeen(fuss);
+          } finally {
+            neuKnopf.disabled = false;
+            ideenKnopf.disabled = false;
+          }
+        },
       });
       ideenKnopf.classList.add("knopf-breit");
       ideenKnopf.style.marginTop = "7px";

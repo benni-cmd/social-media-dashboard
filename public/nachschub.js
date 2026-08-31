@@ -36,6 +36,7 @@ async function ladeOffeneSlots() {
 
 export async function holeIdeen(anker) {
   const panel = denkPanel(anker, "Die KI sucht Ideen, die noch nicht da sind …");
+  panel.el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   try {
     const offeneSlots = await ladeOffeneSlots();
     const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
