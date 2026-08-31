@@ -20,7 +20,7 @@ import {
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand } from "./store.js";
 import { icon, statusChip, escape, knopf, leer } from "./ui.js";
-import { holeIdeen } from "./nachschub.js";
+import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 
 let oeffne = () => {};
@@ -154,14 +154,15 @@ export function zeichneBoard(boardEl, lastEl) {
     // Nachschub gehoert an den Anfang der Kette, nicht in den Kopf: wer Ideen braucht,
     // steht vor der Idee-Spalte.
     if (p.id === "idee") {
-      const ideenKnopf = knopf("Ideen von der KI holen", {
+      const ideenKnopf = knopf("Idee von der KI", {
         zeichen: "funken",
-        titel: "Sechs Vorschlaege, die sich von den vorhandenen Themen unterscheiden.",
+        titel: "Eine Idee fuer den naechsten freien Upload-Slot recherchieren.",
         klick: async () => {
           neuKnopf.disabled = true;
           ideenKnopf.disabled = true;
           try {
-            await holeIdeen(fuss);
+            const id = await holeIdee(fuss);
+            if (id) oeffne(id);
           } finally {
             neuKnopf.disabled = false;
             ideenKnopf.disabled = false;

@@ -34,39 +34,69 @@ async function ladeOffeneSlots() {
   return [];
 }
 
-export async function holeIdeen(anker) {
-  const panel = denkPanel(anker, "Die KI sucht Ideen, die noch nicht da sind …");
+// Einzelidee: genau eine Karte fuer den naechsten freien Slot.
+export async function holeIdee(anker) {
+  const panel = denkPanel(anker, "Die KI recherchiert eine Idee fuer den naechsten freien Slot …");
   panel.el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   try {
-    const offeneSlots = await ladeOffeneSlots();
+    const alleSlots = await ladeOffeneSlots();
+    const belegteUploads = new Set(
+      S.cards
+        .filter((c) => c.column !== "verworfen" && (c.dates || {}).upload)
+        .map((c) => c.dates.upload + "|" + (c.uploadTime || "")),
+    );
+    const slot = alleSlots.find((s) => !belegteUploads.has(s.datum + "|" + (s.uhrzeit || "")));
+    if (!slot) {
+      panel.weg();
+      await melde("hinweis", "Kein offener Upload-Slot gefunden. Pruefe den Redaktionsplan.");
+      return null;
+    }
+
     const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
       .map((s) => `${s.name}: ${s.anzahl}`)
       .join(", ");
     const antwort = await kiStream(
       "ideen",
       {
-        anzahl: 6,
+        anzahl: 1,
         vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
         verworfen: S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
         verteilung,
-        kategorie: "",
-        offeneSlots: offeneSlots.slice(0, 12),
+        kategorie: slot.kategorie || "",
+        offeneSlots: [slot],
       },
       (e) => {
         if (e.delta) panel.delta(e.delta);
         if (e.status) panel.status(e.status);
-      }
+      },
     );
     panel.weg();
     const ideen = (antwort.data && antwort.data.ideen) || [];
     if (!ideen.length) {
-      await melde("hinweis", "Die KI hat keine verwertbare Liste geliefert. Versuch es noch einmal.");
-      return;
+      await melde("hinweis", "Die KI hat keine verwertbare Idee geliefert. Versuch es noch einmal.");
+      return null;
     }
-    zeigeIdeen(ideen, anker, offeneSlots);
+    const idee = ideen[0];
+    const k = leereKarte("idee");
+    k.title = idee.titel || "Neue Idee";
+    k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : "";
+    k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
+    k.notes = idee.warum || "";
+    k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
+    k.uploadTime = slot.uhrzeit || "";
+    k.contenttyp = slot.typ || "reel";
+    if (slot.kategorie) k.kategorie = slot.kategorie;
+    if (slot.ziel) k.goal = slot.ziel;
+    if (slot.plattform) k.platforms = [slot.plattform];
+    S.cards.push(k);
+    speichere();
+    zeichne();
+    meldung(`Idee "${k.title}" als Karte angelegt.`, "erfolg");
+    return k.id;
   } catch (e) {
     panel.weg();
     await melde("befund", (e.daten && e.daten.hint) || e.message);
+    return null;
   }
 }
 
