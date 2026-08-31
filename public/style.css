@@ -1698,6 +1698,65 @@ body {
   color: var(--text);
   background: var(--akzent-tief);
 }
+.einst-seite { display: none; }
+.einst-seite.aktiv { display: block; }
+.einst-abschnitt { margin-bottom: 20px; }
+.einst-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-still);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 10px;
+}
+.einst-provider-reihe {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.einst-provider-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-still);
+}
+.einst-provider-option input { margin-top: 2px; flex-shrink: 0; }
+.einst-provider-option.aktiv {
+  border-color: var(--akzent);
+  color: var(--text);
+  background: var(--akzent-tief);
+}
+.einst-provider-label { font-weight: 600; }
+.einst-provider-sub { font-size: 12px; color: var(--text-still); margin-top: 1px; }
+.einst-ollama-konfig {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.einst-ollama-konfig input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.einst-ping-zeile { display: flex; gap: 8px; align-items: center; }
+.einst-ping-status {
+  font-size: 12px;
+  flex: 1 1 auto;
+  color: var(--text-still);
+}
 
 /* --- Terminvorschlag --- */
 /* --- Termin-Kacheln --- */

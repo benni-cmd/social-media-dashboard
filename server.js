@@ -229,7 +229,7 @@ async function handler(req, res) {
     // ---- KI --------------------------------------------------------------
 
     if (pfad === "/api/ai" && req.method === "POST") {
-      const { task, card } = JSON.parse(await readBody(req));
+      const { task, card, provider = "claude", ollamaModel = "llama3.2" } = JSON.parse(await readBody(req));
       const bauen = ki.AUFGABEN[task];
       if (!bauen) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
@@ -241,18 +241,24 @@ async function handler(req, res) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
-        const text = await ki.runClaude(ki.MARKE_REGELN + kontextBlock + "\n\n---\n\n" + bauen(card || {}));
+        const userMsg = kontextBlock + "\n\n---\n\n" + bauen(card || {});
+        let text;
+        if (provider === "ollama") {
+          text = await ki.runOllama(ki.MARKE_REGELN, userMsg, ollamaModel);
+        } else {
+          text = await ki.runClaude(ki.MARKE_REGELN + userMsg);
+        }
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         sendJson(res, 200, { text, data });
       } catch (e) {
-        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e) });
+        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e, provider) });
       }
       return;
     }
 
     // Gleiche Aufgabe, aber der Text kommt live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"}.
     if (pfad === "/api/ai/stream" && req.method === "POST") {
-      const { task, card } = JSON.parse(await readBody(req));
+      const { task, card, provider = "claude", ollamaModel = "llama3.2" } = JSON.parse(await readBody(req));
       const bauen = ki.AUFGABEN[task];
       if (!bauen) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
@@ -270,17 +276,31 @@ async function handler(req, res) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
-        const prompt = ki.MARKE_REGELN + kontextBlock + "\n\n---\n\n" + bauen(card || {});
-        const text = await ki.runClaudeStream(prompt, (delta, status) => {
-          if (delta) schreib({ t: "delta", text: delta });
-          if (status) schreib({ t: "status", text: status });
-        });
+        const userMsg = kontextBlock + "\n\n---\n\n" + bauen(card || {});
+        let text;
+        if (provider === "ollama") {
+          text = await ki.runOllamaStream(ki.MARKE_REGELN, userMsg, ollamaModel, (delta) => {
+            if (delta) schreib({ t: "delta", text: delta });
+          });
+        } else {
+          const prompt = ki.MARKE_REGELN + userMsg;
+          text = await ki.runClaudeStream(prompt, (delta, status) => {
+            if (delta) schreib({ t: "delta", text: delta });
+            if (status) schreib({ t: "status", text: status });
+          });
+        }
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         schreib({ t: "done", text, data });
       } catch (e) {
-        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e) });
+        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e, provider) });
       }
       res.end();
+      return;
+    }
+
+    if (pfad === "/api/ai/ping-ollama" && req.method === "POST") {
+      const { model = "llama3.2" } = JSON.parse(await readBody(req));
+      sendJson(res, 200, await ki.pingOllama(model));
       return;
     }
 

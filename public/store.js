@@ -183,11 +183,20 @@ export async function driveStatus() {
 
 // --- KI -------------------------------------------------------------------
 
+function kiKonfig() {
+  try {
+    return {
+      provider: localStorage.getItem("cm-ai-provider") || "claude",
+      ollamaModel: localStorage.getItem("cm-ollama-model") || "llama3.2",
+    };
+  } catch { return { provider: "claude", ollamaModel: "llama3.2" }; }
+}
+
 export async function ki(task, nutzlast) {
   return hole("/api/ai", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
   });
 }
 
@@ -197,7 +206,7 @@ export async function kiStream(task, nutzlast, onEreignis) {
   const res = await fetch("/api/ai/stream", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
   });
   if (!res.ok || !res.body) {
     let d = {};

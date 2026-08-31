@@ -296,29 +296,37 @@ export function einstellungenModal(onThemeChange) {
   const box = document.createElement("div");
   box.className = "modal einstellungen-modal";
 
+  // --- Navigation (links) ---
   const links = document.createElement("nav");
   links.className = "einst-nav";
-  const eintrag = document.createElement("button");
-  eintrag.className = "einst-nav-item aktiv";
-  eintrag.textContent = "Darstellung";
-  links.appendChild(eintrag);
+  const navItems = [];
+  for (const name of ["Darstellung", "Verbindungen"]) {
+    const btn = document.createElement("button");
+    btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
+    btn.textContent = name;
+    links.appendChild(btn);
+    navItems.push(btn);
+  }
 
+  // --- Inhalt (rechts) ---
   const rechts = document.createElement("div");
   rechts.className = "einst-inhalt";
 
-  const titel = document.createElement("div");
-  titel.className = "einst-titel";
-  titel.textContent = "Darstellung";
-  rechts.appendChild(titel);
-
+  // Seite 1: Darstellung
+  const seite1 = document.createElement("div");
+  seite1.className = "einst-seite aktiv";
+  const titel1 = document.createElement("div");
+  titel1.className = "einst-titel";
+  titel1.textContent = "Darstellung";
+  seite1.appendChild(titel1);
   const aktuellesTheme = document.documentElement.getAttribute("data-theme") || "light";
-  const optionen = [
+  const themeOptionen = [
     { id: "light", name: "Light Mode" },
     { id: "dark", name: "Dark Mode" },
   ];
-  const reihe = document.createElement("div");
-  reihe.className = "einst-theme-reihe";
-  for (const opt of optionen) {
+  const themeReihe = document.createElement("div");
+  themeReihe.className = "einst-theme-reihe";
+  for (const opt of themeOptionen) {
     const label = document.createElement("label");
     label.className = "einst-theme-option" + (aktuellesTheme === opt.id ? " aktiv" : "");
     const radio = document.createElement("input");
@@ -327,7 +335,7 @@ export function einstellungenModal(onThemeChange) {
     radio.value = opt.id;
     radio.checked = aktuellesTheme === opt.id;
     radio.addEventListener("change", () => {
-      reihe.querySelectorAll(".einst-theme-option").forEach((l) => l.classList.remove("aktiv"));
+      themeReihe.querySelectorAll(".einst-theme-option").forEach((l) => l.classList.remove("aktiv"));
       label.classList.add("aktiv");
       onThemeChange(opt.id);
     });
@@ -335,9 +343,141 @@ export function einstellungenModal(onThemeChange) {
     const span = document.createElement("span");
     span.textContent = opt.name;
     label.appendChild(span);
-    reihe.appendChild(label);
+    themeReihe.appendChild(label);
   }
-  rechts.appendChild(reihe);
+  seite1.appendChild(themeReihe);
+
+  // Seite 2: Verbindungen
+  const seite2 = document.createElement("div");
+  seite2.className = "einst-seite";
+  const titel2 = document.createElement("div");
+  titel2.className = "einst-titel";
+  titel2.textContent = "Verbindungen";
+  seite2.appendChild(titel2);
+
+  const kiAbschnitt = document.createElement("div");
+  kiAbschnitt.className = "einst-abschnitt";
+  const kiLabel = document.createElement("div");
+  kiLabel.className = "einst-label";
+  kiLabel.textContent = "KI-Anbieter";
+  kiAbschnitt.appendChild(kiLabel);
+
+  let aktuellerProvider;
+  try { aktuellerProvider = localStorage.getItem("cm-ai-provider") || "claude"; } catch { aktuellerProvider = "claude"; }
+  let aktuellesModell;
+  try { aktuellesModell = localStorage.getItem("cm-ollama-model") || "llama3.2"; } catch { aktuellesModell = "llama3.2"; }
+
+  const providerOptionen = [
+    {
+      id: "claude",
+      label: "Claude (via CLI)",
+      sub: "Läuft über dein Claude-Abo · keine separate Installation",
+    },
+    {
+      id: "ollama",
+      label: "Ollama (lokal · kostenlos)",
+      sub: "Kein Token-Verbrauch · läuft auf deinem Rechner · install: winget install Ollama.Ollama",
+    },
+  ];
+  const providerReihe = document.createElement("div");
+  providerReihe.className = "einst-provider-reihe";
+  let ollamaKonfig;
+
+  for (const opt of providerOptionen) {
+    const label = document.createElement("label");
+    label.className = "einst-provider-option" + (aktuellerProvider === opt.id ? " aktiv" : "");
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "ki-provider";
+    radio.value = opt.id;
+    radio.checked = aktuellerProvider === opt.id;
+    const textWrap = document.createElement("div");
+    const lbl = document.createElement("div");
+    lbl.className = "einst-provider-label";
+    lbl.textContent = opt.label;
+    const sub = document.createElement("div");
+    sub.className = "einst-provider-sub";
+    sub.textContent = opt.sub;
+    textWrap.appendChild(lbl);
+    textWrap.appendChild(sub);
+    label.appendChild(radio);
+    label.appendChild(textWrap);
+    radio.addEventListener("change", () => {
+      providerReihe.querySelectorAll(".einst-provider-option").forEach((l) => l.classList.remove("aktiv"));
+      label.classList.add("aktiv");
+      try { localStorage.setItem("cm-ai-provider", opt.id); } catch {}
+      if (ollamaKonfig) ollamaKonfig.style.display = opt.id === "ollama" ? "flex" : "none";
+    });
+    providerReihe.appendChild(label);
+  }
+  kiAbschnitt.appendChild(providerReihe);
+
+  // Ollama-Konfiguration (nur sichtbar wenn Ollama gewählt)
+  ollamaKonfig = document.createElement("div");
+  ollamaKonfig.className = "einst-ollama-konfig";
+  ollamaKonfig.style.display = aktuellerProvider === "ollama" ? "flex" : "none";
+
+  const modellInput = document.createElement("input");
+  modellInput.type = "text";
+  modellInput.placeholder = "Modell, z. B. llama3.2";
+  modellInput.value = aktuellesModell;
+  modellInput.addEventListener("change", () => {
+    try { localStorage.setItem("cm-ollama-model", modellInput.value.trim() || "llama3.2"); } catch {}
+  });
+
+  const pingZeile = document.createElement("div");
+  pingZeile.className = "einst-ping-zeile";
+  const pingBtn = document.createElement("button");
+  pingBtn.className = "chip";
+  pingBtn.textContent = "Verbindung testen";
+  const pingStatus = document.createElement("div");
+  pingStatus.className = "einst-ping-status";
+  pingZeile.appendChild(pingBtn);
+  pingZeile.appendChild(pingStatus);
+
+  pingBtn.addEventListener("click", async () => {
+    const modell = modellInput.value.trim() || "llama3.2";
+    pingBtn.disabled = true;
+    pingStatus.textContent = "Prüfe…";
+    try {
+      const res = await fetch("/api/ai/ping-ollama", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: modell }),
+      });
+      const d = await res.json();
+      if (!d.ok) {
+        pingStatus.textContent = `❌ Nicht erreichbar: ${d.error || "Ollama läuft nicht"}`;
+      } else if (!d.vorhanden) {
+        pingStatus.textContent = `⚠️ Ollama läuft, aber Modell „${modell}" fehlt. Lade es mit: ollama pull ${modell}`;
+      } else {
+        pingStatus.textContent = `✅ Verbunden · Modell „${modell}" bereit`;
+      }
+    } catch {
+      pingStatus.textContent = "❌ Verbindungstest fehlgeschlagen";
+    } finally {
+      pingBtn.disabled = false;
+    }
+  });
+
+  ollamaKonfig.appendChild(modellInput);
+  ollamaKonfig.appendChild(pingZeile);
+  kiAbschnitt.appendChild(ollamaKonfig);
+  seite2.appendChild(kiAbschnitt);
+
+  rechts.appendChild(seite1);
+  rechts.appendChild(seite2);
+
+  // --- Tab-Switching ---
+  const seiten = [seite1, seite2];
+  navItems.forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+      navItems.forEach((b) => b.classList.remove("aktiv"));
+      seiten.forEach((s) => s.classList.remove("aktiv"));
+      btn.classList.add("aktiv");
+      seiten[i].classList.add("aktiv");
+    });
+  });
 
   box.appendChild(links);
   box.appendChild(rechts);
