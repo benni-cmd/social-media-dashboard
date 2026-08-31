@@ -15,6 +15,7 @@ Diagnose.cmd
 !.env.example
 *.key
 *.pem
+*.crt
 credentials.json
 *service-account*.json
 

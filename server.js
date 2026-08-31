@@ -8,11 +8,12 @@
 //   ai.js        Prompts und die Claude-CLI
 //   social.js    Instagram- und LinkedIn-Zahlen
 
-import { createServer } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { execSync } from "node:child_process";
 
 import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
@@ -133,9 +134,9 @@ async function leseKontext(serie) {
 
 // --- Wegweisung -----------------------------------------------------------
 
-const server = createServer(async (req, res) => {
+async function handler(req, res) {
   try {
-    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const url = new URL(req.url, `https://localhost:${PORT}`);
     const pfad = url.pathname;
 
     // ---- Board ----------------------------------------------------------
@@ -295,7 +296,7 @@ const server = createServer(async (req, res) => {
       }
       const p = new URLSearchParams({
         client_id: appId,
-        redirect_uri: `http://localhost:${PORT}/api/auth/instagram/callback`,
+        redirect_uri: `https://localhost:${PORT}/api/auth/instagram/callback`,
         scope: "instagram_business_basic,instagram_business_manage_insights",
         response_type: "code",
       });
@@ -315,7 +316,7 @@ const server = createServer(async (req, res) => {
       try {
         const appId = process.env.INSTAGRAM_APP_ID;
         const appSecret = process.env.INSTAGRAM_APP_SECRET;
-        const redirectUri = `http://localhost:${PORT}/api/auth/instagram/callback`;
+        const redirectUri = `https://localhost:${PORT}/api/auth/instagram/callback`;
 
         // Kurzzeit-Token (1 Stunde) — liefert auch die user_id direkt mit.
         const kurzRes = await fetch("https://api.instagram.com/oauth/access_token", {
@@ -339,13 +340,12 @@ const server = createServer(async (req, res) => {
         );
         const lang = await langRes.json();
         const accessToken = lang.access_token || kurz.access_token;
-        const igUserId = String(kurz.user_id);
-
-        // Nutzername holen.
+        // Nutzername und echte ID holen (user_id aus dem Token-Tausch kann abweichen).
         const infoRes = await fetch(
-          `https://graph.instagram.com/v21.0/${igUserId}?fields=username&access_token=${accessToken}`
+          `https://graph.instagram.com/v21.0/me?fields=user_id,username&access_token=${accessToken}`
         );
         const info = await infoRes.json();
+        const igUserId = String(info.user_id || info.id || kurz.user_id);
 
         await speichereToken("instagram", { accessToken, igUserId, username: info.username || "" });
         umleitung(res, "/?verbunden=instagram");
@@ -366,7 +366,7 @@ const server = createServer(async (req, res) => {
       const p = new URLSearchParams({
         response_type: "code",
         client_id: clientId,
-        redirect_uri: `http://localhost:${PORT}/api/auth/linkedin/callback`,
+        redirect_uri: `https://localhost:${PORT}/api/auth/linkedin/callback`,
         scope: "r_organization_social rw_organization_admin",
         state: "li_" + Date.now(),
       });
@@ -381,7 +381,7 @@ const server = createServer(async (req, res) => {
         return;
       }
       try {
-        const redirectUri = `http://localhost:${PORT}/api/auth/linkedin/callback`;
+        const redirectUri = `https://localhost:${PORT}/api/auth/linkedin/callback`;
         const tok = await (
           await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
             method: "POST",
@@ -500,12 +500,32 @@ const server = createServer(async (req, res) => {
   } catch (e) {
     sendJson(res, 500, { error: e.message });
   }
-});
+}
+
+// --- Selbstsigniertes Zertifikat (Meta und LinkedIn verlangen https fuer Redirect-URIs) ---
+async function ladeTls() {
+  const keyFile = join(DATA_DIR, "localhost.key");
+  const certFile = join(DATA_DIR, "localhost.crt");
+  try {
+    return { key: await readFile(keyFile), cert: await readFile(certFile) };
+  } catch {
+    console.log("Erzeuge selbstsigniertes Zertifikat …");
+    await mkdir(DATA_DIR, { recursive: true });
+    execSync(
+      `openssl req -x509 -newkey rsa:2048 -keyout "${keyFile}" -out "${certFile}" ` +
+      `-days 365 -nodes -subj "/CN=localhost"`,
+      { stdio: "pipe" }
+    );
+    return { key: await readFile(keyFile), cert: await readFile(certFile) };
+  }
+}
 
 await ladeEnv();
+
+const tls = await ladeTls();
+const server = createHttpsServer(tls, handler);
 server.listen(PORT, async () => {
-  console.log(`Content-Maschine laeuft auf http://localhost:${PORT}`);
-  // KPI-Messungen beim Start pruefen
+  console.log(`Content-Maschine laeuft auf https://localhost:${PORT}`);
   try {
     const board = await leseBoard();
     const faellig = kpi.pruefeKarten(board.cards);
@@ -513,7 +533,5 @@ server.listen(PORT, async () => {
       const anzahl = faellig.reduce((s, f) => s + f.ausstehend.length, 0);
       console.log(`KPI: ${anzahl} faellige Messung(en) fuer ${faellig.length} Post(s). POST /api/kpi/collect zum Erfassen.`);
     }
-  } catch {
-    // KPI-Pruefung darf den Start nicht blockieren
-  }
+  } catch { /* KPI-Pruefung darf den Start nicht blockieren */ }
 });
