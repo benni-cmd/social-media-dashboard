@@ -305,6 +305,16 @@ async function handler(req, res) {
       return;
     }
 
+    if (pfad === "/api/shutdown" && req.method === "POST") {
+      sendJson(res, 200, { ok: true });
+      setTimeout(async () => {
+        console.log("Shutdown via UI ausgeloest.");
+        await ollamaEntladen();
+        process.exit(0);
+      }, 400);
+      return;
+    }
+
     // ---- Drive -----------------------------------------------------------
 
     if (pfad === "/api/drive/status" && req.method === "GET") {

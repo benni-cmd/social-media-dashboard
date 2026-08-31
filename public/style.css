@@ -94,6 +94,62 @@ body {
   flex: 0 0 auto;
 }
 
+/* --- Shutdown-Slider --------------------------------------------------- */
+
+.shutdown-slider {
+  position: relative;
+  width: 148px;
+  height: 34px;
+  background: rgba(196, 77, 62, 0.15);
+  border: 1px solid rgba(196, 77, 62, 0.4);
+  border-radius: 20px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+.shutdown-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--befund);
+  letter-spacing: .04em;
+  pointer-events: none;
+  padding-left: 28px;
+  transition: opacity 0.1s;
+}
+.shutdown-handle {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 28px;
+  height: 28px;
+  background: var(--befund);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  will-change: transform;
+  transition: background 0.15s;
+}
+.shutdown-handle svg {
+  width: 15px;
+  height: 15px;
+  stroke: #fff;
+}
+.shutdown-handle:active { cursor: grabbing; }
+.shutdown-slider.ausgeloest .shutdown-handle {
+  background: #7c1a10;
+}
+.shutdown-slider.ausgeloest .shutdown-label {
+  opacity: 0;
+}
+
 /* --- Kopfzeile: der Seitenname steht NUR hier --- */
 
 .kopf {
