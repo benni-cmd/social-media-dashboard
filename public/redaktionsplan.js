@@ -1,21 +1,32 @@
-// Redaktionsplan: Strategie-Einstellungen und Upload-Slots.
+// Redaktionsplan: Parameter-Einstellungen und deterministischer Kalender-Vorschau.
 // Geoeffnet durch den "Redaktionsplan"-Button im Board.
 
 import {
   CONTENTTYPEN,
   INHALTSKATEGORIEN,
   ZIELE,
-  MASSE,
   contenttypName,
   kategorieName,
-  isoDatum,
-  neueSlotId,
   zielInfo,
 } from "/lib/pipeline.js";
-import { kiStream, melde, setStand } from "./store.js";
-import { escape, knopf, denkPanel } from "./ui.js";
+import { slotsForMonth } from "/lib/scheduler.js";
+import { melde, setStand } from "./store.js";
+import { escape, knopf } from "./ui.js";
+
+// Farben je Content-Typ — konsistent mit CSS-Variablen-Schema des Projekts
+const TYP_FARBE = {
+  reel:      "#f97316",
+  slider:    "#3b82f6",
+  beitrag:   "#8b5cf6",
+  story:     "#10b981",
+  highlight: "#f59e0b",
+};
 
 let aktivesPanel = null;
+let currentPlan = null;
+let kalenderRendere = null;
+
+// --- Plan laden / speichern -----------------------------------------------
 
 async function ladePlan() {
   try {
@@ -55,11 +66,11 @@ function baueDefaultPlan() {
       { id: "donations", gewicht: 10 },
     ],
     kampagnen: [],
-    slots: [],
   };
 }
 
-// Oeffnet oder schliesst das Planungs-Panel an anker.
+// --- Panel ----------------------------------------------------------------
+
 export async function zeigeRedaktionsplan(anker) {
   if (aktivesPanel && aktivesPanel.parentElement === anker) {
     aktivesPanel.remove();
@@ -68,8 +79,8 @@ export async function zeigeRedaktionsplan(anker) {
   }
   if (aktivesPanel) aktivesPanel.remove();
 
-  const plan = await ladePlan();
-  const panel = bauePanel(plan, anker);
+  currentPlan = await ladePlan();
+  const panel = bauePanel(currentPlan, anker);
   aktivesPanel = panel;
   anker.insertBefore(panel, anker.firstChild);
 }
@@ -79,7 +90,6 @@ function bauePanel(plan, anker) {
   el.className = "gruppe";
   el.style.marginBottom = "12px";
 
-  // Kopf
   const kopf = document.createElement("div");
   kopf.className = "gruppe-kopf";
   const titelEl = document.createElement("span");
@@ -96,14 +106,21 @@ function bauePanel(plan, anker) {
 
   const koerper = document.createElement("div");
   koerper.style.padding = "0 11px 11px";
+  baueEinstellungen(plan, koerper);
 
-  baueEinstellungen(plan, koerper, anker);
+  const hr = document.createElement("hr");
+  hr.style.cssText = "margin:14px 0;border:none;border-top:1px solid var(--border)";
+  koerper.appendChild(hr);
+
+  baueKalender(koerper);
 
   el.appendChild(koerper);
   return el;
 }
 
-function baueEinstellungen(plan, koerper, anker) {
+// --- Einstellungen --------------------------------------------------------
+
+function baueEinstellungen(plan, koerper) {
   // Kadenz
   const kadenzBlock = abschnitt("Posts pro Woche");
   const kadenzInput = document.createElement("input");
@@ -122,9 +139,12 @@ function baueEinstellungen(plan, koerper, anker) {
   const mixInputs = {};
   for (const t of CONTENTTYPEN) {
     const eintrag = plan.typenmix.find((m) => m.typ === t.id) || { typ: t.id, anteil: 0 };
+    const dot = document.createElement("span");
+    dot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;background:${TYP_FARBE[t.id] || "#888"};margin-bottom:2px`;
     const wrapper = document.createElement("label");
     wrapper.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px";
-    wrapper.textContent = t.name;
+    wrapper.appendChild(dot);
+    wrapper.appendChild(document.createTextNode(t.name));
     const inp = document.createElement("input");
     inp.type = "number";
     inp.min = "0";
@@ -243,165 +263,220 @@ function baueEinstellungen(plan, koerper, anker) {
   const speichernBtn = knopf("Einstellungen speichern", { art: "haupt" });
   speichernBtn.addEventListener("click", async () => {
     speichernBtn.disabled = true;
-    const aktuell = await ladePlan();
-    const neuerPlan = {
-      ...aktuell,
-      kadenz: { postsProWoche: Math.max(1, parseInt(kadenzInput.value) || 3) },
-      typenmix: CONTENTTYPEN.map((t) => ({ typ: t.id, anteil: parseInt(mixInputs[t.id].value) || 0 })),
-      kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
-        id: k.id,
-        aktiv: katCheckboxes[k.id].checked,
-        prioritaet: parseInt(katPrioInputs[k.id].value) || 99,
-      })),
-      zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: parseInt(zielInputs[z.id].value) || 0 })),
-      kampagnen: kampagnenliste.filter((k) => k.name.trim()),
-    };
-    await speicherePlan(neuerPlan);
-    setStand("Redaktionsplan gespeichert.");
-    speichernBtn.disabled = false;
-  });
-  koerper.appendChild(speichernBtn);
-
-  // Trennlinie
-  const hr = document.createElement("hr");
-  hr.style.cssText = "margin:14px 0;border:none;border-top:1px solid var(--border)";
-  koerper.appendChild(hr);
-
-  // Slot-Abschnitt
-  baueSlotAbschnitt(plan, koerper);
-}
-
-function baueSlotAbschnitt(plan, koerper) {
-  const slotsEl = document.createElement("div");
-
-  const slotsKopf = abschnitt("Upload-Slots");
-
-  const erzeugBtn = knopf("Slots generieren (4 Wochen)", { art: "haupt", zeichen: "kalender" });
-  erzeugBtn.addEventListener("click", async () => {
-    erzeugBtn.disabled = true;
-    const panel = denkPanel(slotsEl, "Die KI plant Upload-Slots fuer die naechsten 4 Wochen …");
     try {
       const aktuell = await ladePlan();
-      const bereitsGeplant = (aktuell.slots || []).map((s) => `${s.datum} ${s.typ}`);
-      const antwort = await kiStream(
-        "plan",
-        {
-          wochen: 4,
-          ab: isoDatum(new Date()),
-          postsProWoche: aktuell.kadenz.postsProWoche,
-          typenmix: aktuell.typenmix,
-          kategorien: aktuell.kategorienFokus,
-          zielgewichte: aktuell.zielgewichte,
-          kampagnen: aktuell.kampagnen,
-          geplant: bereitsGeplant,
-        },
-        (e) => { if (e.status) panel.status(e.status); }
-      );
-      panel.weg();
-
-      const neueSlots = ((antwort.data && antwort.data.slots) || []).map((s) => ({
-        ...s,
-        id: neueSlotId(),
-        karteId: null,
-      }));
-      if (!neueSlots.length) {
-        await melde("hinweis", "Die KI hat keine Slots geliefert. Versuch es erneut.");
-        return;
-      }
-
-      const neu = await ladePlan();
-      const vorhandeneKeys = new Set((neu.slots || []).map((s) => `${s.datum}_${s.typ}`));
-      const zugefuegt = neueSlots.filter((s) => !vorhandeneKeys.has(`${s.datum}_${s.typ}`));
-      neu.slots = [...(neu.slots || []), ...zugefuegt].sort((a, b) => a.datum.localeCompare(b.datum));
-      await speicherePlan(neu);
-      setStand(`${zugefuegt.length} neue Upload-Slots geplant.`);
-      renderSlotliste(neu.slots, slotsEl, slotlisteEl);
+      const neuerPlan = {
+        ...aktuell,
+        kadenz: { postsProWoche: Math.max(1, parseInt(kadenzInput.value) || 3) },
+        typenmix: CONTENTTYPEN.map((t) => ({ typ: t.id, anteil: parseInt(mixInputs[t.id].value) || 0 })),
+        kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
+          id: k.id,
+          aktiv: katCheckboxes[k.id].checked,
+          prioritaet: parseInt(katPrioInputs[k.id].value) || 99,
+        })),
+        zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: parseInt(zielInputs[z.id].value) || 0 })),
+        kampagnen: kampagnenliste.filter((k) => k.name.trim()),
+      };
+      await speicherePlan(neuerPlan);
+      currentPlan = neuerPlan;
+      if (kalenderRendere) kalenderRendere();
+      setStand("Redaktionsplan gespeichert.");
     } catch (e) {
-      panel.weg();
       await melde("befund", e.message);
     } finally {
-      erzeugBtn.disabled = false;
+      speichernBtn.disabled = false;
     }
   });
-  slotsKopf.appendChild(erzeugBtn);
-  slotsEl.appendChild(slotsKopf);
-
-  const slotlisteEl = document.createElement("div");
-  slotsEl.appendChild(slotlisteEl);
-  renderSlotliste(plan.slots || [], slotsEl, slotlisteEl);
-
-  koerper.appendChild(slotsEl);
+  koerper.appendChild(speichernBtn);
 }
 
-function renderSlotliste(slots, container, listeEl) {
-  listeEl.innerHTML = "";
-  const offen = slots.filter((s) => !s.karteId);
-  const belegt = slots.filter((s) => s.karteId);
+// --- Kalender-Vorschau ----------------------------------------------------
 
-  if (!slots.length) {
-    const p = document.createElement("p");
-    p.className = "feld-hinweis";
-    p.textContent = 'Noch keine Slots — klick "Slots generieren" um einen Zeitplan zu erstellen.';
-    listeEl.appendChild(p);
-    return;
+let tooltipEl = null;
+
+function zeigeTooltip(e, slot) {
+  verbergeTooltip();
+  tooltipEl = document.createElement("div");
+  tooltipEl.style.cssText = [
+    "position:fixed",
+    "z-index:9999",
+    "background:var(--bg0)",
+    "border:1px solid var(--border)",
+    "border-radius:6px",
+    "padding:8px 11px",
+    "font-size:12px",
+    "line-height:1.6",
+    "box-shadow:0 4px 16px rgba(0,0,0,0.18)",
+    "pointer-events:none",
+    "max-width:220px",
+  ].join(";");
+
+  const farbe = TYP_FARBE[slot.typ] || "#888";
+  tooltipEl.innerHTML =
+    `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">` +
+    `<span style="width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0"></span>` +
+    `<strong>${escape(contenttypName(slot.typ))}</strong></div>` +
+    `<div style="color:var(--fg2);font-size:11px">${escape(kategorieName(slot.kategorie))}</div>` +
+    `<div>${escape(zielInfo(slot.ziel).name)}</div>` +
+    `<div style="color:var(--fg2);font-size:11px;margin-top:3px">${slot.uhrzeit} · ${escape(slot.plattform)}</div>`;
+
+  document.body.appendChild(tooltipEl);
+
+  const rect = e.target.getBoundingClientRect();
+  const tt = tooltipEl.getBoundingClientRect();
+  let left = rect.left + rect.width / 2 - tt.width / 2;
+  let top = rect.top - tt.height - 8;
+  if (top < 4) top = rect.bottom + 8;
+  if (left < 4) left = 4;
+  if (left + tt.width > window.innerWidth - 4) left = window.innerWidth - tt.width - 4;
+  tooltipEl.style.left = left + "px";
+  tooltipEl.style.top = top + "px";
+}
+
+function verbergeTooltip() {
+  if (tooltipEl) { tooltipEl.remove(); tooltipEl = null; }
+}
+
+function baueKalender(koerper) {
+  const ueberschrift = abschnitt("Kalender-Vorschau");
+  const hinweisEl = document.createElement("p");
+  hinweisEl.className = "feld-hinweis";
+  hinweisEl.style.marginBottom = "10px";
+  hinweisEl.textContent = "Algorithmisch erzeugt — nicht editierbar. Aendere die Parameter und speichere, um den Kalender zu aktualisieren.";
+  ueberschrift.appendChild(hinweisEl);
+  koerper.appendChild(ueberschrift);
+
+  // Legende
+  const legende = document.createElement("div");
+  legende.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;color:var(--fg1)";
+  for (const [typ, farbe] of Object.entries(TYP_FARBE)) {
+    const item = document.createElement("span");
+    item.style.cssText = "display:flex;align-items:center;gap:5px";
+    const dot = document.createElement("span");
+    dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};flex-shrink:0`;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(contenttypName(typ)));
+    legende.appendChild(item);
   }
+  koerper.appendChild(legende);
 
-  const satz = document.createElement("p");
-  satz.className = "feld-hinweis";
-  satz.style.marginBottom = "8px";
-  satz.textContent = `${offen.length} offen · ${belegt.length} belegt · ${slots.length} gesamt`;
-  listeEl.appendChild(satz);
+  const kalenderEl = document.createElement("div");
+  koerper.appendChild(kalenderEl);
 
-  for (const slot of slots) {
-    const zeile = document.createElement("div");
-    zeile.style.cssText = "display:flex;align-items:center;gap:6px;padding:3px 0;flex-wrap:wrap";
+  const heute = new Date();
+  let angezeigterMonat = new Date(heute.getFullYear(), heute.getMonth(), 1);
 
-    const datum = new Date(slot.datum + "T00:00:00").toLocaleDateString("de-DE", {
-      weekday: "short",
-      day: "numeric",
-      month: "numeric",
+  function rendere() {
+    kalenderEl.innerHTML = "";
+    const plan = currentPlan;
+    if (!plan) return;
+
+    const year = angezeigterMonat.getFullYear();
+    const month = angezeigterMonat.getMonth();
+
+    // Monats-Navigation
+    const nav = document.createElement("div");
+    nav.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:10px";
+
+    const prevBtn = knopf("‹", {
+      titel: "Vorheriger Monat",
+      klick: () => {
+        angezeigterMonat.setMonth(angezeigterMonat.getMonth() - 1);
+        rendere();
+      },
     });
-    const statusMarke = document.createElement("span");
-    statusMarke.className = `chip chip-${slot.karteId ? "ok" : "hinweis"}`;
-    statusMarke.style.cssText = "width:22px;justify-content:center;flex-shrink:0";
-    statusMarke.textContent = slot.karteId ? "✓" : "○";
-    zeile.appendChild(statusMarke);
+    const monatsTitel = document.createElement("span");
+    monatsTitel.style.cssText = "flex:1;text-align:center;font-weight:600;font-size:14px";
+    monatsTitel.textContent = angezeigterMonat.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+    const nextBtn = knopf("›", {
+      titel: "Naechster Monat",
+      klick: () => {
+        angezeigterMonat.setMonth(angezeigterMonat.getMonth() + 1);
+        rendere();
+      },
+    });
+    nav.appendChild(prevBtn);
+    nav.appendChild(monatsTitel);
+    nav.appendChild(nextBtn);
+    kalenderEl.appendChild(nav);
 
-    const datumEl = document.createElement("span");
-    datumEl.style.cssText = "min-width:100px;font-size:13px";
-    datumEl.textContent = `${datum} ${slot.uhrzeit || ""}`;
-    zeile.appendChild(datumEl);
+    // Slots generieren
+    const slots = slotsForMonth(plan, year, month);
 
-    const typMarke = document.createElement("span");
-    typMarke.className = "marke";
-    typMarke.textContent = contenttypName(slot.typ);
-    zeile.appendChild(typMarke);
-
-    const katMarke = document.createElement("span");
-    katMarke.className = "marke";
-    katMarke.textContent = kategorieName(slot.kategorie);
-    zeile.appendChild(katMarke);
-
-    const zielEl = document.createElement("span");
-    zielEl.style.cssText = "font-size:11px;color:var(--fg2)";
-    zielEl.textContent = zielInfo(slot.ziel).name || slot.ziel || "";
-    zeile.appendChild(zielEl);
-
-    if (!slot.karteId) {
-      const del = knopf("×", { titel: "Slot entfernen" });
-      del.style.marginLeft = "auto";
-      del.addEventListener("click", async () => {
-        const p = await ladePlan();
-        p.slots = p.slots.filter((s) => s.id !== slot.id);
-        await speicherePlan(p);
-        renderSlotliste(p.slots, container, listeEl);
-      });
-      zeile.appendChild(del);
+    // Nach Tag gruppieren
+    const slotsByDay = {};
+    for (const s of slots) {
+      const day = parseInt(s.datum.slice(-2), 10);
+      if (!slotsByDay[day]) slotsByDay[day] = [];
+      slotsByDay[day].push(s);
     }
 
-    listeEl.appendChild(zeile);
+    // Grid: 7 Spalten Mo–So
+    const grid = document.createElement("div");
+    grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:2px";
+
+    const tagNamen = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+    for (const n of tagNamen) {
+      const th = document.createElement("div");
+      th.style.cssText = "text-align:center;font-size:11px;font-weight:600;color:var(--fg2);padding:3px 0;";
+      th.textContent = n;
+      grid.appendChild(th);
+    }
+
+    // Leerfelder vor dem 1. des Monats (Mo=1→0, Di=2→1, ..., So=0→6)
+    const ersterWochentag = new Date(year, month, 1).getDay();
+    const leerVor = (ersterWochentag - 1 + 7) % 7;
+    for (let i = 0; i < leerVor; i++) grid.appendChild(document.createElement("div"));
+
+    const letzterTag = new Date(year, month + 1, 0).getDate();
+    const heuteISO = `${heute.getFullYear()}-${String(heute.getMonth()+1).padStart(2,"0")}-${String(heute.getDate()).padStart(2,"0")}`;
+
+    for (let tag = 1; tag <= letzterTag; tag++) {
+      const tagISO = `${year}-${String(month + 1).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+      const istHeute = tagISO === heuteISO;
+
+      const zelle = document.createElement("div");
+      zelle.style.cssText = [
+        "min-height:52px",
+        "padding:4px",
+        "border:1px solid var(--border)",
+        "border-radius:4px",
+        `background:${istHeute ? "var(--bg2, var(--bg1))" : "var(--bg1)"}`,
+        "position:relative",
+        istHeute ? "outline:1px solid var(--akzent, #3b82f6)" : "",
+      ].join(";");
+
+      const tagNr = document.createElement("div");
+      tagNr.style.cssText = `font-size:11px;color:${istHeute ? "var(--akzent,#3b82f6)" : "var(--fg2)"};font-weight:${istHeute ? "700" : "400"};margin-bottom:3px`;
+      tagNr.textContent = tag;
+      zelle.appendChild(tagNr);
+
+      const tageSlots = slotsByDay[tag] || [];
+      if (tageSlots.length) {
+        const punkte = document.createElement("div");
+        punkte.style.cssText = "display:flex;flex-wrap:wrap;gap:2px";
+        for (const slot of tageSlots) {
+          const farbe = TYP_FARBE[slot.typ] || "#888";
+          const punkt = document.createElement("span");
+          punkt.style.cssText = `width:10px;height:10px;border-radius:50%;background:${farbe};cursor:default;flex-shrink:0;display:inline-block`;
+          punkt.addEventListener("mouseenter", (e) => zeigeTooltip(e, slot));
+          punkt.addEventListener("mouseleave", verbergeTooltip);
+          punkte.appendChild(punkt);
+        }
+        zelle.appendChild(punkte);
+      }
+
+      grid.appendChild(zelle);
+    }
+
+    kalenderEl.appendChild(grid);
   }
+
+  kalenderRendere = rendere;
+  rendere();
 }
+
+// --- Hilfsfunktionen ------------------------------------------------------
 
 function abschnitt(titel) {
   const el = document.createElement("div");

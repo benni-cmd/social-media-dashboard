@@ -6,10 +6,10 @@
 //   Plan    — Termine fuer die naechsten Wochen, mindestens drei je Woche.
 
 import {
-  SAEULEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE,
-  contenttypName, kategorieName, contenttypFormat,
+  INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE,
+  contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
-import { zielInfo } from "/lib/pipeline.js";
+import { slotsForMonth } from "/lib/scheduler.js";
 import { S, kiStream, speichere, zeichne, melde, setStand } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel } from "./ui.js";
 
@@ -18,10 +18,18 @@ import { icon, statusChip, escape, knopf, denkPanel } from "./ui.js";
 async function ladeOffeneSlots() {
   try {
     const res = await fetch("/api/plan");
-    if (res.ok) {
-      const plan = await res.json();
-      return (plan.slots || []).filter((s) => !s.karteId);
+    if (!res.ok) return [];
+    const plan = await res.json();
+    // Algorithmisch erzeugte Slots der naechsten zwei Monate
+    const heute = new Date();
+    const heuteISO = isoDatum(heute);
+    const slots = [];
+    for (let delta = 0; delta < 2; delta++) {
+      const year = heute.getFullYear() + Math.floor((heute.getMonth() + delta) / 12);
+      const month = (heute.getMonth() + delta) % 12;
+      slots.push(...slotsForMonth(plan, year, month));
     }
+    return slots.filter((s) => s.datum >= heuteISO);
   } catch {}
   return [];
 }
@@ -30,7 +38,7 @@ export async function holeIdeen(anker) {
   const panel = denkPanel(anker, "Die KI sucht Ideen, die noch nicht da sind …");
   try {
     const offeneSlots = await ladeOffeneSlots();
-    const verteilung = saeulenVerteilung(S.cards.filter((c) => c.pillar))
+    const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
       .map((s) => `${s.name}: ${s.anzahl}`)
       .join(", ");
     const antwort = await kiStream(
@@ -40,7 +48,7 @@ export async function holeIdeen(anker) {
         vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
         verworfen: S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
         verteilung,
-        pillar: "",
+        kategorie: "",
         offeneSlots: offeneSlots.slice(0, 12),
       },
       (e) => {
@@ -110,7 +118,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
           const idee = ideen[i];
           const k = leereKarte("idee");
           k.title = idee.titel || "Neue Idee";
-          k.pillar = SAEULEN.some((s) => s.id === idee.saeule) ? idee.saeule : "";
+          k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : "";
           k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
           k.notes = idee.warum || "";
 
@@ -119,7 +127,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
           if (slot) {
             k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
             k.uploadTime = slot.uhrzeit || "";
-            k.format = contenttypFormat(slot.typ);
+            k.contenttyp = slot.typ || "reel";
             if (slot.ziel) k.goal = slot.ziel;
             slotUpdates.push({ slotId: slot.id, karteId: k.id });
           }
@@ -243,7 +251,7 @@ function zeigePlan(plan, hinweis, anker) {
           if (!k) {
             k = leereKarte("idee");
             k.title = e.titel || "Neue Idee";
-            k.pillar = SAEULEN.some((s) => s.id === e.saeule) ? e.saeule : "";
+            k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === e.saeule) ? e.saeule : "";
             if (e.ziel) k.goal = e.ziel;
             S.cards.push(k);
             neu++;
