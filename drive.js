@@ -3,14 +3,18 @@
 // Siehe docs/drive-convention.md und docs/packages/v5-google-drive-phase.md.
 
 import { spawn } from "node:child_process";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 const ROOT = process.env.DRIVE_ROOT_FOLDER_ID || "1jjQoeBpIzOdvAawyoSAuMWL2NGiN0mvt";
+const RCLONE_CONFIG = process.env.RCLONE_CONFIG ||
+  join(homedir(), "AppData", "Roaming", "rclone", "rclone.conf");
 
 // Ruft rclone auf. Argumente als Array -> Leerzeichen in Pfaden ("In Bearbeitung") sind sicher,
 // kein Shell-Quoting noetig. Optionaler stdin-Text fuer `rcat`.
 function rclone(args, input = null) {
   return new Promise((resolve, reject) => {
-    const child = spawn("rclone", [...args, "--drive-root-folder-id", ROOT], { shell: false });
+    const child = spawn("rclone", ["--config", RCLONE_CONFIG, ...args, "--drive-root-folder-id", ROOT], { shell: false });
     let out = "";
     let err = "";
     child.stdout.on("data", (d) => (out += d));
