@@ -4,6 +4,7 @@ import {
   CONTENTTYPEN,
   INHALTSKATEGORIEN,
   ZIELE,
+  PLATTFORMEN,
   contenttypName,
   kategorieName,
   zielInfo,
@@ -12,12 +13,24 @@ import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
 import { melde, setStand } from "./store.js";
 import { escape, knopf } from "./ui.js";
 
+// Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
+const PLAN_TYP_NAME = {
+  reel:       "Kurzformat-Video",
+  slider:     "Slider",
+  beitrag:    "Beitrag mit Text",
+  story:      "Story / Highlight",
+  langformat: "Langformat-Video",
+};
+
+// "highlight" erscheint hier nicht — es ist kein eigener Upload-Typ, sondern
+// ein gepinnter Story-Post. Im Scheduler gibt es keinen highlight-Slot.
+const PLAN_TYPEN = CONTENTTYPEN.filter((t) => t.id !== "highlight");
+
 const TYP_FARBE = {
   reel:       "#f97316",
   slider:     "#3b82f6",
   beitrag:    "#8b5cf6",
   story:      "#10b981",
-  highlight:  "#f59e0b",
   langformat: "#ef4444",
 };
 
@@ -46,12 +59,14 @@ async function ladePlan() {
   return defaultPlan();
 }
 
-// Fehlende Typen (z.B. langformat) in bestehenden Plan einfuegen
+// Fehlende Typen einfuegen, veraltete entfernen ("highlight" hat keinen eigenen Slot mehr)
 function ergaenzePlan(p) {
-  const bekannteTypen = new Set((p.typenmix || []).map((t) => t.typ));
-  for (const t of CONTENTTYPEN) {
+  p.typenmix = (p.typenmix || []).filter((t) => t.typ !== "highlight");
+  const bekannteTypen = new Set(p.typenmix.map((t) => t.typ));
+  for (const t of PLAN_TYPEN) {
     if (!bekannteTypen.has(t.id)) p.typenmix.push({ typ: t.id, perWoche: 0 });
   }
+  if (!p.plattformen) p.plattformen = ["instagram", "linkedin"];
   return p;
 }
 
@@ -66,10 +81,11 @@ async function speicherePlan(plan) {
 
 function defaultPlan() {
   return {
+    plattformen: ["instagram", "linkedin"],
     kadenz: { postsProWoche: 3 },
-    typenmix: CONTENTTYPEN.map(({ id }) => ({
+    typenmix: PLAN_TYPEN.map(({ id }) => ({
       typ: id,
-      perWoche: { reel: 2, slider: 0.75, beitrag: 0.25, story: 0, highlight: 0, langformat: 0 }[id] ?? 0,
+      perWoche: { reel: 2, slider: 0.75, beitrag: 0.25, story: 0, langformat: 0 }[id] ?? 0,
     })),
     kategorienFokus: INHALTSKATEGORIEN.map((k, i) => ({
       id: k.id,
@@ -134,6 +150,32 @@ function bauePanel(plan, _anker) {
 
 function baueEinstellungen(plan, koerper, nachSpeichern) {
 
+  // ── Aktive Plattformen ─────────────────────────────────────────────────
+  sektionKopf("Aktive Plattformen", koerper);
+  const plHinweis = document.createElement("p");
+  plHinweis.className = "feld-hinweis";
+  plHinweis.style.marginBottom = "10px";
+  plHinweis.textContent = "Welche Plattformen werden aktuell bespielt? Legt fest, auf welche Zeitfenster der Algorithmus optimiert.";
+  koerper.appendChild(plHinweis);
+
+  const plCheckboxen = {};
+  const plReihe = document.createElement("div");
+  plReihe.style.cssText = "display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px";
+  for (const pl of PLATTFORMEN) {
+    const aktiv = (plan.plattformen || ["instagram", "linkedin"]).includes(pl.id);
+    const label = document.createElement("label");
+    label.style.cssText = "display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = aktiv;
+    cb.style.cssText = "width:15px;height:15px;cursor:pointer;accent-color:var(--akzent,#3b82f6)";
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(pl.name));
+    plReihe.appendChild(label);
+    plCheckboxen[pl.id] = cb;
+  }
+  koerper.appendChild(plReihe);
+
   // ── Posting-Frequenz je Typ ────────────────────────────────────────────
   sektionKopf("Posting-Frequenz", koerper);
 
@@ -147,10 +189,10 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   freqGesamt.style.cssText = "font-size:12px;color:var(--fg2);margin-bottom:10px;font-weight:500";
 
   const freqGetters = {};
-  for (const t of CONTENTTYPEN) {
+  for (const t of PLAN_TYPEN) {
     const eintrag = plan.typenmix.find((m) => m.typ === t.id) || { perWoche: 0 };
     const { zeile, getValue } = frequenzZeile(
-      t.name,
+      PLAN_TYP_NAME[t.id] || t.name,
       TYP_FARBE[t.id] || "#888",
       eintrag.perWoche,
       () => aktualisiereGesamt(freqGesamt, Object.values(freqGetters).map((f) => f())),
@@ -249,7 +291,8 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       const aktuell = await ladePlan();
       const neuerPlan = {
         ...aktuell,
-        typenmix: CONTENTTYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
+        plattformen: PLATTFORMEN.map((pl) => pl.id).filter((id) => plCheckboxen[id]?.checked),
+        typenmix: PLAN_TYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
         kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
           id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
         })),
@@ -284,7 +327,7 @@ function zeigeTooltip(e, slot) {
     `<strong style="font-size:13px">${escape(contenttypName(slot.typ))}</strong></div>` +
     `<div style="color:var(--fg2)">${escape(kategorieName(slot.kategorie))}</div>` +
     `<div>${escape(zielInfo(slot.ziel).name)}</div>` +
-    `<div style="color:var(--fg2);margin-top:4px;font-size:11px">${slot.uhrzeit} · ${escape(slot.plattform)}</div>`;
+    `<div style="color:var(--fg2);margin-top:4px;font-size:11px">${slot.uhrzeit} · ${escape((slot.plattformen || []).join(", "))}</div>`;
   document.body.appendChild(tooltipEl);
   const r = e.target.getBoundingClientRect();
   const t = tooltipEl.getBoundingClientRect();
@@ -318,7 +361,7 @@ function baueKalender(koerper) {
     const dot = document.createElement("span");
     dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${farbe};flex-shrink:0`;
     item.appendChild(dot);
-    item.appendChild(document.createTextNode(contenttypName(typ)));
+    item.appendChild(document.createTextNode(PLAN_TYP_NAME[typ] || contenttypName(typ)));
     legende.appendChild(item);
   }
   koerper.appendChild(legende);

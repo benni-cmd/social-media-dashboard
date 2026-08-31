@@ -87,7 +87,7 @@ export async function holeIdee(anker) {
     k.contenttyp = slot.typ || "reel";
     if (slot.kategorie) k.kategorie = slot.kategorie;
     if (slot.ziel) k.goal = slot.ziel;
-    if (slot.plattform) k.platforms = [slot.plattform];
+    if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
     S.cards.push(k);
     speichere();
     zeichne();
@@ -161,7 +161,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
             k.contenttyp = slot.typ || "reel";
             if (slot.kategorie) k.kategorie = slot.kategorie;
             if (slot.ziel) k.goal = slot.ziel;
-            if (slot.plattform) k.platforms = [slot.plattform];
+            if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
             slotUpdates.push({ slotId: slot.id, karteId: k.id });
           }
 
