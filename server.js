@@ -285,7 +285,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // ---- OAuth: Instagram ------------------------------------------------
+    // ---- OAuth: Instagram (Weg B — Instagram Login, keine Facebook-Seite noetig) ---
 
     if (pfad === "/api/auth/instagram" && req.method === "GET") {
       const appId = process.env.INSTAGRAM_APP_ID;
@@ -296,10 +296,10 @@ const server = createServer(async (req, res) => {
       const p = new URLSearchParams({
         client_id: appId,
         redirect_uri: `http://localhost:${PORT}/api/auth/instagram/callback`,
-        scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
+        scope: "instagram_business_basic,instagram_business_manage_insights",
         response_type: "code",
       });
-      umleitung(res, `https://www.facebook.com/v21.0/dialog/oauth?${p}`);
+      umleitung(res, `https://www.instagram.com/oauth/authorize?${p}`);
       return;
     }
 
@@ -316,37 +316,38 @@ const server = createServer(async (req, res) => {
         const appId = process.env.INSTAGRAM_APP_ID;
         const appSecret = process.env.INSTAGRAM_APP_SECRET;
         const redirectUri = `http://localhost:${PORT}/api/auth/instagram/callback`;
-        const base = "https://graph.facebook.com/v21.0";
 
-        const kurz = await (
-          await fetch(
-            `${base}/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
-          )
-        ).json();
-        if (kurz.error) throw new Error(kurz.error.message);
+        // Kurzzeit-Token (1 Stunde) — liefert auch die user_id direkt mit.
+        const kurzRes = await fetch("https://api.instagram.com/oauth/access_token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: appId,
+            client_secret: appSecret,
+            grant_type: "authorization_code",
+            redirect_uri: redirectUri,
+            code,
+          }),
+        });
+        const kurz = await kurzRes.json();
+        if (kurz.error_message) throw new Error(kurz.error_message);
+        if (!kurz.access_token) throw new Error("Kein Token erhalten. Ist der Account als Tester eingeladen und akzeptiert?");
 
-        const lang = await (
-          await fetch(
-            `${base}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${kurz.access_token}`
-          )
-        ).json();
-        const userToken = lang.access_token || kurz.access_token;
+        // Langzeit-Token (60 Tage).
+        const langRes = await fetch(
+          `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${kurz.access_token}`
+        );
+        const lang = await langRes.json();
+        const accessToken = lang.access_token || kurz.access_token;
+        const igUserId = String(kurz.user_id);
 
-        const seiten = await (await fetch(`${base}/me/accounts?access_token=${userToken}`)).json();
-        if (!seiten.data?.length)
-          throw new Error("Keine Facebook-Seite gefunden. Zuerst eine Facebook-Seite mit dem Instagram-Konto verknuepfen.");
+        // Nutzername holen.
+        const infoRes = await fetch(
+          `https://graph.instagram.com/v21.0/${igUserId}?fields=username&access_token=${accessToken}`
+        );
+        const info = await infoRes.json();
 
-        const seite = seiten.data[0];
-        const seitenToken = seite.access_token;
-        const igDaten = await (
-          await fetch(`${base}/${seite.id}?fields=instagram_business_account&access_token=${seitenToken}`)
-        ).json();
-        if (!igDaten.instagram_business_account)
-          throw new Error("Mit dieser Facebook-Seite ist kein Instagram-Konto fuer Unternehmen oder Creator verknuepft.");
-
-        const igUserId = igDaten.instagram_business_account.id;
-        const info = await (await fetch(`${base}/${igUserId}?fields=username&access_token=${seitenToken}`)).json();
-        await speichereToken("instagram", { accessToken: seitenToken, igUserId, username: info.username || "" });
+        await speichereToken("instagram", { accessToken, igUserId, username: info.username || "" });
         umleitung(res, "/?verbunden=instagram");
       } catch (e) {
         umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
