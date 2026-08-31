@@ -1786,19 +1786,31 @@ body {
   animation: meldungRein 0.18s ease;
 }
 
-.meldung-erfolg { border-left-color: var(--ok); }
-.meldung-fehler { border-left-color: var(--befund); }
+.meldung-erfolg {
+  background: var(--ok);
+  border-left-color: transparent;
+  border-color: transparent;
+}
+.meldung-fehler {
+  background: var(--befund);
+  border-left-color: transparent;
+  border-color: transparent;
+}
 .meldung-bestaetigen { border-left-color: var(--hinweis); flex-direction: column; gap: 9px; }
 
-.meldung-erfolg > .icon { color: var(--ok); flex-shrink: 0; margin-top: 1px; }
-.meldung-fehler > .icon { color: var(--befund); flex-shrink: 0; margin-top: 1px; }
+.meldung-erfolg > .icon,
+.meldung-fehler > .icon { color: rgba(255,255,255,0.85); flex-shrink: 0; margin-top: 1px; }
 .meldung-bestaetigen-kopf > .icon { color: var(--hinweis); flex-shrink: 0; margin-top: 1px; }
+
+.meldung-erfolg .meldung-text,
+.meldung-fehler .meldung-text { color: #fff; }
 
 .meldung-text {
   flex: 1 1 auto;
   font-size: 13px;
   color: var(--text);
   line-height: 1.4;
+  font-weight: 500;
 }
 
 .meldung-schliessen {
@@ -1812,6 +1824,10 @@ body {
   flex-shrink: 0;
   margin-top: 1px;
 }
+.meldung-erfolg .meldung-schliessen,
+.meldung-fehler .meldung-schliessen { color: rgba(255,255,255,0.7); }
+.meldung-erfolg .meldung-schliessen:hover,
+.meldung-fehler .meldung-schliessen:hover { color: #fff; }
 .meldung-schliessen:hover { color: var(--text); }
 
 .meldung-bestaetigen-kopf {
