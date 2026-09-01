@@ -78,6 +78,20 @@ da war, bleibt der Wert für die ganze Sitzung.
 **Verifiziert am härtesten Fall:** BEIDE Config-Dateien (Roaming + Local) nach dem Start gelöscht →
 `erreichbar()` weiterhin `ok`, kein Fehler-Log. Genau das schlug vorher fehl.
 
+## Nachtrag: Erst-Start-Lücke geschlossen (Log 19:23:57)
+
+Trotz Env-Fix kam der Fehler beim Serverstart 19:23:57 (`quelle=FEHLT`): war beim Modul-Load die
+Roaming-Quelle just weg UND die Local-Kopie noch nicht angelegt, konnte `gdriveEnv()` die Daten nie
+lesen. Recherche dazu (kein Rateschluss): Rechner **nicht** domänengebunden (kein Roaming-Profil-Sync);
+ein 4-min-Watcher (10 ms) fing **kein** natürliches Verschwinden → die Störung ist **ausgelöst**
+(zum Board-Start), nicht periodisch; auf der Datei-ACL steht ein AppContainer-Capability-SID (paketierte
+Sync-App), OneDrive läuft. Den Verursacher-Prozess ohne Live-Vorfall nicht namentlich festgenagelt —
+aber irrelevant, sobald das Board nicht mehr von der Datei abhängt.
+
+**Fix:** Beim Modul-Start werden die Zugangsdaten mit beschränktem Retry (bis 12 s, alle 300 ms) sicher
+in den Speicher geholt; danach immun. Verifiziert: beide Dateien beim Start weg, Roaming nach 2 s zurück
+→ Load wartete 2186 ms, lud dann, `erreichbar` ok, Local-Kopie neu angelegt.
+
 ## Was gebaut wurde (robust + selbst-diagnostizierend)
 
 1. **Instrumentierung** (`configSchnappschuss`): beim „didn't find section" wird der EXAKTE Config-Zustand
