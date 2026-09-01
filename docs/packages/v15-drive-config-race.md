@@ -45,9 +45,26 @@ mit Retry im Server). Daraufhin die eigene Race-Theorie hart geprüft und **wide
 - Reproduktion: 20 parallel (valid) = 20/20 ok; **160 Calls / 20 erzwungene Refreshs / 8× parallel = 0 Fehler**.
   rclone v1.75 ist gegen gleichzeitigen Config-Zugriff robust — Concurrency ist NICHT die Ursache.
 
-**Ehrlicher Stand: Grundursache nicht sicher identifiziert, isoliert nicht reproduzierbar.** Der Fehler
-korreliert mit Kaltstart (18:32 / 18:44 je kurz nach Serverstart). Offene Kandidaten, die zum Muster passen:
-Datei kurz durch Fremdprozess gesperrt (Virenscanner/Indexer/Cloud-Sync auf `AppData\Roaming`) → rclone liest leer.
+## GRUNDURSACHE BESTÄTIGT (01.09.2026, aus `data/drive-error.log`)
+
+Die Instrumentierung fing den Vorfall: **`DATEI FEHLT`** — die Config `AppData\Roaming\rclone\rclone.conf`
+**existierte 19:05:19–19:05:37 (~18 s) schlicht nicht**, danach war sie mit **unveränderter mtime (18:56)**
+wieder da. Also nicht leer, nicht gesperrt, nicht neu geschrieben: **extern entfernt und unverändert
+zurückgelegt** — die Signatur eines Roaming-Profil-Sync/Backup-Dienstes, der `AppData\Roaming` anfasst.
+(OneDrive läuft, aber `AppData\Roaming` liegt nicht darunter; der Ordner ist kein Platzhalter.)
+
+Das erklärt lückenlos: nicht reproduzierbar (hängt an einem Fremdprozess auf genau diesem Rechner),
+überlebt keinen Retry (18 s ≫ 5,5 s), und kein rclone-/Concurrency-Fix konnte je greifen.
+
+## Fix der Grundursache: stabile Arbeitskopie in AppData\Local
+
+`lib/drive.js` legt beim Start eine **Arbeitskopie der Config in `AppData\Local\social-media-dashboard\rclone.conf`**
+an (`stabileConfig()`) und richtet rclone darauf. `Local` wird nie geroamt/gesynct; nur das Board schreibt
+dort hinein. Verschwindet die Roaming-Quelle, bleibt die Arbeitskopie bestehen → das Board ist immun.
+Ist die Quelle neuer (Re-Auth im Onboarding), wird die Arbeitskopie beim nächsten Start aufgefrischt.
+
+**Verifiziert:** Roaming-Quelle im Test weggenommen (exakt der 19:05-Fall) → `erreichbar()` weiterhin `ok`,
+kein Fehler. Ohne Fix schlug genau das fehl.
 
 ## Was gebaut wurde (robust + selbst-diagnostizierend)
 
@@ -63,13 +80,14 @@ Datei kurz durch Fremdprozess gesperrt (Virenscanner/Indexer/Cloud-Sync auf `App
 - [x] lib/drive.js: Retry (`rclone`→`rcloneMitRetry`→`rcloneVersuch`), Backoff 300/700/1500/3000 ms
 - [x] lib/drive.js: Serialisierung aller rclone-Calls (Promise-Kette)
 - [x] lib/drive.js: Config-Schnappschuss-Instrumentierung → data/drive-error.log
-- [x] Verify: Normalbetrieb 12/12 ok (~500 ms/Call); Instrumentierung schreibt bei leerer Config `size=0 sektionen=0`
+- [x] **Grundursache aus Log bestätigt: Roaming-Config verschwindet extern (~18 s)**
+- [x] **lib/drive.js: stabile Arbeitskopie in AppData\Local (`stabileConfig()`) — behebt die Ursache**
+- [x] Verify: Quelle weggenommen → Board weiterhin `ok` (immun); Normalbetrieb 12/12 ok (~500 ms/Call)
 - [x] Commit + Push
-- [ ] **OFFEN (braucht echten Vorfall): data/drive-error.log auswerten → Grundursache → gezielter Fix**
 
 ## DoD
-- [x] Drive-Aktion überlebt ein mehrsekündiges Config-Fenster (Retry)
-- [x] Kein Spawn-Sturm mehr (Serialisierung)
-- [x] Nächster Vorfall ist beweisbar (Schnappschuss im Log)
-- [ ] Grundursache benannt und gezielt behoben — erst nach Auswertung eines echten Log-Eintrags abhakbar
+- [x] Board arbeitet gegen eine stabile Config, die kein Fremdprozess wegnimmt (Arbeitskopie in Local)
+- [x] Verschwindet die Roaming-Quelle, läuft das Board weiter (verifiziert)
+- [x] Retry + Serialisierung als zusätzliche Absicherung; Vorfälle bleiben im Log beweisbar
+- [ ] Bestätigung im Alltag: Board läuft über mehrere Sitzungen ohne den Fehler (Owner beobachtet)
 - Root-`drive.js` ist totes Alt-Modul (von nichts importiert) — separate Aufräum-Aufgabe (Chip), nicht Teil dieses Pakets
