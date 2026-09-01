@@ -34,15 +34,42 @@ Störungen bleiben sofortige Fehler. Normale Aufrufe verlieren keine Zeit.
    leer ist (Simulation via temporäre leere `--config`-Datei) und gibt nach N Versuchen klar auf
 4. Commit + Push
 
+## Korrektur (01.09.2026, nach erneutem Auftreten)
+
+Die erste Fassung (nur Retry) behob es NICHT — der Fehler kam erneut (18:44:01, 2 s nach Kaltstart,
+mit Retry im Server). Daraufhin die eigene Race-Theorie hart geprüft und **widerlegt**:
+
+- Server-Env identisch zu Terminal (`USERPROFILE=C:\Users\benkn`, kein abweichendes `HOME`/`RCLONE_CONFIG`) — via PEB gelesen.
+- Nur **eine** `rclone.conf` (546 B, 1 Sektion), nur **ein** rclone.exe (v1.75, überall dasselbe).
+- **Kein** Code schreibt die Config; rclone schreibt sie nur beim Token-Refresh (mtime bleibt bei gültigem Token).
+- Reproduktion: 20 parallel (valid) = 20/20 ok; **160 Calls / 20 erzwungene Refreshs / 8× parallel = 0 Fehler**.
+  rclone v1.75 ist gegen gleichzeitigen Config-Zugriff robust — Concurrency ist NICHT die Ursache.
+
+**Ehrlicher Stand: Grundursache nicht sicher identifiziert, isoliert nicht reproduzierbar.** Der Fehler
+korreliert mit Kaltstart (18:32 / 18:44 je kurz nach Serverstart). Offene Kandidaten, die zum Muster passen:
+Datei kurz durch Fremdprozess gesperrt (Virenscanner/Indexer/Cloud-Sync auf `AppData\Roaming`) → rclone liest leer.
+
+## Was gebaut wurde (robust + selbst-diagnostizierend)
+
+1. **Instrumentierung** (`configSchnappschuss`): beim „didn't find section" wird der EXAKTE Config-Zustand
+   festgehalten (Pfad, existiert?, Größe, Sektionszahl, mtime, erste Bytes) → `data/drive-error.log` (gitignoriert)
+   und an die Fehlermeldung angehängt. Der nächste Vorfall zeigt DEFINITIV, ob die Datei leer, weg oder intakt war.
+2. **Serialisierung**: alle rclone-Calls laufen nacheinander (Promise-Kette) — nimmt der Concurrency-Klasse den Boden
+   und verhindert Spawn-Stürme (40 parallele Spawns blockierten im Test). Kosten: ~500 ms/Call, Board macht wenige.
+3. **Längerer Retry**: 300/700/1500/3000 ms (~5,5 s) — deckt auch ein mehrsekündiges Fenster ab; nur die Config-Race.
+
 ## Stand
 - [x] Paket angelegt
-- [x] lib/drive.js: Retry auf transiente Config-Race (`rclone`→`rcloneVersuch`, Backoff 200/400/800 ms)
-- [x] Verify a: Normalbetrieb unverändert (`erreichbar()` = ok, 514 ms)
-- [x] Verify b: Retry-Pfad nachgewiesen (leere Config → erkennt Race, wiederholt, gibt sauber auf)
+- [x] lib/drive.js: Retry (`rclone`→`rcloneMitRetry`→`rcloneVersuch`), Backoff 300/700/1500/3000 ms
+- [x] lib/drive.js: Serialisierung aller rclone-Calls (Promise-Kette)
+- [x] lib/drive.js: Config-Schnappschuss-Instrumentierung → data/drive-error.log
+- [x] Verify: Normalbetrieb 12/12 ok (~500 ms/Call); Instrumentierung schreibt bei leerer Config `size=0 sektionen=0`
 - [x] Commit + Push
+- [ ] **OFFEN (braucht echten Vorfall): data/drive-error.log auswerten → Grundursache → gezielter Fix**
 
 ## DoD
-- Drive-Aktion überlebt einen gleichzeitigen Config-Neuschreib-Moment (Retry statt Absturz)
-- Nur die Config-Race wird wiederholt; Exit 3/4 und echte Fehler bleiben sofort
-- Kein Zeitverlust im Normalfall (Retry nur nach Fehler)
-- Root-`drive.js` ist totes Alt-Modul (von nichts importiert) — als separate Aufräum-Aufgabe vermerkt, nicht Teil dieses Pakets
+- [x] Drive-Aktion überlebt ein mehrsekündiges Config-Fenster (Retry)
+- [x] Kein Spawn-Sturm mehr (Serialisierung)
+- [x] Nächster Vorfall ist beweisbar (Schnappschuss im Log)
+- [ ] Grundursache benannt und gezielt behoben — erst nach Auswertung eines echten Log-Eintrags abhakbar
+- Root-`drive.js` ist totes Alt-Modul (von nichts importiert) — separate Aufräum-Aufgabe (Chip), nicht Teil dieses Pakets

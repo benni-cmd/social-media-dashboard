@@ -21,3 +21,6 @@ credentials.json
 
 # OAuth-Tokens: lokal, nie im Repo.
 data/tokens.json
+
+# Diagnose-Log der Drive-Anbindung (lokal, nicht versionieren)
+data/drive-error.log
