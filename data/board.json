@@ -1,5 +1,5 @@
 {
-  "version": 126,
+  "version": 181,
   "cards": [
     {
       "id": "test-oasis-01",
@@ -789,14 +789,10 @@
         "directGaze": false
       },
       "dates": {
-        "idee": "2026-09-04",
-        "skript": "2026-09-06",
-        "dreh": "2026-09-08",
-        "schnitt": "2026-09-11",
-        "freigabe": "2026-09-13",
-        "upload": "2026-09-14"
+        "dreh": "2026-08-25",
+        "upload": "2026-09-08"
       },
-      "uploadTime": "",
+      "uploadTime": "11:00",
       "checks": {},
       "ai": {
         "skript": "Hier ist der Sprechertext für Phase 2, Thema Lehmboden (Content-Säule Hard Facts):\n\n[CHUNK 1]\nDein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.\n\n[CHUNK 2]\nLehm speichert mehr Nährstoffe als Sandboden – wie ein Tresor, aus dem nichts einfach rausrutscht.\n\n[CHUNK 3]\nDas eigentliche Problem ist nicht der Mangel, sondern die Struktur: Nach Regen steht das Wasser tagelang, im Sommer wird der Boden hart wie Estrich – Wurzeln ersticken oder reißen ab.\n\n[CHUNK 4]\nDie Lösung: organisches Material einarbeiten, tiefwurzelnden Ölrettich als Gründüngung setzen, und den Boden nie bearbeiten, solange er noch nass klebt.\n\n[CHUNK 5]\nHast du Lehmboden und kämpfst noch mit der Struktur? Wenn du diesen Weg schon gehst, schreib mir gern, was bei dir funktioniert.\n\nKurz zur Einordnung: ~91 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 33–38 Sekunden – nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\", aber innerhalb der 50-Sekunden-Hausregel, weil sowohl die CEC-Erklärung als auch Problem und Handlung Platz brauchen."
@@ -877,7 +873,7 @@
     {
       "id": "cmthdus43lidh",
       "schema": 2,
-      "column": "idee",
+      "column": "skript",
       "title": "Test Idee 1",
       "notes": "",
       "serie": "",
@@ -890,21 +886,28 @@
       ],
       "owner": "",
       "hook": {
-        "text": "",
-        "visual": ""
+        "text": "Regenwürmer und Pilze bauen deinen Boden – nicht du.",
+        "visual": "Extreme Nahaufnahme, Kamera auf Bodenhöhe: ein Regenwurm windet sich durch dunkle, krümelige Erde, füllt den ganzen Bildrahmen aus"
       },
       "cta": {
         "text": "",
         "directness": "indirekt"
       },
       "frame": {
-        "problem": "",
-        "solution": ""
+        "problem": "Nach starkem Regen steht das Wasser in Pfuetzen oder laeuft einfach ab, nach zwei, drei trockenen Wochen ist derselbe Boden hart wie Beton und rissig — der Boden kann Wasser weder aufnehmen noch halten.",
+        "solution": "Eine Mulchschicht oder eingearbeiteter Kompost zeigt sichtbar, wie der Boden nach wenigen Wochen mehr Feuchtigkeit haelt und weniger schnell austrocknet."
       },
       "caption": {
         "lead": "",
         "body": "",
-        "keywords": [],
+        "keywords": [
+          "Boden verbessern",
+          "Humus aufbauen",
+          "Wasserspeicherung Garten",
+          "Mulchen Anleitung",
+          "Duerre Garten",
+          "Bodenleben Regenwuermer"
+        ],
         "hashtags": {}
       },
       "video": {
@@ -920,13 +923,81 @@
       },
       "uploadTime": "",
       "checks": {},
-      "ai": {},
-      "driveName": "",
+      "ai": {
+        "skript": "[CHUNK 1]\nRegenwürmer und Pilze bauen deinen Boden – nicht du.\n\n[CHUNK 2]\nNach Regen stehen Pfützen, nach drei trockenen Wochen ist derselbe Boden hart wie Beton.\n\n[CHUNK 3]\nDer Grund: Regenwürmer graben Tunnel, Pilzfäden verweben sich zu einem Netz, das Wasser hält wie ein Schwamm.\n\n[CHUNK 4]\nFüttere dieses Bodenleben: eine Schicht Mulch oder Kompost auflegen, nicht umgraben. Nach wenigen Wochen fühlt sich der Boden spürbar anders an.\n\n[CHUNK 5]\nWeißt du, was in deinem Boden lebt? Wenn du das bei dir ausprobierst, schreib mir, wie sich dein Boden verändert.\n\n---\n\nKurz zur Einordnung: ca. 80 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 28–32 Sekunden — nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\" und deutlich unter der 50-Sekunden-Grenze."
+      },
+      "driveName": "TestIdee1",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": "bildung"
+      "kategorie": "bildung",
+      "recherche": {
+        "zusammenfassung": "Ackerboeden mit hohem Humusanteil koennen laut US-amerikanischen Bodenkundlern (USDA NRCS) pro zusaetzlichem Prozentpunkt organischer Substanz bis zu rund 170.000 Liter mehr Wasser je Hektar in der obersten Bodenschicht halten. Weltweit gelten laut FAO etwa ein Drittel aller landwirtschaftlich genutzten Boeden bereits als degradiert, meist durch Verdichtung und Verlust organischer Substanz. Der Effekt ist rein physikalisch: Humus und Bodenlebewesen wie Regenwuermer schaffen ein Netz aus Poren und Kanaelen, das Wasser wie ein Schwamm aufsaugt statt es abfliessen zu lassen. Kleingaertner und Farmbetriebe mit sichtbarer Verschlaemmung nach Starkregen oder rissigem, hartem Boden nach Trockenperioden haben in der Regel genau dieses Problem: zu wenig organische Substanz, zu wenig Bodenleben.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Boden als Schwamm: wie Humusaufbau konkret Wasser speichert und Farmen widerstandsfaehiger gegen Trockenheit und Starkregen macht."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Bodenleben als Fundament: Regenwuermer, Pilznetzwerke und Mikroorganismen als die eigentlichen Baumeister der Wasserspeicherfaehigkeit."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Die einfachste Sofortmassnahme: Mulchdecke auflegen als konkreter erster Schritt, den jeder noch diese Woche umsetzen kann."
+          }
+        ],
+        "frame": {
+          "problem": "Nach starkem Regen steht das Wasser in Pfuetzen oder laeuft einfach ab, nach zwei, drei trockenen Wochen ist derselbe Boden hart wie Beton und rissig — der Boden kann Wasser weder aufnehmen noch halten.",
+          "solution": "Eine Mulchschicht oder eingearbeiteter Kompost zeigt sichtbar, wie der Boden nach wenigen Wochen mehr Feuchtigkeit haelt und weniger schnell austrocknet."
+        },
+        "keywords": [
+          "Boden verbessern",
+          "Humus aufbauen",
+          "Wasserspeicherung Garten",
+          "Mulchen Anleitung",
+          "Duerre Garten",
+          "Bodenleben Regenwuermer"
+        ]
+      },
+      "chosenFokus": 1,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Weißt du, wer den Wasserspeicher in deinem Boden wirklich baut?"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Regenwürmer und Pilze bauen deinen Boden – nicht du."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Dein Boden speichert kein Wasser? Frag mal die Regenwürmer."
+          }
+        ]
+      },
+      "chosenVerbal": 1,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Extreme Nahaufnahme, Kamera auf Bodenhöhe: ein Regenwurm windet sich durch dunkle, krümelige Erde, füllt den ganzen Bildrahmen aus"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Eine Hand bricht einen Erdklumpen auseinander und legt darin ein feines weißes Fadengeflecht (Pilzmyzel) frei, das sich wie ein Netz durch die Erde zieht"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Zwei leere Gartenhandschuhe liegen unbenutzt im Bild, im Vordergrund kriecht ein Regenwurm sichtbar durch die Erde davor"
+          }
+        ]
+      },
+      "chosenVisuell": 0,
+      "skriptFinal": "[CHUNK 1]\nRegenwürmer und Pilze bauen deinen Boden – nicht du.\n\n[CHUNK 2]\nNach Regen stehen Pfützen, nach drei trockenen Wochen ist derselbe Boden hart wie Beton.\n\n[CHUNK 3]\nDer Grund: Regenwürmer graben Tunnel, Pilzfäden verweben sich zu einem Netz, das Wasser hält wie ein Schwamm.\n\n[CHUNK 4]\nFüttere dieses Bodenleben: eine Schicht Mulch oder Kompost auflegen, nicht umgraben. Nach wenigen Wochen fühlt sich der Boden spürbar anders an.\n\n[CHUNK 5]\nWeißt du, was in deinem Boden lebt? Wenn du das bei dir ausprobierst, schreib mir, wie sich dein Boden verändert.\n\n---\n\nKurz zur Einordnung: ca. 80 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 28–32 Sekunden — nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\" und deutlich unter der 50-Sekunden-Grenze.",
+      "skriptGespeichert": true
     },
     {
       "id": "cmtheojumdt5g",
@@ -938,7 +1009,7 @@
       "episode": "",
       "format": "Reel",
       "pillar": "",
-      "goal": "reach_new",
+      "goal": "",
       "platforms": [
         "instagram"
       ],
@@ -983,530 +1054,7 @@
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojum95kr",
-      "schema": 2,
-      "column": "idee",
-      "title": "Was du diese Woche im Garten geschafft hast, zaehlt",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "anleitung",
-      "goal": "community",
-      "platforms": [
-        "instagram",
-        "tiktok"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-08-26",
-        "skript": "2026-08-28",
-        "dreh": "2026-08-30",
-        "schnitt": "2026-09-02",
-        "freigabe": "2026-09-04",
-        "upload": "2026-09-05"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumi8ah",
-      "schema": 2,
-      "column": "idee",
-      "title": "Was du neben Gemuese noch pflanzen solltest",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "deepen",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-08-28",
-        "skript": "2026-08-30",
-        "dreh": "2026-09-01",
-        "schnitt": "2026-09-04",
-        "freigabe": "2026-09-06",
-        "upload": "2026-09-07"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumupl2",
-      "schema": 2,
-      "column": "idee",
-      "title": "Wie aus Gartenabfall Eier werden",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "reach_new",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-08-30",
-        "skript": "2026-09-01",
-        "dreh": "2026-09-03",
-        "schnitt": "2026-09-06",
-        "freigabe": "2026-09-08",
-        "upload": "2026-09-09"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumyboa",
-      "schema": 2,
-      "column": "idee",
-      "title": "So siehst du, wo deine Spende gerade waechst",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "donations",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-02",
-        "skript": "2026-09-04",
-        "dreh": "2026-09-06",
-        "schnitt": "2026-09-09",
-        "freigabe": "2026-09-11",
-        "upload": "2026-09-12"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumqow4",
-      "schema": 2,
-      "column": "idee",
-      "title": "Halten dich deine Tiere genauso im Kreislauf wie deinen Garten?",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "community",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-07",
-        "skript": "2026-09-09",
-        "dreh": "2026-09-11",
-        "schnitt": "2026-09-14",
-        "freigabe": "2026-09-16",
-        "upload": "2026-09-17"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumh1wm",
-      "schema": 2,
-      "column": "idee",
-      "title": "Was du pflanzt, wenn dein Boden schwer bleibt",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "deepen",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-10",
-        "skript": "2026-09-12",
-        "dreh": "2026-09-14",
-        "schnitt": "2026-09-17",
-        "freigabe": "2026-09-19",
-        "upload": "2026-09-20"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojum7pb9",
-      "schema": 2,
-      "column": "idee",
-      "title": "Die Gratis-Arbeiter, die du schon in deinem Garten hast",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "reach_new",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-12",
-        "skript": "2026-09-14",
-        "dreh": "2026-09-16",
-        "schnitt": "2026-09-19",
-        "freigabe": "2026-09-21",
-        "upload": "2026-09-22"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumdrtm",
-      "schema": 2,
-      "column": "idee",
-      "title": "Welches Thema soll als Naechstes dran",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "community",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-14",
-        "skript": "2026-09-16",
-        "dreh": "2026-09-18",
-        "schnitt": "2026-09-21",
-        "freigabe": "2026-09-23",
-        "upload": "2026-09-24"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
-      "kategorie": ""
-    },
-    {
-      "id": "cmtheojumyuob",
-      "schema": 2,
-      "column": "idee",
-      "title": "Was aus eurer Unterstuetzung diesen Monat wurde",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "donations",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-09-16",
-        "skript": "2026-09-18",
-        "dreh": "2026-09-20",
-        "schnitt": "2026-09-23",
-        "freigabe": "2026-09-25",
-        "upload": "2026-09-26"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "reel",
+      "contenttyp": "",
       "kategorie": ""
     },
     {
@@ -1634,6 +1182,299 @@
       "chosenVisuell": 0,
       "contenttyp": "reel",
       "kategorie": ""
+    },
+    {
+      "id": "cmthp51mzjq7z",
+      "schema": 2,
+      "column": "idee",
+      "title": "Warum Monokultur deinen Boden auslaugt",
+      "notes": "Selbstversorger mit kleinem Beet oder Feld planen oft Jahr fuer Jahr die gleiche Flaeche gleich und wundern sich ueber sinkende Ertraege, ohne den Zusammenhang zur Nachbarsaat zu kennen",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "beitrag",
+      "kategorie": "bildung",
+      "goal": "deepen",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Dein Ertrag sinkt und du weisst nicht warum?",
+        "visual": "Zeitraffer eines Beets ueber drei Jahre: erst ueppig, dann sichtbar duenner, waehrend eine Hand Samentuetchen derselben Sorte immer wieder in dieselbe Reihe legt"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-22",
+        "skript": "2026-08-24",
+        "dreh": "2026-08-26",
+        "schnitt": "2026-08-29",
+        "freigabe": "2026-08-31",
+        "upload": "2026-09-01"
+      },
+      "uploadTime": "15:00",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {}
+    },
+    {
+      "id": "cmthq86cun1eg",
+      "schema": 2,
+      "column": "idee",
+      "title": "Biointensive Landwirtschaft",
+      "notes": "Die Zielgruppe kann effizient und nachhaltig an ihren Farms oder Gärten arbeiten, indem sie Ressourcen minimalisieren und Erträge maximieren.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "langformat",
+      "kategorie": "bildung",
+      "goal": "deepen",
+      "platforms": [
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Mehr Ernte auf weniger Raum",
+        "visual": "Ein Schnappschuss von einem erfolgreichen Biointensiv-Bett, das verschiedene Nahrungsmittel bietet (z.B. Gemüse und Kräuter), angeordnet, um Platz und Ressourcen optimal zu nutzen."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Kleine Flächen können mit traditionellen Methoden nur geringe Erträge liefern und Ressourcen nicht effizient nutzen.",
+        "solution": "Durch die Anwendung von biointensiven Methoden wie engem Pflanzen, Bodendüngung und geschickter Wahl der Pflanzen kann man mehr Ernte auf weniger Platz erzielen."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "biointensive Landwirtschaft",
+          "nachhaltiger Anbau",
+          "Erträge maximieren",
+          "Effiziente Ressourcenmanagement",
+          "kleinräumige Anbau",
+          "bodenverbundene Pflanzen"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-22",
+        "skript": "2026-08-24",
+        "dreh": "2026-08-26",
+        "schnitt": "2026-08-29",
+        "freigabe": "2026-08-31",
+        "upload": "2026-09-01"
+      },
+      "uploadTime": "17:00",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Biointensive Landwirtschaft ermöglicht es Farmers und Gärtner, durch gezielte Bodenbearbeitung, Samenwahl und Plantagenplanung ihre Erträge zu erhöhen, während sie Ressourcen wie Wasser und Dünger sparen. Dieser Ansatz fördert bodenverbundene Pflanzenpraktiken und eine nachhaltige Nutzung des Bodens. Die Methode ist besonders wertvoll für Selbstversorger und kleinräumige Anwender.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Biointensive Landwirtschaft ermöglicht eine effiziente Nutzung der Bodenfläche und maximale Erträge durch enges Pflanzen und Bodendüngung."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Biointensive Landwirtschaft minimiert den Ressourcenverbrauch durch Bodenverbund und die nachhaltige Anwendung von Dünger und Wasser."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Biointensive Landwirtschaft ermöglicht es, kleinräumige Anbauflächen hochgradig zu nutzen und trotzdem auf eine Vielfalt an Nahrungsmitteln zu verzichten."
+          }
+        ],
+        "frame": {
+          "problem": "Kleine Flächen können mit traditionellen Methoden nur geringe Erträge liefern und Ressourcen nicht effizient nutzen.",
+          "solution": "Durch die Anwendung von biointensiven Methoden wie engem Pflanzen, Bodendüngung und geschickter Wahl der Pflanzen kann man mehr Ernte auf weniger Platz erzielen."
+        },
+        "keywords": [
+          "biointensive Landwirtschaft",
+          "nachhaltiger Anbau",
+          "Erträge maximieren",
+          "Effiziente Ressourcenmanagement",
+          "kleinräumige Anbau",
+          "bodenverbundene Pflanzen"
+        ]
+      },
+      "chosenFokus": 1,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Mehr Ernte auf weniger Raum"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Optimiere deinen Boden für mehrErnte"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Weniger Platz, mehr Gewinn"
+          }
+        ]
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Ein Bild eines dicht besetzten Kräuterbeetes mit saftigen Pflanzen und engen Abständen zwischen den Individualpflanzen, umzuzeigen, wie biointensive Methoden funktionieren."
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Eine Illustration oder Infografik, die die Nutzung von Schichten und Vertikalpflanzen zeigt, um maximalen Raum aus der Fläche zu erzielen."
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Ein Schnappschuss von einem erfolgreichen Biointensiv-Bett, das verschiedene Nahrungsmittel bietet (z.B. Gemüse und Kräuter), angeordnet, um Platz und Ressourcen optimal zu nutzen."
+          }
+        ]
+      },
+      "chosenVisuell": 2
+    },
+    {
+      "id": "cmthqx5gyzjfb",
+      "schema": 2,
+      "column": "idee",
+      "title": "Bienenfreundliche Blüten",
+      "notes": "Natürliches Schädlingsschutzsystem und gleichzeitig Bienenförderung, was dem Ökosystem auf der Farm guttut.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "story",
+      "kategorie": "bildung",
+      "goal": "deepen",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Wo wir Bienen brauchen",
+        "visual": "Ein blühender Garten voller wilder Bienen, die von Blume zu Blume fliegen und Pollen übertragen."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Nahrungsquellen und Lebensräume von Bienen auf der Farm sind durch Schädlinge und chemische Pflanzenschutzmittel gefährdet",
+        "solution": "Bienenfreundliche Pflanzen zur natürlichen Schädlingsbekämpfung anzubauen und Lebensräume zu schaffen, die Bienen schützen"
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "bienenfreundlich",
+          "blütenpflanzen",
+          "natürliche schädlingsbekämpfung",
+          "bienenförderung",
+          "farm-ökosystem",
+          "naturalschutz"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "idee": "2026-08-24",
+        "skript": "2026-08-26",
+        "dreh": "2026-08-28",
+        "schnitt": "2026-08-31",
+        "freigabe": "2026-09-02",
+        "upload": "2026-09-03"
+      },
+      "uploadTime": "08:00",
+      "checks": {},
+      "ai": {},
+      "driveName": "",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Bienenfreundliche Blüten nicht nur für die Bienen, sondern auch für den gesamten Farm-Ökosystem ein Natur-Schutzsystem. Sie dienen als natürlicher Schutz gegen Schädlinge und stärken gleichzeitig die ökologische Vielfalt.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Bienenfreundliche Blüten nutzen, um natürliche Schädlingsbekämpfung zu unterstützen und gleichzeitig Bienenpopulationen zu stärken."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Einführung von Blütenpflanzen, die den Arealbienen und Wildbienen einen essentiellen Nahrungs-, Unterschlupf- und Fortpflanzungsraum bieten."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Einen biologischen Schutz durch Blütenpflanzen, welche Schädlinge natürlich kontrollieren und gleichzeitig eine sichere Umgebung für Bienen schaffen."
+          }
+        ],
+        "frame": {
+          "problem": "Nahrungsquellen und Lebensräume von Bienen auf der Farm sind durch Schädlinge und chemische Pflanzenschutzmittel gefährdet",
+          "solution": "Bienenfreundliche Pflanzen zur natürlichen Schädlingsbekämpfung anzubauen und Lebensräume zu schaffen, die Bienen schützen"
+        },
+        "keywords": [
+          "bienenfreundlich",
+          "blütenpflanzen",
+          "natürliche schädlingsbekämpfung",
+          "bienenförderung",
+          "farm-ökosystem",
+          "naturalschutz"
+        ]
+      },
+      "chosenFokus": 2,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Wo wir Bienen brauchen"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Schädlinge kontrollieren, Bienen schützen"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Blütenpflanzen für eine sichere Biobase"
+          }
+        ]
+      }
     }
   ]
 }

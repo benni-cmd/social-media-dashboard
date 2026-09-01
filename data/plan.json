@@ -1,0 +1,78 @@
+{
+  "kadenz": {
+    "postsProWoche": 3
+  },
+  "typenmix": [
+    {
+      "typ": "reel",
+      "perWoche": 1
+    },
+    {
+      "typ": "slider",
+      "perWoche": 0
+    },
+    {
+      "typ": "beitrag",
+      "perWoche": 0.5
+    },
+    {
+      "typ": "story",
+      "perWoche": 1
+    },
+    {
+      "typ": "highlight",
+      "perWoche": 0
+    },
+    {
+      "typ": "langformat",
+      "perWoche": 0.25
+    }
+  ],
+  "kategorienFokus": [
+    {
+      "id": "bildung",
+      "aktiv": true,
+      "prioritaet": 1
+    },
+    {
+      "id": "spendenaufruf",
+      "aktiv": true,
+      "prioritaet": 2
+    },
+    {
+      "id": "projektbegleitung",
+      "aktiv": false,
+      "prioritaet": 3
+    },
+    {
+      "id": "partnerpost",
+      "aktiv": false,
+      "prioritaet": 4
+    },
+    {
+      "id": "umfrage",
+      "aktiv": true,
+      "prioritaet": 5
+    }
+  ],
+  "zielgewichte": [
+    {
+      "id": "reach_new",
+      "gewicht": 40
+    },
+    {
+      "id": "deepen",
+      "gewicht": 20
+    },
+    {
+      "id": "community",
+      "gewicht": 30
+    },
+    {
+      "id": "donations",
+      "gewicht": 10
+    }
+  ],
+  "kampagnen": [],
+  "slots": []
+}
