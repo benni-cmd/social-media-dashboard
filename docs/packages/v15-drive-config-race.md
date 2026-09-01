@@ -56,15 +56,27 @@ zurückgelegt** — die Signatur eines Roaming-Profil-Sync/Backup-Dienstes, der 
 Das erklärt lückenlos: nicht reproduzierbar (hängt an einem Fremdprozess auf genau diesem Rechner),
 überlebt keinen Retry (18 s ≫ 5,5 s), und kein rclone-/Concurrency-Fix konnte je greifen.
 
-## Fix der Grundursache: stabile Arbeitskopie in AppData\Local
+## Fix-Versuch 1 (unzureichend): Arbeitskopie in AppData\Local
 
-`lib/drive.js` legt beim Start eine **Arbeitskopie der Config in `AppData\Local\social-media-dashboard\rclone.conf`**
-an (`stabileConfig()`) und richtet rclone darauf. `Local` wird nie geroamt/gesynct; nur das Board schreibt
-dort hinein. Verschwindet die Roaming-Quelle, bleibt die Arbeitskopie bestehen → das Board ist immun.
-Ist die Quelle neuer (Re-Auth im Onboarding), wird die Arbeitskopie beim nächsten Start aufgefrischt.
+`stabileConfig()` legte eine Kopie in `AppData\Local` an und richtete rclone darauf. **Griff nicht:**
+Log 19:11:39 zeigt `cfg=…Roaming… quelle=FEHLT` — war beim Serverstart AUCH die Roaming-Quelle weg
+(und die Local-Kopie noch nicht angelegt), band sich der Prozess an eine tote Datei. Startup-Timing-Lücke,
+und weiterhin **datei-abhängig**.
 
-**Verifiziert:** Roaming-Quelle im Test weggenommen (exakt der 19:05-Fall) → `erreichbar()` weiterhin `ok`,
-kein Fehler. Ohne Fix schlug genau das fehl.
+## Fix der Grundursache (endgültig): rclone braucht KEINE Datei
+
+rclone definiert einen Remote vollständig über Umgebungsvariablen `RCLONE_CONFIG_GDRIVE_*`.
+**Verifiziert 01.09.2026:** `rclone lsf gdrive: --config Z:\gibtsnicht.conf` (garantiert fehlende Datei)
+→ exit 0, listet die Ordner — rein aus der Env.
+
+`lib/drive.js` liest die `[gdrive]`-Zugangsdaten **einmal** in den Speicher (`gdriveEnv()`, aus Local-Kopie
+oder Roaming) und übergibt sie bei **jedem** rclone-Aufruf als Env; **kein `--config`** mehr. Verschwindet
+die Datei mitten in der Sitzung, laufen die Werte aus dem Speicher weiter. Solange die Env noch nie geladen
+werden konnte (Datei beim Start zufällig weg), wird bei jedem Aufruf neu versucht — sobald die Datei einmal
+da war, bleibt der Wert für die ganze Sitzung.
+
+**Verifiziert am härtesten Fall:** BEIDE Config-Dateien (Roaming + Local) nach dem Start gelöscht →
+`erreichbar()` weiterhin `ok`, kein Fehler-Log. Genau das schlug vorher fehl.
 
 ## Was gebaut wurde (robust + selbst-diagnostizierend)
 
@@ -80,14 +92,15 @@ kein Fehler. Ohne Fix schlug genau das fehl.
 - [x] lib/drive.js: Retry (`rclone`→`rcloneMitRetry`→`rcloneVersuch`), Backoff 300/700/1500/3000 ms
 - [x] lib/drive.js: Serialisierung aller rclone-Calls (Promise-Kette)
 - [x] lib/drive.js: Config-Schnappschuss-Instrumentierung → data/drive-error.log
-- [x] **Grundursache aus Log bestätigt: Roaming-Config verschwindet extern (~18 s)**
-- [x] **lib/drive.js: stabile Arbeitskopie in AppData\Local (`stabileConfig()`) — behebt die Ursache**
-- [x] Verify: Quelle weggenommen → Board weiterhin `ok` (immun); Normalbetrieb 12/12 ok (~500 ms/Call)
+- [x] **Grundursache aus Log bestätigt: Roaming-Config verschwindet extern (`DATEI FEHLT`, ~18 s)**
+- [x] Fix-Versuch 1 (Arbeitskopie in Local) — unzureichend (Startup-Timing-Lücke, s.o.)
+- [x] **lib/drive.js: Remote per Env `RCLONE_CONFIG_GDRIVE_*`, kein `--config` — datei-unabhängig**
+- [x] Verify: BEIDE Config-Dateien nach Start gelöscht → Board weiterhin `ok`; Normalbetrieb ok
 - [x] Commit + Push
 
 ## DoD
-- [x] Board arbeitet gegen eine stabile Config, die kein Fremdprozess wegnimmt (Arbeitskopie in Local)
-- [x] Verschwindet die Roaming-Quelle, läuft das Board weiter (verifiziert)
-- [x] Retry + Serialisierung als zusätzliche Absicherung; Vorfälle bleiben im Log beweisbar
+- [x] Board hängt NICHT mehr von einer Config-Datei ab (Zugangsdaten im Speicher, per Env an rclone)
+- [x] Verschwindet die Datei mitten in der Sitzung, läuft das Board weiter (am härtesten Fall verifiziert)
+- [x] Retry + Serialisierung + Instrumentierung bleiben als Absicherung
 - [ ] Bestätigung im Alltag: Board läuft über mehrere Sitzungen ohne den Fehler (Owner beobachtet)
 - Root-`drive.js` ist totes Alt-Modul (von nichts importiert) — separate Aufräum-Aufgabe (Chip), nicht Teil dieses Pakets
