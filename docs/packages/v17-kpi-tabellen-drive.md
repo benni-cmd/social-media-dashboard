@@ -44,9 +44,10 @@ Die gespeicherten Felder folgen dem, was die APIs WIRKLICH liefern — nicht ger
 5. [x] `docs/drive-convention.md` ergänzt + Feld-Legende als `LIESMICH.txt` im Drive-Ordner
        (`stelleLegendeSicher` in `lib/kpi-tabellen.js`).
 6. [ ] Verify live: echte Messung → CSV in Drive öffnen (nur Logik lokal geprüft).
-7. [ ] **Auslöser fehlt (blockiert Nutzung):** `/api/kpi/collect` wird nirgends automatisch
-       aufgerufen (bestand schon vor v17). Ohne Auslöser läuft keine Sammlung. Entscheidung
-       Owner: Button auf der Auswertung-Seite · Auto-Lauf beim Server-Start · Zeitplan.
+7. [x] **Auslöser:** Auto-Lauf beim Server-Start (Owner 02.09.2026). `server.listen` ruft
+       `kpi.sammle` — selbst-gated: erfasst Post-Messungen wenn Intervall fällig und den
+       Konto-Schnappschuss wenn Kadenz greift; schreibt Board nur bei `gesammelt > 0`,
+       blockiert den Start nicht. `node --check server.js` OK.
 
 ---
 
@@ -166,9 +167,9 @@ Geprueft gegen: lokale Verify-Skripte für Tabelle 1 (beitraege) und Tabellen 2+
 (kanal-verlauf, demografie, backfill) — alle Prüfungen bestanden; `node --check` aller
 Module OK · IG-/LI-Felder gegen die belegten API-Quellen (2 je Plattform) · Legende +
 `drive-convention.md`.
-Offen: (1) **Auslöser** für `/api/kpi/collect` — ohne ihn läuft nichts (Owner-Entscheidung).
-(2) **Live-Verify**: echte Tokens → echte Messung → CSV in Drive öffnen; besonders die
-Antwort-Formen von IG `follower_demographics` und LI-Demografie (URN-Auflösung) sind noch
-nicht gegen Live-Daten geprüft.
-Erledigt: Schema, Ordner-Layout, alle drei Tabellen-Schreiber + Legende (lokal verifiziert),
-`edgeType`-Fix.
+Offen: **Live-Verify** — echte Tokens → Server starten → CSVs in Drive öffnen; besonders die
+Antwort-Formen von IG `follower_demographics` und LI-Demografie (URN-Auflösung zu Klarnamen)
+und der `edgeType`-Fix (Follower-Zahl auch der bestehenden Auswertung-Seite) sind noch nicht
+gegen Live-Daten geprüft.
+Erledigt: Schema, Ordner-Layout, alle drei Tabellen-Schreiber + Legende, `edgeType`-Fix,
+Auto-Auslöser beim Server-Start (alles lokal verifiziert bzw. `node --check`).

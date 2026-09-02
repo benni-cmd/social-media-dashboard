@@ -725,12 +725,22 @@ setInterval(async () => {
 
 server.listen(PORT, async () => {
   console.log(`Content-Maschine laeuft auf https://localhost:${PORT}`);
+  // KPI-Sammlung beim Start ausloesen (Owner 02.09.2026): wenn nach den Intervallen eine
+  // Post-Messung faellig ist ODER die Konto-Kadenz (woechentl./quartalsw.) greift. Die
+  // Faelligkeits-Logik steckt in kpi.sammle — der Aufruf ist selbst-gated und schreibt
+  // Drive nur, wenn wirklich etwas erfasst wurde. Blockiert den Serverstart nicht.
   try {
     const board = await leseBoard();
-    const faellig = kpi.pruefeKarten(board.cards);
-    if (faellig.length) {
-      const anzahl = faellig.reduce((s, f) => s + f.ausstehend.length, 0);
-      console.log(`KPI: ${anzahl} faellige Messung(en) fuer ${faellig.length} Post(s). POST /api/kpi/collect zum Erfassen.`);
+    const tokens = await leseTokens();
+    const ergebnis = await kpi.sammle(board.cards, tokens);
+    if (ergebnis.gesammelt > 0) {
+      await schreibeBoard(ergebnis.cards, board.version + 1);
     }
-  } catch { /* KPI-Pruefung darf den Start nicht blockieren */ }
+    const konto = ergebnis.bericht.some((b) => /^(kanal|demografie)/.test(b.status || ""));
+    if (ergebnis.gesammelt > 0 || konto) {
+      console.log(`KPI beim Start: ${ergebnis.gesammelt} Post-Messung(en)` + (konto ? " + Konto-Schnappschuss" : "") + " erfasst.");
+    }
+  } catch (e) {
+    console.log(`KPI-Start uebersprungen: ${e.message}`); // darf den Betrieb nie blockieren
+  }
 });
