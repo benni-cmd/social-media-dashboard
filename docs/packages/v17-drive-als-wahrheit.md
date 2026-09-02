@@ -43,15 +43,16 @@ UI-Abnahme je UI-Paket per Screenshot besteht.
 ### Datenmodell in Drive
 ```
 <Root>/
-  .board/                      ← Maschinen-Ablage (nicht für Menschenaugen gedacht)
+  System (AI only)/            ← Maschinen-Ablage (reine KI-/Maschinen-Dateien)
     spalten.json               ← [{ id, name, ordner, order, system:true|false }]  (Spalten-Wahrheit)
     redaktionsplan.json        ← Stellschrauben (kadenz, typenmix, kategorienFokus, zielgewichte, kampagnen)
     redaktionsplan.slots.json  ← zuletzt berechnetes Ergebnis (Slots) — vom Skript geschrieben
   <Spalten-Ordner>/            ← z.B. "In Bearbeitung/Idee" (Name = Anzeigename, editierbar)
-    .phase                     ← Markerdatei mit der stabilen Phasen-ID (Identität übersteht Umbenennen)
+    .phase                     ← verstecktes Marker-Dotfile mit der stabilen Phasen-ID (Plumbing)
     <Projektordner pro Karte>/
-      projekt.json             ← DIE GANZE KARTE (Wahrheit)
-      Skript und Caption/      ← abgeleitete lesbare Kopien (10_skript.txt, 30_caption.md, …)
+      (AI only)/               ← reine Maschinen-Dateien der Karte
+        projekt.json           ← DIE GANZE KARTE (Wahrheit)
+      Skript und Caption/      ← menschlich lesbare/editierbare Dateien (10_skript.txt, 30_caption.md, …)
       Rohmaterial/
       Fertiges Video/
 ```
@@ -59,6 +60,20 @@ UI-Abnahme je UI-Paket per Screenshot besteht.
   nicht mehr den Auszug aus `projects.js:22`. `schema`/`id` bleiben enthalten.
 - **NICHT nach Drive:** Zugänge/Geheimnisse bleiben lokal — `data/tokens.json` (OAuth-Token),
   `data/.gdrive-env.json`, TLS-`localhost.key/.crt`. Das sind Maschinen-Secrets, kein Content.
+
+### (AI only)-Konvention [Owner, 02.09.2026]
+- **Regel:** KI-/Maschinen-Dateien und menschlich lesbare Dateien liegen nie im selben Ordner.
+  Jeder Ordner, der NUR Maschinen-Dateien enthält, trägt das Namens-Suffix **`(AI only)`**, damit
+  ein Mensch beim Bearbeiten sofort sieht, was er ignorieren kann.
+- **Reine Maschinen-Dateien (→ `(AI only)`):** `projekt.json` (Karten-Wahrheit) und der Root-Store
+  `System (AI only)/` (Spalten- und Redaktionsplan-Dateien).
+- **Menschlich (bleiben ohne Suffix):** `Skript und Caption/` (Skript, Caption, Recherche, Regieplan),
+  `Rohmaterial/`, `Fertiges Video/`, `Kontext/` (vom Menschen verfasst, nur von der KI gelesen).
+- Namens-Konstanten in `lib/pipeline.js`: `AI_ORDNER = "(AI only)"`, `SYSTEM_ORDNER = "System (AI only)"`.
+  Beide sind `pfadstueckOk`-konform (Klammern/Leerzeichen erlaubt, kein Slash, kein Punkt-Ordner).
+- **Phasen-Identität:** das `.phase`-Dotfile ist verstecktes Plumbing (ein ID-Marker, keine
+  „AI-Datei"), bleibt darum im Spaltenordner. **Annahme (bei Review bestätigen):** das reicht;
+  falls strengere Trennung gewünscht, wandert der Marker in einen `(AI only)`-Unterordner je Spalte.
 
 ### Spalten aus Drive (beidseitig)
 - **Wahrheit** ist `.board/spalten.json` (beim Erststart aus PHASEN geseedet). PHASEN in
@@ -106,9 +121,11 @@ UI-Abnahme je UI-Paket per Screenshot besteht.
 
 ## Phasen (Arbeitspakete)
 
-- **v17a — Vollkarte-`projekt.json` + Cache-Rolle** (`lib/projects.js`, `server.js`):
-  `projektJson` schreibt die ganze Karte; `scan`/`abgleich` lesen die volle Karte; Backfill für die
-  17 vorhandenen Ordner; `board.json` als Cache dokumentiert. Ohne UI. Sofort baubar.
+- **v17a — Vollkarte-`projekt.json` in `(AI only)/` + Cache-Rolle** (`lib/pipeline.js`, `lib/projects.js`,
+  `server.js`): `AI_ORDNER`/`SYSTEM_ORDNER` einführen; `projektJson` schreibt die ganze Karte nach
+  `<Karte>/(AI only)/projekt.json`; `scan`/`abgleich` lesen die volle Karte (Fallback auf Alt-Ort im
+  Ordnerwurzel für Migration); Backfill für die 17 vorhandenen Ordner; `board.json` als Cache
+  dokumentiert. Ohne UI. Sofort baubar.
 - **v17b — Spalten aus Drive** (`.board/spalten.json`, `.phase`-Marker, `lib/pipeline.js` PHASEN→Seed,
   `lib/projects.js` Abgleich per Marker, `server.js` Spalten-API, `public/board.js` editierbarer
   Kopf): beidseitige Umbenennung, fremde Ordner als schlichte Spalte. Screenshot-Abnahme.
@@ -126,17 +143,20 @@ Spalte). v17d/e können nach b parallel.
 
 ## Plan (v17a zuerst)
 
-1. [ ] `lib/projects.js` — `projektJson(card)` = ganze Karte; `leseProjektJson` gibt die volle Karte
-   zurück; `abgleich`/`scan` bauen Karten aus der vollen `projekt.json` statt aus Feld-Auszug;
-   `anlegen`/`verschiebe`/`speichereDatei` schreiben die volle `projekt.json`.
-2. [ ] Backfill-Lauf: für jede vorhandene Karte die volle `projekt.json` in ihren Drive-Ordner
-   schreiben (einmalig über den erweiterten Abgleich), damit Drive vollständig wird.
-3. [ ] `server.js` — Kommentar/Rollen: `board.json` = Cache; Abgleich schreibt den Cache aus Drive.
-4. [ ] v17b — `.board/spalten.json` + `.phase`-Marker + dynamische PHASEN + Umbenenn-Wege + Board-Kopf;
-   Screenshot-Abnahme gegen `docs/ui-standard.md`.
-5. [ ] v17c — Swipe-Popup; Screenshot-Abnahme.
-6. [ ] v17d — Redaktionsplan-Config+Ergebnis in Drive, Abgleich-Check.
-7. [ ] v17e — Auswertung aus Drive bestätigen; Screenshot-Abnahme.
+1. [ ] `lib/pipeline.js` — `AI_ORDNER = "(AI only)"`, `SYSTEM_ORDNER = "System (AI only)"`, Helfer
+   `projektJsonPfad(basis)` = `${basis}/${AI_ORDNER}/projekt.json`.
+2. [ ] `lib/projects.js` — `projektJson(card)` = ganze Karte; `leseProjektJson` liest aus `(AI only)/`
+   mit Fallback auf Alt-Ort in der Ordnerwurzel; `abgleich`/`scan` bauen Karten aus der vollen
+   `projekt.json` (via `migriere`) statt aus Feld-Auszug; `anlegen`/`verschiebe` legen `(AI only)/` an
+   und schreiben die volle `projekt.json` dorthin.
+3. [ ] Backfill-Lauf: für jede vorhandene Karte die volle `projekt.json` nach `(AI only)/` schreiben
+   (einmalig über den erweiterten Abgleich); Alt-`projekt.json` in der Wurzel wird ersetzt/aufgeräumt.
+4. [ ] `server.js` — Kommentar/Rollen: `board.json` = Cache; Abgleich schreibt den Cache aus Drive.
+5. [ ] v17b — `System (AI only)/spalten.json` + `.phase`-Marker + dynamische PHASEN + Umbenenn-Wege +
+   Board-Kopf; Screenshot-Abnahme gegen `docs/ui-standard.md`.
+6. [ ] v17c — Swipe-Popup; Screenshot-Abnahme.
+7. [ ] v17d — Redaktionsplan-Config+Ergebnis in Drive, Abgleich-Check.
+8. [ ] v17e — Auswertung aus Drive bestätigen; Screenshot-Abnahme.
 
 ---
 
@@ -154,6 +174,8 @@ Spalte). v17d/e können nach b parallel.
 ## DoD
 - [ ] Jede angezeigte Karten-Angabe steht vollständig in der Drive-`projekt.json`; Board zeigt nach
       Löschen/Neuaufbau des Caches denselben Stand (aus Drive rekonstruiert).
+- [ ] `(AI only)`-Trennung gilt: `projekt.json` liegt in `<Karte>/(AI only)/`, Maschinen-Store unter
+      `System (AI only)/`; kein Ordner mischt Maschinen- und Menschen-Dateien.
 - [ ] Spalte im Board umbenennen → Drive-Ordner heißt neu; Drive-Ordner von Hand umbenennen → Board
       zeigt beim Abgleich den neuen Namen; Zuordnung übersteht das (Marker).
 - [ ] Fremder Drive-Ordner erscheint als schlichte Spalte ohne Tore.

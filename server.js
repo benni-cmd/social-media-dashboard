@@ -47,6 +47,10 @@ async function ladeEnv() {
 
 // --- Board lesen und schreiben -------------------------------------------
 //
+// board.json ist ab v17 der schnelle CACHE, nicht mehr die Wahrheit. Die Wahrheit liegt in
+// Drive (je Karte "(AI only)/projekt.json"); der Abgleich (/api/drive/reconcile) liest Drive
+// und schreibt den Cache neu, bei Konflikt gewinnt Drive. Der Speicher-Weg (PUT) schreibt den
+// Cache und spiegelt geaenderte Karten nach Drive.
 // Geschrieben wird ueber eine Zwischendatei und mit Versionsnummer: zwei offene Tabs
 // koennen sich damit nicht mehr gegenseitig ueberschreiben (Befund B12).
 
@@ -177,13 +181,31 @@ async function handler(req, res) {
         return;
       }
       const neueVersion = aktuell.version + 1;
+      const neueKarten = cards.map(pipeline.migriere);
+      // board.json ist der schnelle CACHE (v17). Zuerst schreiben, damit der Speichern-Weg nie
+      // an Drive haengt.
       // drehtermine mitschreiben; fehlen sie im Body, bleiben die gespeicherten erhalten.
       await schreibeBoard(
-        cards.map(pipeline.migriere),
+        neueKarten,
         neueVersion,
         Array.isArray(drehtermine) ? drehtermine : undefined
       );
-      sendJson(res, 200, { ok: true, version: neueVersion });
+      // Drive ist die WAHRHEIT: geaenderte Karten mit vorhandenem Drive-Ordner in ihre volle
+      // projekt.json spiegeln. Nur die tatsaechlich geaenderten (Diff gegen den alten Cache),
+      // damit ein Save nicht 17 Drive-Schreibvorgaenge ausloest. Ein Drive-Fehler kippt den Save
+      // NICHT — er wird als Warnung gemeldet, der naechste Abgleich heilt.
+      const altPerId = new Map(aktuell.cards.map((c) => [c.id, JSON.stringify(c)]));
+      const driveWarnungen = [];
+      for (const k of neueKarten) {
+        if (!k.driveName) continue; // noch kein Ordner -> nichts zu spiegeln
+        if (altPerId.get(k.id) === JSON.stringify(k)) continue; // unveraendert
+        try {
+          await projekte.spiegeleKarte(k);
+        } catch (e) {
+          driveWarnungen.push({ id: k.id, title: k.title, satz: `Drive-Spiegelung fehlgeschlagen: ${e.message}` });
+        }
+      }
+      sendJson(res, 200, { ok: true, version: neueVersion, driveWarnungen });
       return;
     }
 
