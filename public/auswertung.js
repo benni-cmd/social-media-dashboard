@@ -239,7 +239,18 @@ function kpiReihe(ig, li, igOn, liOn) {
   const follower = (igOn ? konto.followers_count || 0 : 0) + (liOn ? lk.follower || 0 : 0);
   const posts = (igOn ? konto.media_count || 0 : 0) + (liOn ? (li.posts || []).length : 0);
 
+  // Reichweite letzte 30 Tage vs. die 30 davor — mit Trend-Pfeil.
+  const r30 = ig.reichweite30 || {};
+  const rj = (r30.jetzt || {}).reichweite;
+  const rd = (r30.davor || {}).reichweite;
+  const rTrend =
+    igOn && rj != null && rd != null && rd > 0
+      ? { richtung: rj >= rd ? "hoch" : "runter", text: `${rj >= rd ? "+" : ""}${Math.round(((rj - rd) / rd) * 100)} % ggue. 30 T. davor` }
+      : null;
+
   wrap.innerHTML =
+    kpiKarte("saeulen", "Reichweite · 30 Tage", igOn && rj != null ? fmt(rj) : "—",
+      "Erreichte Konten der letzten 30 Tage.", rTrend) +
     kpiKarte("auge", "Views im Median", igOn ? fmt(median.views) : "—",
       igOn ? `Vergleichslinie aus den letzten ${median.grundlage || 0} Beitraegen.` : "Sobald ein Konto verbunden ist.") +
     kpiKarte("ziel", "Weiterleitungen", igOn && median.sendsProReichweite != null ? proz(median.sendsProReichweite) : "—",

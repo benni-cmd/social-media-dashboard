@@ -105,8 +105,9 @@ erklaert die Spalten vor Ort.
 
 - `beitraege-kpi.csv` — eine Zeile je Beitrag × Plattform × Mess-Intervall (24 h … 12 Monate).
   Geschrieben von `lib/kpi-tabellen.js` beim KPI-Sammeln (`kpi.sammle`).
-- `kanal-verlauf.csv` — Konto-Verlauf (Follower gesamt/Zuwachs, Konto-Reichweite),
-  woechentlicher Schnappschuss. Geschrieben von `lib/kanal-kpi.js`.
+- `kanal-verlauf.csv` — Konto-Verlauf (Follower gesamt/Zuwachs; Reichweite und Views als
+  30-Tage-Fenster: letzte 30 Tage vs. die 30 davor + Delta in Prozent), woechentlicher
+  Schnappschuss. Geschrieben von `lib/kanal-kpi.js`.
 - `follower-demografie.csv` — Follower nach Land/Alter/Geschlecht (IG) bzw.
   Land/Branche/Funktion/Senioritaet (LI), quartalsweiser Schnappschuss.
 
