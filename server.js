@@ -54,15 +54,25 @@ async function leseBoard() {
   try {
     const roh = JSON.parse(await readFile(BOARD_FILE, "utf8"));
     const cards = (roh.cards || []).map(pipeline.migriere);
-    return { version: roh.version || 1, cards };
+    return { version: roh.version || 1, cards, drehtermine: roh.drehtermine || [] };
   } catch {
-    return { version: 1, cards: [] };
+    return { version: 1, cards: [], drehtermine: [] };
   }
 }
 
-async function schreibeBoard(cards, version) {
+async function schreibeBoard(cards, version, drehtermine) {
   await mkdir(DATA_DIR, { recursive: true });
-  const inhalt = JSON.stringify({ version, cards }, null, 2);
+  // Aufrufer, die nur Karten schreiben (z.B. Drive-Reconcile), duerfen die Drehtermine
+  // nicht verlieren: fehlt das Argument, bleiben die gespeicherten erhalten.
+  if (drehtermine === undefined) {
+    try {
+      const roh = JSON.parse(await readFile(BOARD_FILE, "utf8"));
+      drehtermine = roh.drehtermine || [];
+    } catch {
+      drehtermine = [];
+    }
+  }
+  const inhalt = JSON.stringify({ version, cards, drehtermine }, null, 2);
   const temp = BOARD_FILE + ".tmp";
   await writeFile(temp, inhalt, "utf8");
   await rename(temp, BOARD_FILE);
@@ -151,7 +161,7 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/board" && req.method === "PUT") {
-      const { cards, version } = JSON.parse(await readBody(req));
+      const { cards, version, drehtermine } = JSON.parse(await readBody(req));
       if (!Array.isArray(cards)) {
         sendJson(res, 400, { error: "Das Board braucht eine Liste von Karten." });
         return;
@@ -167,7 +177,12 @@ async function handler(req, res) {
         return;
       }
       const neueVersion = aktuell.version + 1;
-      await schreibeBoard(cards.map(pipeline.migriere), neueVersion);
+      // drehtermine mitschreiben; fehlen sie im Body, bleiben die gespeicherten erhalten.
+      await schreibeBoard(
+        cards.map(pipeline.migriere),
+        neueVersion,
+        Array.isArray(drehtermine) ? drehtermine : undefined
+      );
       sendJson(res, 200, { ok: true, version: neueVersion });
       return;
     }

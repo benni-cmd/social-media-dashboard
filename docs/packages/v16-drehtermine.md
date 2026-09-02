@@ -118,8 +118,20 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
 - [x] UI: Board-Leiste unter Wochenleiste, kein eigener Tab (02.09.2026).
 - [x] Google-Calendar-Wege recherchiert (gcalcli vs. googleapis), zwei Quellen (02.09.2026).
 - [ ] Owner: Google-Cloud/OAuth-Weg wählen + einrichten (blockt nur v16d).
-- [ ] Owner: Phasen-Split + Start v16a freigegeben.
-- [ ] Bau v16a → v16b → v16c → v16d.
+- [x] **v16a gebaut + funktional verifiziert (02.09.2026):** pipeline (Kette Schnitt−6/
+      Freigabe−3, `drehFenster` [Upload−20,Upload−6], `leereDrehtermin`, `autoDrehNoetig`/
+      `sonntagFolgewoche`, `drehterminId` via `leereKarte`+`normalisiere`); server
+      (`leseBoard`/`schreibeBoard`/PUT tragen `drehtermine`, andere Schreiber erhalten sie);
+      store (`S.drehtermine`, PUT-Body, `pruefeAutoDreh`, Helfer `drehterminAnlegen/Aendern/
+      Loeschen`, `karteZuTermin/karteVonTermin`). Verify: Server-Roundtrip PUT→GET,
+      `drehtermine` + `drehterminId`/`dates.dreh` persistiert; `node --check` aller Dateien grün.
+- [ ] Bau v16b (Board-Leiste) → v16c (Phasen) → v16d (GCal).
+
+## v16b-Merkzettel (beim Bau erledigen)
+- `detail.js`-Hinweistexte „Dreh wird automatisch 2 Wochen vorher gesetzt" stimmen nicht mehr
+  (Dreh kommt aus dem Drehtermin) — umtexten.
+- `merke("dates", einfacherPlan(datum), true)` ERSETZT `dates` und löscht damit ein via
+  Drehtermin gesetztes `dates.dreh`. Beim Upload-Ändern `dreh` erhalten (mergen statt ersetzen).
 
 ## DoD
 - [ ] Drehtermin anlegen (Datum+Uhrzeit) über „+"-Button; Kachel mit „(in X Tagen)".

@@ -1,10 +1,11 @@
 // Zustand und Serverzugriff. Alles, was mehrere Ansichten teilen, steht hier — genau einmal.
 
-import { migriere, leereKarte, STANDARD_PLATTFORMEN } from "/lib/pipeline.js";
+import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster } from "/lib/pipeline.js";
 
 export const S = {
   version: 1,
   cards: [],
+  drehtermine: [], // Batch-Drehtermine (v16)
   aktiv: null, // id der geoeffneten Karte
   ansicht: "board",
   monat: new Date(), // fuer die Kalenderansicht
@@ -75,7 +76,20 @@ export async function ladeBoard() {
   const daten = await hole("/api/board");
   S.version = daten.version;
   S.cards = (daten.cards || []).map(migriere);
+  S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
+  pruefeAutoDreh();
   zeichne();
+}
+
+// Ohne Drehtermin in den naechsten 30 Tagen den Sonntag der Folgewoche setzen (auto).
+// speichere() schreibt ihn zurueck; ein zweites Fenster faengt der Versions-Lock ab.
+function pruefeAutoDreh() {
+  const datum = autoDrehNoetig(S.drehtermine);
+  if (!datum) return;
+  const t = leereDrehtermin(datum, "");
+  t.auto = true;
+  S.drehtermine.push(t);
+  speichere();
 }
 
 let speicherLaeuft = null;
@@ -90,7 +104,7 @@ export async function speichere() {
       const daten = await hole("/api/board", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ cards: S.cards, version: S.version }),
+        body: JSON.stringify({ cards: S.cards, version: S.version, drehtermine: S.drehtermine }),
       });
       S.version = daten.version;
       setStand("Stand gespeichert.");
@@ -271,6 +285,80 @@ export async function slotBelegen(slotId, karteId) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ slotId, karteId }),
   });
+}
+
+// --- Drehtermine ----------------------------------------------------------
+
+export function drehtermin(id) {
+  return S.drehtermine.find((t) => t.id === id) || null;
+}
+
+export function drehterminAnlegen(datum, zeit) {
+  const t = leereDrehtermin(datum, zeit);
+  S.drehtermine.push(t);
+  speichere();
+  zeichne();
+  return t;
+}
+
+export function drehterminAendern(id, felder) {
+  const t = drehtermin(id);
+  if (!t) return;
+  const altesDatum = t.datum;
+  Object.assign(t, felder);
+  // Datumsaenderung zieht die Dreh-Termine aller zugeordneten Karten mit (Upload bleibt).
+  if (felder.datum && felder.datum !== altesDatum) {
+    for (const kid of t.karteIds) {
+      const k = karte(kid);
+      if (k) k.dates = { ...(k.dates || {}), dreh: t.datum };
+    }
+  }
+  speichere();
+  zeichne();
+}
+
+export function drehterminLoeschen(id) {
+  const t = drehtermin(id);
+  if (!t) return;
+  for (const kid of t.karteIds || []) {
+    const k = karte(kid);
+    if (k && k.drehterminId === id) k.drehterminId = null; // dates.dreh bleibt als freier Termin
+  }
+  S.drehtermine = S.drehtermine.filter((x) => x.id !== id);
+  speichere();
+  zeichne();
+}
+
+// Ordnet eine Karte einem Drehtermin zu. Liefert {ok, warnung}: warnung, wenn der Termin
+// ausserhalb des Dreh-Fensters der Karte liegt (14 Tage vor Schnitt bis Schnitt) — keine Sperre.
+export function karteZuTermin(karteId, terminId) {
+  const k = karte(karteId);
+  const t = drehtermin(terminId);
+  if (!k || !t) return { ok: false };
+  // Falls die Karte schon an einem anderen Termin haengt: dort loesen.
+  if (k.drehterminId && k.drehterminId !== terminId) {
+    const alt = drehtermin(k.drehterminId);
+    if (alt) alt.karteIds = (alt.karteIds || []).filter((x) => x !== karteId);
+  }
+  k.drehterminId = terminId;
+  if (!Array.isArray(t.karteIds)) t.karteIds = [];
+  if (!t.karteIds.includes(karteId)) t.karteIds.push(karteId);
+  k.dates = { ...(k.dates || {}), dreh: t.datum };
+  const warnung = drehImFenster(t.datum, (k.dates || {}).upload)
+    ? ""
+    : "Der Drehtermin liegt ausserhalb des empfohlenen Fensters (14 Tage vor Schnitt bis Schnitt).";
+  speichere();
+  zeichne();
+  return { ok: true, warnung };
+}
+
+export function karteVonTermin(karteId, terminId) {
+  const k = karte(karteId);
+  const t = drehtermin(terminId);
+  if (t) t.karteIds = (t.karteIds || []).filter((x) => x !== karteId);
+  if (k && k.drehterminId === terminId) k.drehterminId = null; // dates.dreh bleibt
+  speichere();
+  zeichne();
 }
 
 // --- Benutzer-Defaults -----------------------------------------------------
