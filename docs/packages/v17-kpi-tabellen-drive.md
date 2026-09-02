@@ -33,13 +33,20 @@ Die gespeicherten Felder folgen dem, was die APIs WIRKLICH liefern — nicht ger
        Quellen — zwei parallele Agenten, abgeschlossen (siehe Design).
 2. [x] Schema-Entwurf: einheitlicher Spaltensatz IG/LI, abgeleitete Raten, Leer-vs-0-Regel.
 3. [x] Ordner-/Datei-Layout: `Videoauswertung/Auswertung-Tabellen/`, alle drei Tabellen.
-4. [ ] CSV-Schreiber:
+4. [x] CSV-Schreiber:
        - [x] `lib/kpi-tabellen.js` (CSV-Engine + Tabelle 1) + Messung in `lib/kpi.js`
              um volle Felder erweitert + an `sammle` angehängt. Lokal verifiziert.
-       - [ ] Tabelle 2 (kanal-verlauf) + Tabelle 3 (demografie): brauchen neue API-Calls
-             in `lib/social.js` (Follower-Zuwachs, Demografie) + Kadenz-Auslöser.
-5. [ ] `docs/drive-convention.md` + Feld-Legende nachziehen.
-6. [ ] Verify live: echte Messung → CSV in Drive öffnen (Tabelle 1 Logik schon geprüft).
+       - [x] Tabelle 2 (kanal-verlauf) + Tabelle 3 (demografie): `lib/social.js` um
+             `instagramKonto`/`linkedinKonto`/`linkedinZuwachsReihe` erweitert (belegte
+             Endpunkte), `lib/kanal-kpi.js` (Kadenz wöchentl./quartalsw., Backfill 12 Mon.,
+             CSV), an `kpi.sammle` angehängt. `edgeType`-Fix (`COMPANY_FOLLOWED_BY_MEMBER`).
+             Lokal verifiziert.
+5. [x] `docs/drive-convention.md` ergänzt + Feld-Legende als `LIESMICH.txt` im Drive-Ordner
+       (`stelleLegendeSicher` in `lib/kpi-tabellen.js`).
+6. [ ] Verify live: echte Messung → CSV in Drive öffnen (nur Logik lokal geprüft).
+7. [ ] **Auslöser fehlt (blockiert Nutzung):** `/api/kpi/collect` wird nirgends automatisch
+       aufgerufen (bestand schon vor v17). Ohne Auslöser läuft keine Sammlung. Entscheidung
+       Owner: Button auf der Auswertung-Seite · Auto-Lauf beim Server-Start · Zeitplan.
 
 ---
 
@@ -59,7 +66,17 @@ Zeilen nach der JSON-Ablage an `Videoauswertung/Auswertung-Tabellen/beitraege-kp
 Ein Tabellen-Fehler entwertet die erfassten Messungen nicht (nur Bericht). Verify lokal
 mit synthetischen IG/LI-Messungen: 30 Spalten, Semikolon im Titel gequotet, ms→s + Raten
 mit Dezimalkomma, Leer-vs-0-Regel, Format/Säule/Ziel aufgelöst — alle Prüfungen bestanden
-(`node --check` beide Module OK). Offen: Tabellen 2+3, Feld-Legende, Live-Verify.
+(`node --check` beide Module OK).
+
+02.09.2026 — Tabellen 2 + 3 gebaut: `lib/social.js` um `instagramKonto`, `linkedinKonto`,
+`linkedinZuwachsReihe` erweitert (belegte Endpunkte: IG User-Insights + follower_demographics;
+LI networkSizes + organizationalEntityFollowerStatistics), `edgeType` auf
+`COMPANY_FOLLOWED_BY_MEMBER` korrigiert. `lib/kanal-kpi.js`: Kadenz (Verlauf wöchentlich,
+Demografie quartalsweise), 12-Monats-Zuwachs-Backfill beim Erstlauf, an `kpi.sammle`
+angehängt (läuft auch ohne fällige Post-Messung). Legende als `LIESMICH.txt` im Drive-Ordner.
+Verify lokal (`test-kanal-kpi.mjs`): Verlauf-/Demografie-/Backfill-Zeilen, Leer-vs-0,
+Datum-Kadenz, Plattform-Namen — alle bestanden; Tabelle-1-Regression grün. Befund: kein
+Auslöser für `/api/kpi/collect` vorhanden (Schritt 7). Live-Verify offen.
 
 ---
 
@@ -145,9 +162,13 @@ genaue Auslösung nach Prüfung der Server-Verdrahtung.
 
 ## Definition of Done
 
-Geprueft gegen: echte Testmessung landet als CSV in Drive und öffnet in Sheets · jede
-Spalte in der Feld-Legende erklärt · IG- und LI-Felder gegen die belegten API-Quellen
-abgeglichen (2 Quellen je Plattform) · `drive-convention.md` beschreibt die Struktur.
-Offen: Tabellen 2 + 3 (kanal-verlauf, follower-demografie) inkl. `social.js`-Erweiterung
-(Zuwachs, Demografie) + Kadenz-Auslöser · Feld-Legende · Live-Verify einer echten Messung.
-Erledigt: Schema, Ordner-Layout, Tabelle-1-Schreiber (lokal verifiziert).
+Geprueft gegen: lokale Verify-Skripte für Tabelle 1 (beitraege) und Tabellen 2+3
+(kanal-verlauf, demografie, backfill) — alle Prüfungen bestanden; `node --check` aller
+Module OK · IG-/LI-Felder gegen die belegten API-Quellen (2 je Plattform) · Legende +
+`drive-convention.md`.
+Offen: (1) **Auslöser** für `/api/kpi/collect` — ohne ihn läuft nichts (Owner-Entscheidung).
+(2) **Live-Verify**: echte Tokens → echte Messung → CSV in Drive öffnen; besonders die
+Antwort-Formen von IG `follower_demographics` und LI-Demografie (URN-Auflösung) sind noch
+nicht gegen Live-Daten geprüft.
+Erledigt: Schema, Ordner-Layout, alle drei Tabellen-Schreiber + Legende (lokal verifiziert),
+`edgeType`-Fix.

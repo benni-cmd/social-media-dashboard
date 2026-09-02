@@ -96,6 +96,25 @@ Der Abgleich korrigiert nie stumm: jede Aenderung erscheint als Satz in der Ober
 - **Zustand ohne Datei** (Phase, Termine, Ziel, Saeule): `projekt.json` je Projekt UND
   `data/board.json` als Index. Bei Widerspruch entscheidet der Abgleich zugunsten von Drive.
 
+## KPI-Auswertung: menschenlesbare Tabellen unter `Videoauswertung/Auswertung-Tabellen/`
+
+Zusaetzlich zum Maschinen-JSON (`Videoauswertung/KPI/<projekt>_kpi.json`) schreibt das Board
+die Zahlen als CSV, die Mitarbeiter ohne API-Zugang in Sheets/Excel oeffnen koennen. Entwurf
+und API-Belege: `docs/packages/v17-kpi-tabellen-drive.md`. Eine `LIESMICH.txt` im Ordner
+erklaert die Spalten vor Ort.
+
+- `beitraege-kpi.csv` — eine Zeile je Beitrag × Plattform × Mess-Intervall (24 h … 12 Monate).
+  Geschrieben von `lib/kpi-tabellen.js` beim KPI-Sammeln (`kpi.sammle`).
+- `kanal-verlauf.csv` — Konto-Verlauf (Follower gesamt/Zuwachs, Konto-Reichweite),
+  woechentlicher Schnappschuss. Geschrieben von `lib/kanal-kpi.js`.
+- `follower-demografie.csv` — Follower nach Land/Alter/Geschlecht (IG) bzw.
+  Land/Branche/Funktion/Senioritaet (LI), quartalsweiser Schnappschuss.
+
+CSV-Dialekt: UTF-8 mit BOM, Semikolon-Trenner, Dezimalkomma. Leere Zelle = Plattform
+liefert nicht; `0` = echt gemessene Null. Belegte Feldherkunft je Plattform steht im Paket.
+Follower-Gesamtstand und Demografie sind API-seitig **nicht** rueckwirkend holbar (nur der
+LinkedIn-Zuwachs, einmalig 12 Monate) — die Kurven wachsen ab dem ersten Lauf.
+
 ## Zugang: eigene rclone-client_id ist Pflicht geworden
 
 rclone warnt bei jedem Aufruf:
