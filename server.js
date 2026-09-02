@@ -23,6 +23,7 @@ import * as spaltenStore from "./lib/spalten.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
+import * as gcal from "./lib/gcal.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -569,6 +570,90 @@ async function handler(req, res) {
         umleitung(res, "/?verbunden=instagram");
       } catch (e) {
         umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
+      }
+      return;
+    }
+
+    // ---- OAuth: Google (Calendar + Tasks, v16d) --------------------------
+
+    if (pfad === "/api/auth/google" && req.method === "GET") {
+      const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+      if (!clientId) {
+        sendJson(res, 500, { error: "GOOGLE_OAUTH_CLIENT_ID fehlt in .env" });
+        return;
+      }
+      const p = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: `https://localhost:${PORT}/api/auth/google/callback`,
+        response_type: "code",
+        scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks",
+        access_type: "offline",
+        prompt: "consent", // erzwingt den Refresh-Token auch bei erneutem Verbinden
+      });
+      umleitung(res, `https://accounts.google.com/o/oauth2/v2/auth?${p}`);
+      return;
+    }
+
+    if (pfad === "/api/auth/google/callback" && req.method === "GET") {
+      const code = url.searchParams.get("code");
+      if (!code) {
+        umleitung(res, `/?fehler=${encodeURIComponent(url.searchParams.get("error") || "Google-Verbindung abgebrochen")}`);
+        return;
+      }
+      try {
+        const tok = await (
+          await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              code,
+              client_id: process.env.GOOGLE_OAUTH_CLIENT_ID,
+              client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+              redirect_uri: `https://localhost:${PORT}/api/auth/google/callback`,
+              grant_type: "authorization_code",
+            }),
+          })
+        ).json();
+        if (tok.error) throw new Error(tok.error_description || tok.error);
+        if (!tok.refresh_token) {
+          throw new Error("Kein Refresh-Token erhalten. In den Google-Kontoeinstellungen den Zugriff der App entfernen und erneut verbinden.");
+        }
+        await gcal.speichereAusCode(tok);
+        umleitung(res, "/?verbunden=google");
+      } catch (e) {
+        umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
+      }
+      return;
+    }
+
+    if (pfad === "/api/gcal/status" && req.method === "GET") {
+      sendJson(res, 200, { verbunden: await gcal.verbunden() });
+      return;
+    }
+
+    // Sync eines Drehtermins → Kalender-Event (Bens Kalender) + Task (Bens Liste), v16d-1.
+    // Routing/Teilnehmer/Deadlines kommen in v16d-2. Bestehende IDs werden geupdatet.
+    if (pfad === "/api/gcal/sync" && req.method === "POST") {
+      try {
+        const { termin, karten, eventId, taskId, calId } = JSON.parse(await readBody(req));
+        if (!termin || !termin.datum) {
+          sendJson(res, 400, { error: "termin.datum fehlt" });
+          return;
+        }
+        const liste = (karten || []).map((k) => "• " + (k.title || k.titel || k)).join("\n");
+        const anzahl = (karten || []).length;
+        const titel = `Dreh: ${termin.ort || termin.titel || "Drehtermin"}${anzahl ? ` (${anzahl})` : ""}`;
+        const beschreibung = liste ? `Inhalte:\n${liste}` : "Noch keine Karten zugeordnet.";
+        const felder = { titel, beschreibung, datum: termin.datum, zeit: termin.zeit || "", teilnehmer: [] };
+        let neuEventId = eventId;
+        let neuTaskId = taskId;
+        if (eventId) await gcal.eventUpdaten(calId, eventId, felder);
+        else neuEventId = await gcal.eventAnlegen(calId, felder);
+        if (taskId) await gcal.taskUpdaten(taskId, { titel, notiz: beschreibung, faellig: termin.datum });
+        else neuTaskId = await gcal.taskAnlegen({ titel, notiz: beschreibung, faellig: termin.datum });
+        sendJson(res, 200, { eventId: neuEventId, taskId: neuTaskId });
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
       }
       return;
     }

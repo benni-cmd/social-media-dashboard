@@ -376,6 +376,38 @@ export function karteVonTermin(karteId, terminId) {
   zeichne();
 }
 
+// --- Google Calendar + Tasks (v16d) ---------------------------------------
+
+export async function gcalStatus() {
+  try { return await hole("/api/gcal/status"); } catch { return { verbunden: false }; }
+}
+
+// Verbinden ist ein Browser-Redirect in den OAuth-Consent (Ben klickt, stimmt zu).
+export function gcalVerbinden() {
+  window.location.href = "/api/auth/google";
+}
+
+// Legt/aktualisiert Kalender-Event + Task fuer einen Drehtermin und merkt sich die IDs.
+export async function gcalSync(terminId) {
+  const t = drehtermin(terminId);
+  if (!t) return null;
+  const karten = (t.karteIds || []).map((id) => karte(id)).filter(Boolean).map((k) => ({ title: k.title }));
+  const r = await hole("/api/gcal/sync", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      termin: { datum: t.datum, zeit: t.zeit, ort: t.ort, titel: t.titel },
+      karten,
+      eventId: t.gcalEventId || "",
+      taskId: t.gtaskId || "",
+    }),
+  });
+  t.gcalEventId = r.eventId || t.gcalEventId;
+  t.gtaskId = r.taskId || t.gtaskId;
+  await speichere();
+  return r;
+}
+
 // --- Benutzer-Defaults -----------------------------------------------------
 
 export async function ladeDefaults() {

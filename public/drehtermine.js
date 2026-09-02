@@ -13,12 +13,21 @@ import {
   drehterminLoeschen,
   karteVonTermin,
   karte,
+  gcalStatus,
+  gcalVerbinden,
+  gcalSync,
 } from "./store.js";
-import { knopf, icon, escape, eingabe, feld, bestaetigen } from "./ui.js";
+import { knopf, icon, escape, eingabe, feld, bestaetigen, meldung } from "./ui.js";
 import { deutschesDatum, tageBis, isoDatum } from "/lib/pipeline.js";
 
 let oeffneKarte = () => {};
 export const beiOeffnen = (f) => (oeffneKarte = f);
+
+// Google-Verbindungsstand, einmal geladen und dann gecacht; null = noch nicht geprueft.
+let googleVerbunden = null;
+function ladeGoogleStatus(danach) {
+  gcalStatus().then((s) => { googleVerbunden = !!s.verbunden; danach && danach(); }).catch(() => { googleVerbunden = false; });
+}
 
 const heuteIso = () => isoDatum(new Date());
 
@@ -72,6 +81,21 @@ export function zeichneDrehleiste() {
   });
   neu.classList.add("drehleiste-neu");
   el.appendChild(neu);
+
+  // Google-Verbindung: Knopf, solange nicht verbunden; sonst ein dezentes Haekchen.
+  if (googleVerbunden === null) {
+    ladeGoogleStatus(() => { if (document.getElementById("drehleiste")) zeichneDrehleiste(); });
+  }
+  const g = document.createElement("span");
+  g.className = "drehleiste-google";
+  g.style.cssText = "margin-left:8px;display:inline-flex;align-items:center;gap:6px;color:var(--text-still);font-size:12px;white-space:nowrap";
+  if (googleVerbunden) {
+    g.innerHTML = icon("check") + "<span>Google verbunden</span>";
+    g.title = "Google Kalender + Tasks sind verbunden.";
+  } else {
+    g.appendChild(knopf("Mit Google verbinden", { klick: () => gcalVerbinden() }));
+  }
+  el.appendChild(g);
 }
 
 function kachel(t) {
@@ -198,6 +222,25 @@ function detail(id) {
   const reihe = document.createElement("div");
   reihe.className = "modal-knoepfe";
   reihe.appendChild(knopf("Schliessen", { klick: zu }));
+  reihe.appendChild(
+    knopf("Zu Google Kalender + Tasks", {
+      art: "haupt",
+      zeichen: "kalender",
+      klick: async (e) => {
+        if (!googleVerbunden) { gcalVerbinden(); return; }
+        const b = e.currentTarget;
+        b.disabled = true;
+        try {
+          await gcalSync(t.id);
+          meldung("In Google Kalender und Tasks eingetragen.", "erfolg");
+          zu();
+        } catch (err) {
+          meldung("Google-Sync fehlgeschlagen: " + err.message, "fehler");
+          b.disabled = false;
+        }
+      },
+    })
+  );
   reihe.appendChild(
     knopf("Bearbeiten", {
       klick: () => {

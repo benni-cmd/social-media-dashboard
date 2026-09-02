@@ -189,7 +189,16 @@ APIs sind laut Übergabe schon aktiv (Projekt 1041532493098). Fehlt nur der OAut
 - Transitional: Karten, die vor v16c in der Spalte „skript" standen, ohne fertiges Skript,
   zeigen dort keine Skript-Werkzeuge mehr — zum Weiterschreiben zurueck nach „Skript schreiben"
   ziehen. (Owner-Hinweis, keine Auto-Migration gebaut.)
-- [ ] v16d (Google Calendar, braucht Owner-Setup).
+- [x] **v16d-1 Foundation gebaut (02.09.2026):** `lib/gcal.js` (OAuth-Token aus tokens.json +
+      Refresh; Calendar events + Tasks roh per fetch); `server.js` `/api/auth/google[/callback]`,
+      `/api/gcal/status`, `/api/gcal/sync`; `store.js` `gcalStatus/gcalVerbinden/gcalSync`;
+      `drehtermine.js` „Mit Google verbinden"-Knopf + „Zu Google Kalender + Tasks" im Detail;
+      `app.js` Rücklauf `?verbunden=google`. Smoke-Test: Server bootet, status→{verbunden:false},
+      auth/google→500 „CLIENT_ID fehlt", sync ohne datum→400. `node --check` aller Dateien grün.
+- [ ] **Owner: OAuth-Client anlegen + `.env` (s. Setup) → „Mit Google verbinden" → funktional
+      testen** (Event + Task entstehen). Erst danach v16d-1 als verifiziert markieren.
+- [ ] v16d-2: Personen + Routing-Tabelle (Teilnehmer je Typ, Kanal-Toggles), Schnitt/Upload-Events,
+      Auto-Sync bei Datumsänderung, Drive-Links in der Beschreibung.
 
 ## Parallel-Session-Hinweis (02.09.2026)
 `server.js` wurde ausserhalb dieses Kontexts zu einem **v17-Umbau** erweitert (board.json =

@@ -135,7 +135,11 @@ el("einstellungen").addEventListener("click", () => {
   // Rueckkehr aus dem OAuth-Verbindungsfluss: Meldung zeigen und in die Auswertung springen.
   const rueck = new URLSearchParams(location.search);
   let ziel = "board";
-  if (rueck.has("verbunden")) {
+  if (rueck.get("verbunden") === "google") {
+    await melde("ok", "Google ist verbunden. Drehtermine kannst du jetzt in Kalender und Tasks eintragen.");
+    history.replaceState({}, "", "/");
+    ziel = "board";
+  } else if (rueck.has("verbunden")) {
     const name = rueck.get("verbunden") === "linkedin" ? "LinkedIn" : "Instagram";
     S.zahlen = null;
     S.zahlenLi = null;
