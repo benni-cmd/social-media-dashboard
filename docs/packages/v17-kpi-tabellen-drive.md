@@ -29,15 +29,17 @@ Die gespeicherten Felder folgen dem, was die APIs WIRKLICH liefern — nicht ger
 
 ## Plan
 
-1. [ ] Recherche: IG-Graph-API- + LinkedIn-API-Felder (Stand 2026), je 2 unabhängige
-       Quellen — läuft als zwei parallele Agenten.
-2. [ ] Schema-Entwurf: Spaltensatz (einheitlich IG/LI), Umgang mit plattform-spezifischen
-       Feldern, abgeleitete Raten, Umgang mit „nicht verfügbar" (leer vs. 0).
-3. [ ] Ordner-/Datei-Layout in Drive festlegen (wo unter `Videoauswertung/`, ein Blatt
-       je Projekt vs. ein Gesamt-Register vs. beides) — Entscheidung mit Owner.
-4. [ ] `lib/kpi.js`: CSV-Schreiber ergänzen (zusätzlich zur JSON-Ablage), deterministisch.
+1. [x] Recherche: IG-Graph-API- + LinkedIn-API-Felder (Stand 2026), je 2 unabhängige
+       Quellen — zwei parallele Agenten, abgeschlossen (siehe Design).
+2. [x] Schema-Entwurf: einheitlicher Spaltensatz IG/LI, abgeleitete Raten, Leer-vs-0-Regel.
+3. [x] Ordner-/Datei-Layout: `Videoauswertung/Auswertung-Tabellen/`, alle drei Tabellen.
+4. [ ] CSV-Schreiber:
+       - [x] `lib/kpi-tabellen.js` (CSV-Engine + Tabelle 1) + Messung in `lib/kpi.js`
+             um volle Felder erweitert + an `sammle` angehängt. Lokal verifiziert.
+       - [ ] Tabelle 2 (kanal-verlauf) + Tabelle 3 (demografie): brauchen neue API-Calls
+             in `lib/social.js` (Follower-Zuwachs, Demografie) + Kadenz-Auslöser.
 5. [ ] `docs/drive-convention.md` + Feld-Legende nachziehen.
-6. [ ] Verify: echte Messung → Tabelle in Drive öffnen, Spalten gegen Legende prüfen.
+6. [ ] Verify live: echte Messung → CSV in Drive öffnen (Tabelle 1 Logik schon geprüft).
 
 ---
 
@@ -47,7 +49,17 @@ Die gespeicherten Felder folgen dem, was die APIs WIRKLICH liefern — nicht ger
 (rclone: schreibt beliebige Dateien via `rcat`, keine nativen Sheets → CSV ist der Weg),
 `docs/drive-convention.md` (Kernprinzip menschenlesbare Dateien), `lib/pipeline.js`
 (16 KPI-Intervalle 24 h…12 Monate, Vergleichsfenster = 20 Beiträge). API-Recherche
-abgeschlossen (siehe Design). Schema-Entwurf steht, wartet auf Owner-Abnahme.
+abgeschlossen (siehe Design). Schema-Entwurf steht, Owner-Abnahme erfolgt.
+
+02.09.2026 — Tabelle 1 gebaut: `lib/kpi-tabellen.js` (CSV-Engine UTF-8-BOM/Semikolon/
+Dezimalkomma, tidy/long, Entdopplung Post×Plattform×Intervall). `lib/kpi.js` erweitert:
+IG erfasst jetzt `likes` + `ig_reels_video_view_total_time` + `permalink`, LinkedIn
+`likeCount`/`shareCount`/`clickCount`/`commentCount` getrennt; `sammle()` hängt die
+Zeilen nach der JSON-Ablage an `Videoauswertung/Auswertung-Tabellen/beitraege-kpi.csv`.
+Ein Tabellen-Fehler entwertet die erfassten Messungen nicht (nur Bericht). Verify lokal
+mit synthetischen IG/LI-Messungen: 30 Spalten, Semikolon im Titel gequotet, ms→s + Raten
+mit Dezimalkomma, Leer-vs-0-Regel, Format/Säule/Ziel aufgelöst — alle Prüfungen bestanden
+(`node --check` beide Module OK). Offen: Tabellen 2+3, Feld-Legende, Live-Verify.
 
 ---
 
@@ -109,10 +121,25 @@ anzahl. Beide Plattformen liefern Demografie (IG ab 100 Followern; LI Top 100 je
 CSV mit **UTF-8-BOM + Semikolon-Trenner + Dezimalkomma** — so öffnet die Datei in
 deutschem Excel und in Google Sheets per Doppelklick korrekt, ohne Import-Dialog.
 
-### Offene Owner-Entscheidung
+### Owner-Entscheidung (02.09.2026, getroffen)
 
-Umfang: nur Register (Tabelle 1+2) · zusätzlich pro-Projekt-Kopie je Video ·
-zusätzlich Demografie (Tabelle 3). Ordnername des Unterordners.
+- **Umfang:** alle drei Tabellen. Tabelle 1 hängt an den bestehenden Post-Intervallen;
+  Tabellen 2 + 3 sind konto-bezogen, unabhängig von den Videos, und werden regelmäßig
+  abgefragt.
+- **Ordner:** `Videoauswertung/Auswertung-Tabellen/`.
+
+### Backfill-Realität (belegt aus der API-Recherche) — steuert die Kadenz
+
+| Ebene | Rückwirkend holbar? | Folge |
+|---|---|---|
+| Post-Metriken (Tab. 1) | LI Share-Stats ~12 Mon., IG Media solange Post lebt; **LI-Video-Watch-Time nur 6 Mon.** | Intervall-Messung + sofort archivieren (bestehend) |
+| Follower-**Gesamt** (Tab. 2) | **Nein** — API liefert nur Jetzt-Wert (IG `followers_count`, LI `networkSizes`) | ab jetzt regelmäßig Schnappschuss |
+| Follower-**Zuwachs** (Tab. 2) | **Ja, ~12 Mon.** (LI organisch/paid; IG neue Follower/Tag) | einmalig backfillbar |
+| Demografie (Tab. 3) | **Nein** — API liefert nur aktuelle Verteilung, keine Historie | ab jetzt quartalsweise Schnappschuss |
+
+Deshalb: **je früher der Konto-Sammler läuft, desto mehr Historie** — nur der Zuwachs
+ist einmalig nachholbar. Kadenz-Vorschlag: Tabelle 2 wöchentlich, Tabelle 3 quartalsweise;
+genaue Auslösung nach Prüfung der Server-Verdrahtung.
 
 ---
 
@@ -121,4 +148,6 @@ zusätzlich Demografie (Tabelle 3). Ordnername des Unterordners.
 Geprueft gegen: echte Testmessung landet als CSV in Drive und öffnet in Sheets · jede
 Spalte in der Feld-Legende erklärt · IG- und LI-Felder gegen die belegten API-Quellen
 abgeglichen (2 Quellen je Plattform) · `drive-convention.md` beschreibt die Struktur.
-Offen: Schema, Ordner-Layout, CSV-Schreiber, Legende, Verify — alles noch offen.
+Offen: Tabellen 2 + 3 (kanal-verlauf, follower-demografie) inkl. `social.js`-Erweiterung
+(Zuwachs, Demografie) + Kadenz-Auslöser · Feld-Legende · Live-Verify einer echten Messung.
+Erledigt: Schema, Ordner-Layout, Tabelle-1-Schreiber (lokal verifiziert).
