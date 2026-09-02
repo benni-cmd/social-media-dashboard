@@ -125,7 +125,23 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
       store (`S.drehtermine`, PUT-Body, `pruefeAutoDreh`, Helfer `drehterminAnlegen/Aendern/
       Loeschen`, `karteZuTermin/karteVonTermin`). Verify: Server-Roundtrip PUT→GET,
       `drehtermine` + `drehterminId`/`dates.dreh` persistiert; `node --check` aller Dateien grün.
-- [ ] Bau v16b (Board-Leiste) → v16c (Phasen) → v16d (GCal).
+- [x] **v16b gebaut + UI verifiziert (02.09.2026):** neue `public/drehtermine.js`
+      (Leiste `zeichneDrehleiste`, Kacheln „Datum (in X Tagen)", „+ Drehtermin"-Modal mit
+      Vergangenheits-Guard, Termin-Detail mit Karten-Loesen/Bearbeiten/Loeschen);
+      `index.html` (#drehleiste unter #wochenlast); `board.js` (Aufruf in zeichneBoard);
+      `app.js` (Karten-Oeffnen verdrahtet); `detail.js` (`blockDrehtermin`, gated auf
+      fertiges Skript = Spalte ≥ Skript, nicht idee/fertig/verworfen); `style.css`.
+      Verify: Edge-headless-Screenshot Board — Leiste sitzt unter der Wochenleiste, Auto-Kachel
+      „13.9.2026 (in 11 Tagen) · automatisch gesetzt" (30-Tage-Regel live), „+"-Button rechts.
+- [ ] Offene Sicht-Pruefung v16b: Zuordnungs-Block IN der Karte (Skript-Phase) — per Code aus
+      geprueften Primitiven (gruppe/feld/auswahl/knopf), Screenshot der Detailspalte noch offen.
+- [ ] Bau v16c (Phasen) → v16d (GCal).
+
+## Parallel-Session-Hinweis (02.09.2026)
+`server.js` wurde ausserhalb dieses Kontexts zu einem **v17-Umbau** erweitert (board.json =
+Cache, Wahrheit in Drive; PUT spiegelt geaenderte Karten nach Drive) — aufgesetzt auf die
+v16a-drehtermine-Aenderungen. v16b fasst `server.js` NICHT an. Beim naechsten Sichern der
+Backend-Arbeit gehoert dieser v17-Stand der anderen Session, nicht diesem Paket.
 
 ## v16b-Merkzettel (beim Bau erledigen)
 - `detail.js`-Hinweistexte „Dreh wird automatisch 2 Wochen vorher gesetzt" stimmen nicht mehr

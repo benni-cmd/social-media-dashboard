@@ -13,12 +13,15 @@ import {
   MASSE,
   DATEINAMEN,
   phase,
+  phaseIndex,
   naechstePhase,
   faelligkeit,
   tore,
   sperren,
   rueckwaertsplan,
   einfacherPlan,
+  drehFenster,
+  drehImFenster,
   vorschlagUploadDatum,
   isoDatum,
   sprechzeit,
@@ -48,7 +51,13 @@ import {
   speichereDefaults,
   ladePlan,
   slotBelegen,
+  drehtermin,
+  drehterminAnlegen,
+  drehterminAendern,
+  karteZuTermin,
+  karteVonTermin,
 } from "./store.js";
+import { modalDrehtermin } from "./drehtermine.js";
 import {
   icon,
   statusChip,
@@ -134,6 +143,9 @@ export function zeichneDetail(el) {
 
   // --- Termine (in Idee erst nach Stamm-Daten) ---
   if (!istIdee || stammFertig) koerper.appendChild(blockTermine(k, merke));
+
+  // --- Drehtermin (nur bei fertigem Skript: ab Schritt „Drehtermin festlegen") ---
+  if (!["idee", "fertig", "verworfen"].includes(k.column)) koerper.appendChild(blockDrehtermin(k));
 
   // --- Die Arbeit dieser Phase (in Idee erst nach Termin) ---
   const terminFertig = !!(k.dates && k.dates.upload);
@@ -345,6 +357,81 @@ function blockTermine(k, merke) {
 }
 
 // Vereinfachter Terminblock fuer die Idee-Phase: Vorschlag + Akzeptieren oder manuell.
+// Drehtermin-Zuordnung in der Karte. Erscheint nur bei fertigem Skript (ab Schritt
+// „Drehtermin festlegen"). Zugeordnet: Anzeige + Loesen; sonst: vorhandenen waehlen oder neuen anlegen.
+function blockDrehtermin(k) {
+  const g = gruppe("Drehtermin", null, true);
+  const box = document.createElement("div");
+  const heute = isoDatum(new Date());
+  const kommend = (S.drehtermine || [])
+    .filter((t) => t.datum && t.datum >= heute)
+    .sort((a, b) => a.datum.localeCompare(b.datum));
+
+  const t = k.drehterminId ? drehtermin(k.drehterminId) : null;
+
+  if (t) {
+    const zeile = document.createElement("div");
+    zeile.className = "termin-kompakt";
+    zeile.innerHTML =
+      `<span>Zugeordnet: <strong>${deutschesDatum(t.datum)}</strong>${t.zeit ? " · " + escape(t.zeit) : ""}${t.ort ? " · " + escape(t.ort) : ""}</span>`;
+    const loesen = knopf("loesen", { klick: () => karteVonTermin(k.id, t.id) });
+    loesen.classList.add("knopf-inline");
+    zeile.appendChild(loesen);
+    box.appendChild(zeile);
+
+    if (!drehImFenster(t.datum, (k.dates || {}).upload)) {
+      const f = drehFenster((k.dates || {}).upload);
+      const w = document.createElement("p");
+      w.className = "feld-hinweis";
+      w.textContent = f
+        ? `Achtung: liegt ausserhalb des empfohlenen Fensters (${deutschesDatum(f.frueh)} – ${deutschesDatum(f.spaet)}).`
+        : "";
+      box.appendChild(w);
+    }
+  } else {
+    if (kommend.length) {
+      const opts = kommend.map((x) => ({
+        id: x.id,
+        name: `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})`,
+      }));
+      const sel = auswahl(opts, "", { leerText: "Termin waehlen …" });
+      box.appendChild(feld("Vorhandener Drehtermin", sel));
+      const zu = knopf("Zuordnen", {
+        art: "haupt",
+        klick: () => {
+          if (!sel.value) return;
+          const r = karteZuTermin(k.id, sel.value);
+          if (r && r.warnung) melde("hinweis", r.warnung);
+        },
+      });
+      zu.classList.add("knopf-breit");
+      box.appendChild(zu);
+    } else {
+      const leer = document.createElement("p");
+      leer.className = "feld-hinweis";
+      leer.textContent = "Noch kein Drehtermin geplant. Leg unten einen an.";
+      box.appendChild(leer);
+    }
+
+    const neu = knopf("Neuer Drehtermin", {
+      zeichen: "plus",
+      klick: () =>
+        modalDrehtermin((werte) => {
+          const nt = drehterminAnlegen(werte.datum, werte.zeit);
+          if (werte.ort || werte.titel) drehterminAendern(nt.id, { ort: werte.ort, titel: werte.titel });
+          const r = karteZuTermin(k.id, nt.id);
+          if (r && r.warnung) melde("hinweis", r.warnung);
+        }),
+    });
+    neu.classList.add("knopf-breit");
+    neu.style.marginTop = "7px";
+    box.appendChild(neu);
+  }
+
+  g.appendChild(box);
+  return g;
+}
+
 function blockTermineIdee(k, merke) {
   const g = gruppe("Termin", null, true);
   const box = document.createElement("div");

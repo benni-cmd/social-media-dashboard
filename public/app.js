@@ -3,6 +3,7 @@
 import { PHASEN } from "/lib/pipeline.js";
 import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus, ladeDefaults } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
+import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
@@ -43,6 +44,7 @@ function oeffne(id) {
   zeichne();
 }
 boardOeffnet(oeffne);
+drehOeffnet(oeffne);
 kalenderOeffnet(oeffne);
 auswertungOeffnet(oeffne);
 beiSchieben(schiebe);

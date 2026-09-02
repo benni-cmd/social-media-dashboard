@@ -22,6 +22,7 @@ import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setSt
 import { icon, statusChip, escape, knopf, leer } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
+import { zeichneDrehleiste } from "./drehtermine.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
@@ -99,6 +100,7 @@ export function kachel(k) {
 export function zeichneBoard(boardEl, lastEl) {
   boardEl.innerHTML = "";
   zeichneWochenlast(lastEl);
+  zeichneDrehleiste();
 
   for (const p of PHASEN) {
     const karten = S.cards.filter((c) => c.column === p.id);
