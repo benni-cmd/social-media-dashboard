@@ -67,40 +67,53 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
   (zugeordnete Karten, hinzufügen/entfernen).
 - Ganz rechts: Button **„+ Drehtermin"** (Datum + Uhrzeit).
 
-### Google Calendar — Weg GEWÄHLT: googleapis (Node) + Service-Account [Owner, 02.09.2026]
-- Neuer Drehtermin → Google-Calendar-Event (Datum/Zeit) anlegen, `gcalEventId` merken.
-- Karten zugeordnet → Drive-Links der Skript-Ordner via vorhandenem `drive.link()`
-  (`lib/drive.js:341`, `rclone link`) in die Event-Beschreibung schreiben (Event updaten).
-- In-Process im Server via `calendar.events.insert/patch/delete` (`googleapis`).
-- **Service-Account statt OAuth**, weil unbeaufsichtigt und ohne Token-Ablauf: ein SA kann in
-  einen persönlichen Gmail-Kalender schreiben, sobald der Kalender MIT der SA-Mail geteilt ist
-  (Domain-wide Delegation ist nur für Workspace). Belege: github.com/googleapis/
-  google-api-nodejs-client#3173, dev.to/divofred/…-530i (zwei Quellen, 02.09.2026).
+### Google Calendar + Tasks — Weg GEWÄHLT: OAuth-User-Flow, roh per fetch [Owner, 02.09.2026]
+**Kein Service-Account, kein googleapis-Paket.** Zwei Gründe:
+- **Tasks erzwingen OAuth:** Ein Service-Account ohne Workspace-Domain-Delegation erreicht die
+  Tasks eines privaten Gmail GAR NICHT (Übergabe der Drive-Session, s. u.). Für Tasks + Kalender
+  ist der OAuth-User-Flow der einzige tragende Weg — eine Zustimmung, beide Scopes
+  (`.../auth/calendar` + `.../auth/tasks`).
+- **Dependency-frei:** Das Projekt hat null npm-Deps (`package.json` deps: {}); IG/LinkedIn machen
+  OAuth schon roh per `fetch` (`server.js` `/api/auth/instagram|linkedin` + `/callback`, Token in
+  `data/tokens.json`). Google Calendar/Tasks laufen genauso über die REST-APIs — kein `googleapis`.
+
+#### Routing — „auf wen geht der Termin" [Owner, 02.09.2026]
+- **Kalender an ANDERE geht über Teilnehmer** (deren E-Mail als `attendee`): das Event landet per
+  Einladung in deren Kalender, und dafür reicht ALLEIN Bens Login.
+- **Tasks sind privat pro Konto:** die Tasks-API schreibt nur in die Liste des eingeloggten Kontos;
+  kein „Assignee". → **v1-Scope [Owner]: Kalender an alle (Teilnehmer-E-Mail), Tasks nur in Bens
+  eigene Liste.** Echte Tasks bei anderen bräuchte deren eigenen OAuth (spätere Phase).
+- **Personen**: Liste `{ id, name, email }` (Ben, Leon, Cutter …).
+- **Routing-Tabelle** je Termin-Art: `{ typ, zielPersonId, kalender:bool, tasks:bool }`.
+- **Termin-Arten je Projekt in den Kalender [Owner]: `dreh`, `schnitt`, `upload`** (Daten aus
+  `card.dates.*`; `dreh` aus der Drehtermin-Zuordnung). Freigabe vorerst nicht.
 
 #### Owner-Setup (einmalig, DU — ich darf keine Zugangsdaten eingeben)
-1. console.cloud.google.com → Projekt wählen/anlegen.
-2. „APIs & Services" → „Library" → **Google Calendar API** aktivieren.
-3. „Credentials" → „Create credentials" → **Service account** (Name z. B. `content-maschine-cal`,
-   keine Rollen nötig).
-4. Beim Service-Account → Tab **„Keys"** → „Add key" → „Create new key" → **JSON** herunterladen
-   (enthält `client_email` + `private_key`).
-5. calendar.google.com → Ziel-Kalender → Einstellungen → **„Für bestimmte Personen freigeben"**
-   → die `client_email` hinzufügen → Recht **„Termine ändern"**.
-6. **Kalender-ID** notieren (Kalender-Einstellungen → „Kalender-ID"; Hauptkalender = Gmail-Adresse).
-7. JSON **außerhalb des Repos** ablegen (z. B. `%USERPROFILE%\.secrets\content-maschine-cal.json`),
-   dann in `.env` (gitignoriert): `GCAL_SA_KEYFILE=<pfad>` und `GCAL_CALENDAR_ID=<id>`.
-   Namen (nicht Werte) in `.secrets/AI-ZUGAENGE.md` eintragen. **Kein Schlüssel ins Repo.**
+APIs sind laut Übergabe schon aktiv (Projekt 1041532493098). Fehlt nur der OAuth-Client:
+1. console.cloud.google.com → Projekt `1041532493098` → **Credentials → Create credentials →
+   OAuth client ID → Web application**.
+2. **Authorized redirect URI**: `https://localhost:4321/api/auth/google/callback`.
+3. `GOOGLE_OAUTH_CLIENT_ID` + `GOOGLE_OAUTH_CLIENT_SECRET` in `.env` (gitignoriert); Namen in
+   `.secrets/AI-ZUGAENGE.md`. **Kein Secret ins Repo.**
+4. Danach im Board **„Mit Google verbinden"** klicken → Consent im Browser (Scopes Calendar+Tasks).
 
-#### Code-Design (baue ich nach dem Setup; Kollision mit v17b-Server vorher abstimmen)
-- Neue `lib/gcal.js`: `google.auth.GoogleAuth({keyFile: GCAL_SA_KEYFILE, scopes:[calendar]})`;
-  `eventAnlegen(t)→eventId`, `eventUpdaten(eventId, felder)`, `eventLoeschen(eventId)`.
-  Beschreibung = zugeordnete Karten + `drive.link(projektPfad)`-Links.
-- `server.js`: Endpunkt `POST /api/gcal/sync {drehterminId}` — legt an/patcht, gibt `gcalEventId`
-  zurück (in `drehtermine` speichern). Fehlt der Zugang (keine Env) → No-Op mit Hinweis, lokales
-  Feature läuft weiter.
-- `public/store.js`: nach `drehterminAnlegen/Aendern` + `karteZuTermin/karteVonTermin` ein
-  `gcalSync(terminId)` (fire-and-forget; Fehler melden, nicht blockieren).
-- `npm i googleapis` (neue Abhängigkeit).
+#### Code-Design (roh per fetch)
+- Neue `lib/gcal.js`: Token aus `tokens.json` (`google`), Refresh via `grant_type=refresh_token`;
+  `eventAnlegen/Updaten/Loeschen` → `calendar/v3/calendars/<calId>/events` (mit `attendees`);
+  `taskAnlegen/Updaten/Loeschen` → `tasks/v1/lists/@default/tasks` (due, notes). Fehlt Token →
+  No-Op mit Hinweis, lokales Feature läuft weiter.
+- `server.js`: `/api/auth/google` (Redirect, `access_type=offline&prompt=consent`) +
+  `/api/auth/google/callback` (Code→Token, in tokens.json); `GET /api/gcal/status`;
+  `POST /api/gcal/sync` (Karte/Drehtermin → Events+Task anlegen/patchen, IDs zurück).
+- `public/store.js`: `gcalStatus()`, `gcalVerbinden()`, `gcalSync(...)` (fire-and-forget).
+- Personen + Routing-Tabelle: eigene Config (Drive-Wahrheit wie plan/spalten, oder `defaults.json`).
+
+#### Phasen v16d
+- **v16d-1 Foundation:** OAuth-Verbindung + `lib/gcal.js` + „Mit Google verbinden"-Button +
+  minimaler Sync (Dreh-Event in Bens Kalender, 1 Task in Bens Liste). End-to-end testbar, sobald
+  der OAuth-Client steht.
+- **v16d-2 Routing/Personen:** Personen-Liste + Routing-Tabelle (Teilnehmer je Typ, Kanal-Toggles),
+  Schnitt-/Upload-Events, Update/Delete bei Datumsänderung.
 
 ---
 
@@ -140,9 +153,11 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
 - [x] Kopplung: Upload bleibt stehen; Kette Freigabe−3/Schnitt−6/Dreh-Fenster (02.09.2026).
 - [x] UI: Board-Leiste unter Wochenleiste, kein eigener Tab (02.09.2026).
 - [x] Google-Calendar-Wege recherchiert (gcalcli vs. googleapis), zwei Quellen (02.09.2026).
-- [x] Google-Calendar-Weg gewählt: **googleapis (Node) + Service-Account** (Owner, 02.09.2026).
-- [ ] **Owner-Aktion offen:** Service-Account anlegen, Kalender freigeben, `GCAL_SA_KEYFILE`/
-      `GCAL_CALENDAR_ID` in `.env` setzen (Setup-Checkliste im Design-Abschnitt). Blockt nur v16d.
+- [x] Weg korrigiert (Übergabe 8eb747b): **OAuth-User-Flow, roh per fetch, kein SA/googleapis**
+      — SA erreicht private-Gmail-Tasks nicht. Routing v1: Kalender an alle (Teilnehmer), Tasks
+      nur in Bens Liste; Termin-Arten Dreh/Schnitt/Upload (Owner, 02.09.2026).
+- [ ] **Owner-Aktion offen:** OAuth-Client (Web app) im Projekt 1041532493098 anlegen, Redirect
+      `…/api/auth/google/callback`, `GOOGLE_OAUTH_CLIENT_ID/SECRET` in `.env`. Blockt v16d-Test.
 - [x] **v16a gebaut + funktional verifiziert (02.09.2026):** pipeline (Kette Schnitt−6/
       Freigabe−3, `drehFenster` [Upload−20,Upload−6], `leereDrehtermin`, `autoDrehNoetig`/
       `sonntagFolgewoche`, `drehterminId` via `leereKarte`+`normalisiere`); server
