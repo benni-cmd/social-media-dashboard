@@ -84,6 +84,7 @@ export async function zeichneAuswertung(el) {
   // --- Das Wichtigste, immer sichtbar ---
   el.appendChild(kpiReihe(ig, li, igOn, liOn));
   el.appendChild(letzteBeitraegeBlock(ig, li, igOn, liOn));
+  el.appendChild(plattformVergleichBlock(ig, li, igOn, liOn));
   el.appendChild(medianHinweis());
 
   // --- Nebendaten, ausklappbar ---
@@ -225,6 +226,101 @@ function medianHinweis() {
   p.textContent =
     "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt.";
   return p;
+}
+
+// --- Plattform-Vergleich: welche performt besser? --------------------------
+
+// Aggregiert eine Postliste zu Aufrufen/Interaktionen/Kommentaren (Mittel + Rate).
+// Raten auf Summen: Sigma Interaktionen / Sigma Aufrufe — robuster als Mittel der Einzelraten.
+function aggregat(posts) {
+  const n = posts.length;
+  if (!n) return null;
+  const sum = (f) => posts.reduce((s, p) => s + (Number(p[f]) || 0), 0);
+  const aufrufe = sum("views");
+  const inter = sum("interaktionen");
+  const komm = sum("kommentare");
+  return {
+    n,
+    aufrufeAvg: aufrufe ? Math.round(aufrufe / n) : null,
+    interAvg: Math.round(inter / n),
+    kommAvg: Math.round(komm / n),
+    interRate: aufrufe ? (inter / aufrufe) * 100 : null,
+    kommRate: aufrufe ? (komm / aufrufe) * 100 : null,
+  };
+}
+
+// Instagram-Medien auf das gemeinsame Feldschema bringen.
+function igAlsPosts(ig) {
+  return (ig.medien || []).map((m) => {
+    const ins = m.insights || {};
+    const kn = m.kennzahlen || {};
+    return {
+      views: ins.views ?? kn.views ?? null,
+      interaktionen: ins.total_interactions ?? null,
+      kommentare: m.comments_count ?? null,
+    };
+  });
+}
+
+function plattformVergleichBlock(ig, li, igOn, liOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "abschnitt";
+  wrap.innerHTML =
+    `<div class="abschnitt-kopf">${icon("saeulen")}<span class="abschnitt-titel">Plattform-Vergleich</span>` +
+    `<span class="abschnitt-unter">— wo Inhalte staerker zuenden (je Beitrag)</span></div>`;
+
+  const igAgg = igOn ? aggregat(igAlsPosts(ig)) : null;
+  const liAgg = liOn ? aggregat(li.posts || []) : null;
+
+  // Staerkere Plattform nach Interaktionsrate (nur wenn beide eine Rate haben).
+  let sieger = null;
+  if (igAgg?.interRate != null && liAgg?.interRate != null) {
+    sieger = igAgg.interRate >= liAgg.interRate ? "instagram" : "linkedin";
+  }
+
+  const reihe = document.createElement("div");
+  reihe.className = "vergleich";
+  reihe.appendChild(vergleichKarte("instagram", "Instagram", igOn, igAgg, sieger === "instagram"));
+  reihe.appendChild(vergleichKarte("linkedin", "LinkedIn", liOn, liAgg, sieger === "linkedin"));
+  wrap.appendChild(reihe);
+  return wrap;
+}
+
+function vergleichKarte(id, name, verbunden, agg, sieger) {
+  const el = document.createElement("div");
+  el.className = "vergleich-karte" + (sieger ? " sieger" : "");
+  let kopf =
+    `<div class="vergleich-kopf"><span class="kanal-marke marke-${id}"></span>` +
+    `<span class="kanal-name">${escape(name)}</span>` +
+    (sieger ? `<span class="vergleich-badge">staerker</span>` : "") +
+    (verbunden && agg ? `<span class="vergleich-basis">${agg.n} Beitraege</span>` : "") +
+    `</div>`;
+
+  if (!verbunden) {
+    el.innerHTML = kopf + `<div class="vergleich-leer">Nicht verbunden</div>`;
+    return el;
+  }
+  if (!agg) {
+    el.innerHTML = kopf + `<div class="vergleich-leer">Noch keine Beitraege</div>`;
+    return el;
+  }
+
+  el.innerHTML =
+    kopf +
+    vergleichZeile("Aufrufe", fmt(agg.aufrufeAvg), "Ø je Beitrag") +
+    vergleichZeile("Interaktionen", fmt(agg.interAvg), agg.interRate != null ? proz1(agg.interRate) + " der Aufrufe" : "Aufrufe fehlen") +
+    vergleichZeile("Kommentare", fmt(agg.kommAvg), agg.kommRate != null ? proz1(agg.kommRate) + " der Aufrufe" : "Aufrufe fehlen");
+  return el;
+}
+
+function vergleichZeile(label, wert, unter) {
+  return (
+    `<div class="vergleich-zeile">` +
+    `<span class="vergleich-label">${escape(label)}</span>` +
+    `<span class="vergleich-wert">${escape(wert)}</span>` +
+    `<span class="vergleich-unter">${escape(unter)}</span>` +
+    `</div>`
+  );
 }
 
 // --- KPI-Reihe ------------------------------------------------------------
@@ -426,6 +522,7 @@ function fehlerZeile(satz, id, name) {
 
 const viewsVon = (kn) => (kn && kn.views) || 0;
 const proz = (n) => `${String(n).replace(".", ",")} %`;
+const proz1 = (n) => `${(Math.round(Number(n) * 10) / 10).toString().replace(".", ",")} %`;
 
 function zeit(d) {
   if (d == null) return 0;
