@@ -1,118 +1,131 @@
-# v16 — Drehtermine (Batch-Dreh + Einzel-Drehtag)
+# v16 — Drehtermine (Batch-Dreh, Board-Leiste, Google-Calendar-Sync)
 
 ## PIG
 
-**Problem:** Ein „Drehtag" existiert heute nur als *abgeleiteter Einzeltermin pro Karte*
-(`dates.dreh` = Upload − 14 Tage, gesetzt von `einfacherPlan()`/`rueckwaertsplan()`).
-Es gibt keinen echten Dreh*termin* als eigene Sache — das Bündeln mehrerer Inhalte auf
-einen Tag/Ort („am 15.9. drehe ich diese 4 Reels") kann das System nicht abbilden.
+**Problem:** Ein „Drehtag" existiert heute nur als abgeleiteter Einzeltermin pro Karte
+(`dates.dreh`). Es gibt keinen echten Dreh*termin* als eigene Sache — das Bündeln mehrerer
+fertiger Skripte auf einen Tag/Ort, mit Eintrag im Google Calendar samt Skript-Links, fehlt.
 
-**Intent:** Einen Drehtermin als eigene Entität einführen, dem mehrere Karten zugeordnet
-werden — ohne den bestehenden freien Einzel-Drehtag zu verlieren. Ben arbeitet gemischt
-(mal Batch, mal einzeln), also müssen beide Wege nebeneinander funktionieren.
-[Owner, 02.09.2026: „beides kombiniert" · „gemischt"]
+**Intent:** Drehtermine als eigene Entität einführen. Nur Karten mit **fertigem Skript**
+lassen sich einem Drehtermin zuordnen; die Drehtermine leben als Leiste auf dem Board und
+landen im Google Calendar, mit den Drive-Links der zugeordneten Skripte im Termin.
+[Owner, 02.09.2026]
 
-**Goal:** Es gibt einen Bereich „Drehtermine", in dem man einen Termin (Datum, Zeit, Ort)
-anlegt und ihm Karten zuordnet. Zugeordnete Karten erben das Dreh-Datum (Quelle der
-Wahrheit = Termin); ungebundene Karten behalten ihren frei wählbaren Einzel-Drehtag.
-Der Kalender zeigt Batch-Drehtermine als eigene Ebene. UI-Abnahme per Screenshot besteht.
+**Goal:** Auf dem Board (unter der Wochenleiste) liegt eine Drehtermin-Leiste: Kacheln
+„Datum (in X Tagen)" von links nach rechts, rechts ein „+"-Button (Datum+Uhrzeit). Ein neuer
+Drehtermin erzeugt einen Google-Calendar-Eintrag; werden Karten zugeordnet, stehen deren
+Drive-Skript-Links in der Termin-Beschreibung. Zuordnung nur bei fertigem Skript; kein
+Drehtermin in der Vergangenheit; ohne Drehtermin in 30 Tagen wird der Sonntag der Folgewoche
+gesetzt. UI-Abnahme per Screenshot besteht.
 
 ---
 
 ## Design-Entscheidungen
 
-### Datenmodell (Speicherort: Board-Dokument)
-Drehtermine leben als Geschwister der Karten im **selben** `board.json` →
-`{ version, cards, drehtermine }`. Grund: ein atomarer Save, eine Version, keine
-Cross-Datei-Drift (Karte↔Termin verweisen aufeinander). Der bestehende Optimistic-Lock
-über `version` deckt beides ab.
-
-**Drehtermin:**
+### Datenmodell — im Board-Dokument
+`board.json` → `{ version, cards, drehtermine }` (ein atomarer Save, ein `version`-Lock).
 ```
-{ id, datum: "YYYY-MM-DD", zeit: "HH:MM"|"", ort: "", titel: "", notiz: "",
-  karteIds: [ ... ] }
+Drehtermin = { id, datum:"YYYY-MM-DD", zeit:"HH:MM", ort:"", titel:"", notiz:"",
+               karteIds:[...], gcalEventId:"", auto:false }
+Karte      += { drehterminId: string|null }
 ```
-**Karte:** neues Feld `drehterminId: string|null`.
 
-### Konsistenzregel — Termin ist die Wahrheit
-- Karte zuordnen → `k.drehterminId = t.id` **und** `k.dates.dreh = t.datum` (gespiegelt,
-  damit Kalender + Rückwärtsplan-Kompatibilität ohne Sonderfälle weiterlaufen).
-- Termin-Datum ändern → `dates.dreh` **aller** Mitgliedskarten mitziehen.
-- Karte lösen → `drehterminId = null`; `dates.dreh` bleibt als freier Einzeltermin stehen.
-- Ungebundene Karte (kein `drehterminId`): heutiges Verhalten unverändert, `dates.dreh`
-  frei editierbar. → deckt den „einzeln"-Fall ab.
+### Terminkette (revidiert) [Owner, 02.09.2026]
+- **Idee und Skript sind KEINE Datums-Meilensteine mehr** — raus aus der Kette.
+- Anker bleibt **Upload** (im ersten Schritt automatisch aus dem Redaktionsplan gesetzt).
+- Rückwärts vom Upload: **Freigabe = Upload − 3** · **Schnitt = Freigabe − 3 (= Upload − 6)**.
+- **Dreh ist ein Fenster, kein fester Tag:** frühestens 14 Tage vor Schnitt →
+  gültig `[Schnitt − 14, Schnitt]` = `[Upload − 20, Upload − 6]`.
+- **Kein Dreh in der Vergangenheit** (Guard, greift NACH Upload-Wahl).
+- **Upload wird beim Zuordnen NIE angetastet** (Batch = verteilt hochladen; Slots bleiben).
 
-### Kopplung beim Zuordnen — Upload bleibt stehen [Owner, 02.09.2026]
-Beim Zuordnen (und bei jeder Datumsänderung des Termins) werden die Termine der Karte
-**rund um den Dreh** neu gerechnet — **außer Upload**:
-- `skript`, `idee` = Dreh − Vorlauf · `schnitt`, `freigabe` = Dreh + Nachlauf.
-- **`upload` wird NIE angetastet.** Begründung: Batch heißt einmal drehen, über Wochen
-  verteilt hochladen — der Upload ist die Verteil-Entscheidung, nicht aus dem Dreh
-  ableitbar; außerdem bleiben reservierte Redaktionsplan-Slots (`slotBelegen`) erhalten.
-- Ausnahme Einzel-Fall: ist `upload` leer, darf er optional aus dem Dreh folgen
-  (Dreh + 14). Bei belegtem `upload` niemals.
+### Zuordnung nur bei fertigem Skript
+Ein Drehtermin darf nur Karten aufnehmen, deren Skript fertig ist. Die Zuordnungs-Option
+erscheint erst im Schritt **„Drehtermin festlegen"** (ex-Phase `skript`), vorher nicht.
+Beim Zuordnen prüft das System, ob das Termin-Datum im Dreh-Fenster der Karte liegt — sonst
+Warnung (keine harte Sperre, Owner darf bewusst abweichen).
 
-### Vorlauf-Kette harmonisiert — Dreh−Upload = 14 Tage [Owner, 02.09.2026]
-Heute widersprüchlich: `einfacherPlan` nimmt Dreh = Upload−14, `rueckwaertsplan` +
-`VORLAUF_TAGE` nehmen Dreh = Upload−6. Standard künftig **14 Tage**. Damit die Kette
-monoton fallend bleibt (Idee > Skript > Dreh > Schnitt > Freigabe > Upload), wird die
-ganze `VORLAUF_TAGE`-Tabelle neu gesetzt — Tage VOR Upload:
+### Phasen-Umbenennung [Owner, 02.09.2026]
+Interne IDs bleiben (Drive-Ordner, `column`-Werte, `migriere` hängen daran); nur Anzeige
+ändert sich:
+- Phase `idee` → Name **„Skript schreiben"** — Recherche- und Skript-Loop laufen hier, nach
+  der Logik des heutigen ersten Menüs.
+- Phase `skript` → Name **„Drehtermin festlegen"** — hier die Zuordnung.
+- **Annahme (bei Review bestätigen):** die Skript-Werkzeuge der heutigen Phase `skript`
+  wandern in den ersten Schritt; `skript` wird zum reinen Zuordnungs-Schritt.
 
-| Meilenstein | alt | neu | relativ zum Dreh |
-|---|---|---|---|
-| idee     | 10 | 21 | Dreh − 7 |
-| skript   |  8 | 17 | Dreh − 3 |
-| dreh     |  6 | 14 | 0 |
-| schnitt  |  3 | 10 | Dreh + 4 |
-| freigabe |  1 |  3 | Dreh + 11 |
-| upload   |  0 |  0 | Dreh + 14 |
+### Auto-Drehtermin
+Ist in den nächsten 30 Tagen kein Drehtermin eingetragen, setzt das System den **Sonntag der
+Folgewoche** als nächsten Drehtermin (`auto:true`). Es ist immer nur der **nächste** sichtbar;
+der übernächste erscheint erst, wenn der aktuelle verstrichen ist.
+- **Annahme (bei Review bestätigen):** der Auto-Termin wird als Kachel gesetzt (nicht nur
+  vorgeschlagen), bleibt aber `auto:true`, bis Karten zugeordnet werden.
 
-`einfacherPlan` und `rueckwaertsplan` lesen künftig dieselbe Tabelle → ein Widerspruch weg.
+### UI — auf dem Board, kein eigener Tab [Owner, 02.09.2026]
+Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`):
+- Kacheln links→rechts: `Datum` + `(in X Tagen)`; Klick öffnet die Termin-Detailansicht
+  (zugeordnete Karten, hinzufügen/entfernen).
+- Ganz rechts: Button **„+ Drehtermin"** (Datum + Uhrzeit).
 
-### UI
-- **Neuer Nav-Tab „Drehtermine"** (`public/drehtermine.js`): kommende Termine als Liste,
-  je Termin Datum/Zeit/Ort + zugeordnete Karten; Anlegen/Bearbeiten/Löschen; Karten
-  zuordnen/entfernen.
-- **Karten-Detail** (`blockTermine`): Zeile „Drehtermin" — entweder „zugeordnet: <Datum,
-  Ort>" + Lösen, oder „vorhandenem zuordnen / neuen anlegen". Bei gebundener Karte ist
-  das Einzel-Dreh-Feld read-only (zeigt geerbtes Datum).
-- **Kalender** (`public/kalender.js`): Batch-Drehtermine als eigene Marke mit Zähler
-  („Dreh · 4 Inhalte"); per-Karte-`dreh`-Punkt nur, wenn die Karte KEINEM Batch angehört
-  (sonst Doppelanzeige).
+### Google Calendar (Neuland) [recherchiert 02.09.2026, zwei Quellen]
+- Neuer Drehtermin → Google-Calendar-Event (Datum/Zeit) anlegen, `gcalEventId` merken.
+- Karten zugeordnet → Drive-Links der Skript-Ordner via vorhandenem `drive.link()`
+  (`lib/drive.js:341`, `rclone link`) in die Event-Beschreibung schreiben (Event updaten).
+- **Zugangsweg — offen, Owner entscheidet + richtet ein (ich kann keine Zugangsdaten eingeben):**
+  - A) **gcalcli** (Python-CLI): `gcalcli add …` — CLI-first (Werkzeug-Regel), passt zum
+    rclone-Spawn-Muster; braucht Python + OAuth-Login.
+    Belege: github.com/insanum/gcalcli, manpages.ubuntu.com/…/gcalcli.1.html
+  - B) **googleapis (Node)**: `calendar.events.insert` in-process; Service-Account (Kalender
+    mit SA-Mail teilen, Schreibrecht) oder OAuth-Refresh-Token.
+    Belege: github.com/googleapis/google-api-nodejs-client#3173, dev.to/divofred/…-530i
 
 ---
 
-## Plan
+## Phasen (Arbeitspakete)
 
-1. [ ] `lib/pipeline.js` — `VORLAUF_TAGE` harmonisieren (Tabelle oben, Dreh=14);
-   `einfacherPlan`/`rueckwaertsplan` auf dieselbe Tabelle; `migriere`:
-   `card.drehterminId ??= null`; reiner Helfer `planUmDreh(dreh, altUpload)` (Skript/Idee/
-   Schnitt/Freigabe um den Dreh, Upload unberührt); `leereDrehtermin()`.
-2. [ ] `server.js` — `leseBoard`/`schreibeBoard`/`PUT /api/board` tragen `drehtermine`
-   mit (Default `[]`); `migriere` auf Karten wie gehabt.
-3. [ ] `public/store.js` — `S.drehtermine`, PUT-Body + `ladeBoard` erweitern; Helfer
-   `drehterminAnlegen/Aendern/Loeschen`, `karteZuTermin/karteVonTermin`.
-4. [ ] `public/drehtermine.js` — neue Ansicht + Nav-Verdrahtung in `index.html`/`app.js`.
-5. [ ] `public/detail.js` — `blockTermine`: Drehtermin-Zuordnung; Einzel-Feld read-only
-   bei Bindung.
-6. [ ] `public/kalender.js` — Batch-Ebene + Doppelanzeige-Regel; `public/style.css` Marke.
-7. [ ] UI-Abnahme im Browser (Screenshot gegen `docs/ui-standard.md`, Edge headless).
+- **v16a — Modell + Terminlogik** (`lib/pipeline.js`, `server.js`, `public/store.js`):
+  Kette Freigabe/Schnitt/Dreh-Fenster, Vergangenheits-Guard, Auto-Regel, `drehtermine` in
+  Board-Persistenz + Store, Konsistenz-Helfer. Ohne externe Abhängigkeit — sofort baubar.
+- **v16b — Board-Leiste + Zuordnung** (`public/board.js`, `public/detail.js`, `style.css`):
+  Kacheln-Leiste, „+"-Button, Termin-Detail, Zuordnung im „Drehtermin festlegen"-Schritt.
+- **v16c — Phasen-Umbenennung** (`lib/pipeline.js` PHASEN, Skript-Loop in Schritt 1).
+- **v16d — Google-Calendar-Sync** (nach Owner-Setup): Event anlegen/updaten, Drive-Links.
+
+---
+
+## Plan (v16a zuerst)
+
+1. [ ] `lib/pipeline.js` — Kette revidieren: `VORLAUF_TAGE` → nur `freigabe:3, schnitt:6,
+   upload:0`; `dreh` als Fenster `[upload−20, upload−6]` (Helfer `drehFenster(upload)`);
+   `planUmUpload(upload)` ohne idee/skript; `migriere`: `drehterminId ??= null`;
+   `leereDrehtermin()`, `naechsterAutoDreh(drehtermine, heute)` (Sonntag der Folgewoche).
+2. [ ] `server.js` — `leseBoard`/`schreibeBoard`/`PUT /api/board` tragen `drehtermine` mit.
+3. [ ] `public/store.js` — `S.drehtermine`, PUT-Body + `ladeBoard`; Helfer
+   `drehterminAnlegen/Aendern/Loeschen`, `karteZuTermin/karteVonTermin` (setzt/spiegelt
+   `dates.dreh`, prüft Fenster + Vergangenheit, Upload unberührt).
+4. [ ] v16b — Board-Leiste + Detail + Zuordnung; Screenshot-Abnahme.
+5. [ ] v16c — Phasen-Umbenennung + Skript-Loop-Merge; Screenshot-Abnahme.
+6. [ ] v16d — Google Calendar nach Owner-Setup.
 
 ---
 
 ## Stand
-- [x] Bestand geprüft: `dates.dreh`/`TERMINE`/`einfacherPlan`/`rueckwaertsplan`,
-      Persistenz (`leseBoard`/`schreibeBoard`, `/api/board` mit `version`-Lock), `store.js`.
-- [x] Weichenstellung mit Owner: beides kombiniert · gemischt (02.09.2026).
-- [x] Kopplung geklärt: Upload bleibt stehen; Rest um den Dreh (02.09.2026).
-- [x] Vorlauf-Standard geklärt: 14 Tage, Kette harmonisiert (02.09.2026).
-- [ ] Design vom Owner final freigegeben (Vorlauf-Kette bestätigt?).
-- [ ] Bau (Plan-Schritte 1–6).
-- [ ] Verify + Commit + Push.
+- [x] Bestand geprüft: `dates.dreh`/`TERMINE`/`PHASEN`/`einfacherPlan`/`rueckwaertsplan`,
+      Persistenz (`leseBoard`/`schreibeBoard`, `/api/board`-Lock), `store.js`,
+      Wochenleiste (`board.js:203`), `drive.link()` (`drive.js:341`).
+- [x] Weichenstellung: beides kombiniert · gemischt (02.09.2026).
+- [x] Kopplung: Upload bleibt stehen; Kette Freigabe−3/Schnitt−6/Dreh-Fenster (02.09.2026).
+- [x] UI: Board-Leiste unter Wochenleiste, kein eigener Tab (02.09.2026).
+- [x] Google-Calendar-Wege recherchiert (gcalcli vs. googleapis), zwei Quellen (02.09.2026).
+- [ ] Owner: Google-Cloud/OAuth-Weg wählen + einrichten (blockt nur v16d).
+- [ ] Owner: Phasen-Split + Start v16a freigegeben.
+- [ ] Bau v16a → v16b → v16c → v16d.
 
 ## DoD
-- [ ] Drehtermin anlegen, Karten zuordnen; zugeordnete Karten erben das Datum.
-- [ ] Termin-Datum ändern zieht `dates.dreh` aller Mitglieder mit.
-- [ ] Ungebundene Karte behält frei wählbaren Einzel-Drehtag (gemischt-tauglich).
-- [ ] Kalender zeigt Batch-Termine ohne Doppelanzeige der Einzel-Punkte.
+- [ ] Drehtermin anlegen (Datum+Uhrzeit) über „+"-Button; Kachel mit „(in X Tagen)".
+- [ ] Zuordnung nur bei fertigem Skript; Warnung außerhalb des Dreh-Fensters; kein Dreh in
+      der Vergangenheit.
+- [ ] Zugeordnete Karten erben `dates.dreh`; Upload bleibt; Termin-Datumsänderung zieht mit.
+- [ ] Ohne Drehtermin in 30 Tagen erscheint der Sonntag der Folgewoche; nur der nächste sichtbar.
+- [ ] Google-Calendar-Event entsteht; Drive-Skript-Links stehen im Termin.
 - [ ] UI-Abnahme per Screenshot bestanden; kein toter Zustand beim Erst-Start.
