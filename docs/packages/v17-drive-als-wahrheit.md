@@ -113,9 +113,16 @@ UI-Abnahme je UI-Paket per Screenshot besteht.
 - **Stellschrauben** (kadenz/typenmix/kategorienFokus/zielgewichte/kampagnen) → `.board/redaktionsplan.json`
   in Drive (= Wahrheit für Eingaben). `data/plan.json` wird nur noch Cache.
 - `lib/scheduler.js` rechnet die Slots **deterministisch** aus der Config.
-- Beim Laden: Config aus Drive lesen → Slots neu rechnen → mit `.board/redaktionsplan.slots.json`
+- Beim Laden: Config aus Drive lesen → Slots neu rechnen → mit `redaktionsplan.slots.json`
   vergleichen. Weichen sie ab, gewinnt das Skript → Drive-Ergebnis neu schreiben, Befund melden
   („Der gespeicherte Plan war veraltet, neu gerechnet."). Board hält KEINEN Plan-Zustand lokal.
+- **Umsetzung v17d (gebaut):** `lib/planstore.js` — Config-Datei + Ergebnis-Datei in `System (AI only)/`,
+  Abgleich über einen **Fingerabdruck der Stellschrauben** (nicht über die datierten Slots, sonst
+  täglicher Leerlauf), Horizont 8 Wochen. `server.js` `/api/plan` GET/PUT: Drive = Wahrheit,
+  `data/plan.json` nur Cache, fehlertolerant (Drive weg → Cache + Hinweis, kippt nie).
+- **Altlast (offen, mit v17c neu gedacht):** `/api/plan/slot` (Slot↔Karte-Zuordnung) schreibt nur
+  in den Cache; die berechneten Slots haben keine stabilen IDs, die Zuordnung ist seit je fragil.
+  In v17d bewusst NICHT geheilt, um keine Regression im Idee-/Slot-Fluss zu bauen.
 
 ---
 
@@ -167,9 +174,15 @@ Spalte). v17d/e können nach b parallel.
       (`drive.js`: list/mkdir/read/write/moveDir/link/serialisiert). (02.09.2026)
 - [x] Vier Weichen bestätigt (Owner 02.09.2026): Vollkarte-projekt.json · Anzeigename frei/ID fest ·
       Cache+Abgleich · Stellschrauben in Drive.
-- [ ] Owner: drei „bei Review bestätigen"-Annahmen abnehmen (System-Phasen nicht löschbar ·
-      optimistisches Schreiben · Dislikes sitzungslokal).
-- [ ] Bau v17a → v17b → v17c → v17d → v17e.
+- [x] Owner: „alles umsetzen" (02.09.2026) — drei Annahmen abgenommen, Bau freigegeben.
+- [x] **v17a gebaut + verifiziert** (Commit 3542e56): Vollkarte-`projekt.json` in `(AI only)/`,
+      Abgleich Drive-gewinnt + Migration ohne Feldverlust, Schreib-Spiegelung, `deleteFile`.
+      Verify: `node --check` + Logik-Test 21/21. Live-Drive-Migration steht aus (Owner: „migrieren").
+- [x] **v17d-Backend gebaut + verifiziert**: `lib/planstore.js` + `/api/plan` GET/PUT auf Drive.
+      Verify: `node --check` + Logik-Test 6/6. Live-Drive-Seed/Abgleich steht aus (mit Migration).
+- [ ] Bau v17b (Spalten) + v17c (Swipe): fassen `public/board.js`/`ui.js`/`style.css` an —
+      **Kollision mit Parallel-Session**, erst koordinieren. v17d-Frontend-Politur + v17e danach.
+- [ ] Live-Verifikation gegen echtes Drive (Migration + Plan-Seed) auf Owner-„migrieren".
 
 ## DoD
 - [ ] Jede angezeigte Karten-Angabe steht vollständig in der Drive-`projekt.json`; Board zeigt nach

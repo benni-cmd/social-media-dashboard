@@ -18,6 +18,7 @@ import { execSync } from "node:child_process";
 import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
 import * as projekte from "./lib/projects.js";
+import * as planstore from "./lib/planstore.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
@@ -95,6 +96,24 @@ async function speichereToken(plattform, daten) {
   t[plattform] = { ...daten, verbundenAm: new Date().toISOString() };
   await mkdir(DATA_DIR, { recursive: true });
   await writeFile(TOKEN_FILE, JSON.stringify(t, null, 2), "utf8");
+}
+
+// --- Redaktionsplan: Drive ist Wahrheit, data/plan.json nur Cache (v17d) -----
+//
+// Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
+// Client versehentlich Anzeige-Felder (planAbgleich, quelle) zurueckschreibt und den
+// Fingerabdruck verfaelscht.
+const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen"];
+function nurPlanConfig(o) {
+  const c = {};
+  for (const k of PLAN_ERLAUBT) if (o && o[k] !== undefined) c[k] = o[k];
+  return c;
+}
+async function planCacheLesen() {
+  try { return JSON.parse(await readFile(PLAN_FILE, "utf8")); } catch { return null; }
+}
+async function planCacheSchreiben(config) {
+  try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(PLAN_FILE, JSON.stringify(config, null, 2), "utf8"); } catch { /* Cache ist Absicherung */ }
 }
 
 // --- kleine Helfer --------------------------------------------------------
@@ -235,20 +254,42 @@ async function handler(req, res) {
     // ---- Redaktionsplan --------------------------------------------------
 
     if (pfad === "/api/plan" && req.method === "GET") {
-      try {
-        const roh = JSON.parse(await readFile(PLAN_FILE, "utf8"));
-        sendJson(res, 200, roh);
-      } catch {
-        sendJson(res, 200, pipeline.defaultPlan());
+      // Wahrheit ist die Config in Drive. Fehlt sie, aus Cache/Default seeden. Danach das
+      // deterministische Ergebnis gegen Drive abgleichen. Drive-Fehler kippen nichts.
+      let config = null, driveOk = true, quelle = "drive";
+      try { config = await planstore.leseConfigVonDrive(); } catch { driveOk = false; }
+      if (config) {
+        await planCacheSchreiben(config);
+      } else {
+        config = (await planCacheLesen()) || pipeline.defaultPlan();
+        quelle = driveOk ? "cache->drive" : "cache";
+        if (driveOk) { try { await planstore.schreibeConfigNachDrive(config); } catch { driveOk = false; } }
+        await planCacheSchreiben(config);
       }
+      let planAbgleich = { neuGerechnet: false, hinweis: "" };
+      if (driveOk) {
+        try {
+          const a = await planstore.abgleiche(config);
+          planAbgleich = { neuGerechnet: a.neuGerechnet, hinweis: a.hinweis };
+        } catch { driveOk = false; }
+      }
+      if (!driveOk) { quelle = "cache"; planAbgleich.hinweis = "Drive war nicht erreichbar — Redaktionsplan aus dem lokalen Cache."; }
+      sendJson(res, 200, { ...config, planAbgleich, quelle });
       return;
     }
 
     if (pfad === "/api/plan" && req.method === "PUT") {
-      const daten = JSON.parse(await readBody(req));
-      await mkdir(DATA_DIR, { recursive: true });
-      await writeFile(PLAN_FILE, JSON.stringify(daten, null, 2), "utf8");
-      sendJson(res, 200, { ok: true });
+      const config = nurPlanConfig(JSON.parse(await readBody(req)));
+      await planCacheSchreiben(config); // Cache zuerst — der Speichern-Weg haengt nie an Drive
+      let planAbgleich = { neuGerechnet: false, hinweis: "" };
+      try {
+        await planstore.schreibeConfigNachDrive(config);
+        const a = await planstore.abgleiche(config);
+        planAbgleich = { neuGerechnet: a.neuGerechnet, hinweis: a.hinweis };
+      } catch (e) {
+        planAbgleich.hinweis = `Drive-Schreiben fehlgeschlagen: ${e.message} — lokal gesichert, naechster Aufruf gleicht ab.`;
+      }
+      sendJson(res, 200, { ok: true, planAbgleich });
       return;
     }
 
