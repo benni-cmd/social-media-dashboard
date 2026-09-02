@@ -196,3 +196,19 @@ Backend-Arbeit gehoert dieser v17-Stand der anderen Session, nicht diesem Paket.
 - [ ] Ohne Drehtermin in 30 Tagen erscheint der Sonntag der Folgewoche; nur der nächste sichtbar.
 - [ ] Google-Calendar-Event entsteht; Drive-Skript-Links stehen im Termin.
 - [ ] UI-Abnahme per Screenshot bestanden; kein toter Zustand beim Erst-Start.
+
+## Übergabe von der Drive-Session (02.09.2026) — Calendar/Tasks-API + Service-Account-Caveat
+Voraussetzungen für den Google-Calendar-Teil sind jetzt vorbereitet:
+- Im Google-Cloud-Projekt **1041532493098** (Konto bennibi03@gmail.com — dasselbe Projekt wie
+  die rclone-Drive-client_id) sind **Google Calendar API UND Google Tasks API aktiviert**.
+  Drive dort verifiziert (eigene client_id, `rclone lsd` listet).
+- **Stolperstein Service-Account + privates Gmail:** Ein Service-Account sieht den Kalender
+  eines normalen Gmail-Kontos NICHT automatisch — der Nutzer muss den Kalender **explizit mit
+  der Service-Account-Adresse teilen** (Kalender-Einstellungen → „Für bestimmte Personen
+  freigeben" → SA-Adresse). Ohne das: leere API-Antwort, kein Fehler.
+- **Tasks:** Ein reiner Service-Account ohne Domain-weite Delegation kommt an die Tasks eines
+  privaten Gmail (ohne Workspace) gar nicht heran → für Tasks ggf. OAuth-User-Flow statt SA prüfen.
+- Prüfen, dass die APIs in DEM Projekt aktiv sind, zu dem der Service-Account gehört (falls er
+  in einem anderen Projekt liegt, dort Calendar/Tasks ebenfalls aktivieren).
+- Owner-Bitte: Calendar/Tasks **funktional testen** (mit dem SA-Credential), bevor als erledigt
+  markiert. Von der Drive-Session aus nicht testbar (kein Token mit Calendar/Tasks-Scope dort).
