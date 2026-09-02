@@ -67,17 +67,40 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
   (zugeordnete Karten, hinzufügen/entfernen).
 - Ganz rechts: Button **„+ Drehtermin"** (Datum + Uhrzeit).
 
-### Google Calendar (Neuland) [recherchiert 02.09.2026, zwei Quellen]
+### Google Calendar — Weg GEWÄHLT: googleapis (Node) + Service-Account [Owner, 02.09.2026]
 - Neuer Drehtermin → Google-Calendar-Event (Datum/Zeit) anlegen, `gcalEventId` merken.
 - Karten zugeordnet → Drive-Links der Skript-Ordner via vorhandenem `drive.link()`
   (`lib/drive.js:341`, `rclone link`) in die Event-Beschreibung schreiben (Event updaten).
-- **Zugangsweg — offen, Owner entscheidet + richtet ein (ich kann keine Zugangsdaten eingeben):**
-  - A) **gcalcli** (Python-CLI): `gcalcli add …` — CLI-first (Werkzeug-Regel), passt zum
-    rclone-Spawn-Muster; braucht Python + OAuth-Login.
-    Belege: github.com/insanum/gcalcli, manpages.ubuntu.com/…/gcalcli.1.html
-  - B) **googleapis (Node)**: `calendar.events.insert` in-process; Service-Account (Kalender
-    mit SA-Mail teilen, Schreibrecht) oder OAuth-Refresh-Token.
-    Belege: github.com/googleapis/google-api-nodejs-client#3173, dev.to/divofred/…-530i
+- In-Process im Server via `calendar.events.insert/patch/delete` (`googleapis`).
+- **Service-Account statt OAuth**, weil unbeaufsichtigt und ohne Token-Ablauf: ein SA kann in
+  einen persönlichen Gmail-Kalender schreiben, sobald der Kalender MIT der SA-Mail geteilt ist
+  (Domain-wide Delegation ist nur für Workspace). Belege: github.com/googleapis/
+  google-api-nodejs-client#3173, dev.to/divofred/…-530i (zwei Quellen, 02.09.2026).
+
+#### Owner-Setup (einmalig, DU — ich darf keine Zugangsdaten eingeben)
+1. console.cloud.google.com → Projekt wählen/anlegen.
+2. „APIs & Services" → „Library" → **Google Calendar API** aktivieren.
+3. „Credentials" → „Create credentials" → **Service account** (Name z. B. `content-maschine-cal`,
+   keine Rollen nötig).
+4. Beim Service-Account → Tab **„Keys"** → „Add key" → „Create new key" → **JSON** herunterladen
+   (enthält `client_email` + `private_key`).
+5. calendar.google.com → Ziel-Kalender → Einstellungen → **„Für bestimmte Personen freigeben"**
+   → die `client_email` hinzufügen → Recht **„Termine ändern"**.
+6. **Kalender-ID** notieren (Kalender-Einstellungen → „Kalender-ID"; Hauptkalender = Gmail-Adresse).
+7. JSON **außerhalb des Repos** ablegen (z. B. `%USERPROFILE%\.secrets\content-maschine-cal.json`),
+   dann in `.env` (gitignoriert): `GCAL_SA_KEYFILE=<pfad>` und `GCAL_CALENDAR_ID=<id>`.
+   Namen (nicht Werte) in `.secrets/AI-ZUGAENGE.md` eintragen. **Kein Schlüssel ins Repo.**
+
+#### Code-Design (baue ich nach dem Setup; Kollision mit v17b-Server vorher abstimmen)
+- Neue `lib/gcal.js`: `google.auth.GoogleAuth({keyFile: GCAL_SA_KEYFILE, scopes:[calendar]})`;
+  `eventAnlegen(t)→eventId`, `eventUpdaten(eventId, felder)`, `eventLoeschen(eventId)`.
+  Beschreibung = zugeordnete Karten + `drive.link(projektPfad)`-Links.
+- `server.js`: Endpunkt `POST /api/gcal/sync {drehterminId}` — legt an/patcht, gibt `gcalEventId`
+  zurück (in `drehtermine` speichern). Fehlt der Zugang (keine Env) → No-Op mit Hinweis, lokales
+  Feature läuft weiter.
+- `public/store.js`: nach `drehterminAnlegen/Aendern` + `karteZuTermin/karteVonTermin` ein
+  `gcalSync(terminId)` (fire-and-forget; Fehler melden, nicht blockieren).
+- `npm i googleapis` (neue Abhängigkeit).
 
 ---
 
@@ -117,7 +140,9 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
 - [x] Kopplung: Upload bleibt stehen; Kette Freigabe−3/Schnitt−6/Dreh-Fenster (02.09.2026).
 - [x] UI: Board-Leiste unter Wochenleiste, kein eigener Tab (02.09.2026).
 - [x] Google-Calendar-Wege recherchiert (gcalcli vs. googleapis), zwei Quellen (02.09.2026).
-- [ ] Owner: Google-Cloud/OAuth-Weg wählen + einrichten (blockt nur v16d).
+- [x] Google-Calendar-Weg gewählt: **googleapis (Node) + Service-Account** (Owner, 02.09.2026).
+- [ ] **Owner-Aktion offen:** Service-Account anlegen, Kalender freigeben, `GCAL_SA_KEYFILE`/
+      `GCAL_CALENDAR_ID` in `.env` setzen (Setup-Checkliste im Design-Abschnitt). Blockt nur v16d.
 - [x] **v16a gebaut + funktional verifiziert (02.09.2026):** pipeline (Kette Schnitt−6/
       Freigabe−3, `drehFenster` [Upload−20,Upload−6], `leereDrehtermin`, `autoDrehNoetig`/
       `sonntagFolgewoche`, `drehterminId` via `leereKarte`+`normalisiere`); server
