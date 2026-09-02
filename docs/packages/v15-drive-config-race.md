@@ -92,6 +92,26 @@ aber irrelevant, sobald das Board nicht mehr von der Datei abhängt.
 in den Speicher geholt; danach immun. Verifiziert: beide Dateien beim Start weg, Roaming nach 2 s zurück
 → Load wartete 2186 ms, lud dann, `erreichbar` ok, Local-Kopie neu angelegt.
 
+## Nachtrag 2: AppData\Local ist AUCH betroffen → stabiler Projekt-Cache (endgültig)
+
+Log 02.09. 02:40:55: Serverstart 02:40:42, Fehler ab 02:40:55 — beim Start waren **beide** AppData-Orte
+(Roaming UND Local) >12 s unlesbar, der 12-s-Retry lief leer. Der externe Dienst greift die **ganze
+AppData-Ablage**, nicht nur Roaming. Eine Local-Kopie reicht also nicht.
+
+**Fix (`b8d04b5`):** Zugangsdaten zusätzlich in `data/.gdrive-env.json` (Projektordner, **außerhalb**
+AppData, gitignoriert — enthält den Token). `ladeGdriveEnv()` liest AppData zuerst (frisch, fängt Re-Auth)
+und aktualisiert den Cache; ist AppData weg, kommen die Creds aus dem stabilen Projekt-Cache. Damit hängt
+**kein** Drive-Feature mehr an einem AppData-Zugriff.
+
+**Verifiziert end-to-end (echter HTTP-Server, Port 4399):**
+- `/api/drive/status` mit AppData da → `{"ok":true}`.
+- **Beide** AppData-Dateien gelöscht → `/api/drive/status` → `{"ok":true}` UND `/api/drive/reconcile`
+  (Abgleich) liefert echte Karten-Daten. Kein Fehler im Server-Log. **Kein Feature verloren.**
+- Frischer Prozessstart mit komplett fehlendem AppData → Creds in 6 ms aus dem Projekt-Cache.
+
+**Sicherheits-Hinweis:** Der Token liegt jetzt (wie schon in rclone.conf) in einer Datei —
+`data/.gdrive-env.json`, gitignoriert, lokal, nie committet.
+
 ## Was gebaut wurde (robust + selbst-diagnostizierend)
 
 1. **Instrumentierung** (`configSchnappschuss`): beim „didn't find section" wird der EXAKTE Config-Zustand
