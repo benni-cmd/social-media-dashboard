@@ -728,8 +728,22 @@ function blockPhase(k, toreListe, stand) {
     box.appendChild(reihe);
   }
 
-  if (k.column === "idee") guidedIdee(k, box);
-  if (k.column === "skript") skriptLoop(k, box);
+  // Schritt 1 „Skript schreiben" (idee): Recherche-/Hook-Loop und — sobald die Hooks stehen —
+  // der Skript-Loop im selben Schritt (v16c). Kein Auto-Sprung mehr.
+  if (k.column === "idee") {
+    guidedIdee(k, box);
+    const ideeFertig =
+      k.recherche && k.chosenFokus != null && k.chosenVerbal != null && k.chosenVisuell != null;
+    if (ideeFertig) skriptLoop(k, box);
+  }
+  // Schritt 2 „Drehtermin festlegen" (skript): keine Skript-Werkzeuge mehr — die Zuordnung
+  // steht im eigenen Drehtermin-Block darueber.
+  if (k.column === "skript") {
+    const hin = document.createElement("p");
+    hin.className = "feld-hinweis";
+    hin.textContent = "Ordne die Karte oben einem Drehtermin zu, dann „Weiter“ in den Videodreh.";
+    box.appendChild(hin);
+  }
   if (k.column === "videodreh") felderDreh(k, box, merke);
   if (k.column === "schnitt") felderSchnitt(k, box, merke);
   if (k.column === "caption") felderCaption(k, box, merke);
@@ -861,13 +875,14 @@ function guidedIdee(k, box) {
           setzeTief(k, "chosenVisuell", i);
           setzeTief(k, "hook.visual", hvis.hooks[i].visuell || "");
           await speichere();
-          await schiebe(k, "skript");
           // Drive-Ordner automatisch anlegen, wenn noch nicht vorhanden.
           if (k.title && !k.driveName) {
             driveAnlegen(k)
               .then(() => meldung("Projektordner im Drive angelegt.", "erfolg"))
               .catch(() => meldung("Drive-Ordner konnte nicht angelegt werden.", "fehler"));
           }
+          // v16c: Karte bleibt in „Skript schreiben"; der Skript-Loop erscheint jetzt darunter.
+          zeichne();
         }
       )
     );
@@ -970,7 +985,7 @@ function skriptLoop(k, box) {
   box.appendChild(zaehler);
 
   box.appendChild(
-    knopf("Nach Drive speichern und Upload planen", {
+    knopf("Skript speichern und weiter zu „Drehtermin festlegen“", {
       art: "haupt",
       zeichen: "ordner",
       klick: async (e) => {
@@ -978,17 +993,23 @@ function skriptLoop(k, box) {
         await nachDrive(k, DATEINAMEN.skript, skript.value, e.currentTarget, box);
         setzeTief(k, "skriptGespeichert", true);
         await speichere();
-        modalKalender(
-          "Wann soll das Video veroeffentlicht werden?",
-          "Aus dem Upload-Datum setzt das Board Schnitt- und Drehtermine automatisch, dann rutscht die Karte in Videodreh.",
-          fensterFuerTyp(k.contenttyp || ""),
-          async (datum, zeit) => {
-            setzeTief(k, "dates", { ...rueckwaertsplan(datum), upload: datum });
-            if (zeit) setzeTief(k, "uploadTime", zeit);
-            await speichere();
-            await schiebe(k, "videodreh");
-          }
-        );
+        // v16c: Upload wurde in Schritt 1 schon aus dem Redaktionsplan gesetzt — direkt weiter
+        // zu „Drehtermin festlegen". Fehlt es doch, wird es hier als Fallback nachgeholt.
+        if ((k.dates || {}).upload) {
+          await schiebe(k, "skript");
+        } else {
+          modalKalender(
+            "Wann soll das Video veroeffentlicht werden?",
+            "Aus dem Upload-Datum setzt das Board Schnitt- und Freigabetermine automatisch.",
+            fensterFuerTyp(k.contenttyp || ""),
+            async (datum, zeit) => {
+              setzeTief(k, "dates", { ...rueckwaertsplan(datum), upload: datum });
+              if (zeit) setzeTief(k, "uploadTime", zeit);
+              await speichere();
+              await schiebe(k, "skript");
+            }
+          );
+        }
       },
     })
   );

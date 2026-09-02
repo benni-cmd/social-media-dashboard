@@ -136,7 +136,20 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
 - [x] Sicht-Pruefung Detailspalte (02.09.2026): CDP-Screenshot Skript-Karte zeigt den
       Drehtermin-Block (Dropdown „Termin waehlen", „Zuordnen", „+ Neuer Drehtermin"),
       korrekt gated auf die Skript-Phase. **v16b damit voll verifiziert.**
-- [ ] Bau v16c (Phasen) → v16d (GCal).
+- [x] **v16c gebaut + UI verifiziert (02.09.2026):** PHASEN umbenannt (idee→„Skript
+      schreiben", skript→„Drehtermin festlegen", neue Saetze; IDs/Drive-Ordner stabil).
+      `detail.js`: Schritt 1 zeigt Recherche-Loop UND — sobald Hooks stehen — den Skript-Loop
+      (`blockPhase` idee ruft `guidedIdee`+`skriptLoop`); `guidedIdee` Stufe 3 verschiebt
+      nicht mehr automatisch, `zeichne()` blendet den Skript-Loop ein; `skriptLoop`-Abschluss
+      speichert + schiebt nach „Drehtermin festlegen" (Upload schon in Schritt 1 gesetzt,
+      Fallback bleibt); Schritt 2 zeigt keine Skript-Werkzeuge, nur Hinweis + Drehtermin-Block.
+      Verify: CDP-Screenshots Board (Spalten „Skript schreiben"/„Drehtermin festlegen") +
+      Detailspalte (Schritt 2 ohne Skript-Tools). Step-1-Merge per Code (interaktiver
+      Loop braucht KI-Laeufe fuer den Screenshot).
+- Transitional: Karten, die vor v16c in der Spalte „skript" standen, ohne fertiges Skript,
+  zeigen dort keine Skript-Werkzeuge mehr — zum Weiterschreiben zurueck nach „Skript schreiben"
+  ziehen. (Owner-Hinweis, keine Auto-Migration gebaut.)
+- [ ] v16d (Google Calendar, braucht Owner-Setup).
 
 ## Parallel-Session-Hinweis (02.09.2026)
 `server.js` wurde ausserhalb dieses Kontexts zu einem **v17-Umbau** erweitert (board.json =
