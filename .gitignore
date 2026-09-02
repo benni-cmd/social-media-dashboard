@@ -27,3 +27,6 @@ data/drive-error.log
 
 # gdrive-Zugangsdaten-Cache (Token, lokal, nie versionieren)
 data/.gdrive-env.json
+
+# gdrive-Struktur-Cache fuer die Selbstheilung (client_id, kein Token/Secret) — lokal
+data/.gdrive-struktur.json
