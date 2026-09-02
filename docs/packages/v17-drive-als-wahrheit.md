@@ -140,11 +140,13 @@ UI-Abnahme je UI-Paket per Screenshot besteht.
   eine Idee, links/rechts, Like→Drive-Ordner, Ablehnliste. Screenshot-Abnahme.
 - **v17d — Redaktionsplan in Drive** (`.board/redaktionsplan*.json`, `lib/scheduler.js`, `server.js`
   `/api/plan`, `public/redaktionsplan.js`): Config in Drive, Ergebnis neu gerechnet + abgeglichen.
-- **v17e — Auswertung aus Drive** (`public/auswertung.js`, `lib/kpi.js`): bestätigen, dass Metriken/
-  KPI aus der Drive-`projekt.json` kommen; Token bleiben lokal. Screenshot-Abnahme.
+- **v17e — Auswertung aus Drive** — **abgegeben an die Parallel-Session** (deren Paket
+  `docs/packages/v18-auswertung-umbau.md`, 02.09.2026). Nicht mehr in dieser Spur, um doppelte
+  Arbeit an `public/auswertung.js`/`lib/kpi.js` zu vermeiden. Anforderung bleibt: Metriken/KPI aus
+  der Drive-`projekt.json`, Token lokal — an die v18-Session weitergegeben.
 
-Reihenfolge zwingend: v17a legt das Schema, auf dem b–e stehen. v17b vor c (Swipe legt in eine
-Spalte). v17d/e können nach b parallel.
+Reihenfolge zwingend: v17a legt das Schema, auf dem b–d stehen. v17b vor c (Swipe legt in eine
+Spalte). v17d konnte parallel (erledigt).
 
 ---
 
@@ -180,9 +182,16 @@ Spalte). v17d/e können nach b parallel.
       Verify: `node --check` + Logik-Test 21/21. Live-Drive-Migration steht aus (Owner: „migrieren").
 - [x] **v17d-Backend gebaut + verifiziert**: `lib/planstore.js` + `/api/plan` GET/PUT auf Drive.
       Verify: `node --check` + Logik-Test 6/6. Live-Drive-Seed/Abgleich steht aus (mit Migration).
-- [ ] Bau v17b (Spalten) + v17c (Swipe): fassen `public/board.js`/`ui.js`/`style.css` an —
-      **Kollision mit Parallel-Session**, erst koordinieren. v17d-Frontend-Politur + v17e danach.
-- [ ] Live-Verifikation gegen echtes Drive (Migration + Plan-Seed) auf Owner-„migrieren".
+- [x] Teammate hat v16c committet (339eb62); `pipeline.js` PHASEN + `detail.js` frei. Neue
+      Anzeigenamen: idee=„Skript schreiben", skript=„Drehtermin festlegen" — als v17b-Seed übernommen.
+- [x] **v17b-Modell gebaut + verifiziert**: `pipeline.js` `spaltenDefault()` + `mischeSpalten()`
+      (rein, „Anzeigename frei, Logik-ID fest"). Verify: `node --check` + Logik-Test 16/16.
+- [ ] **v17b-Live/UI** (Drive `System (AI only)/spalten.json` + `.phase`-Marker + beidseitige
+      Umbenennung + editierbarer Board-Kopf) — braucht laufende App am echten Drive → Owner-„migrieren".
+      Fasst `public/board.js` an: vor dem Editieren Teammate pingen.
+- [ ] **v17c** (Swipe): nach v17b, fasst `public/*` an — koordinieren.
+- [ ] v17e an v18-Session abgegeben (Auswertung-Umbau).
+- [ ] Live-Verifikation gegen echtes Drive (v17a-Migration, Plan-Seed, Spalten-Seed) auf „migrieren".
 
 ## DoD
 - [ ] Jede angezeigte Karten-Angabe steht vollständig in der Drive-`projekt.json`; Board zeigt nach
