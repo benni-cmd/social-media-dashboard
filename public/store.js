@@ -5,6 +5,7 @@ import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNo
 export const S = {
   version: 1,
   cards: [],
+  spalten: [], // Spalten aus Drive (v17b); leer => board.js faellt auf PHASEN zurueck
   drehtermine: [], // Batch-Drehtermine (v16)
   aktiv: null, // id der geoeffneten Karte
   ansicht: "board",
@@ -76,6 +77,7 @@ export async function ladeBoard() {
   const daten = await hole("/api/board");
   S.version = daten.version;
   S.cards = (daten.cards || []).map(migriere);
+  S.spalten = Array.isArray(daten.spalten) ? daten.spalten : [];
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   pruefeAutoDreh();
   zeichne();
@@ -185,10 +187,23 @@ export async function driveSpeichern(k, dateiname, inhalt) {
 export async function driveAbgleich() {
   const ergebnis = await hole("/api/drive/reconcile", { method: "POST" });
   S.cards = (ergebnis.cards || []).map(migriere);
+  if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
   S.version = ergebnis.version;
   S.driveStand.clear();
   zeichne();
   return ergebnis;
+}
+
+// Spalte umbenennen (v17b): benennt den Drive-Ordner mit und aktualisiert die Spalten-Wahrheit.
+export async function spaltenUmbenennen(id, name) {
+  const r = await hole("/api/spalten/rename", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id, name }),
+  });
+  if (Array.isArray(r.spalten)) S.spalten = r.spalten;
+  zeichne();
+  return r;
 }
 
 export async function driveStatus() {

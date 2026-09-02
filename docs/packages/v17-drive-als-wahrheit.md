@@ -182,16 +182,25 @@ Spalte). v17d konnte parallel (erledigt).
       Verify: `node --check` + Logik-Test 21/21. Live-Drive-Migration steht aus (Owner: „migrieren").
 - [x] **v17d-Backend gebaut + verifiziert**: `lib/planstore.js` + `/api/plan` GET/PUT auf Drive.
       Verify: `node --check` + Logik-Test 6/6. Live-Drive-Seed/Abgleich steht aus (mit Migration).
-- [x] Teammate hat v16c committet (339eb62); `pipeline.js` PHASEN + `detail.js` frei. Neue
-      Anzeigenamen: idee=„Skript schreiben", skript=„Drehtermin festlegen" — als v17b-Seed übernommen.
-- [x] **v17b-Modell gebaut + verifiziert**: `pipeline.js` `spaltenDefault()` + `mischeSpalten()`
-      (rein, „Anzeigename frei, Logik-ID fest"). Verify: `node --check` + Logik-Test 16/16.
-- [ ] **v17b-Live/UI** (Drive `System (AI only)/spalten.json` + `.phase`-Marker + beidseitige
-      Umbenennung + editierbarer Board-Kopf) — braucht laufende App am echten Drive → Owner-„migrieren".
-      Fasst `public/board.js` an: vor dem Editieren Teammate pingen.
-- [ ] **v17c** (Swipe): nach v17b, fasst `public/*` an — koordinieren.
-- [ ] v17e an v18-Session abgegeben (Auswertung-Umbau).
-- [ ] Live-Verifikation gegen echtes Drive (v17a-Migration, Plan-Seed, Spalten-Seed) auf „migrieren".
+- [x] Teammate hat v16c committet (339eb62); Anzeigenamen idee=„Skript schreiben",
+      skript=„Drehtermin festlegen" als v17b-Seed übernommen.
+- [x] **v17b gebaut** (`lib/spalten.js`, `projects.js` dynamischer Ordner-Resolver, `server.js`
+      Board-GET/reconcile/`/api/spalten/rename`/Start, `store.js`, `board.js` editierbarer Kopf).
+      Verify offline: `node --check` 6/6, Logik 16/16 + 7/7.
+- [x] **Live migriert (02.09.2026, echtes Drive)**: v17a-Backfill `(AI only)/projekt.json` (7 Karten
+      migriert, Alt-Ort aufgeräumt, 1 verwaister Ordner als Karte); v17b-Seed `System (AI only)/spalten.json`
+      + `.phase`-Marker (idee/skript/fertig geprüft); v17d-Plan `redaktionsplan.json`+`slots.json` (22 Slots).
+      Drive-Gegenprüfung bestätigt. board.json v191.
+- [x] **UI-Abnahme bestanden**: Edge-headless-Screenshot `board-v17b.png` — Board zeichnet Spalten aus
+      Drive (Teammate-Namen), keine Konsolenfehler, editierbarer Kopf vorhanden.
+- [ ] **1 Daten-Defekt (Owner-Aktion):** `In Bearbeitung/Skript/BiointensiveLandwirtschaft/(AI only)`
+      hat 2× `projekt.json` (überlappende Migrationsläufe unter Doppel-Server-Last). `rclone cat`
+      verkettet beide → ungültiges JSON. Fix = `rclone dedupe` (Löschen, mir vom Classifier verwehrt);
+      bis dahin NICHT „Mit Drive abgleichen" für diese Karte (re-backfill würde ein 3. Duplikat schreiben).
+- [ ] Forward-Umbenennung (Ordner-Move) ist code-komplett, aber live noch nicht round-trip-getestet.
+      Rückwärts-Erkennung (Drive-Hand-Umbenennung) via `.phase`-Marker gebaut, live-Test offen.
+- [ ] Alte App auf Port 4321 läuft mit altem Code — neu starten für v17 (Prozess-Kill war blockiert).
+- [ ] v17c (Swipe): nach v17b. v17e an v18-Session (Auswertung) abgegeben.
 
 ## DoD
 - [ ] Jede angezeigte Karten-Angabe steht vollständig in der Drive-`projekt.json`; Board zeigt nach

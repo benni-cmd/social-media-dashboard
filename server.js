@@ -19,6 +19,7 @@ import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
 import * as projekte from "./lib/projects.js";
 import * as planstore from "./lib/planstore.js";
+import * as spaltenStore from "./lib/spalten.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
@@ -30,6 +31,7 @@ const BOARD_FILE = join(DATA_DIR, "board.json");
 const TOKEN_FILE = join(DATA_DIR, "tokens.json");
 const DEFAULTS_FILE = join(DATA_DIR, "defaults.json");
 const PLAN_FILE = join(DATA_DIR, "plan.json");
+const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
 
@@ -116,6 +118,18 @@ async function planCacheSchreiben(config) {
   try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(PLAN_FILE, JSON.stringify(config, null, 2), "utf8"); } catch { /* Cache ist Absicherung */ }
 }
 
+// --- Spalten: Drive ist Wahrheit, data/spalten.json nur Cache (v17b) ---------
+async function spaltenCacheLesen() {
+  try { return JSON.parse(await readFile(SPALTEN_FILE, "utf8")); } catch { return null; }
+}
+async function spaltenCacheSchreiben(config) {
+  try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(SPALTEN_FILE, JSON.stringify(config, null, 2), "utf8"); } catch { /* Cache ist Absicherung */ }
+}
+// Den dynamischen Ordner-Resolver in projects.js mit dem aktuellen (gemischten) Spaltenstand fuettern.
+function spaltenResolverSetzen(gemischt) {
+  projekte.setSpalten(spaltenStore.ordnerMap(gemischt));
+}
+
 // --- kleine Helfer --------------------------------------------------------
 
 const MIME = {
@@ -179,7 +193,10 @@ async function handler(req, res) {
 
     if (pfad === "/api/board" && req.method === "GET") {
       const board = await leseBoard();
-      sendJson(res, 200, { ...board, phasen: pipeline.PHASEN });
+      // Spalten kommen aus dem schnellen Cache (Drive fuehrt beim Abgleich). Fehlt der Cache,
+      // liefert mischeSpalten die Defaults (= PHASEN mit den aktuellen Anzeigenamen).
+      const spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
+      sendJson(res, 200, { ...board, spalten, phasen: spalten });
       return;
     }
 
@@ -435,6 +452,22 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/drive/reconcile" && req.method === "POST") {
+      // Zuerst Spalten abgleichen (Drive fuehrt): Marker lesen, Hand-Umbenennungen erkennen,
+      // Seed sicherstellen. Danach steht der dynamische Ordner-Resolver fuer den Karten-Abgleich.
+      let spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
+      const spaltenBefunde = [];
+      try {
+        const driveConfig = await spaltenStore.leseVonDrive();
+        const gemischt = pipeline.mischeSpalten(driveConfig);
+        const r = await spaltenStore.reconcile(gemischt);
+        spalten = r.spalten;
+        spaltenBefunde.push(...r.befunde);
+        await spaltenCacheSchreiben(spaltenStore.alsConfig(spalten));
+      } catch (e) {
+        spaltenBefunde.push({ status: "befund", satz: `Spalten-Abgleich mit Drive fehlgeschlagen: ${e.message}` });
+      }
+      spaltenResolverSetzen(spalten);
+
       const aktuell = await leseBoard();
       const { cards, befunde, geaendert } = await projekte.abgleich(aktuell.cards);
       let version = aktuell.version;
@@ -442,7 +475,26 @@ async function handler(req, res) {
         version = aktuell.version + 1;
         await schreibeBoard(cards, version);
       }
-      sendJson(res, 200, { cards, befunde, geaendert, version });
+      sendJson(res, 200, { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten });
+      return;
+    }
+
+    if (pfad === "/api/spalten/rename" && req.method === "POST") {
+      const { id, name } = JSON.parse(await readBody(req));
+      if (!id || !name || !name.trim()) {
+        sendJson(res, 400, { error: "id und name sind noetig." });
+        return;
+      }
+      try {
+        const driveConfig = await spaltenStore.leseVonDrive();
+        const gemischt = pipeline.mischeSpalten(driveConfig || (await spaltenCacheLesen()));
+        const neu = await spaltenStore.benenneUm(gemischt, id, name.trim());
+        await spaltenCacheSchreiben(spaltenStore.alsConfig(neu));
+        spaltenResolverSetzen(neu);
+        sendJson(res, 200, { ok: true, spalten: neu });
+      } catch (e) {
+        sendJson(res, 502, { error: e.message, satz: `Umbenennen fehlgeschlagen: ${e.message}` });
+      }
       return;
     }
 
@@ -725,6 +777,11 @@ setInterval(async () => {
 
 server.listen(PORT, async () => {
   console.log(`Content-Maschine laeuft auf https://localhost:${PORT}`);
+  // Spalten-Resolver aus dem Cache setzen, damit Karten-Operationen schon vor dem ersten
+  // Abgleich die (evtl. umbenannten) Drive-Ordner treffen. Fehlt der Cache, greifen die Defaults.
+  try {
+    spaltenResolverSetzen(pipeline.mischeSpalten(await spaltenCacheLesen()));
+  } catch { /* Defaults greifen ohnehin */ }
   // KPI-Sammlung beim Start ausloesen (Owner 02.09.2026): wenn nach den Intervallen eine
   // Post-Messung faellig ist ODER die Konto-Kadenz (woechentl./quartalsw.) greift. Die
   // Faelligkeits-Logik steckt in kpi.sammle — der Aufruf ist selbst-gated und schreibt
