@@ -42,6 +42,33 @@ Cross-Datei-Drift (Karte↔Termin verweisen aufeinander). Der bestehende Optimis
 - Ungebundene Karte (kein `drehterminId`): heutiges Verhalten unverändert, `dates.dreh`
   frei editierbar. → deckt den „einzeln"-Fall ab.
 
+### Kopplung beim Zuordnen — Upload bleibt stehen [Owner, 02.09.2026]
+Beim Zuordnen (und bei jeder Datumsänderung des Termins) werden die Termine der Karte
+**rund um den Dreh** neu gerechnet — **außer Upload**:
+- `skript`, `idee` = Dreh − Vorlauf · `schnitt`, `freigabe` = Dreh + Nachlauf.
+- **`upload` wird NIE angetastet.** Begründung: Batch heißt einmal drehen, über Wochen
+  verteilt hochladen — der Upload ist die Verteil-Entscheidung, nicht aus dem Dreh
+  ableitbar; außerdem bleiben reservierte Redaktionsplan-Slots (`slotBelegen`) erhalten.
+- Ausnahme Einzel-Fall: ist `upload` leer, darf er optional aus dem Dreh folgen
+  (Dreh + 14). Bei belegtem `upload` niemals.
+
+### Vorlauf-Kette harmonisiert — Dreh−Upload = 14 Tage [Owner, 02.09.2026]
+Heute widersprüchlich: `einfacherPlan` nimmt Dreh = Upload−14, `rueckwaertsplan` +
+`VORLAUF_TAGE` nehmen Dreh = Upload−6. Standard künftig **14 Tage**. Damit die Kette
+monoton fallend bleibt (Idee > Skript > Dreh > Schnitt > Freigabe > Upload), wird die
+ganze `VORLAUF_TAGE`-Tabelle neu gesetzt — Tage VOR Upload:
+
+| Meilenstein | alt | neu | relativ zum Dreh |
+|---|---|---|---|
+| idee     | 10 | 21 | Dreh − 7 |
+| skript   |  8 | 17 | Dreh − 3 |
+| dreh     |  6 | 14 | 0 |
+| schnitt  |  3 | 10 | Dreh + 4 |
+| freigabe |  1 |  3 | Dreh + 11 |
+| upload   |  0 |  0 | Dreh + 14 |
+
+`einfacherPlan` und `rueckwaertsplan` lesen künftig dieselbe Tabelle → ein Widerspruch weg.
+
 ### UI
 - **Neuer Nav-Tab „Drehtermine"** (`public/drehtermine.js`): kommende Termine als Liste,
   je Termin Datum/Zeit/Ort + zugeordnete Karten; Anlegen/Bearbeiten/Löschen; Karten
@@ -57,8 +84,10 @@ Cross-Datei-Drift (Karte↔Termin verweisen aufeinander). Der bestehende Optimis
 
 ## Plan
 
-1. [ ] `lib/pipeline.js` — `migriere`: `card.drehterminId ??= null`; Helfer für
-   Termin↔Karten-Konsistenz (rein, ohne DOM). Ggf. `leereDrehtermin()`.
+1. [ ] `lib/pipeline.js` — `VORLAUF_TAGE` harmonisieren (Tabelle oben, Dreh=14);
+   `einfacherPlan`/`rueckwaertsplan` auf dieselbe Tabelle; `migriere`:
+   `card.drehterminId ??= null`; reiner Helfer `planUmDreh(dreh, altUpload)` (Skript/Idee/
+   Schnitt/Freigabe um den Dreh, Upload unberührt); `leereDrehtermin()`.
 2. [ ] `server.js` — `leseBoard`/`schreibeBoard`/`PUT /api/board` tragen `drehtermine`
    mit (Default `[]`); `migriere` auf Karten wie gehabt.
 3. [ ] `public/store.js` — `S.drehtermine`, PUT-Body + `ladeBoard` erweitern; Helfer
@@ -75,7 +104,9 @@ Cross-Datei-Drift (Karte↔Termin verweisen aufeinander). Der bestehende Optimis
 - [x] Bestand geprüft: `dates.dreh`/`TERMINE`/`einfacherPlan`/`rueckwaertsplan`,
       Persistenz (`leseBoard`/`schreibeBoard`, `/api/board` mit `version`-Lock), `store.js`.
 - [x] Weichenstellung mit Owner: beides kombiniert · gemischt (02.09.2026).
-- [ ] Design vom Owner freigegeben.
+- [x] Kopplung geklärt: Upload bleibt stehen; Rest um den Dreh (02.09.2026).
+- [x] Vorlauf-Standard geklärt: 14 Tage, Kette harmonisiert (02.09.2026).
+- [ ] Design vom Owner final freigegeben (Vorlauf-Kette bestätigt?).
 - [ ] Bau (Plan-Schritte 1–6).
 - [ ] Verify + Commit + Push.
 
