@@ -133,8 +133,9 @@ Neue **Drehtermin-Leiste direkt unter der Wochenleiste** (`public/board.js:203`)
       fertiges Skript = Spalte ≥ Skript, nicht idee/fertig/verworfen); `style.css`.
       Verify: Edge-headless-Screenshot Board — Leiste sitzt unter der Wochenleiste, Auto-Kachel
       „13.9.2026 (in 11 Tagen) · automatisch gesetzt" (30-Tage-Regel live), „+"-Button rechts.
-- [ ] Offene Sicht-Pruefung v16b: Zuordnungs-Block IN der Karte (Skript-Phase) — per Code aus
-      geprueften Primitiven (gruppe/feld/auswahl/knopf), Screenshot der Detailspalte noch offen.
+- [x] Sicht-Pruefung Detailspalte (02.09.2026): CDP-Screenshot Skript-Karte zeigt den
+      Drehtermin-Block (Dropdown „Termin waehlen", „Zuordnen", „+ Neuer Drehtermin"),
+      korrekt gated auf die Skript-Phase. **v16b damit voll verifiziert.**
 - [ ] Bau v16c (Phasen) → v16d (GCal).
 
 ## Parallel-Session-Hinweis (02.09.2026)
