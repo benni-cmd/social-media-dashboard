@@ -1,13 +1,16 @@
 // Auswertungs-Ansicht: die Zahlen nach der Veroeffentlichung — und was sie heissen.
 //
-// Aufbau nach Owner-Screenshot (28.08.2026), aber im Dark-Theme der bestehenden Tokens:
-//   KPI-Reihe · Bestperformer · Kanaele-Schnappschuss · Redaktionskalender (Widget).
+// Aufbau (v18, Owner 02.09.2026): Das Wichtigste steht oben und ohne Klick sichtbar —
+// die Kernzahlen (KPI-Reihe) und die LETZTEN BEITRAEGE plattformuebergreifend (Instagram
+// und LinkedIn gemischt, chronologisch). Nebendaten (Bestperformer-Raenge, Kanaele-
+// Schnappschuss, Redaktionskalender) liegen darunter in einklappbaren Gruppen.
+//
 // Zwei Regeln aus docs/best-practices.md stecken drin: verglichen wird gegen den EIGENEN
 // gleitenden Median, nicht gegen Branchenwerte; welche Zahl zaehlt, haengt am Ziel der Karte.
 //
 // Datenehrlichkeit: gezeigt wird nur, was aus echten Feldern kommt. Kein Konto verbunden =
-// Leerzustand und "—", keine erfundenen Trends. Der Vergleich "ggue. Median" ist echt, weil
-// der Median aus den eigenen letzten Beitraegen stammt.
+// Leerzustand und "—", keine erfundenen Trends. LinkedIn liefert ueber social.js (noch) keine
+// Views/Reichweite/Weiterleitungen je Post — dort steht ehrlich "—", keine Naeherung.
 
 import { zielInfo, plattformName } from "/lib/pipeline.js";
 import { S, instagramZahlen, linkedinZahlen, zeichne } from "./store.js";
@@ -22,6 +25,15 @@ function karteZuBeitrag(permalink) {
   return S.cards.find((k) =>
     Object.values(k.published || {}).some((p) => p && p.permalink && permalink.includes(p.permalink.split("?")[0].replace(/\/$/, "")))
   );
+}
+
+function karteZuLinkedin(id) {
+  if (!id) return null;
+  return S.cards.find((k) => {
+    const p = (k.published || {}).linkedin;
+    const pid = typeof p === "string" ? p : p && (p.id || p.url);
+    return pid && (pid === id || String(id).includes(pid));
+  });
 }
 
 export async function zeichneAuswertung(el) {
@@ -69,18 +81,150 @@ export async function zeichneAuswertung(el) {
   if (ig.fehler) el.appendChild(fehlerZeile(ig.hinweis || ig.fehler, "instagram", "Instagram"));
   if (li.fehler) el.appendChild(fehlerZeile(li.hinweis || li.fehler, "linkedin", "LinkedIn"));
 
+  // --- Das Wichtigste, immer sichtbar ---
   el.appendChild(kpiReihe(ig, li, igOn, liOn));
-  el.appendChild(bestperformerBlock(ig, igOn));
-  el.appendChild(kanaeleBlock(ig, li, igOn, liOn));
+  el.appendChild(letzteBeitraegeBlock(ig, li, igOn, liOn));
+  el.appendChild(medianHinweis());
 
-  const fuss = document.createElement("p");
-  fuss.className = "feld-hinweis";
-  fuss.style.margin = "2px 0 18px";
-  fuss.textContent =
-    "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt.";
-  el.appendChild(fuss);
+  // --- Nebendaten, ausklappbar ---
+  const best = bestperformerInhalt(ig, igOn);
+  el.appendChild(ausklapp("Bestperformer", best.inhalt, best.anzahl, "pokal"));
+
+  const kan = kanaeleInhalt(ig, li, igOn, liOn);
+  el.appendChild(ausklapp("Kanaele-Schnappschuss", kan.inhalt, kan.anzahl));
 
   el.appendChild(kalenderWidget());
+}
+
+// --- Ausklapp-Gruppe: Titel + optionale Anzahl, eingeklappt ----------------
+
+function ausklapp(titel, inhalt, anzahl = null, zeichen = null) {
+  const g = gruppe(titel, anzahl, false);
+  if (zeichen) {
+    const titelEl = g.querySelector(".gruppe-titel");
+    if (titelEl) titelEl.insertAdjacentHTML("beforebegin", icon(zeichen, "gruppe-zeichen"));
+  }
+  g.appendChild(inhalt);
+  return g;
+}
+
+// --- Letzte Beitraege plattformuebergreifend -------------------------------
+
+const SICHTBAR = 6; // so viele Beitraege stehen offen, der Rest liegt eingeklappt darunter
+
+function letzteBeitraege(ig, li, igOn, liOn) {
+  const eintraege = [];
+  if (igOn) {
+    for (const m of ig.medien || []) {
+      const kn = m.kennzahlen || {};
+      const ins = m.insights || {};
+      eintraege.push({
+        plattform: "instagram",
+        titel: (m.caption || "").split("\n")[0].slice(0, 90) || "(ohne Titel)",
+        datum: m.timestamp,
+        views: kn.views ?? ins.views ?? null,
+        reichweite: kn.reach ?? ins.reach ?? null,
+        weiterleitungen: ins.shares ?? null,
+        likes: m.like_count ?? null,
+        karte: karteZuBeitrag(m.permalink),
+      });
+    }
+  }
+  if (liOn) {
+    for (const p of li.posts || []) {
+      eintraege.push({
+        plattform: "linkedin",
+        titel: (p.text || "").split("\n")[0].slice(0, 90) || "(ohne Titel)",
+        datum: p.erstellt,
+        views: null,
+        reichweite: null,
+        weiterleitungen: null,
+        likes: p.likes ?? null,
+        karte: karteZuLinkedin(p.id),
+      });
+    }
+  }
+  eintraege.sort((a, b) => zeit(b.datum) - zeit(a.datum));
+  return eintraege;
+}
+
+function letzteBeitraegeBlock(ig, li, igOn, liOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "abschnitt";
+  wrap.innerHTML =
+    `<div class="abschnitt-kopf">${icon("auge")}<span class="abschnitt-titel">Letzte Beitraege</span>` +
+    `<span class="abschnitt-unter">— Instagram und LinkedIn zusammen, das Neueste zuerst</span></div>`;
+
+  if (!igOn && !liOn) {
+    wrap.appendChild(
+      leer({
+        zeichen: "auge",
+        titel: "Noch keine Beitraege",
+        satz: "Sobald ein Konto verbunden ist, stehen hier die letzten Beitraege beider Plattformen nebeneinander.",
+      })
+    );
+    return wrap;
+  }
+
+  const alle = letzteBeitraege(ig, li, igOn, liOn);
+  if (!alle.length) {
+    wrap.appendChild(
+      leer({ zeichen: "auge", titel: "Noch keine Beitraege", satz: "Die verbundenen Konten haben noch keine ausgelieferten Beitraege." })
+    );
+    return wrap;
+  }
+
+  const liste = document.createElement("div");
+  liste.className = "letzte-liste";
+  alle.slice(0, SICHTBAR).forEach((e) => liste.appendChild(beitragZeile(e)));
+  wrap.appendChild(liste);
+
+  const rest = alle.slice(SICHTBAR);
+  if (rest.length) {
+    const g = gruppe(`Weitere Beitraege`, rest.length, false);
+    const restListe = document.createElement("div");
+    restListe.className = "letzte-liste";
+    rest.forEach((e) => restListe.appendChild(beitragZeile(e)));
+    g.appendChild(restListe);
+    wrap.appendChild(g);
+  }
+
+  return wrap;
+}
+
+function beitragZeile(e) {
+  const el = document.createElement("div");
+  el.className = "letzte-zeile";
+  if (e.karte) {
+    el.classList.add("klickbar");
+    el.addEventListener("click", () => oeffne(e.karte.id));
+  }
+  el.innerHTML =
+    `<span class="letzte-marke marke-${e.plattform}" title="${escape(plattformName(e.plattform))}"></span>` +
+    `<div class="letzte-koerper">` +
+    `<div class="letzte-titel">${escape(e.titel)}</div>` +
+    `<div class="letzte-meta">${escape(plattformName(e.plattform))} · ${escape(kurzDatum(e.datum))}</div>` +
+    `</div>` +
+    `<div class="letzte-zahlen">` +
+    zelle(fmt(e.views), "Views") +
+    zelle(fmt(e.reichweite), "Reichweite") +
+    zelle(fmt(e.weiterleitungen), "Weiterl.") +
+    zelle(fmt(e.likes), "Likes") +
+    `</div>`;
+  return el;
+}
+
+function zelle(wert, label) {
+  return `<span class="letzte-zahl"><b>${escape(wert)}</b><i>${escape(label)}</i></span>`;
+}
+
+function medianHinweis() {
+  const p = document.createElement("p");
+  p.className = "feld-hinweis";
+  p.style.margin = "-8px 0 22px";
+  p.textContent =
+    "Verglichen wird gegen den eigenen gleitenden Median, nicht gegen Branchenwerte — die kursierenden Benchmarks sind unbelegt.";
+  return p;
 }
 
 // --- KPI-Reihe ------------------------------------------------------------
@@ -122,25 +266,19 @@ function kpiKarte(zeichen, label, wert, satz, trend) {
   );
 }
 
-// --- Bestperformer --------------------------------------------------------
+// --- Bestperformer (Inhalt fuer die Ausklapp-Gruppe) -----------------------
 
-function bestperformerBlock(ig, igOn) {
-  const wrap = document.createElement("div");
-  wrap.className = "abschnitt";
-  wrap.innerHTML =
-    `<div class="abschnitt-kopf">${icon("pokal")}<span class="abschnitt-titel">Bestperformer</span>` +
-    `<span class="abschnitt-unter">— was diese Periode am besten funktioniert hat</span></div>`;
-
+function bestperformerInhalt(ig, igOn) {
   const medien = (igOn ? ig.medien : []) || [];
   if (!medien.length) {
-    wrap.appendChild(
-      leer({
+    return {
+      anzahl: null,
+      inhalt: leer({
         zeichen: "pokal",
         titel: "Noch kein Bestperformer",
         satz: "Sobald ein Konto verbunden ist und Beitraege liefert, steht hier der staerkste dieser Periode.",
-      })
-    );
-    return wrap;
+      }),
+    };
   }
 
   const views = (m) => (m.kennzahlen && m.kennzahlen.views) || 0;
@@ -156,8 +294,7 @@ function bestperformerBlock(ig, igOn) {
   sortiert.slice(1, 3).forEach((m, i) => rangListe.appendChild(rangKarte(m, i + 2, sortiert[0])));
   if (rangListe.children.length) grid.appendChild(rangListe);
 
-  wrap.appendChild(grid);
-  return wrap;
+  return { anzahl: medien.length, inhalt: grid };
 }
 
 function besterKarte(m, medianViews) {
@@ -165,7 +302,7 @@ function besterKarte(m, medianViews) {
   const kn = m.kennzahlen || {};
   const titel = k ? k.title : (m.caption || "").split("\n")[0].slice(0, 80) || "(ohne Titel)";
   const pl = plattformName(m.plattform || "instagram");
-  const vergleich = medianViews ? Math.round(((views(kn) - medianViews) / medianViews) * 100) : null;
+  const vergleich = medianViews ? Math.round(((viewsVon(kn) - medianViews) / medianViews) * 100) : null;
 
   const el = document.createElement("div");
   el.className = "bester";
@@ -201,8 +338,8 @@ function rangKarte(m, rang, top) {
   const k = karteZuBeitrag(m.permalink);
   const kn = m.kennzahlen || {};
   const titel = k ? k.title : (m.caption || "").split("\n")[0].slice(0, 64) || "(ohne Titel)";
-  const topViews = views(top.kennzahlen || {}) || 1;
-  const anteil = Math.max(5, Math.round((views(kn) / topViews) * 100));
+  const topViews = viewsVon(top.kennzahlen || {}) || 1;
+  const anteil = Math.max(5, Math.round((viewsVon(kn) / topViews) * 100));
   const pl = plattformName(m.plattform || "instagram");
 
   const el = document.createElement("div");
@@ -221,18 +358,14 @@ function rangKarte(m, rang, top) {
   return el;
 }
 
-// --- Kanaele-Schnappschuss ------------------------------------------------
+// --- Kanaele-Schnappschuss (Inhalt fuer die Ausklapp-Gruppe) ----------------
 
-function kanaeleBlock(ig, li, igOn, liOn) {
-  const wrap = document.createElement("div");
-  wrap.className = "abschnitt";
-  wrap.innerHTML = `<div class="abschnitt-kopf"><span class="abschnitt-titel">Kanaele-Schnappschuss</span></div>`;
+function kanaeleInhalt(ig, li, igOn, liOn) {
   const reihe = document.createElement("div");
   reihe.className = "kanaele";
   reihe.appendChild(kanalKarte("instagram", "Instagram", igOn, igOn ? (ig.konto || {}).followers_count : null));
   reihe.appendChild(kanalKarte("linkedin", "LinkedIn", liOn, liOn ? (li.konto || {}).follower : null));
-  wrap.appendChild(reihe);
-  return wrap;
+  return { anzahl: (igOn ? 1 : 0) + (liOn ? 1 : 0) || null, inhalt: reihe };
 }
 
 function kanalKarte(id, name, verbunden, wert) {
@@ -262,7 +395,7 @@ function verbindenKnopf(plattform, name) {
 // --- Kalender-Widget ------------------------------------------------------
 
 function kalenderWidget() {
-  const g = gruppe("Redaktionskalender", null, true);
+  const g = gruppe("Redaktionskalender", null, false);
   const box = document.createElement("div");
   box.className = "kalender-widget";
   zeichneKalender(box);
@@ -280,8 +413,21 @@ function fehlerZeile(satz, id, name) {
   return b;
 }
 
-const views = (kn) => (kn && kn.views) || 0;
+const viewsVon = (kn) => (kn && kn.views) || 0;
 const proz = (n) => `${String(n).replace(".", ",")} %`;
+
+function zeit(d) {
+  if (d == null) return 0;
+  const t = new Date(typeof d === "number" ? d : d).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function kurzDatum(d) {
+  const t = zeit(d);
+  if (!t) return "—";
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(t));
+}
+
 function fmt(n) {
   if (n == null || Number.isNaN(Number(n))) return "—";
   return new Intl.NumberFormat("de-DE").format(n);
