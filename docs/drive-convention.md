@@ -118,6 +118,14 @@ LinkedIn-Zuwachs, einmalig 12 Monate) — die Kurven wachsen ab dem ersten Lauf.
 
 ## Zugang: eigene rclone-client_id ist Pflicht geworden
 
+> **Erledigt 02.09.2026:** Eigene client_id eingerichtet (Google-Cloud-Projekt
+> `1041532493098`, Drive-API aktiviert, OAuth-App als *Test* mit Testnutzer — Veröffentlichung
+> mit Branding erst vor dem Go-Live). `rclone lsd gdrive:` listet ohne die shared-client_id-
+> Warnung. Kalender- und Tasks-API im selben Projekt schon mitaktiviert (Nutzung separat).
+> Schutz gegen Config-Beschädigung: Selbstheilung in `lib/rclone-config.js` (Paket v21).
+> Merke: Datei-Reads unter AppData aus dieser Werkbank-Session sind ein veralteter
+> Schnappschuss — Zustand über die Nutzer-Shell prüfen.
+
 rclone warnt bei jedem Aufruf:
 
 > This shared client_id is being retired and will stop working during 2026.
