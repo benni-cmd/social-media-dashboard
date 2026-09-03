@@ -62,8 +62,12 @@ Projektordner-Struktur (Vertrag `lib/pipeline.js:512` `UNTERORDNER` + `AI_ORDNER
   Erkennungsregel „`Fertiges Video/` enthaelt Video = Schnitt fertig" (drive-convention.md:74);
   danach Karte/Projektordner in die **naechste Phase laut `PHASEN`** (nach `schnitt` = `caption`)
   — Phasenwechsel = Ordner-Move (`drive.moveDir`), wie im Vertrag.
-- **Multipart:** `busboy` (leicht, streamt direkt zu Temp — kein RAM-Ueberlauf bei grossen
-  Videos). Eigene Bau-Entscheidung, keine Owner-Frage.
+- **Upload-Transport (revidiert beim Bau):** KEIN Multipart, KEINE Dependency. `package.json`
+  hat null dependencies — der Browser sendet die Datei als **rohen Body** (`fetch(url, {body:
+  file})`), der Server streamt `req` mit `stream/promises pipeline` direkt in eine Temp-Datei,
+  dann `rclone copyto`. So bleibt das Projekt abhaengigkeitsfrei und RAM-sicher.
+- **ZIP (Download):** eigener stored-ZIP-Schreiber `lib/zip.js` (kein Dep) — streamt Koerper
+  mit Data-Descriptor, memory-safe bei GB-Rohvideo. Gegen `Expand-Archive` verifiziert.
 
 ### Rest-Offen (bei Bau bestaetigen)
 - [ ] In **Videodreh** ist Rohmaterial-Hochladen die natuerliche Handlung (Dreh → Rohclips rein).
@@ -92,12 +96,37 @@ Projektordner-Struktur (Vertrag `lib/pipeline.js:512` `UNTERORDNER` + `AI_ORDNER
 - [x] Bestand geprueft: rclone-Anbindung, `drive.js`-Helfer, Binaer-/Multipart-Luecke,
       vorhandene Drive-Endpunkte (02.09.2026).
 - [x] Feasibility beantwortet: laeuft in-Dashboard ueber rclone, kein Website-Umweg (02.09.2026).
-- [ ] Design-Entscheidungen offen (siehe oben) — Owner.
-- [ ] Bau blockiert bis v16d der Parallel-Session in `server.js`/`store.js` committet ist.
+- [x] Design-Entscheidungen mit Owner geklaert (getrennte Skript-/Rohmaterial-Downloads,
+      Upload nach Fertiges Video/, Leisten Videodreh+Schnitt) — 02.09.2026.
+- [x] Entblockt: v16d der Parallel-Session committet (`0fcf43c`), server.js/store.js frei.
+- [x] **v22 gebaut (03.09.2026, commit `204dadf`):** `lib/zip.js` (stored-ZIP, streamend),
+      `lib/drive.js` (`kopiereOrdnerRunter`/`kopiereDateiRauf`), `server.js`
+      (`GET /api/projekt/download` mit Whitelist, `POST /api/projekt/upload` roher Body),
+      `store.js` (`downloadUrl`, `videoHochladen`), `detail.js` (Download-Knoepfe in
+      Videodreh+Schnitt, Drag&Drop-Zone im Schnitt, Auto-Move nur bei freien Sperren),
+      `style.css` (`.upload-zone`). `node --check` aller sechs Dateien gruen.
+- [x] **ZIP-Schreiber verifiziert:** `Expand-Archive` (Fremd-Entpacker) entpackt Text +
+      300-KB-Binaer + UTF-8-Name **hash-identisch** (CRC/Data-Descriptor korrekt).
+- [x] **Download live verifiziert (echte Karte `test-oasis-01`):** 200 `application/zip`,
+      korrekte Content-Disposition, `Expand-Archive` liest die echte `10_skript.md` (89 B).
+      Leerer Ordner → sauberes 404 „Ordner ist leer".
+- [x] **Upload-Ablehnungen live verifiziert:** Nicht-Video → 400, boeser Name (Slash) → 400,
+      unbekannte Karte → 404; Name/Endung werden VOR jedem Drive-Zugriff geprueft.
+- [x] **UI-Abnahme per echtem Screenshot (Browser-Pane, 03.09.2026):** Videodreh-Detail zeigt
+      „Skript laden (0)" (ausgegraut) + „Rohmaterial laden (1)" (aktiv); Schnitt-Detail zeigt
+      die gestrichelte Drag&Drop-Zone „Fertiges Video hierher ziehen". Testkarte danach geloescht.
+- [ ] **Offen — Live-Upload-Schreibtest:** ein echtes Video in Fertiges Video/ hochladen und
+      den Auto-Move sehen. Schreibt in Bens echtes Drive (kein Loesch-Endpunkt) → mit Owner an
+      einer Testkarte fahren, dann abhaken.
 
 ## DoD
-- [ ] Download-Button liefert den Projektordner als ZIP mit **nur** Menschen-Dateien.
-- [ ] Drag&Drop laedt das fertige Video nach Drive hoch (kein RAM-Ueberlauf bei grossen Dateien).
-- [ ] Nach erfolgreichem Upload wandert die Karte automatisch in die naechste Phase.
-- [ ] Fehlt der Drive-Zugang, meldet die UI das sauber statt abzustuerzen.
-- [ ] UI-Abnahme per Screenshot bestanden.
+- [x] Download-Knopf liefert den Ordner als ZIP mit **nur** Menschen-Dateien (Whitelist Skript
+      und Caption/Rohmaterial; System (AI only)/projekt.json/Fertiges Video ausgenommen) — live
+      gegen echte Karte verifiziert.
+- [~] Drag&Drop laedt das fertige Video nach Drive (roher Body, RAM-sicher): Zone + Endpunkt
+      gebaut, Ablehnungen live geprueft. **Offen: Live-Schreibtest** (Owner-Testkarte).
+- [~] Nach erfolgreichem Upload wandert die Karte in die naechste Phase — Logik gebaut
+      (Auto-Move nur bei freien Qualitaetssperren, sonst Ansage). **Offen: mit Live-Upload sehen.**
+- [x] Fehlt Zugang/Ordner, meldet der Server sauber (404/502 mit Satz), die UI faengt es ab —
+      fuer die Ablehnungszweige live geprueft.
+- [x] UI-Abnahme per Screenshot bestanden (Download-Knoepfe + Upload-Zone).
