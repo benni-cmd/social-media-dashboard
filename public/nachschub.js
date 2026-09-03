@@ -10,7 +10,7 @@ import {
   contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
-import { S, kiStream, speichere, zeichne, melde, setStand } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -34,70 +34,154 @@ async function ladeOffeneSlots() {
   return [];
 }
 
-// Einzelidee: genau eine Karte fuer den naechsten freien Slot.
-export async function holeIdee(anker) {
-  const panel = denkPanel(anker, "Die KI recherchiert eine Idee fuer den naechsten freien Slot …");
-  panel.el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  try {
-    const alleSlots = await ladeOffeneSlots();
-    const belegteUploads = new Set(
-      S.cards
-        .filter((c) => c.column !== "verworfen" && (c.dates || {}).upload)
-        .map((c) => c.dates.upload + "|" + (c.uploadTime || "")),
-    );
-    const slot = alleSlots.find((s) => !belegteUploads.has(s.datum + "|" + (s.uhrzeit || "")));
-    if (!slot) {
-      panel.weg();
-      await melde("hinweis", "Kein offener Upload-Slot gefunden. Pruefe den Redaktionsplan.");
-      return null;
+// Ideen-Swipe (v17c): ein mittiges Popup zeigt EINE KI-Idee als Karte (Titel + 2–3 Saetze).
+// Links = andere Idee (die abgelehnte fliesst in den Prompt, damit die KI nicht wiederholt),
+// rechts = uebernehmen: erst DANN entsteht eine Karte UND der Drive-Ordner. Nichts landet
+// ungefragt in Drive. Gibt die id der uebernommenen Karte zurueck (oder null bei Abbruch),
+// damit der Aufrufer sie oeffnen kann — dieselbe Signatur wie vorher.
+export async function holeIdee() {
+  const alleSlots = await ladeOffeneSlots();
+  const belegteUploads = new Set(
+    S.cards
+      .filter((c) => c.column !== "verworfen" && (c.dates || {}).upload)
+      .map((c) => c.dates.upload + "|" + (c.uploadTime || "")),
+  );
+  // Ein freier Redaktionsplan-Slot ist ein Bonus (belegt das Upload-Datum vor), aber KEINE
+  // Voraussetzung: ohne Slot entsteht eine reine Idee-Karte ohne Termin (spaeter planbar).
+  const slot = alleSlots.find((s) => !belegteUploads.has(s.datum + "|" + (s.uhrzeit || ""))) || null;
+
+  return new Promise((resolve) => {
+    const abgelehnt = []; // sitzungslokale Ablehnliste — verhindert Wiederholungen im Prompt
+    let aktuelleIdee = null;
+    let laeuft = false;
+
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    const box = document.createElement("div");
+    box.className = "modal";
+    box.style.maxWidth = "440px";
+    box.style.width = "90%";
+    box.style.textAlign = "center";
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const schliesse = (id = null) => {
+      document.removeEventListener("keydown", onKey);
+      overlay.remove();
+      resolve(id);
+    };
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) schliesse(null); });
+    function onKey(e) {
+      if (laeuft) return;
+      if (e.key === "Escape") schliesse(null);
+      else if (e.key === "ArrowLeft") dislike();
+      else if (e.key === "ArrowRight") like();
+    }
+    document.addEventListener("keydown", onKey);
+
+    const zeigeLaden = (text) =>
+      (box.innerHTML = `<div style="padding:28px 10px;color:var(--fg2)">${escape(text)}</div>`);
+
+    function zeigeFehler(satz) {
+      zeigeLaden(satz);
+      const r = document.createElement("div");
+      r.className = "modal-knoepfe";
+      r.appendChild(knopf("Nochmal", { art: "haupt", klick: () => naechste() }));
+      r.appendChild(knopf("Schliessen", { klick: () => schliesse(null) }));
+      box.appendChild(r);
     }
 
-    const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
-      .map((s) => `${s.name}: ${s.anzahl}`)
-      .join(", ");
-    const antwort = await kiStream(
-      "ideen",
-      {
-        anzahl: 1,
-        vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
-        verworfen: S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
-        verteilung,
-        kategorie: slot.kategorie || "",
-        offeneSlots: [slot],
-      },
-      (e) => {
-        if (e.delta) panel.delta(e.delta);
-        if (e.status) panel.status(e.status);
-      },
-    );
-    panel.weg();
-    const ideen = (antwort.data && antwort.data.ideen) || [];
-    if (!ideen.length) {
-      await melde("hinweis", "Die KI hat keine verwertbare Idee geliefert. Versuch es noch einmal.");
-      return null;
+    async function naechste() {
+      laeuft = true;
+      zeigeLaden("Die KI recherchiert eine Idee …");
+      const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
+        .map((s) => `${s.name}: ${s.anzahl}`)
+        .join(", ");
+      try {
+        const antwort = await kiStream(
+          "ideen",
+          {
+            anzahl: 1,
+            vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
+            verworfen: [
+              ...S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
+              ...abgelehnt,
+            ],
+            verteilung,
+            kategorie: (slot && slot.kategorie) || "",
+            offeneSlots: slot ? [slot] : [],
+          },
+          () => {},
+        );
+        laeuft = false;
+        const ideen = (antwort.data && antwort.data.ideen) || [];
+        if (!ideen.length) { zeigeFehler("Die KI hat keine verwertbare Idee geliefert."); return; }
+        aktuelleIdee = ideen[0];
+        zeigeIdee(aktuelleIdee);
+      } catch (e) {
+        laeuft = false;
+        zeigeFehler((e.daten && e.daten.hint) || e.message);
+      }
     }
-    const idee = ideen[0];
-    const k = leereKarte("idee");
-    k.title = idee.titel || "Neue Idee";
-    k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : "";
-    k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
-    k.notes = idee.warum || "";
-    k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
-    k.uploadTime = slot.uhrzeit || "";
-    k.contenttyp = slot.typ || "reel";
-    if (slot.kategorie) k.kategorie = slot.kategorie;
-    if (slot.ziel) k.goal = slot.ziel;
-    if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
-    S.cards.push(k);
-    speichere();
-    zeichne();
-    meldung(`Idee "${k.title}" als Karte angelegt.`, "erfolg");
-    return k.id;
-  } catch (e) {
-    panel.weg();
-    await melde("befund", (e.daten && e.daten.hint) || e.message);
-    return null;
-  }
+
+    function zeigeIdee(idee) {
+      const katId = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie);
+      const typName = contenttypName((slot && slot.typ) || "reel");
+      const marke = katId ? `${kategorieName(katId)} · ${typName}` : typName;
+      box.innerHTML =
+        `<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px">Neue Idee</div>` +
+        `<div style="border:1px solid var(--rand,#3a3a3a);border-radius:12px;padding:18px 16px;text-align:left;background:var(--flaeche2,rgba(255,255,255,.03))">` +
+          `<div style="font-size:20px;font-weight:700;line-height:1.25;margin-bottom:6px">${escape(idee.titel || "(ohne Titel)")}</div>` +
+          `<div style="font-size:12px;color:var(--fg2);margin-bottom:10px">${escape(marke)}</div>` +
+          `<p style="margin:0;line-height:1.5">${escape(idee.warum || "")}</p>` +
+          (idee.hook ? `<p style="margin:10px 0 0;color:var(--fg2);font-size:13px"><em>Hook: ${escape(idee.hook)}</em></p>` : "") +
+        `</div>` +
+        `<div style="font-size:12px;color:var(--fg2);margin:12px 0 2px">← andere Idee · übernehmen →</div>`;
+      const r = document.createElement("div");
+      r.className = "modal-knoepfe";
+      r.appendChild(knopf("Andere Idee", { zeichen: "schliessen", klick: () => dislike() }));
+      r.appendChild(knopf("Als Karte anlegen", { art: "haupt", zeichen: "plus", klick: () => like() }));
+      box.appendChild(r);
+    }
+
+    function dislike() {
+      if (laeuft || !aktuelleIdee) return;
+      if (aktuelleIdee.titel) abgelehnt.push(aktuelleIdee.titel);
+      naechste();
+    }
+
+    async function like() {
+      if (laeuft || !aktuelleIdee) return;
+      laeuft = true;
+      const idee = aktuelleIdee;
+      const k = leereKarte("idee");
+      k.title = idee.titel || "Neue Idee";
+      k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
+      k.notes = idee.warum || "";
+      k.contenttyp = (slot && slot.typ) || "reel";
+      k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie) || "";
+      if (slot) {
+        k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
+        k.uploadTime = slot.uhrzeit || "";
+        if (slot.ziel) k.goal = slot.ziel;
+        if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
+      }
+      S.cards.push(k);
+      zeichne();
+      zeigeLaden(`Lege „${k.title}" an und erstelle den Drive-Ordner …`);
+      try {
+        await speichere();
+        await driveAnlegen(k); // erst beim Uebernehmen: Drive-Ordner + (AI only)/projekt.json
+        meldung(`Idee „${k.title}" als Karte und Drive-Ordner angelegt.`, "erfolg");
+      } catch (e) {
+        // board.json ist Cache: die Karte bleibt, nur der Drive-Ordner fehlt — der Abgleich heilt.
+        meldung(`Karte angelegt, aber Drive-Ordner nicht: ${e.message}`, "fehler");
+      }
+      schliesse(k.id);
+    }
+
+    naechste();
+  });
 }
 
 // Vorschlaege erst zeigen, dann uebernehmen — nicht ungefragt sechs Karten anlegen.

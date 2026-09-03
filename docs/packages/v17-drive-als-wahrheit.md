@@ -203,7 +203,14 @@ Spalte). v17d konnte parallel (erledigt).
 - [ ] Rückwärts-Erkennung (Drive-Hand-Umbenennung → Board) via `.phase`-Marker gebaut; Marker live
       vorhanden, voller Round-Trip-Test noch offen (mit v17c mitnehmen).
 - [ ] Alte App auf Port 4321 läuft mit altem Code — neu starten für v17 (Prozess-Kill war blockiert).
-- [ ] v17c (Swipe): nach v17b. v17e an v18-Session (Auswertung) abgegeben.
+- [x] **v17c gebaut + UI-Abnahme bestanden (03.09.2026):** Ideen-Swipe als mittiges Popup
+      (`public/nachschub.js`, nur diese Datei; nutzt vorhandenes `.modal-overlay`/`.modal` + `knopf`).
+      Eine KI-Idee als Karte (Titel + 2–3 Sätze + Hook), „✗ Andere Idee" (Ablehnliste fließt in den
+      Prompt) / „✓ Als Karte anlegen" (erst dann Karte + Drive-Ordner via `driveAnlegen`). Slot ist
+      optional (voller Redaktionsplan blockiert die Idee nicht mehr). Screenshot `swipe-v17c.png`,
+      keine Konsolenfehler. Like-Pfad baut auf dem bewiesenen `driveAnlegen`/`projekte.anlegen`.
+- [ ] Rückwärts-Rename-Round-Trip (Drive-Hand-Umbenennung → Board) live noch offen.
+- [ ] v17e an v18-Session (Auswertung) abgegeben.
 
 ## DoD
 - [ ] Jede angezeigte Karten-Angabe steht vollständig in der Drive-`projekt.json`; Board zeigt nach
