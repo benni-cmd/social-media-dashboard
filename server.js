@@ -26,6 +26,7 @@ import * as spaltenStore from "./lib/spalten.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
+import * as kpiDrive from "./lib/kpi-drive-lesen.js";
 import * as gcal from "./lib/gcal.js";
 import * as zip from "./lib/zip.js";
 
@@ -902,6 +903,15 @@ async function handler(req, res) {
     // ---- Zahlen ----------------------------------------------------------
 
     if (pfad === "/api/stats/instagram" && req.method === "GET") {
+      // Quelle: ?quelle=drive liest aus den Drive-CSVs (Paket v22), sonst live API.
+      if (url.searchParams.get("quelle") === "drive") {
+        try {
+          sendJson(res, 200, await kpiDrive.instagramAusDrive());
+        } catch (e) {
+          sendJson(res, 200, { verbunden: false, fehler: e.message, hinweis: "Auswertung aus Drive nicht lesbar." });
+        }
+        return;
+      }
       const ig = (await leseTokens()).instagram;
       if (!ig) {
         sendJson(res, 200, { verbunden: false });
@@ -916,6 +926,14 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/stats/linkedin" && req.method === "GET") {
+      if (url.searchParams.get("quelle") === "drive") {
+        try {
+          sendJson(res, 200, await kpiDrive.linkedinAusDrive());
+        } catch (e) {
+          sendJson(res, 200, { verbunden: false, fehler: e.message, hinweis: "Auswertung aus Drive nicht lesbar." });
+        }
+        return;
+      }
       const li = (await leseTokens()).linkedin;
       if (!li) {
         sendJson(res, 200, { verbunden: false });
