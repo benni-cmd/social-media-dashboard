@@ -7,6 +7,7 @@ export const S = {
   cards: [],
   spalten: [], // Spalten aus Drive (v17b); leer => board.js faellt auf PHASEN zurueck
   drehtermine: [], // Batch-Drehtermine (v16)
+  googleVerbunden: false, // gecachter Google-Verbindungsstand fuer den Auto-Sync (v16d-2)
   aktiv: null, // id der geoeffneten Karte
   ansicht: "board",
   monat: new Date(), // fuer die Kalenderansicht
@@ -81,6 +82,8 @@ export async function ladeBoard() {
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   pruefeAutoDreh();
   zeichne();
+  // Google-Verbindungsstand fuer den Auto-Sync cachen (nicht blockierend).
+  gcalStatus().then((s) => { S.googleVerbunden = !!s.verbunden; }).catch(() => {});
 }
 
 // Ohne Drehtermin in den naechsten 30 Tagen den Sonntag der Folgewoche setzen (auto).
@@ -348,6 +351,7 @@ export function drehterminAnlegen(datum, zeit) {
   S.drehtermine.push(t);
   speichere();
   zeichne();
+  autoSync(t.id); // sofort in Kalender + Tasks
   return t;
 }
 
@@ -365,11 +369,13 @@ export function drehterminAendern(id, felder) {
   }
   speichere();
   zeichne();
+  autoSync(id); // Datum/Ort/Titel-Aenderung nach Kalender + Tasks spiegeln
 }
 
 export function drehterminLoeschen(id) {
   const t = drehtermin(id);
   if (!t) return;
+  gcalLoeschen(t); // Event + Task entfernen, bevor der Termin lokal verschwindet
   for (const kid of t.karteIds || []) {
     const k = karte(kid);
     if (k && k.drehterminId === id) k.drehterminId = null; // dates.dreh bleibt als freier Termin
@@ -385,10 +391,11 @@ export function karteZuTermin(karteId, terminId) {
   const k = karte(karteId);
   const t = drehtermin(terminId);
   if (!k || !t) return { ok: false };
-  // Falls die Karte schon an einem anderen Termin haengt: dort loesen.
+  // Falls die Karte schon an einem anderen Termin haengt: dort loesen (und den mit-syncen).
+  let altId = null;
   if (k.drehterminId && k.drehterminId !== terminId) {
     const alt = drehtermin(k.drehterminId);
-    if (alt) alt.karteIds = (alt.karteIds || []).filter((x) => x !== karteId);
+    if (alt) { alt.karteIds = (alt.karteIds || []).filter((x) => x !== karteId); altId = alt.id; }
   }
   k.drehterminId = terminId;
   if (!Array.isArray(t.karteIds)) t.karteIds = [];
@@ -399,6 +406,8 @@ export function karteZuTermin(karteId, terminId) {
     : "Der Drehtermin liegt ausserhalb des empfohlenen Fensters (14 Tage vor Schnitt bis Schnitt).";
   speichere();
   zeichne();
+  autoSync(terminId); // neue Kartenliste in Kalender + Tasks
+  if (altId) autoSync(altId); // der alte Termin hat jetzt eine Karte weniger
   return { ok: true, warnung };
 }
 
@@ -409,6 +418,7 @@ export function karteVonTermin(karteId, terminId) {
   if (k && k.drehterminId === terminId) k.drehterminId = null; // dates.dreh bleibt
   speichere();
   zeichne();
+  autoSync(terminId); // Karte entfernt -> Kalender + Tasks aktualisieren
 }
 
 // --- Google Calendar + Tasks (v16d) ---------------------------------------
@@ -441,6 +451,31 @@ export async function gcalSync(terminId) {
   t.gtaskId = r.taskId || t.gtaskId;
   await speichere();
   return r;
+}
+
+// --- Auto-Sync (v16d-2): Board ist die eine Wahrheit --------------------------
+// Jede Aenderung an einem Drehtermin spiegelt sich sofort in Kalender + Tasks. Pro Termin
+// serialisiert, damit zwei schnelle Aenderungen nicht zwei Events anlegen. Ein fehlender
+// Zugang oder ein API-Fehler darf die lokale Aktion NIE blockieren.
+const syncInFlight = new Map();
+export function autoSync(terminId) {
+  if (!S.googleVerbunden || !terminId) return;
+  const prev = syncInFlight.get(terminId) || Promise.resolve();
+  const next = prev.catch(() => {}).then(() => gcalSync(terminId)).catch(() => {})
+    .finally(() => { if (syncInFlight.get(terminId) === next) syncInFlight.delete(terminId); });
+  syncInFlight.set(terminId, next);
+}
+
+// Loescht Event + Task eines Termins (beim Loeschen auf dem Board).
+export async function gcalLoeschen(t) {
+  if (!S.googleVerbunden || !t || (!t.gcalEventId && !t.gtaskId)) return;
+  try {
+    await hole("/api/gcal/loeschen", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: t.gcalEventId || "", taskId: t.gtaskId || "" }),
+    });
+  } catch { /* Auto-Sync darf nie blockieren */ }
 }
 
 // --- Verbindungs-Center (v24) ---------------------------------------------

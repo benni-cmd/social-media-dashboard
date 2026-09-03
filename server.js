@@ -766,6 +766,20 @@ async function handler(req, res) {
       return;
     }
 
+    // Loescht Event + Task eines Drehtermins (beim Loeschen auf dem Board). Einzelfehler
+    // (schon geloescht) werden geschluckt — Hauptsache der jeweils andere geht durch.
+    if (pfad === "/api/gcal/loeschen" && req.method === "POST") {
+      try {
+        const { eventId, taskId, calId } = JSON.parse(await readBody(req));
+        if (eventId) { try { await gcal.eventLoeschen(calId, eventId); } catch { /* schon weg */ } }
+        if (taskId) { try { await gcal.taskLoeschen(taskId); } catch { /* schon weg */ } }
+        sendJson(res, 200, { ok: true });
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+
     // ---- Verbindungs-Center (v24): .env-Whitelist schreiben + Status --------
 
     if (pfad === "/api/config/env" && req.method === "PUT") {

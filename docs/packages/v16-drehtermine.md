@@ -195,10 +195,17 @@ APIs sind laut Übergabe schon aktiv (Projekt 1041532493098). Fehlt nur der OAut
       `drehtermine.js` „Mit Google verbinden"-Knopf + „Zu Google Kalender + Tasks" im Detail;
       `app.js` Rücklauf `?verbunden=google`. Smoke-Test: Server bootet, status→{verbunden:false},
       auth/google→500 „CLIENT_ID fehlt", sync ohne datum→400. `node --check` aller Dateien grün.
-- [ ] **Owner: OAuth-Client anlegen + `.env` (s. Setup) → „Mit Google verbinden" → funktional
-      testen** (Event + Task entstehen). Erst danach v16d-1 als verifiziert markieren.
-- [ ] v16d-2: Personen + Routing-Tabelle (Teilnehmer je Typ, Kanal-Toggles), Schnitt/Upload-Events,
-      Auto-Sync bei Datumsänderung, Drive-Links in der Beschreibung.
+- [x] **Owner hat Google verbunden; Kalender+Tasks END-TO-END verifiziert (03.09.2026):**
+      echter Roundtrip auf dem Konto — `POST /api/gcal/sync` legt Event (id otp4l6…) + Task an;
+      erneuter Sync mit denselben IDs = Update (kein Duplikat); `POST /api/gcal/loeschen` entfernt
+      beide, kein Rückstand. **v16d funktional durch.**
+- [x] **v16d-2 Auto-Sync gebaut (03.09.2026):** `server.js` `POST /api/gcal/loeschen`; `store.js`
+      `S.googleVerbunden` (in `ladeBoard` gecacht), `autoSync(terminId)` (pro Termin serialisiert,
+      Fehler geschluckt), `gcalLoeschen(t)`; verdrahtet in `drehterminAnlegen/Aendern/Loeschen`,
+      `karteZuTermin` (+ alter Termin) und `karteVonTermin`. Board = eine Wahrheit: Anlegen/Datum/
+      Karten-Zuordnung spiegeln sofort in Kalender + Tasks; Loeschen entfernt beide.
+- [ ] v16d-2 (Rest): Personen + Routing-Tabelle (Teilnehmer je Typ, Kanal-Toggles),
+      Schnitt/Upload-Events je Projekt, Drive-Links in der Beschreibung.
 
 ## Parallel-Session-Hinweis (02.09.2026)
 `server.js` wurde ausserhalb dieses Kontexts zu einem **v17-Umbau** erweitert (board.json =
