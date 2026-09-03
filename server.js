@@ -218,6 +218,13 @@ async function sammleDateien(wurzel, unter = "") {
 // projekt.json sind NICHT herunterladbar, Fertiges Video/ ist Upload-Ziel, kein Download.
 const DOWNLOAD_ORDNER = { skript: "Skript und Caption", rohmaterial: "Rohmaterial" };
 
+// v23: Upload-Ziele. `fertig` (Video, Pflicht-Endung) schiebt die Karte spaeter weiter;
+// `rohmaterial` (beliebige Rohdatei) waechst nur an, ohne Phasenwechsel.
+const UPLOAD_ZIELE = {
+  fertig: { unter: "Fertiges Video", nurVideo: true },
+  rohmaterial: { unter: "Rohmaterial", nurVideo: false },
+};
+
 async function handler(req, res) {
   aktivitaetGemeldet();
   try {
@@ -525,13 +532,19 @@ async function handler(req, res) {
     // Multipart) — so bleibt der Server abhaengigkeitsfrei. Die Karte schiebt der Browser
     // danach weiter (der Upload erfuellt die Erkennungsregel „Fertiges Video enthaelt Video").
     if (pfad === "/api/projekt/upload" && req.method === "POST") {
+      const ziel = UPLOAD_ZIELE[url.searchParams.get("ziel") || "fertig"];
+      if (!ziel) {
+        sendJson(res, 400, { error: "Unbekanntes Ziel.", satz: "Nur Rohmaterial oder fertiges Video." });
+        req.resume();
+        return;
+      }
       const name = url.searchParams.get("name") || "";
       if (!pipeline.pfadstueckOk(name)) {
         sendJson(res, 400, { error: "Unzulaessiger Dateiname.", satz: "Der Dateiname darf keine Schraegstriche oder Punkt-Ordner enthalten." });
         req.resume();
         return;
       }
-      if (!pipeline.VIDEO_ENDUNGEN.some((x) => name.toLowerCase().endsWith(x))) {
+      if (ziel.nurVideo && !pipeline.VIDEO_ENDUNGEN.some((x) => name.toLowerCase().endsWith(x))) {
         sendJson(res, 400, { error: "Keine Videodatei.", satz: `„${name}" hat keine Video-Endung (${pipeline.VIDEO_ENDUNGEN.join(", ")}).` });
         req.resume();
         return;
@@ -546,8 +559,8 @@ async function handler(req, res) {
       const tempDatei = join(tmp, name);
       try {
         await streamPipeline(req, createWriteStream(tempDatei));
-        await drive.kopiereDateiRauf(tempDatei, `${treffer.basis}/Fertiges Video/${name}`);
-        sendJson(res, 200, { ok: true, satz: `„${name}" liegt jetzt im Ordner „Fertiges Video".` });
+        await drive.kopiereDateiRauf(tempDatei, `${treffer.basis}/${ziel.unter}/${name}`);
+        sendJson(res, 200, { ok: true, satz: `„${name}" liegt jetzt im Ordner „${ziel.unter}".` });
       } finally {
         await rm(tmp, { recursive: true, force: true });
       }

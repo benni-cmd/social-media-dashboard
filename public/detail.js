@@ -58,6 +58,7 @@ import {
   karteVonTermin,
   downloadUrl,
   videoHochladen,
+  dateiHochladen,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -1029,6 +1030,8 @@ function felderDreh(k, box, merke) {
   hinweis.textContent =
     "Beides ist bei NGO-Inhalten belegt wirksam: Blick in die Kamera hebt die Interaktion, Fachleute schlagen den institutionellen Absender.";
   box.appendChild(hinweis);
+
+  box.appendChild(rohmaterialZone(k));
 }
 
 function felderSchnitt(k, box, merke) {
@@ -1051,48 +1054,37 @@ function felderSchnitt(k, box, merke) {
   box.appendChild(videoUploadZone(k));
 }
 
-// v22: Drag&Drop fuer das fertige Video. Laedt nach Fertiges Video/ und schiebt die Karte
-// in die naechste Phase — aber nur, wenn die Qualitaetssperren (Untertitel, Wasserzeichen,
-// Laenge) frei sind. Sonst bleibt die Karte in Schnitt, mit Ansage, was noch fehlt.
-function videoUploadZone(k) {
+// v22/v23: Drag&Drop-Upload-Zone, generisch. `opt` = { titel, accept, mehrere, verarbeite }.
+// `verarbeite(dateien, zone)` traegt die eigentliche Logik (Ziel, Auto-Move, Meldung).
+function uploadZone(k, opt) {
   const zone = document.createElement("div");
   zone.className = "upload-zone";
   zone.innerHTML =
     `<div class="upload-zone-inner">${icon("pfeil-hoch")}` +
-    `<p><strong>Fertiges Video hierher ziehen</strong><br>oder klicken zum Auswaehlen</p></div>`;
+    `<p><strong>${escape(opt.titel)}</strong><br>oder klicken zum Auswaehlen</p></div>`;
 
   const feldEingabe = document.createElement("input");
   feldEingabe.type = "file";
-  feldEingabe.accept = "video/*";
+  feldEingabe.accept = opt.accept;
+  if (opt.mehrere) feldEingabe.multiple = true;
   feldEingabe.hidden = true;
   zone.appendChild(feldEingabe);
 
-  const handhabe = async (datei) => {
-    if (!datei) return;
-    const weg = fortschritt(zone, `Lade „${datei.name}" nach Drive — das kann bei grossen Dateien dauern …`);
+  const handhabe = async (dateiliste) => {
+    const dateien = [...(dateiliste || [])].filter(Boolean);
+    if (!dateien.length) return;
     zone.classList.add("laedt");
     try {
-      const r = await videoHochladen(k, datei);
-      const frisch = await driveScan(k, true).catch(() => null);
-      const offen = sperren(tore(k, frisch));
-      if (offen.length) {
-        await melde("hinweis", `${r.satz || "Video hochgeladen."} Die Karte bleibt in Schnitt: ${offen.map((b) => b.satz).join(" ")}`);
-        zeichne();
-      } else {
-        const ziel = naechstePhase(k.column);
-        meldung(r.satz || "Video hochgeladen.", "erfolg");
-        if (ziel) await schiebe(k, ziel);
-        else zeichne();
-      }
+      await opt.verarbeite(dateien, zone);
     } catch (fehler) {
       meldung(`Upload fehlgeschlagen: ${fehler.message}`, "fehler");
     } finally {
-      weg();
+      zone.classList.remove("laedt");
     }
   };
 
   zone.addEventListener("click", () => feldEingabe.click());
-  feldEingabe.addEventListener("change", () => handhabe(feldEingabe.files[0]));
+  feldEingabe.addEventListener("change", () => handhabe(feldEingabe.files));
   ["dragenter", "dragover"].forEach((ev) =>
     zone.addEventListener(ev, (e) => {
       e.preventDefault();
@@ -1105,8 +1097,63 @@ function videoUploadZone(k) {
       zone.classList.remove("ueber");
     })
   );
-  zone.addEventListener("drop", (e) => handhabe(e.dataTransfer && e.dataTransfer.files[0]));
+  zone.addEventListener("drop", (e) => handhabe(e.dataTransfer && e.dataTransfer.files));
   return zone;
+}
+
+// Schnitt: fertiges Video -> Fertiges Video/, danach Karte weiter, wenn die Qualitaetssperren
+// (Untertitel, Wasserzeichen, Laenge) frei sind — sonst bleibt sie in Schnitt, mit Ansage.
+function videoUploadZone(k) {
+  return uploadZone(k, {
+    titel: "Fertiges Video hierher ziehen",
+    accept: "video/*",
+    mehrere: false,
+    verarbeite: async (dateien, zone) => {
+      const datei = dateien[0];
+      const weg = fortschritt(zone, `Lade „${datei.name}" nach Drive — das kann bei grossen Dateien dauern …`);
+      try {
+        const r = await videoHochladen(k, datei);
+        const frisch = await driveScan(k, true).catch(() => null);
+        const offen = sperren(tore(k, frisch));
+        if (offen.length) {
+          await melde("hinweis", `${r.satz || "Video hochgeladen."} Die Karte bleibt in Schnitt: ${offen.map((b) => b.satz).join(" ")}`);
+          zeichne();
+        } else {
+          const ziel = naechstePhase(k.column);
+          meldung(r.satz || "Video hochgeladen.", "erfolg");
+          if (ziel) await schiebe(k, ziel);
+          else zeichne();
+        }
+      } finally {
+        weg();
+      }
+    },
+  });
+}
+
+// Videodreh: Rohmaterial -> Rohmaterial/. Mehrere Clips nacheinander, KEIN Auto-Move —
+// Rohmaterial waechst ueber die Zeit, ein einzelner Clip beendet die Phase nicht.
+function rohmaterialZone(k) {
+  return uploadZone(k, {
+    titel: "Rohmaterial hierher ziehen (mehrere moeglich)",
+    accept: "video/*,image/*,audio/*",
+    mehrere: true,
+    verarbeite: async (dateien, zone) => {
+      let n = 0;
+      for (const datei of dateien) {
+        const weg = fortschritt(zone, `Lade „${datei.name}" (${n + 1}/${dateien.length}) nach Drive …`);
+        try {
+          await dateiHochladen(k, datei, "rohmaterial");
+          n += 1;
+        } finally {
+          weg();
+        }
+      }
+      await driveScan(k, true).catch(() => {});
+      meldung(`${n} ${n === 1 ? "Datei" : "Dateien"} als Rohmaterial hochgeladen.`, "erfolg");
+      zeichne();
+    },
+  });
 }
 
 function felderCaption(k, box, merke) {

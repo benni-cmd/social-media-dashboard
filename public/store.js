@@ -218,11 +218,13 @@ export function downloadUrl(k, was) {
   return `/api/projekt/download?karteId=${encodeURIComponent(k.id)}&was=${encodeURIComponent(was)}`;
 }
 
-// Fertiges Video hochladen: roher Body (kein Multipart, kein `hole` — der Body sind Bytes,
-// kein JSON). Der Server legt es in Fertiges Video/; das Weiterschieben der Karte macht der
-// Aufrufer danach. Wirft mit sprechendem Satz bei Fehlern.
-export async function videoHochladen(k, datei) {
-  const url = `/api/projekt/upload?karteId=${encodeURIComponent(k.id)}&name=${encodeURIComponent(datei.name)}`;
+// Eine Datei nach Drive hochladen: roher Body (kein Multipart, kein `hole` — der Body sind
+// Bytes, kein JSON). `ziel` = "fertig" (Fertiges Video/) oder "rohmaterial" (Rohmaterial/).
+// Das Weiterschieben der Karte macht der Aufrufer danach. Wirft mit sprechendem Satz.
+export async function dateiHochladen(k, datei, ziel = "fertig") {
+  const url =
+    `/api/projekt/upload?karteId=${encodeURIComponent(k.id)}` +
+    `&name=${encodeURIComponent(datei.name)}&ziel=${encodeURIComponent(ziel)}`;
   const antwort = await fetch(url, { method: "POST", body: datei });
   let daten = {};
   try { daten = JSON.parse((await antwort.text()) || "{}"); } catch { daten = {}; }
@@ -230,6 +232,9 @@ export async function videoHochladen(k, datei) {
   S.driveStand.delete(k.id);
   return daten;
 }
+
+// Duenner Alias fuer den v22-Aufrufer (fertiges Video).
+export const videoHochladen = (k, datei) => dateiHochladen(k, datei, "fertig");
 
 // --- KI -------------------------------------------------------------------
 
