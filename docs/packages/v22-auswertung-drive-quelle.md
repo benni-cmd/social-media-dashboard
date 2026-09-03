@@ -42,8 +42,15 @@ ich: Leser+Route). CSV-Schema: `lib/kpi-tabellen.js` (SPALTEN) + `lib/kanal-kpi.
 
 ---
 
+03.09.2026 — Abgeschlossen. Route gebaut + unit-getestet (commit 372c66d). Die v24-Session hat
+den Toggle angedockt (store.js hängt `?quelle=<localStorage cm-auswertung-quelle>` an, UI im Tab
+„Social Media Kanaele", commit da91590) und die Route beidseitig getestet: `quelle=api`→live,
+`quelle=drive`→CSV-Form, beide HTTP 200. `kpi.js`/`auswertung.js` blieben unberührt.
+
 ## Definition of Done
 
 Geprueft gegen: Unit-Test der CSV→Form-Rekonstruktion (medien mit kennzahlen, median via
-social.median, reichweite30, LI posts) · `node --check`.
-Offen: Live-Verify mit echten Drive-Tabellen sobald der Toggle in v24-2 verdrahtet ist.
+social.median, reichweite30, LI posts) · `node --check` · Integrationstest der v24-Session
+(beide Quellen HTTP 200, commit da91590).
+Offen: nichts — Paket geschlossen. (Optischer Doppel-Screenshot API↔Drive bei Gelegenheit,
+sobald echte Drive-Tabellen mit mehreren Posts vorliegen — kein Blocker.)
