@@ -39,6 +39,11 @@ angezeigt, „Verbinden" startet den OAuth-Flow. Neue Nutzer können alles selbs
   (ID/Secret-Felder → .env, Verbinden, Status), Drive-Status + Kurz-Anleitung.
 - **v24-2 — Social Media Kanäle:** Instagram/LinkedIn (Felder + Verbinden + Anleitung) +
   Auswertungsquelle-Toggle (Drive-only ↔ API+Drive) — mit der Auswertung-Session abgestimmt.
+  **Schnitt (Auswertung-Session, 03.09.2026):** Auswertung ist source-agnostic (nur Render, liest
+  heute live API; Drive-CSVs sind schreib-only). Toggle NICHT in `auswertung.js`, sondern an der
+  Fetch-Schicht: **sie liefert** den Drive→API-Form-Leser + `?quelle=api|drive`-Route auf
+  `/api/stats/*`; **ich baue** Toggle-UI (Social-Media-Sektion) + `store.js` sendet `?quelle`.
+  Ich fasse `kpi.js`/`auswertung.js` NICHT an. Start: wenn Owner „weiter" sagt → ich pinge sie.
 - **v24-3 — Claude-Abo:** Status (`claude` CLI eingeloggt?) + geführte Anbindung.
 
 ---
