@@ -46,17 +46,29 @@ ueber die Drive-Website. UI-Abnahme per Screenshot besteht.
 
 ---
 
-## Offene Design-Entscheidungen (Owner)
+## Design-Entscheidungen (Owner, 02.09.2026 — bestaetigt)
 
-- [ ] **„Nur Dateien fuer Menschen"** — was genau ausschliessen? Kandidaten: unsere KI-/System-
-      Arbeitsdateien (z. B. Metadaten-JSON, `.keep`), Sidecar-/OS-Junk (`.DS_Store`,
-      `Thumbs.db`), oder Whitelist nach Endung (Video/Audio/Doc/PDF/Skript behalten)?
-- [ ] **Leiste + „naechste Phase"** — „Videoschnitt" = Phase `schnitt` (spalten.json order 3)?
-      Naechste Phase nach Video-Upload = welche (fertig/upload)? Auch in `videodreh` anbieten?
-- [ ] **Download-Umfang** — ganzer Projektordner als ein ZIP, oder Rohmaterial und Skript
-      getrennt?
-- [ ] **Multipart** — kleine Dependenz `busboy` (leicht, Streaming) vs. manuelles Parsen
-      (kein Dep, mehr Code). Grosse Videos: Groessenlimit? Direkt zu Temp streamen, nicht in RAM.
+Projektordner-Struktur (Vertrag `lib/pipeline.js:512` `UNTERORDNER` + `AI_ORDNER`):
+`projekt.json` · `Skript und Caption/` · `Rohmaterial/` · `Fertiges Video/` · `System (AI only)/`.
+
+- **„Nur Dateien fuer Menschen" = zwei benannte Unterordner, GETRENNT herunterladbar:**
+  `Skript und Caption/` und `Rohmaterial/`. NICHT herunterladbar: `System (AI only)/`,
+  `projekt.json`, `Fertiges Video/` (das ist das Upload-Ziel, kein Download).
+- **Download getrennt:** zwei Buttons/zwei ZIPs — „Skript" (`Skript und Caption/`) und
+  „Rohmaterial" (`Rohmaterial/`). Kein Ganzordner-ZIP.
+- **Leisten:** Feature erscheint ab **Videodreh** UND **Schnitt** (spalten.json `videodreh`/
+  `schnitt`). Download in beiden. **Video-Upload + Weiterschieben nur in `schnitt`.**
+- **Upload-Ziel + Phasenwechsel:** fertiges Video → `Fertiges Video/`. Das erfuellt die
+  Erkennungsregel „`Fertiges Video/` enthaelt Video = Schnitt fertig" (drive-convention.md:74);
+  danach Karte/Projektordner in die **naechste Phase laut `PHASEN`** (nach `schnitt` = `caption`)
+  — Phasenwechsel = Ordner-Move (`drive.moveDir`), wie im Vertrag.
+- **Multipart:** `busboy` (leicht, streamt direkt zu Temp — kein RAM-Ueberlauf bei grossen
+  Videos). Eigene Bau-Entscheidung, keine Owner-Frage.
+
+### Rest-Offen (bei Bau bestaetigen)
+- [ ] In **Videodreh** ist Rohmaterial-Hochladen die natuerliche Handlung (Dreh → Rohclips rein).
+      Bens Wahl legte Upload+Move auf `schnitt`. Frage: in `videodreh` ein **Rohmaterial-Upload**
+      (ohne Phasen-Move, oder Move `videodreh`→`schnitt`)? Sonst bleibt Videodreh nur Download.
 
 ---
 
