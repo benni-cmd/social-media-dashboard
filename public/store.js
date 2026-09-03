@@ -302,12 +302,21 @@ export async function kiStream(task, nutzlast, onEreignis) {
 
 // --- Zahlen ---------------------------------------------------------------
 
+// Auswertungsquelle (v24-2): "api" (Standard, live) oder "drive" (aus den Drive-CSVs).
+// Lokale Nutzer-Einstellung wie Theme/Provider — dieselbe localStorage-Konvention.
+export function auswertungQuelle() {
+  try { return localStorage.getItem("cm-auswertung-quelle") || "api"; } catch { return "api"; }
+}
+export function setzeAuswertungQuelle(q) {
+  try { localStorage.setItem("cm-auswertung-quelle", q === "drive" ? "drive" : "api"); } catch {}
+}
+
 export async function instagramZahlen() {
-  return hole("/api/stats/instagram");
+  return hole("/api/stats/instagram?quelle=" + auswertungQuelle());
 }
 
 export async function linkedinZahlen() {
-  return hole("/api/stats/linkedin");
+  return hole("/api/stats/linkedin?quelle=" + auswertungQuelle());
 }
 
 // --- Redaktionsplan --------------------------------------------------------

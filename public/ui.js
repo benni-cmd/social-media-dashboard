@@ -752,6 +752,42 @@ export function einstellungenModal(onThemeChange) {
   hint4.textContent = "APIs der Kanaele verbinden — App-ID/Secret bleiben lokal in .env.";
   seite4.appendChild(hint4);
 
+  // Datenquelle der Auswertung (v24-2): live von den APIs oder aus den Drive-CSVs.
+  {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt";
+    const label = document.createElement("div");
+    label.className = "einst-label";
+    label.textContent = "Datenquelle der Auswertung";
+    ab.appendChild(label);
+    const hinweis = document.createElement("p");
+    hinweis.className = "einst-provider-sub";
+    hinweis.textContent = "Woher die Zahlen kommen: frisch von den Plattform-APIs, oder aus den in Google Drive gespeicherten CSVs.";
+    ab.appendChild(hinweis);
+    let aktQuelle;
+    try { aktQuelle = localStorage.getItem("cm-auswertung-quelle") || "api"; } catch { aktQuelle = "api"; }
+    const reihe = document.createElement("div");
+    reihe.className = "einst-theme-reihe";
+    for (const opt of [{ id: "api", name: "Live von den APIs (Standard)" }, { id: "drive", name: "Aus Google Drive" }]) {
+      const l = document.createElement("label");
+      l.className = "einst-theme-option" + (aktQuelle === opt.id ? " aktiv" : "");
+      const r = document.createElement("input");
+      r.type = "radio"; r.name = "ausw-quelle"; r.value = opt.id; r.checked = aktQuelle === opt.id;
+      r.addEventListener("change", () => {
+        reihe.querySelectorAll(".einst-theme-option").forEach((x) => x.classList.remove("aktiv"));
+        l.classList.add("aktiv");
+        try { localStorage.setItem("cm-auswertung-quelle", opt.id); } catch {}
+      });
+      l.appendChild(r);
+      const s = document.createElement("span");
+      s.textContent = opt.name;
+      l.appendChild(s);
+      reihe.appendChild(l);
+    }
+    ab.appendChild(reihe);
+    seite4.appendChild(ab);
+  }
+
   baueApiDienst(seite4, {
     name: "Instagram",
     idKey: "INSTAGRAM_APP_ID", secretKey: "INSTAGRAM_APP_SECRET",

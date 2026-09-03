@@ -61,8 +61,12 @@ angezeigt, „Verbinden" startet den OAuth-Flow. Neue Nutzer können alles selbs
       (Instagram + LinkedIn: ID/Secret-Felder→.env via `baueApiDienst`-Helfer, Verbinden-Redirect,
       Status-Chip, volle Anleitung mit Redirect-URIs); Claude-Anbindung als Block unter „Externe
       Dienste" (Status + `claude`-CLI-Hinweis). CDP-Screenshot bestätigt. Nur `ui.js` berührt.
-- [ ] **v24-2 (Teil 2) — Auswertungsquelle-Toggle:** wartet auf die `?quelle=api|drive`-Route der
-      Auswertung-Session; dann Toggle-UI + `store.js`-Fetch. Start auf Owner-„weiter".
+- [x] **v24-2 (Teil 2) — Toggle gebaut + verifiziert (03.09.2026):** Route der Auswertung-Session
+      live (`?quelle=api|drive`, commit 372c66d). `store.js`: `auswertungQuelle/setzeAuswertungQuelle`
+      (localStorage `cm-auswertung-quelle`), `instagramZahlen`/`linkedinZahlen` hängen `?quelle=` an;
+      `ui.js`: Toggle „Datenquelle der Auswertung" (Live-API/Drive) oben im Tab. `kpi.js`/
+      `auswertung.js` NICHT berührt. Verify: `?quelle=api`→live, `?quelle=drive`→CSV-Form (beide 200);
+      CDP-Screenshot. **v24-2 komplett.**
 - [x] v24-3 (Claude-Abo): mit v24-2 Teil 1 erledigt (Status + geführter CLI-Hinweis).
 
 ## DoD
