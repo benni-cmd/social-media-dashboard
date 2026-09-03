@@ -45,7 +45,13 @@ angezeigt, „Verbinden" startet den OAuth-Flow. Neue Nutzer können alles selbs
 
 ## Stand
 - [x] Weichen (Owner 03.09.2026): Speicher = .env; Umfang = alles (Toggle abgestimmt).
-- [ ] v24-1 gebaut + verifiziert.
+- [x] **v24-1 gebaut + UI-verifiziert (03.09.2026):** `server.js` `PUT /api/config/env`
+      (Whitelist GOOGLE/INSTAGRAM/LINKEDIN, Wert sanitisiert, `process.env` live) + `envSchreiben`;
+      `GET /api/verbindungen/status` (google/drive/instagram/linkedin/claude); `store.js`
+      `envSetzen`/`verbindungenStatus`; `ui.js` neuer Einstellungen-Tab „Externe Dienste"
+      (Google: ID/Secret-Felder→.env, Speichern, Verbinden, Status-Chip, Anleitung; Drive-Status).
+      Verify: Smoke-Test (status liefert 5 Dienste, bad-key→400, envSchreiben append+replace ok);
+      CDP-Screenshot des Tabs. `.env` NICHT im Test verändert (isolierte Temp-.env).
 - [ ] v24-2 (Social Media + Toggle, mit Auswertung-Session).
 - [ ] v24-3 (Claude-Abo).
 

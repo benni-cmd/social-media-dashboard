@@ -53,6 +53,25 @@ async function ladeEnv() {
   }
 }
 
+// Schreibt/aktualisiert EINEN Schluessel in .env (Zeile ersetzen oder anhaengen). Nur fuer
+// die Whitelist im /api/config/env-Handler; der Wert ist dort schon sanitisiert.
+async function envSchreiben(key, wert) {
+  const envPfad = join(__dirname, ".env");
+  let zeilen = [];
+  try { zeilen = (await readFile(envPfad, "utf8")).split("\n"); } catch { /* neu anlegen */ }
+  let ersetzt = false;
+  zeilen = zeilen.map((z) => {
+    const m = z.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=/);
+    if (m && m[1] === key) { ersetzt = true; return `${key}=${wert}`; }
+    return z;
+  });
+  if (!ersetzt) {
+    while (zeilen.length && zeilen[zeilen.length - 1] === "") zeilen.pop();
+    zeilen.push(`${key}=${wert}`);
+  }
+  await writeFile(envPfad, zeilen.join("\n") + "\n", "utf8");
+}
+
 // --- Board lesen und schreiben -------------------------------------------
 //
 // board.json ist ab v17 der schnelle CACHE, nicht mehr die Wahrheit. Die Wahrheit liegt in
@@ -743,6 +762,42 @@ async function handler(req, res) {
 
     if (pfad === "/api/gcal/status" && req.method === "GET") {
       sendJson(res, 200, { verbunden: await gcal.verbunden() });
+      return;
+    }
+
+    // ---- Verbindungs-Center (v24): .env-Whitelist schreiben + Status --------
+
+    if (pfad === "/api/config/env" && req.method === "PUT") {
+      const ENV_ERLAUBT = new Set([
+        "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET",
+        "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
+        "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET",
+      ]);
+      const { key, value } = JSON.parse(await readBody(req));
+      if (!ENV_ERLAUBT.has(key)) {
+        sendJson(res, 400, { error: "Unbekannter Schluessel — nur bekannte Zugangs-Felder sind erlaubt." });
+        return;
+      }
+      const wert = String(value ?? "").replace(/[\r\n]/g, "").trim().slice(0, 500);
+      await envSchreiben(key, wert);
+      process.env[key] = wert; // sofort wirksam, ohne Neustart
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (pfad === "/api/verbindungen/status" && req.method === "GET") {
+      const tokens = await leseTokens();
+      let driveOk = false;
+      try { driveOk = !!(await drive.erreichbar())?.ok; } catch { /* Drive gestoert = nicht verbunden */ }
+      let claudeOk = false;
+      try { execSync("claude --version", { stdio: "ignore" }); claudeOk = true; } catch { /* CLI fehlt/nicht eingeloggt */ }
+      sendJson(res, 200, {
+        google: { verbunden: await gcal.verbunden(), clientKonfiguriert: !!process.env.GOOGLE_OAUTH_CLIENT_ID },
+        drive: { verbunden: driveOk },
+        instagram: { verbunden: !!(tokens.instagram && tokens.instagram.accessToken), clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID },
+        linkedin: { verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken), clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID },
+        claude: { verbunden: claudeOk },
+      });
       return;
     }
 

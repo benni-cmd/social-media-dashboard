@@ -379,7 +379,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Verbindungen"]) {
+  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -563,11 +563,122 @@ export function einstellungenModal(onThemeChange) {
   kiAbschnitt.appendChild(ollamaKonfig);
   seite2.appendChild(kiAbschnitt);
 
+  // --- Seite 3: Externe Dienste (v24) ---
+  const seite3 = document.createElement("div");
+  seite3.className = "einst-seite";
+  const titel3 = document.createElement("div");
+  titel3.className = "einst-titel";
+  titel3.textContent = "Externe Dienste";
+  seite3.appendChild(titel3);
+  const hint3 = document.createElement("p");
+  hint3.className = "einst-provider-sub";
+  hint3.textContent = "Alle Zugaenge bleiben lokal in .env — nichts davon landet auf GitHub.";
+  seite3.appendChild(hint3);
+
+  const dienstRender = [];
+  async function ladeVerbStatus() {
+    let s = {};
+    try { s = await (await fetch("/api/verbindungen/status")).json(); } catch { s = {}; }
+    for (const r of dienstRender) r(s);
+  }
+  async function putEnv(key, value) {
+    if (!value) return;
+    await fetch("/api/config/env", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
+  }
+  function statusChipEl() {
+    const c = document.createElement("span");
+    c.className = "chip chip-fehlt";
+    c.textContent = "…";
+    c.style.marginLeft = "8px";
+    return c;
+  }
+  function setzeChip(c, verbunden, bereit) {
+    c.textContent = verbunden ? "verbunden" : bereit ? "bereit zum Verbinden" : "nicht konfiguriert";
+    c.className = "chip " + (verbunden ? "chip-ok" : bereit ? "chip-hinweis" : "chip-fehlt");
+  }
+
+  // Google Kalender + Tasks
+  {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt";
+    const label = document.createElement("div");
+    label.className = "einst-label";
+    label.textContent = "Google Kalender + Tasks";
+    const chip = statusChipEl();
+    label.appendChild(chip);
+    ab.appendChild(label);
+
+    const anleitung = document.createElement("p");
+    anleitung.className = "einst-provider-sub";
+    anleitung.innerHTML =
+      "1. <b>console.cloud.google.com</b> → Credentials → OAuth client ID (Web application). " +
+      "2. Redirect URI: <code>https://localhost:4321/api/auth/google/callback</code>. " +
+      "3. Client-ID + Secret unten eintragen, Speichern, dann Verbinden. Scopes: Kalender + Tasks.";
+    ab.appendChild(anleitung);
+
+    const idFeld = eingabe("", { platzhalter: "Client-ID (…apps.googleusercontent.com)" });
+    const secretFeld = eingabe("", { typ: "password", platzhalter: "Client-Secret" });
+    ab.appendChild(feld("Client-ID", idFeld));
+    ab.appendChild(feld("Client-Secret", secretFeld));
+
+    const reihe = document.createElement("div");
+    reihe.className = "einst-ping-zeile";
+    const info = document.createElement("div");
+    info.className = "einst-ping-status";
+    const speichern = knopf("Speichern", {
+      klick: async () => {
+        info.textContent = "Speichere …";
+        try {
+          await putEnv("GOOGLE_OAUTH_CLIENT_ID", idFeld.value.trim());
+          await putEnv("GOOGLE_OAUTH_CLIENT_SECRET", secretFeld.value.trim());
+          idFeld.value = ""; secretFeld.value = "";
+          info.textContent = "Gespeichert in .env. Jetzt Verbinden.";
+          ladeVerbStatus();
+        } catch { info.textContent = "Speichern fehlgeschlagen."; }
+      },
+    });
+    const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = "/api/auth/google"; } });
+    reihe.appendChild(speichern);
+    reihe.appendChild(verbinden);
+    reihe.appendChild(info);
+    ab.appendChild(reihe);
+    seite3.appendChild(ab);
+
+    dienstRender.push((s) => {
+      const g = s.google || {};
+      setzeChip(chip, g.verbunden, g.clientKonfiguriert);
+      verbinden.disabled = !g.clientKonfiguriert;
+    });
+  }
+
+  // Google Drive (rclone) — Status + Hinweis; volle Einrichtung folgt in v24
+  {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt";
+    const label = document.createElement("div");
+    label.className = "einst-label";
+    label.textContent = "Google Drive";
+    const chip = statusChipEl();
+    label.appendChild(chip);
+    ab.appendChild(label);
+    const t = document.createElement("p");
+    t.className = "einst-provider-sub";
+    t.textContent = "Drive laeuft ueber das rclone-Remote 'gdrive'. Ist es verbunden, findet das Board die Projektordner.";
+    ab.appendChild(t);
+    seite3.appendChild(ab);
+    dienstRender.push((s) => setzeChip(chip, (s.drive || {}).verbunden, false));
+  }
+
   rechts.appendChild(seite1);
   rechts.appendChild(seite2);
+  rechts.appendChild(seite3);
 
   // --- Tab-Switching ---
-  const seiten = [seite1, seite2];
+  const seiten = [seite1, seite2, seite3];
   navItems.forEach((btn, i) => {
     btn.addEventListener("click", () => {
       navItems.forEach((b) => b.classList.remove("aktiv"));
@@ -576,6 +687,8 @@ export function einstellungenModal(onThemeChange) {
       seiten[i].classList.add("aktiv");
       // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
       if (i === 1 && aktuellerProvider === "ollama") ladeModelle();
+      // Externe Dienste: Verbindungsstatus frisch holen
+      if (i === 2) ladeVerbStatus();
     });
   });
 

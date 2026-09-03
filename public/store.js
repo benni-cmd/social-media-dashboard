@@ -434,6 +434,21 @@ export async function gcalSync(terminId) {
   return r;
 }
 
+// --- Verbindungs-Center (v24) ---------------------------------------------
+
+// Setzt EINEN erlaubten .env-Schluessel (Server prueft die Whitelist + sanitisiert).
+export async function envSetzen(key, value) {
+  return hole("/api/config/env", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
+}
+
+export async function verbindungenStatus() {
+  try { return await hole("/api/verbindungen/status"); } catch { return {}; }
+}
+
 // --- Benutzer-Defaults -----------------------------------------------------
 
 export async function ladeDefaults() {
