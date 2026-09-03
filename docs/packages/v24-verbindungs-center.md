@@ -69,6 +69,10 @@ angezeigt, „Verbinden" startet den OAuth-Flow. Neue Nutzer können alles selbs
       CDP-Screenshot. **v24-2 komplett.**
 - [x] v24-3 (Claude-Abo): mit v24-2 Teil 1 erledigt (Status + geführter CLI-Hinweis).
 
+## Backlog (Owner 03.09.2026 — für später, nicht jetzt)
+- Einstellungen „Externe Dienste" deckt aktuell nur Google Kalender + Tasks (+ Drive-Status) ab;
+  weitere Google-Dienste und andere Anbindungen fehlen dort noch — bei Bedarf ergänzen.
+
 ## DoD
 - [ ] ID/Secret im UI eintragbar → landet in `.env`, Verbinden startet OAuth, Status stimmt.
 - [ ] Nur Whitelist-Keys schreibbar; Wert sanitisiert; kein Secret im Repo.
