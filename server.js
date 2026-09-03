@@ -825,7 +825,16 @@ async function handler(req, res) {
           sendJson(res, 400, { error: "termin.datum fehlt" });
           return;
         }
-        const liste = (karten || []).map((k) => "• " + (k.title || k.titel || k)).join("\n");
+        // Je Karte eine Zeile; dahinter der Google-Drive-Ordner-Link (per Datei-ID, ueberlebt
+        // den Phasen-Umzug). drive.link liefert bei fehlendem Pfad "" statt zu werfen.
+        const zeilen = [];
+        for (const c of karten || []) {
+          const titelC = (c && (c.title || c.titel)) || String(c);
+          let link = "";
+          try { if (c && c.column) link = await drive.link(pipeline.projektPfad(c)); } catch { link = ""; }
+          zeilen.push(link ? `• ${titelC}\n  ${link}` : `• ${titelC}`);
+        }
+        const liste = zeilen.join("\n");
         const anzahl = (karten || []).length;
         const titel = `Dreh: ${termin.ort || termin.titel || "Drehtermin"}${anzahl ? ` (${anzahl})` : ""}`;
         const beschreibung = liste ? `Inhalte:\n${liste}` : "Noch keine Karten zugeordnet.";

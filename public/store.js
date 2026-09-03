@@ -436,7 +436,8 @@ export function gcalVerbinden() {
 export async function gcalSync(terminId) {
   const t = drehtermin(terminId);
   if (!t) return null;
-  const karten = (t.karteIds || []).map((id) => karte(id)).filter(Boolean).map((k) => ({ title: k.title }));
+  // Volle Karten mitschicken: der Server loest daraus je Projekt den Drive-Ordner-Link auf.
+  const karten = (t.karteIds || []).map((id) => karte(id)).filter(Boolean);
   const r = await hole("/api/gcal/sync", {
     method: "POST",
     headers: { "content-type": "application/json" },

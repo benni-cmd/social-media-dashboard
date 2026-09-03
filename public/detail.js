@@ -392,23 +392,30 @@ function blockDrehtermin(k) {
       box.appendChild(w);
     }
   } else {
+    // Zuordnen + Karte gleich in den Videodreh schieben (Termin steht -> Skript ist fertig).
+    const zuordnen = async (terminId) => {
+      const r = karteZuTermin(k.id, terminId);
+      if (r && r.warnung) melde("hinweis", r.warnung);
+      if (r && r.ok && phaseIndex(k.column) < phaseIndex("videodreh")) await schiebe(k, "videodreh");
+    };
+
     if (kommend.length) {
-      const opts = kommend.map((x) => ({
-        id: x.id,
-        name: `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})`,
-      }));
-      const sel = auswahl(opts, "", { leerText: "Termin waehlen …" });
-      box.appendChild(feld("Vorhandener Drehtermin", sel));
-      const zu = knopf("Zuordnen", {
-        art: "haupt",
-        klick: () => {
-          if (!sel.value) return;
-          const r = karteZuTermin(k.id, sel.value);
-          if (r && r.warnung) melde("hinweis", r.warnung);
-        },
-      });
-      zu.classList.add("knopf-breit");
-      box.appendChild(zu);
+      const label = document.createElement("div");
+      label.className = "feld-label";
+      label.textContent = "Naechster Drehtermin — direkt zuordnen";
+      box.appendChild(label);
+      const wahl = document.createElement("div");
+      wahl.className = "dreh-wahl";
+      for (const x of kommend) {
+        const b = knopf(
+          `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})`,
+          { zeichen: "kalender", klick: () => zuordnen(x.id) }
+        );
+        b.classList.add("knopf-breit");
+        b.style.marginBottom = "5px";
+        wahl.appendChild(b);
+      }
+      box.appendChild(wahl);
     } else {
       const leer = document.createElement("p");
       leer.className = "feld-hinweis";
@@ -419,11 +426,10 @@ function blockDrehtermin(k) {
     const neu = knopf("Neuer Drehtermin", {
       zeichen: "plus",
       klick: () =>
-        modalDrehtermin((werte) => {
+        modalDrehtermin(async (werte) => {
           const nt = drehterminAnlegen(werte.datum, werte.zeit);
           if (werte.ort || werte.titel) drehterminAendern(nt.id, { ort: werte.ort, titel: werte.titel });
-          const r = karteZuTermin(k.id, nt.id);
-          if (r && r.warnung) melde("hinweis", r.warnung);
+          await zuordnen(nt.id);
         }),
     });
     neu.classList.add("knopf-breit");

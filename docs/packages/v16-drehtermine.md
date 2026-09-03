@@ -204,8 +204,16 @@ APIs sind laut Übergabe schon aktiv (Projekt 1041532493098). Fehlt nur der OAut
       Fehler geschluckt), `gcalLoeschen(t)`; verdrahtet in `drehterminAnlegen/Aendern/Loeschen`,
       `karteZuTermin` (+ alter Termin) und `karteVonTermin`. Board = eine Wahrheit: Anlegen/Datum/
       Karten-Zuordnung spiegeln sofort in Kalender + Tasks; Loeschen entfernt beide.
+- [x] **v16d-2 Feinschliff gebaut + verifiziert (04.09.2026):**
+      (1) Zuordnung schiebt die Karte automatisch nach „Videodreh" (`detail.js` `zuordnen` →
+      `schiebe`, nur wenn Spalte < Videodreh). (2) Kein Dropdown mehr — die nächsten Drehtermine
+      stehen als Direkt-Buttons zur Auswahl (Screenshot bestätigt). (3) In den Notizen von
+      Kalender + Task steht hinter jedem Kartentitel der **Google-Drive-Ordner-Link** (per
+      `drive.link(projektPfad(card))`, Link über Datei-ID → überlebt den Phasen-Umzug; `store.js`
+      schickt volle Karten, `server.js` löst je Karte auf). Verify: `drive.link` liefert echte
+      URL (`…/open?id=…`), `node --check` grün, CDP-Screenshot der Direkt-Auswahl.
 - [ ] v16d-2 (Rest): Personen + Routing-Tabelle (Teilnehmer je Typ, Kanal-Toggles),
-      Schnitt/Upload-Events je Projekt, Drive-Links in der Beschreibung.
+      Schnitt/Upload-Events je Projekt.
 
 ## Parallel-Session-Hinweis (02.09.2026)
 `server.js` wurde ausserhalb dieses Kontexts zu einem **v17-Umbau** erweitert (board.json =
