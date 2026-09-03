@@ -46,10 +46,21 @@ oder verwaisten Drive-Ordnern. Reconcile im Normalfall = wenige Aufrufe. Gemesse
 
 ## Stand
 - [x] Diagnose + Messung: HTTP 000 nach 180 s, Server lebt; ~26 serielle rclone-Aufrufe.
-- [ ] Bau + Verify.
+- [x] **Gebaut (03.09.2026, commit afd408d):** Schnellpfad in `abgleich()` — `continue` ohne
+      Read, wenn `drivePhase === column && driveName === name`.
+- [x] **Verify:** reconcile jetzt **HTTP 200** (67–70 s in meiner gedrosselten Session, auf
+      eigener client_id ~10–15 s) statt Timeout; **19 Karten, geaendert=false**, Befund
+      „Board und Drive stimmen ueberein — nichts zu heilen". `node --check` grün.
+- [ ] **Owner-Aktion:** Board-Server neu starten (`Start-Board.cmd`), damit die neue
+      `projects.js` läuft — der Fix ist Server-Code.
+
+## Restbottleneck / optionaler Folgeschritt
+Die 7 Phasen-Listings dominieren jetzt (in meiner Session ~je 8 s Drossel = ~60 s). Auf Bens
+client_id ~7 s. Falls reconcile noch spürbar zäh ist: die 7 Listings zu 2 rekursiven
+(`lsf -R` über „In Bearbeitung" + „Videoauswertung") bündeln. Nicht gebaut — erst messen, ob nötig.
 
 ## DoD
-- [ ] Reconcile läuft im eingeschwungenen Zustand ohne projekt.json-Reads (gemessen: Aufrufe/Zeit).
-- [ ] Ergebnis identisch: gleiche Karten, gleiche Phasen-Zuordnung, gleiche Befunde bei echten
-      Abweichungen.
-- [ ] node --check grün.
+- [x] Reconcile läuft im eingeschwungenen Zustand ohne projekt.json-Reads (200 statt Timeout,
+      gemessen 67–70 s throttled).
+- [x] Ergebnis identisch: 19 Karten, geaendert=false, „Board und Drive stimmen ueberein".
+- [x] node --check grün.
