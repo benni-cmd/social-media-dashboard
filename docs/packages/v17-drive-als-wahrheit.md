@@ -197,8 +197,11 @@ Spalte). v17d konnte parallel (erledigt).
       hat 2× `projekt.json` (überlappende Migrationsläufe unter Doppel-Server-Last). `rclone cat`
       verkettet beide → ungültiges JSON. Fix = `rclone dedupe` (Löschen, mir vom Classifier verwehrt);
       bis dahin NICHT „Mit Drive abgleichen" für diese Karte (re-backfill würde ein 3. Duplikat schreiben).
-- [ ] Forward-Umbenennung (Ordner-Move) ist code-komplett, aber live noch nicht round-trip-getestet.
-      Rückwärts-Erkennung (Drive-Hand-Umbenennung) via `.phase`-Marker gebaut, live-Test offen.
+- [x] **Forward-Umbenennung live bewiesen (02.09.2026):** Spalte `schnitt` im Board → „Schnitt LIVE-TEST"
+      → Drive-Ordner `In Bearbeitung/Schnitt LIVE-TEST` entstand, alter Ordner weg, `.phase`-Marker
+      („schnitt") mitgewandert; zurückbenannt → `In Bearbeitung/Schnitt` sauber wiederhergestellt.
+- [ ] Rückwärts-Erkennung (Drive-Hand-Umbenennung → Board) via `.phase`-Marker gebaut; Marker live
+      vorhanden, voller Round-Trip-Test noch offen (mit v17c mitnehmen).
 - [ ] Alte App auf Port 4321 läuft mit altem Code — neu starten für v17 (Prozess-Kill war blockiert).
 - [ ] v17c (Swipe): nach v17b. v17e an v18-Session (Auswertung) abgegeben.
 
