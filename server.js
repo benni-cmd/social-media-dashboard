@@ -9,7 +9,10 @@
 //   social.js    Instagram- und LinkedIn-Zahlen
 
 import { createServer as createHttpsServer } from "node:https";
-import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, mkdtemp, rm, readdir } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+import { pipeline as streamPipeline } from "node:stream/promises";
+import { tmpdir } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
@@ -24,6 +27,7 @@ import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
 import * as gcal from "./lib/gcal.js";
+import * as zip from "./lib/zip.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -183,6 +187,36 @@ async function leseKontext(serie) {
 }
 
 // --- Wegweisung -----------------------------------------------------------
+
+// --- v22: Projektordner-Download + Video-Upload ---------------------------
+//
+// Findet die Karte im Board und den TATSAECHLICHEN Drive-Ordner (scan folgt auch
+// Hand-Verschiebungen). Trennt sauber: keine Karte / kein Ordner / Drive gestoert.
+async function karteMitOrdner(karteId) {
+  const board = await leseBoard();
+  const card = board.cards.find((c) => c.id === karteId);
+  if (!card) return { fehler: 404, satz: "Zu dieser Karte gibt es keinen Eintrag im Board." };
+  const stand = await projekte.scan(card);
+  if (!stand.driveOk) return { fehler: 502, satz: stand.satz };
+  if (!stand.vorhanden) return { fehler: 404, satz: stand.satz };
+  return { card, basis: stand.pfad };
+}
+
+// Alle Dateien unter einem Verzeichnis, rekursiv, mit relativem Namen (fuer die ZIP-Eintraege).
+async function sammleDateien(wurzel, unter = "") {
+  const eintraege = await readdir(join(wurzel, unter), { withFileTypes: true });
+  const out = [];
+  for (const e of eintraege) {
+    const rel = unter ? `${unter}/${e.name}` : e.name;
+    if (e.isDirectory()) out.push(...(await sammleDateien(wurzel, rel)));
+    else if (e.isFile()) out.push({ name: rel, pfad: join(wurzel, rel) });
+  }
+  return out;
+}
+
+// „nur Dateien fuer Menschen" = genau diese zwei Unterordner. System (AI only)/ und
+// projekt.json sind NICHT herunterladbar, Fertiges Video/ ist Upload-Ziel, kein Download.
+const DOWNLOAD_ORDNER = { skript: "Skript und Caption", rohmaterial: "Rohmaterial" };
 
 async function handler(req, res) {
   aktivitaetGemeldet();
@@ -449,6 +483,74 @@ async function handler(req, res) {
       }
       const ziel = await projekte.speichereDatei(card, filename, content ?? "");
       sendJson(res, 200, { ok: true, pfad: ziel });
+      return;
+    }
+
+    // v22: Projektordner-Teil als ZIP herunterladen (nur Skript oder Rohmaterial).
+    if (pfad === "/api/projekt/download" && req.method === "GET") {
+      const was = url.searchParams.get("was");
+      const sub = DOWNLOAD_ORDNER[was];
+      if (!sub) {
+        sendJson(res, 400, { error: "Unbekannter Ordner.", satz: "Nur Skript oder Rohmaterial sind ladbar." });
+        return;
+      }
+      const treffer = await karteMitOrdner(url.searchParams.get("karteId"));
+      if (treffer.fehler) {
+        sendJson(res, treffer.fehler, { error: "Download nicht moeglich.", satz: treffer.satz });
+        return;
+      }
+      const tmp = await mkdtemp(join(tmpdir(), "smd-dl-"));
+      try {
+        await drive.kopiereOrdnerRunter(`${treffer.basis}/${sub}`, tmp);
+        const dateien = await sammleDateien(tmp);
+        if (!dateien.length) {
+          sendJson(res, 404, { error: "Ordner ist leer.", satz: `Im Ordner „${sub}" liegen keine Dateien.` });
+          return;
+        }
+        const zipName = `${pipeline.projektName(treffer.card)} - ${sub}.zip`;
+        const asciiName = zipName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
+        res.writeHead(200, {
+          "content-type": "application/zip",
+          "content-disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(zipName)}`,
+        });
+        await zip.schreibeZip(res, dateien);
+        res.end();
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+      return;
+    }
+
+    // v22: fertiges Video hochladen -> Fertiges Video/. Der Body IST die Datei (roh, kein
+    // Multipart) — so bleibt der Server abhaengigkeitsfrei. Die Karte schiebt der Browser
+    // danach weiter (der Upload erfuellt die Erkennungsregel „Fertiges Video enthaelt Video").
+    if (pfad === "/api/projekt/upload" && req.method === "POST") {
+      const name = url.searchParams.get("name") || "";
+      if (!pipeline.pfadstueckOk(name)) {
+        sendJson(res, 400, { error: "Unzulaessiger Dateiname.", satz: "Der Dateiname darf keine Schraegstriche oder Punkt-Ordner enthalten." });
+        req.resume();
+        return;
+      }
+      if (!pipeline.VIDEO_ENDUNGEN.some((x) => name.toLowerCase().endsWith(x))) {
+        sendJson(res, 400, { error: "Keine Videodatei.", satz: `„${name}" hat keine Video-Endung (${pipeline.VIDEO_ENDUNGEN.join(", ")}).` });
+        req.resume();
+        return;
+      }
+      const treffer = await karteMitOrdner(url.searchParams.get("karteId"));
+      if (treffer.fehler) {
+        sendJson(res, treffer.fehler, { error: "Upload nicht moeglich.", satz: treffer.satz });
+        req.resume();
+        return;
+      }
+      const tmp = await mkdtemp(join(tmpdir(), "smd-ul-"));
+      const tempDatei = join(tmp, name);
+      try {
+        await streamPipeline(req, createWriteStream(tempDatei));
+        await drive.kopiereDateiRauf(tempDatei, `${treffer.basis}/Fertiges Video/${name}`);
+        sendJson(res, 200, { ok: true, satz: `„${name}" liegt jetzt im Ordner „Fertiges Video".` });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
       return;
     }
 

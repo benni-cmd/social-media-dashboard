@@ -56,6 +56,8 @@ import {
   drehterminAendern,
   karteZuTermin,
   karteVonTermin,
+  downloadUrl,
+  videoHochladen,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -1045,6 +1047,66 @@ function felderSchnitt(k, box, merke) {
   hinweis.textContent =
     "Beides sperrt: ohne Untertitel geht die Haelfte der Wirkung verloren, und ein TikTok- oder CapCut-Wasserzeichen kostet auf Instagram die gesamte Reichweite bei Nicht-Followern.";
   box.appendChild(hinweis);
+
+  box.appendChild(videoUploadZone(k));
+}
+
+// v22: Drag&Drop fuer das fertige Video. Laedt nach Fertiges Video/ und schiebt die Karte
+// in die naechste Phase — aber nur, wenn die Qualitaetssperren (Untertitel, Wasserzeichen,
+// Laenge) frei sind. Sonst bleibt die Karte in Schnitt, mit Ansage, was noch fehlt.
+function videoUploadZone(k) {
+  const zone = document.createElement("div");
+  zone.className = "upload-zone";
+  zone.innerHTML =
+    `<div class="upload-zone-inner">${icon("pfeil-hoch")}` +
+    `<p><strong>Fertiges Video hierher ziehen</strong><br>oder klicken zum Auswaehlen</p></div>`;
+
+  const feldEingabe = document.createElement("input");
+  feldEingabe.type = "file";
+  feldEingabe.accept = "video/*";
+  feldEingabe.hidden = true;
+  zone.appendChild(feldEingabe);
+
+  const handhabe = async (datei) => {
+    if (!datei) return;
+    const weg = fortschritt(zone, `Lade „${datei.name}" nach Drive — das kann bei grossen Dateien dauern …`);
+    zone.classList.add("laedt");
+    try {
+      const r = await videoHochladen(k, datei);
+      const frisch = await driveScan(k, true).catch(() => null);
+      const offen = sperren(tore(k, frisch));
+      if (offen.length) {
+        await melde("hinweis", `${r.satz || "Video hochgeladen."} Die Karte bleibt in Schnitt: ${offen.map((b) => b.satz).join(" ")}`);
+        zeichne();
+      } else {
+        const ziel = naechstePhase(k.column);
+        meldung(r.satz || "Video hochgeladen.", "erfolg");
+        if (ziel) await schiebe(k, ziel);
+        else zeichne();
+      }
+    } catch (fehler) {
+      meldung(`Upload fehlgeschlagen: ${fehler.message}`, "fehler");
+    } finally {
+      weg();
+    }
+  };
+
+  zone.addEventListener("click", () => feldEingabe.click());
+  feldEingabe.addEventListener("change", () => handhabe(feldEingabe.files[0]));
+  ["dragenter", "dragover"].forEach((ev) =>
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.add("ueber");
+    })
+  );
+  ["dragleave", "drop"].forEach((ev) =>
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.remove("ueber");
+    })
+  );
+  zone.addEventListener("drop", (e) => handhabe(e.dataTransfer && e.dataTransfer.files[0]));
+  return zone;
 }
 
 function felderCaption(k, box, merke) {
@@ -1246,6 +1308,34 @@ function blockDrive(k, stand) {
       links.appendChild(a);
     }
     if (links.children.length) box.appendChild(links);
+
+    // v22: Skript- und Rohmaterial-Ordner direkt herunterladen (nur fuer Menschen —
+    // System (AI only)/ und projekt.json sind ausgenommen). Nur in Videodreh und Schnitt.
+    if (["videodreh", "schnitt"].includes(k.column)) {
+      const runter = (was, label, anzahl) => {
+        const b = knopf(`${label} (${anzahl})`, {
+          zeichen: "ordner",
+          klick: () => {
+            const a = document.createElement("a");
+            a.href = downloadUrl(k, was);
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          },
+        });
+        if (!anzahl) {
+          b.disabled = true;
+          b.title = "Dieser Ordner ist leer.";
+        }
+        return b;
+      };
+      const reihe = document.createElement("div");
+      reihe.className = "knopfreihe";
+      reihe.appendChild(runter("skript", "Skript laden", (stand.skriptDateien || []).length));
+      reihe.appendChild(runter("rohmaterial", "Rohmaterial laden", stand.rohmaterial || 0));
+      box.appendChild(reihe);
+    }
   }
 
   box.appendChild(

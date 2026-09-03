@@ -210,6 +210,27 @@ export async function driveStatus() {
   return hole("/api/drive/status");
 }
 
+// --- v22: Projektordner-Download + Video-Upload ---------------------------
+
+// Reine URL — der Browser laedt selbst herunter (GET, Content-Disposition). `was` ist
+// "skript" oder "rohmaterial"; der Server laesst nur diese zwei Ordner zu.
+export function downloadUrl(k, was) {
+  return `/api/projekt/download?karteId=${encodeURIComponent(k.id)}&was=${encodeURIComponent(was)}`;
+}
+
+// Fertiges Video hochladen: roher Body (kein Multipart, kein `hole` — der Body sind Bytes,
+// kein JSON). Der Server legt es in Fertiges Video/; das Weiterschieben der Karte macht der
+// Aufrufer danach. Wirft mit sprechendem Satz bei Fehlern.
+export async function videoHochladen(k, datei) {
+  const url = `/api/projekt/upload?karteId=${encodeURIComponent(k.id)}&name=${encodeURIComponent(datei.name)}`;
+  const antwort = await fetch(url, { method: "POST", body: datei });
+  let daten = {};
+  try { daten = JSON.parse((await antwort.text()) || "{}"); } catch { daten = {}; }
+  if (!antwort.ok) throw new Error(daten.satz || daten.error || `Upload fehlgeschlagen (${antwort.status}).`);
+  S.driveStand.delete(k.id);
+  return daten;
+}
+
 // --- KI -------------------------------------------------------------------
 
 function kiKonfig() {
