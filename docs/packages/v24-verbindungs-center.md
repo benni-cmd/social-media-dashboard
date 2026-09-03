@@ -57,8 +57,13 @@ angezeigt, „Verbinden" startet den OAuth-Flow. Neue Nutzer können alles selbs
       (Google: ID/Secret-Felder→.env, Speichern, Verbinden, Status-Chip, Anleitung; Drive-Status).
       Verify: Smoke-Test (status liefert 5 Dienste, bad-key→400, envSchreiben append+replace ok);
       CDP-Screenshot des Tabs. `.env` NICHT im Test verändert (isolierte Temp-.env).
-- [ ] v24-2 (Social Media + Toggle, mit Auswertung-Session).
-- [ ] v24-3 (Claude-Abo).
+- [x] **v24-2 (Teil 1) gebaut + UI-verifiziert (03.09.2026):** neuer Tab „Social Media Kanäle"
+      (Instagram + LinkedIn: ID/Secret-Felder→.env via `baueApiDienst`-Helfer, Verbinden-Redirect,
+      Status-Chip, volle Anleitung mit Redirect-URIs); Claude-Anbindung als Block unter „Externe
+      Dienste" (Status + `claude`-CLI-Hinweis). CDP-Screenshot bestätigt. Nur `ui.js` berührt.
+- [ ] **v24-2 (Teil 2) — Auswertungsquelle-Toggle:** wartet auf die `?quelle=api|drive`-Route der
+      Auswertung-Session; dann Toggle-UI + `store.js`-Fetch. Start auf Owner-„weiter".
+- [x] v24-3 (Claude-Abo): mit v24-2 Teil 1 erledigt (Status + geführter CLI-Hinweis).
 
 ## DoD
 - [ ] ID/Secret im UI eintragbar → landet in `.env`, Verbinden startet OAuth, Status stimmt.

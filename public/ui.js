@@ -379,7 +379,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste"]) {
+  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -673,12 +673,115 @@ export function einstellungenModal(onThemeChange) {
     dienstRender.push((s) => setzeChip(chip, (s.drive || {}).verbunden, false));
   }
 
+  // Claude (KI-Texte) — laeuft ueber die Claude-CLI / dein Abo
+  {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt";
+    const label = document.createElement("div");
+    label.className = "einst-label";
+    label.textContent = "Claude (KI-Texte)";
+    const chip = statusChipEl();
+    label.appendChild(chip);
+    ab.appendChild(label);
+    const t = document.createElement("p");
+    t.className = "einst-provider-sub";
+    t.innerHTML =
+      "Die KI-Texte laufen ueber deine <b>Claude-CLI</b> (dein Abo, keine API-Kosten). " +
+      "Nicht verbunden? Einmal im Terminal <code>claude</code> starten und einloggen, dann das Board neu starten.";
+    ab.appendChild(t);
+    seite3.appendChild(ab);
+    dienstRender.push((s) => setzeChip(chip, (s.claude || {}).verbunden, false));
+  }
+
+  // --- Seite 4: Social Media Kanaele (v24-2) ---
+  // Generischer Dienst mit ID/Secret-Feldern -> .env, Verbinden-Redirect, Status-Chip.
+  function baueApiDienst(container, opt) {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt";
+    const label = document.createElement("div");
+    label.className = "einst-label";
+    label.textContent = opt.name;
+    const chip = statusChipEl();
+    label.appendChild(chip);
+    ab.appendChild(label);
+    const anl = document.createElement("p");
+    anl.className = "einst-provider-sub";
+    anl.innerHTML = opt.anleitung;
+    ab.appendChild(anl);
+    const idFeld = eingabe("", { platzhalter: opt.idPlatz });
+    const secretFeld = eingabe("", { typ: "password", platzhalter: opt.secretPlatz });
+    ab.appendChild(feld(opt.idLabel, idFeld));
+    ab.appendChild(feld(opt.secretLabel, secretFeld));
+    const reihe = document.createElement("div");
+    reihe.className = "einst-ping-zeile";
+    const info = document.createElement("div");
+    info.className = "einst-ping-status";
+    const speichern = knopf("Speichern", {
+      klick: async () => {
+        info.textContent = "Speichere …";
+        try {
+          await putEnv(opt.idKey, idFeld.value.trim());
+          await putEnv(opt.secretKey, secretFeld.value.trim());
+          idFeld.value = ""; secretFeld.value = "";
+          info.textContent = "Gespeichert in .env. Jetzt Verbinden.";
+          ladeVerbStatus();
+        } catch { info.textContent = "Speichern fehlgeschlagen."; }
+      },
+    });
+    const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = opt.connectPfad; } });
+    reihe.appendChild(speichern);
+    reihe.appendChild(verbinden);
+    reihe.appendChild(info);
+    ab.appendChild(reihe);
+    container.appendChild(ab);
+    dienstRender.push((s) => {
+      const d = s[opt.statusKey] || {};
+      setzeChip(chip, d.verbunden, d.clientKonfiguriert);
+      verbinden.disabled = !d.clientKonfiguriert;
+    });
+  }
+
+  const seite4 = document.createElement("div");
+  seite4.className = "einst-seite";
+  const titel4 = document.createElement("div");
+  titel4.className = "einst-titel";
+  titel4.textContent = "Social Media Kanäle";
+  seite4.appendChild(titel4);
+  const hint4 = document.createElement("p");
+  hint4.className = "einst-provider-sub";
+  hint4.textContent = "APIs der Kanaele verbinden — App-ID/Secret bleiben lokal in .env.";
+  seite4.appendChild(hint4);
+
+  baueApiDienst(seite4, {
+    name: "Instagram",
+    idKey: "INSTAGRAM_APP_ID", secretKey: "INSTAGRAM_APP_SECRET",
+    connectPfad: "/api/auth/instagram", statusKey: "instagram",
+    idLabel: "App-ID", secretLabel: "App-Secret",
+    idPlatz: "Instagram App-ID", secretPlatz: "App-Secret",
+    anleitung:
+      "1. <b>developers.facebook.com</b> → App (Typ Business) → Produkt <b>Instagram</b> hinzufuegen. " +
+      "2. Redirect: <code>https://localhost:4321/api/auth/instagram/callback</code>. " +
+      "3. App-ID + Secret unten eintragen. Dein IG-Konto muss als Tester eingeladen und akzeptiert sein.",
+  });
+  baueApiDienst(seite4, {
+    name: "LinkedIn",
+    idKey: "LINKEDIN_CLIENT_ID", secretKey: "LINKEDIN_CLIENT_SECRET",
+    connectPfad: "/api/auth/linkedin", statusKey: "linkedin",
+    idLabel: "Client-ID", secretLabel: "Client-Secret",
+    idPlatz: "LinkedIn Client-ID", secretPlatz: "Client-Secret",
+    anleitung:
+      "1. <b>linkedin.com/developers</b> → App anlegen (mit deiner Unternehmensseite). " +
+      "2. Redirect: <code>https://localhost:4321/api/auth/linkedin/callback</code>. " +
+      "3. Client-ID + Secret unten eintragen. Produkte: Community Management / Organization Social.",
+  });
+
   rechts.appendChild(seite1);
   rechts.appendChild(seite2);
   rechts.appendChild(seite3);
+  rechts.appendChild(seite4);
 
   // --- Tab-Switching ---
-  const seiten = [seite1, seite2, seite3];
+  const seiten = [seite1, seite2, seite3, seite4];
   navItems.forEach((btn, i) => {
     btn.addEventListener("click", () => {
       navItems.forEach((b) => b.classList.remove("aktiv"));
@@ -687,8 +790,8 @@ export function einstellungenModal(onThemeChange) {
       seiten[i].classList.add("aktiv");
       // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
       if (i === 1 && aktuellerProvider === "ollama") ladeModelle();
-      // Externe Dienste: Verbindungsstatus frisch holen
-      if (i === 2) ladeVerbStatus();
+      // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
+      if (i === 2 || i === 3) ladeVerbStatus();
     });
   });
 
