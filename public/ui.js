@@ -54,6 +54,15 @@ export const ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="m4.22 4.22 1.42 1.42"/><path d="m18.36 18.36 1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="m4.22 19.78 1.42-1.42"/><path d="m18.36 5.64 1.42-1.42"/>',
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   mehr: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  // Format-Symbole der Kachel (v29): ersetzen die Plattform-Text-Marken — auf den ersten
+  // Blick zaehlt das Format (Reel/Bild/Story/Longform), nicht die Plattform.
+  clip: '<path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+  bild: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  story:
+    '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+  // Sanduhr (v29, Owner-Vorlage: rotierende Sanduhr statt Punkte, solange die KI arbeitet).
+  sanduhr:
+    '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
 };
 
 export function icon(name, klasse = "") {
@@ -125,9 +134,15 @@ export function eigenschaft(label, wertHtml) {
   );
 }
 
+// Icon-Zeichen, die als farbige Kachel erscheinen (v29, Owner-Grafikstil) statt als
+// blosses Strich-Icon — bewusst eine kleine, feste Liste statt aller `zeichen`-Werte:
+// Navigations-/Bestaetigungs-Icons (schliessen, weiter, zurueck, check ...) sollen klein
+// und unauffaellig bleiben, nur "Datei-Ort"-Symbole tragen die Kachel.
+const KACHEL_ZEICHEN = new Set(["ordner"]);
+
 export function knopf(text, { art = "still", zeichen = null, klick = null, titel = "" } = {}) {
   const b = document.createElement("button");
-  b.className = `knopf knopf-${art}`;
+  b.className = `knopf knopf-${art}` + (KACHEL_ZEICHEN.has(zeichen) ? ` knopf-symbol knopf-symbol-${zeichen}` : "");
   b.innerHTML = (zeichen ? icon(zeichen) : "") + `<span>${escape(text)}</span>`;
   if (titel) b.title = titel;
   if (klick) b.addEventListener("click", klick);
@@ -140,8 +155,8 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
   const el = document.createElement("div");
   el.className = "denk";
   el.innerHTML =
-    `<div class="denk-kopf">${icon("funken")}<span class="denk-titel">${escape(titel)}</span>` +
-    `<span class="denk-punkte"><span></span><span></span><span></span></span></div>` +
+    `<div class="denk-kopf"><span class="denk-symbol knopf-symbol knopf-symbol-sanduhr">${icon("sanduhr")}</span>` +
+    `<span class="denk-titel">${escape(titel)}</span></div>` +
     `<pre class="denk-text"></pre>`;
   container.appendChild(el);
   const textEl = el.querySelector(".denk-text");

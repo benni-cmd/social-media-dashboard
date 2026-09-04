@@ -1,0 +1,260 @@
+<title>Grundton-Varianten</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --paper: #f1f2f4;
+    --card: #ffffff;
+    --ink: #1d2024;
+    --ink-soft: #565b63;
+    --ink-faint: #8b9198;
+    --line: #dcdfe3;
+    --office-blue: #3b6fa8;
+    --office-blue-tint: #e8eff6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17191c;
+      --card: #202327;
+      --ink: #eceef0;
+      --ink-soft: #a6acb4;
+      --ink-faint: #6b7178;
+      --line: #34383e;
+      --office-blue: #7fb0e8;
+      --office-blue-tint: #202b36;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17191c;
+    --card: #202327;
+    --ink: #eceef0;
+    --ink-soft: #a6acb4;
+    --ink-faint: #6b7178;
+    --line: #34383e;
+    --office-blue: #7fb0e8;
+    --office-blue-tint: #202b36;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 40px 32px 56px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .kopf { max-width: 640px; margin-bottom: 34px; }
+  .kopf-eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--office-blue);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .kopf p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
+  .kopf p b { color: var(--ink); font-weight: 600; }
+
+  .raster {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  @media (max-width: 920px) {
+    .raster { grid-template-columns: 1fr; max-width: 420px; }
+  }
+
+  .option {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .option-titel {
+    font-size: 15px;
+    font-weight: 650;
+  }
+  .option-satz {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: -8px 0 0;
+  }
+
+  /* Mini-Mockup eines Dashboard-Fensters, im Vokabular des echten UIs
+     (farbige Titelleiste + Chrome-Punkte + Karten), pro Option eingefaerbt. */
+  .mock {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--m-linie);
+    box-shadow: 3px 3px 0 var(--m-schatten, var(--m-linie));
+    background: var(--m-grund);
+  }
+  .mock-leiste {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--m-titel);
+  }
+  .mock-punkt { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.85); }
+  .mock-leiste span {
+    margin-left: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .mock-koerper { padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .mock-karte {
+    background: var(--m-karte);
+    border: var(--m-karte-rand, 1px solid var(--m-linie));
+    border-radius: 6px;
+    padding: 8px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .mock-zeile { height: 6px; border-radius: 3px; background: var(--m-linie); opacity: .55; }
+  .mock-zeile.kurz { width: 55%; }
+  .mock-icons { display: flex; gap: 6px; margin-top: 2px; }
+  .mock-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--m-linie);
+  }
+  .mock-icon svg { width: 11px; height: 11px; stroke: #fff; fill: none; stroke-width: 2.2; }
+
+  .legende {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    color: var(--ink-faint);
+  }
+  .legende span b { color: var(--ink-soft); font-weight: 500; }
+
+  .fussnote {
+    margin-top: 30px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink-faint);
+    max-width: 640px;
+  }
+</style>
+
+<div class="wrap">
+  <div class="kopf">
+    <div class="kopf-eyebrow">Content-Maschine · Dashboard-Grundton</div>
+    <h1>Drei Alternativen zum Braunton</h1>
+    <p>Die Akzentfarben (Koralle, Senfgelb, Himmelblau, Pink) bleiben unveraendert — die sollen
+      die Lebhaftigkeit tragen. Was sich aendert, ist nur die <b>Grundflaeche</b>: weg vom
+      cremefarben/braunen Retro-Ton, hin zu einem grauen Office-Look. Drei Abstufungen davon,
+      klick keine — nur zum Vergleichen.</p>
+  </div>
+
+  <div class="raster">
+    <!-- Option 1: Kuehles Studio-Grau -->
+    <div class="option">
+      <div class="option-titel">1 — Kuehles Studio-Grau</div>
+      <p class="option-satz">Neutral, leicht blaustichig. Fenster stehen als reines Weiss klar
+        vor der grauen Flaeche — am naechsten an einem klassischen Buero-Tool.</p>
+      <div class="mock" style="--m-grund:#e7e9ec; --m-linie:#2b2e34; --m-karte:#ffffff;">
+        <div class="mock-leiste" style="background:#ff6b3d;">
+          <div class="mock-punkt"></div><div class="mock-punkt"></div><div class="mock-punkt"></div>
+          <span>Skript schreiben</span>
+        </div>
+        <div class="mock-koerper">
+          <div class="mock-karte">
+            <div class="mock-zeile"></div>
+            <div class="mock-zeile kurz"></div>
+          </div>
+          <div class="mock-icons">
+            <div class="mock-icon" style="background:#ff6b3d;"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            <div class="mock-icon" style="background:#ffb937;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
+            <div class="mock-icon" style="background:#3aa8d8;"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div class="legende">
+        <span><b>Grund</b> #e7e9ec</span><span><b>Flaeche</b> #ffffff</span><span><b>Linie</b> #2b2e34</span>
+      </div>
+    </div>
+
+    <!-- Option 2: Warmes Papier-Grau -->
+    <div class="option">
+      <div class="option-titel">2 — Warmes Papier-Grau</div>
+      <p class="option-satz">Ein Hauch Waerme im Grau (kein Braun, nur ein Unterton), wirkt
+        weniger steril als Option 1, ohne wieder Richtung Cognac zu kippen.</p>
+      <div class="mock" style="--m-grund:#eae9e5; --m-linie:#2c2a26; --m-karte:#fbfaf8;">
+        <div class="mock-leiste" style="background:#ffb937;">
+          <div class="mock-punkt"></div><div class="mock-punkt"></div><div class="mock-punkt"></div>
+          <span>Drehtermin festlegen</span>
+        </div>
+        <div class="mock-koerper">
+          <div class="mock-karte">
+            <div class="mock-zeile"></div>
+            <div class="mock-zeile kurz"></div>
+          </div>
+          <div class="mock-icons">
+            <div class="mock-icon" style="background:#ffb937;"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            <div class="mock-icon" style="background:#ff7fb0;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
+            <div class="mock-icon" style="background:#3aa8d8;"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div class="legende">
+        <span><b>Grund</b> #eae9e5</span><span><b>Flaeche</b> #fbfaf8</span><span><b>Linie</b> #2c2a26</span>
+      </div>
+    </div>
+
+    <!-- Option 3: Mittelgrau mit Farbrahmen -->
+    <div class="option">
+      <div class="option-titel">3 — Mittelgrau, Farbe im Rahmen</div>
+      <p class="option-satz">Kraeftigeres Grau als Flaeche; statt einheitlicher dunkler Kante
+        tragen die Karten-Rahmen selbst die Akzentfarbe — bunter, ohne die Flaeche einzufaerben.</p>
+      <div class="mock" style="--m-grund:#dfe1e6; --m-linie:#23262b; --m-karte:#ffffff; --m-karte-rand: 2px solid #3aa8d8;">
+        <div class="mock-leiste" style="background:#3aa8d8;">
+          <div class="mock-punkt"></div><div class="mock-punkt"></div><div class="mock-punkt"></div>
+          <span>Videodreh</span>
+        </div>
+        <div class="mock-koerper">
+          <div class="mock-karte">
+            <div class="mock-zeile"></div>
+            <div class="mock-zeile kurz"></div>
+          </div>
+          <div class="mock-icons">
+            <div class="mock-icon" style="background:#3aa8d8;"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            <div class="mock-icon" style="background:#ff6b3d;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div>
+            <div class="mock-icon" style="background:#ffb937;"><svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div class="legende">
+        <span><b>Grund</b> #dfe1e6</span><span><b>Flaeche</b> #ffffff</span><span><b>Rahmen</b> je Karte farbig</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="fussnote">Alle drei behalten das Fenster-Vokabular (farbige Titelleiste, drei
+    Chrome-Punkte, harter Versatz-Schatten) und die farbigen Icon-Kacheln bei — nur Flaeche/
+    Rahmenfarbe wechseln von Braun/Creme auf Grau. Sag, welche Nummer (oder eine Mischung
+    daraus), dann setze ich das in der echten `style.css` um.</p>
+</div>

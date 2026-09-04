@@ -4,37 +4,48 @@
    Status immer als Wort plus Zeichen, Seitenname nur in der Kopfzeile. */
 
 :root {
-  /* Light Mode (Default) */
-  --grund: #f0f2f5;
-  --flaeche: #ffffff;
-  --flaeche-hoch: #f7f8fa;
-  --flaeche-tief: #e8eaef;
-  --linie: #d4d8e0;
-  --linie-hell: #bcc2cd;
-  --text: #1a1d23;
-  --text-still: #4a5264;
-  --text-leise: #7c8594;
+  /* Light Mode (Default) — Retro-Fensterlook (v28, Owner-Vorlage 04.09.2026) auf
+     Office-Grau (Runde 4, Owner-Feedback: die Braun/Creme-Grundflaeche wirkte in
+     Menues und Hintergrund insgesamt zu braunlastig — "Option 2: Warmes Papier-Grau"
+     aus docs/packages/assets/grundton-varianten.html gewaehlt). Nur die Grundflaeche
+     ist grau; Koralle/Senfgelb/Himmelblau/Pink bleiben unveraendert als Traeger der
+     Lebhaftigkeit (Titelleisten, Icon-Kacheln). */
+  --grund: #eae9e5;
+  --flaeche: #fbfaf8;
+  --flaeche-hoch: #f2f0ea;
+  --flaeche-tief: #e6e3da;
+  --linie: #2c2a26;
+  --linie-hell: #4d4a42;
+  --text: #201e1a;
+  --text-still: #55524a;
+  --text-leise: #8a8578;
 
-  --akzent: #3b6fdf;
-  --akzent-tief: #e8effc;
+  --akzent: #ff6b3d;
+  --akzent-tief: #ffe1cc;
 
-  --ok: #1a8a52;
-  --hinweis: #b07d1a;
-  --fehlt: #7c8594;
-  --befund: #c44d3e;
-  --unlesbar: #7b5fb8;
-  --entfaellt: #9aa2b0;
+  --ok: #4f9d4a;
+  --hinweis: #ffb937;
+  --fehlt: #8f7f5c;
+  --befund: #ff5a5a;
+  --unlesbar: #3aa8d8;
+  --entfaellt: #d8c78f;
 
-  --saeule-anleitung: #1a8a52;
-  --saeule-hardfacts: #3b6fdf;
-  --saeule-projekt: #b07d1a;
-  --saeule-haltung: #c44d3e;
-  --saeule-mythos: #7b5fb8;
-  --saeule-ohne: #bcc2cd;
+  /* Chrome-Palette der Fenster-Titelleisten (v28), rotiert per :nth-of-type */
+  --chrome-a: #ff6b3d;
+  --chrome-b: #ffb937;
+  --chrome-c: #3aa8d8;
+  --chrome-d: #ff7fb0;
 
-  --rund: 10px;
-  --rund-klein: 7px;
-  --schatten: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --saeule-anleitung: #4f9d4a;
+  --saeule-hardfacts: #3aa8d8;
+  --saeule-projekt: #ffb937;
+  --saeule-haltung: #ff5a5a;
+  --saeule-mythos: #a86fd8;
+  --saeule-ohne: #d8c78f;
+
+  --rund: 9px;
+  --rund-klein: 6px;
+  --schatten: -3px 3px 0 rgba(51, 41, 28, 0.9);
 
   /* Regel Schatten/Radius (v23-2): --rund + --schatten fuer kompakte Zusammenfassungs-Karten,
      die direkt auf der Grundflaeche liegen (kpi, bester, rang, letzte-zeile, vergleich-karte,
@@ -50,34 +61,45 @@
 }
 
 [data-theme="dark"] {
-  --grund: #0d1014;
-  --flaeche: #14181e;
-  --flaeche-hoch: #1b2028;
-  --flaeche-tief: #0a0d11;
-  --linie: #262d37;
-  --linie-hell: #333c48;
-  --text: #e8ebf0;
-  --text-still: #939eaf;
-  --text-leise: #6b7688;
+  /* Retro-Fensterlook-Dark, Runde 4 (Office-Grau statt Kakaobraun, Owner-Feedback
+     04.09.2026: "diese Braunabstufungen dort ueberall in alten Menues und im
+     Hintergrund find ich nicht schoen" — galt fuer hell UND dunkel). Dunkles neutrales
+     Graphit statt Braun, --linie neutral-warmgrau statt Karamellgold (Runde 3 loeste
+     den Olivstich, aber die Grundfarbfamilie blieb Braun — jetzt konsequent Grau wie
+     im Hellmodus). Chrome-Farben unveraendert, tragen weiterhin die Lebhaftigkeit. */
+  --grund: #171613;
+  --flaeche: #201f1b;
+  --flaeche-hoch: #29281f;
+  --flaeche-tief: #131210;
+  --linie: #6e6a5c;
+  --linie-hell: #89846f;
+  --text: #eeece3;
+  --text-still: #c8c4b6;
+  --text-leise: #928d7b;
 
-  --akzent: #5b93ff;
-  --akzent-tief: #1b2c4d;
+  --akzent: #ff8256;
+  --akzent-tief: #4a2a1a;
 
-  --ok: #4ac48a;
-  --hinweis: #e0a341;
-  --fehlt: #6b7688;
-  --befund: #e5695c;
-  --unlesbar: #9b7fd4;
-  --entfaellt: #4a5364;
+  --ok: #6bc267;
+  --hinweis: #ffc857;
+  --fehlt: #928d7b;
+  --befund: #ff6f6f;
+  --unlesbar: #55bbea;
+  --entfaellt: #4a4738;
 
-  --saeule-anleitung: #4ac48a;
-  --saeule-hardfacts: #5b93ff;
-  --saeule-projekt: #e0a341;
-  --saeule-haltung: #e5695c;
-  --saeule-mythos: #9b7fd4;
-  --saeule-ohne: #3a4351;
+  --chrome-a: #ff8256;
+  --chrome-b: #ffc857;
+  --chrome-c: #55bbea;
+  --chrome-d: #ff96c2;
 
-  --schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --saeule-anleitung: #6bc267;
+  --saeule-hardfacts: #55bbea;
+  --saeule-projekt: #ffc857;
+  --saeule-haltung: #ff6f6f;
+  --saeule-mythos: #c191ef;
+  --saeule-ohne: #4d4127;
+
+  --schatten: -4px 4px 0 rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -540,10 +562,11 @@ body {
   margin: 5px 0 0;
 }
 .spalte-liste {
-  padding: 10px;
+  /* Owner 04.09.2026: mehr Luft um die Karten, damit sie atmen koennen. */
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 12px;
   overflow-y: auto;
   min-height: 56px;
 }
@@ -553,7 +576,7 @@ body {
   border-radius: var(--rund);
 }
 .spalte-fuss {
-  padding: 0 10px 10px;
+  padding: 0 14px 14px;
 }
 
 /* --- Kachel: der Kern der Uebersicht --- */
@@ -561,27 +584,26 @@ body {
 .eintrag {
   position: relative;
   background: var(--flaeche-hoch);
-  border: 1px solid var(--linie);
+  border: 2px solid var(--linie);
   border-radius: var(--rund-klein);
-  padding: 10px 12px 10px 15px;
+  padding: 10px 12px;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.12s, transform 0.08s;
+  box-shadow: var(--schatten);
 }
-.eintrag::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--saeule-ohne);
-}
-.eintrag[data-saeule="anleitung"]::before { background: var(--saeule-anleitung); }
-.eintrag[data-saeule="hardfacts"]::before { background: var(--saeule-hardfacts); }
-.eintrag[data-saeule="projekt"]::before { background: var(--saeule-projekt); }
-.eintrag[data-saeule="haltung"]::before { background: var(--saeule-haltung); }
-.eintrag[data-saeule="mythos"]::before { background: var(--saeule-mythos); }
+/* Owner 04.09.2026: der Farbstreifen links raus. War ohnehin totes CSS — die
+   data-saeule-Werte kannten nur die alte Taxonomie (anleitung/hardfacts/...), echte
+   Kategorien (bildung, spendenaufruf, ...) fielen immer auf --saeule-ohne zurueck
+   (bereits in v23 F3 dokumentiert, damals bewusst nicht entfernt). Padding rechts/links
+   jetzt symmetrisch, da kein Platz mehr fuer den Streifen noetig ist.
+
+   Schatten/Radius-Regel v23-2 UEBERSTIMMT (Owner 04.09.2026, Referenzbild-Fensterlook):
+   die Karte war als Element "in einem bereits umrandeten Container" von der v23-Regel
+   bewusst schattenlos. Jetzt umgekehrt: die Karte ist das "Fenster" aus der Vorlage,
+   traegt den harten Versatz-Schatten (var(--schatten), bereits in v28 auf 3-4px hart
+   umgestellt); die Spalte bleibt der Container OHNE Schatten (unveraendert) — sonst
+   verdoppelt sich die Tiefe. Owner-Entscheidung nach expliziter Rueckfrage, nicht geraten. */
 
 .eintrag:hover {
   border-color: var(--linie-hell);
@@ -600,12 +622,34 @@ body {
   line-height: 1.35;
   margin-bottom: 7px;
   padding-right: 16px;
+  /* Owner 04.09.2026: Karten sollen einheitlich hoch sein, bemessen auf zwei Titelzeilen —
+     reserviert den Platz immer, auch wenn der Titel kuerzer ist und nur eine Zeile braucht. */
+  min-height: calc(1.35em * 2);
 }
 .eintrag-marken {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 5px;
 }
+/* Format-Symbol (v29): ersetzt die Plattform-Text-Marken auf der Kachel — Farbe pro Format
+   fest zugeordnet (nicht rotierend wie die KPI-Kacheln), damit dasselbe Format immer
+   dieselbe Farbe traegt und auf den ersten Blick wiedererkennbar bleibt. */
+.format-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: #fff;
+  flex: 0 0 auto;
+}
+.format-symbol .icon { width: 13px; height: 13px; }
+.format-symbol.format-clip { background: var(--chrome-a); }
+.format-symbol.format-bild { background: var(--chrome-b); }
+.format-symbol.format-video { background: var(--chrome-c); }
+.format-symbol.format-story { background: var(--chrome-d); }
 /* Status als reiner Punkt: Farbe traegt nie allein — title/aria-label geben das Wort. */
 .eintrag-punkt {
   position: absolute;
@@ -1826,35 +1870,11 @@ body {
   font-weight: 600;
   color: var(--text-still);
 }
-.denk-kopf .icon {
-  width: 14px;
-  height: 14px;
-  color: var(--akzent);
-  flex: 0 0 auto;
-}
 .denk-titel {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.denk-punkte {
-  display: inline-flex;
-  gap: 3px;
-  flex: 0 0 auto;
-}
-.denk-punkte span {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--akzent);
-  animation: denk-blink 1s infinite;
-}
-.denk-punkte span:nth-child(2) { animation-delay: 0.2s; }
-.denk-punkte span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes denk-blink {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
 }
 .denk-text {
   margin: 0;
@@ -2538,7 +2558,6 @@ body {
 .upload-zone.ueber { border-color: var(--akzent); background: var(--akzent-tief); color: var(--text); }
 .upload-zone.laedt { opacity: 0.65; pointer-events: none; }
 .upload-zone-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.upload-zone-inner svg { width: 26px; height: 26px; opacity: 0.7; }
 .upload-zone-inner p { margin: 0; font-size: 13px; line-height: 1.45; }
 
 /* ============================================================
@@ -2613,4 +2632,151 @@ body {
   flex: 1 1 auto;
   max-width: 760px;
   border-left: 0;
+}
+
+/* ============================================================
+   Retro-Y2K-Fensterlook (v28, Owner-Vorlage 04.09.2026) — rein
+   visuelle Ebene ueber der bestehenden Struktur, kein HTML/JS
+   geaendert. Runde 3: naeher an der Vorlage nachgezogen — echte
+   volle Titelleisten (nicht nur ein Balken), runde Chrome-Punkte,
+   kraeftigere Kanten/Schatten, gestreifte Fortschrittsleiste.
+   ============================================================ */
+
+.spalte, .kpi, .modal, .kanal, .rang, .bester, .vergleich-karte,
+.letzte-zeile, .zahl {
+  border-width: 3px;
+}
+.kalender-raster, .eingabe, .knopf {
+  border-width: 2px;
+}
+
+/* Kopfzeile als Fenster-Chrome: drei runde Punkte vor dem Titel, dicke Kante unten */
+.kopf {
+  position: relative;
+  border-bottom-width: 3px;
+  padding-left: 58px;
+}
+.kopf::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chrome-a);
+  transform: translateY(-50%);
+  box-shadow: 14px 0 0 var(--chrome-b), 28px 0 0 var(--chrome-c);
+}
+
+/* Board-Spalten als eigene Fenster: farbige Titelleiste + runde Chrome-Punkte, rotierend */
+.spalte-kopf {
+  position: relative;
+  border-bottom-width: 3px;
+  border-radius: calc(var(--rund) - 3px) calc(var(--rund) - 3px) 0 0;
+}
+.spalte:nth-of-type(4n+1) .spalte-kopf { background: var(--chrome-a); }
+.spalte:nth-of-type(4n+2) .spalte-kopf { background: var(--chrome-b); }
+.spalte:nth-of-type(4n+3) .spalte-kopf { background: var(--chrome-c); }
+.spalte:nth-of-type(4n) .spalte-kopf { background: var(--chrome-d); }
+.spalte-kopf .spalte-name { color: #fff; }
+/* Owner 04.09.2026: Spaltenkoepfe brauchen die Erklaersaetze nicht — reine Zusatzinfo,
+   die je nach Textlaenge unterschiedlich hohe Koepfe erzeugt hat. Ausgeblendet statt aus
+   board.js entfernt, damit die Aenderung rein visuell bleibt. */
+.spalte-kopf .spalte-satz { display: none; }
+.spalte-kopf .spalte-anzahl {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border: none;
+}
+
+/* Modal-Dialoge: ECHTE volle Titelleiste (wie Error/Login/Information der Vorlage),
+   .modal-frage blutet ueber das Modal-Padding hinweg bis an den Rand. */
+.modal {
+  padding: 0 0 16px;
+  overflow: hidden;
+}
+.modal-frage {
+  margin: 0;
+  padding: 12px 44px 12px 16px;
+  background: var(--chrome-a);
+  color: #fff;
+  position: relative;
+}
+.modal-dreh .modal-frage { background: var(--chrome-c); }
+.modal-kalender .modal-frage { background: var(--chrome-b); }
+.modal-frage::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-50%);
+}
+.modal > *:not(.modal-frage) {
+  margin-left: 18px;
+  margin-right: 18px;
+}
+
+/* KPI-Icon-Kacheln: retro eingefaerbt statt neutralem Grau (Lucide-Glyphe bleibt) */
+.kpi:nth-of-type(4n+1) .kpi-icon { background: var(--chrome-a); color: #fff; border-color: var(--linie); }
+.kpi:nth-of-type(4n+2) .kpi-icon { background: var(--chrome-b); color: #fff; border-color: var(--linie); }
+.kpi:nth-of-type(4n+3) .kpi-icon { background: var(--chrome-c); color: #fff; border-color: var(--linie); }
+.kpi:nth-of-type(4n) .kpi-icon { background: var(--chrome-d); color: #fff; border-color: var(--linie); }
+
+/* Fortschrittsleiste: gestreiftes Muster wie der "Downloading..."-Balken der Vorlage */
+.fortschritt-balken {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--akzent) 0 6px,
+    var(--chrome-b) 6px 12px
+  );
+}
+
+/* Symbol-Kacheln (v29, Owner 05.09.2026): dieselbe farbige Icon-Kachel wie bei KPI/Format
+   jetzt auch an den vier genannten Stellen — Einstellungen-Zahnrad, Redaktionsplan- und
+   Drehtermine-Kalender, KI-Funken, Karte-anlegen-Plus. Bewusst NICHT als blanke .knopf .icon-
+   Regel (traefe auch Abbrechen/Enter/Pfeile in Modalen und andere unbeteiligte Knoepfe) —
+   nur die vier Stellen tragen die neue Klasse `knopf-symbol` (+ Farbvariante). */
+.knopf-symbol .icon {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: 6px;
+  color: #fff;
+  flex: 0 0 auto;
+}
+#kopf-menu-knopf.knopf-symbol .icon { background: var(--chrome-c); }
+.knopf-symbol-plus .icon { background: var(--chrome-a); }
+.knopf-symbol-funken .icon { background: var(--chrome-d); }
+.knopf-symbol-kalender .icon { background: var(--chrome-b); }
+.knopf-symbol-ordner .icon { background: var(--chrome-b); }
+
+/* Sanduhr im Denk-Panel (v29, Owner 05.09.2026): dreht sich durchgehend, solange die KI
+   arbeitet — ersetzt die vorherigen drei blinkenden Punkte (dieselbe Aussage, aber im
+   Grafikstil der Vorlage statt als Punkte-Animation). */
+.denk-symbol.knopf-symbol-sanduhr .icon {
+  background: var(--chrome-a);
+  animation: sanduhr-dreht 1.8s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes sanduhr-dreht {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .denk-symbol.knopf-symbol-sanduhr .icon { animation: none; }
+}
+
+/* Upload-Zone (v29): Ordner-Symbol als grosse Kachel statt kleinem Pfeil-Icon — dieselbe
+   Grafiksprache wie die Ordner-Knoepfe (.knopf-symbol-ordner liefert Farbe/Form bereits),
+   hier nur auf die groessere Drop-Flaeche skaliert. */
+.upload-zone-inner.knopf-symbol .icon,
+.upload-zone-inner .knopf-symbol-ordner .icon {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border-radius: 9px;
 }

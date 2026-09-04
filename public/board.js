@@ -10,15 +10,15 @@ import {
   faelligkeit,
   tore,
   sperren,
-  saeuleName,
-  plattformName,
+  contenttypFormat,
+  contenttypName,
   wochenlast,
   saeulenVerteilung,
   INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an, feuere } from "./store.js";
-import { statusChip, escape, knopf, leer } from "./ui.js";
+import { statusChip, escape, knopf, leer, icon } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
@@ -44,10 +44,12 @@ export function kachel(k) {
   el.draggable = true;
   el.dataset.saeule = k.kategorie || "";
 
-  const marken = [];
-  if (k.kategorie) marken.push(`<span class="marke">${escape(saeuleName(k.kategorie))}</span>`);
-  for (const p of k.platforms || [])
-    marken.push(`<span class="marke marke-${p}">${escape(plattformName(p))}</span>`);
+  // Format statt Plattform auf der Kachel (v29, Owner-Vorgabe 04.09.2026): auf den ersten
+  // Blick zaehlt, ob es ein Reel/Bild/Story/Longform ist — nicht, auf welcher Plattform es
+  // laeuft (das steht weiterhin in der Detailspalte). Ein Symbol statt Plattform-Text-Marken.
+  const FORMAT_SYMBOL = { Reel: "clip", Carousel: "bild", Bildpost: "bild", Story: "story", Video: "video" };
+  const formatName = contenttypFormat(k.contenttyp);
+  const formatSymbol = FORMAT_SYMBOL[formatName] || "video";
 
   const f = faelligkeit(k);
   const offen = offenePunkte(k);
@@ -62,9 +64,11 @@ export function kachel(k) {
       : `${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`
     : f.satz;
 
+  const formatText = contenttypName(k.contenttyp || "reel");
+
   el.innerHTML =
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
-    (marken.length ? `<div class="eintrag-marken">${marken.join("")}</div>` : "") +
+    `<span class="format-symbol format-${formatSymbol}" title="${escape(formatText)}" aria-label="${escape(formatText)}">${icon(formatSymbol)}</span>` +
     `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
 
   el.addEventListener("click", () => oeffne(k.id));
@@ -182,7 +186,7 @@ export function zeichneBoard(boardEl, lastEl) {
         oeffne(k.id);
       },
     });
-    neuKnopf.classList.add("knopf-breit");
+    neuKnopf.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-plus");
     fuss.appendChild(neuKnopf);
 
     // Nachschub gehoert an den Anfang der Kette, nicht in den Kopf: wer Ideen braucht,
@@ -203,7 +207,7 @@ export function zeichneBoard(boardEl, lastEl) {
           }
         },
       });
-      ideenKnopf.classList.add("knopf-breit");
+      ideenKnopf.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-funken");
       ideenKnopf.style.marginTop = "7px";
       fuss.appendChild(ideenKnopf);
     }
@@ -266,6 +270,7 @@ function zeichneWochenlast(el) {
     titel: "Kadenz, Content-Mix, Kategorien und Upload-Slots konfigurieren.",
     klick: () => zeigeRedaktionsplan(document.getElementById("nachschub")),
   });
+  planKnopf.classList.add("knopf-symbol", "knopf-symbol-kalender");
   el.appendChild(planKnopf);
 }
 

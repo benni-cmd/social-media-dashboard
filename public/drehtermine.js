@@ -53,7 +53,7 @@ export function zeichneDrehleiste() {
   el.innerHTML = "";
 
   const label = document.createElement("span");
-  label.className = "drehleiste-label";
+  label.className = "drehleiste-label knopf-symbol knopf-symbol-kalender";
   label.innerHTML = icon("kalender") + "<span>Drehtermine</span>";
   el.appendChild(label);
 
