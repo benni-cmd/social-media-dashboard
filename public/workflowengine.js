@@ -11,9 +11,12 @@
 // Sie laeuft im BROWSER. Ein selbstgebauter Workflow wirkt also, waehrend das Board offen ist —
 // das steht so auch im Einstellungs-Tab, statt es zu verschweigen.
 //
-// Gefeuert wird heute an zwei Fundstellen:
-//   public/store.js — neueKarte  -> "karte-angelegt"
-//   public/board.js — schiebe    -> "karte-spalte-gewechselt"
+// Gefeuert wird heute an fuenf Fundstellen:
+//   public/store.js  — neueKarte             -> "karte-angelegt"
+//   public/board.js  — schiebe               -> "karte-spalte-gewechselt"
+//   public/detail.js — Skript speichern      -> "skript-gespeichert"
+//   public/detail.js — videoUploadZone       -> "video-hochgeladen"
+//   public/detail.js — Drehtermin zuordnen   -> "drehtermin-zugeordnet"
 // Jeder weitere Ausloeser im Katalog traegt `nurEingebaut: true`, solange ihn niemand feuert.
 
 import { pruefe } from "/lib/workflowblocks.js";

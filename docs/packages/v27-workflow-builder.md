@@ -73,14 +73,21 @@ das Board offen ist — nicht als Hintergrunddienst. Der Tab sagt das in einem S
 verschweigen.
 
 **D5 — Nur verdrahtete Ausloeser werden angeboten.**
-Gefeuert wird an zwei Fundstellen: `public/store.js — neueKarte` („karte-angelegt") und
-`public/board.js — schiebe` („karte-spalte-gewechselt"). Drei weitere Ereignisse — Skript
-gespeichert, Video hochgeladen, Drehtermin zugeordnet — waeren technisch genauso moeglich, ihre
-Fundstellen liegen aber alle in `public/detail.js`, an dem waehrend dieses Pakets eine PARALLELE
-SITZUNG arbeitete (Stand 04.09.2026: `git status` zeigte `public/detail.js`, `public/app.js`,
-`public/index.html`, `public/style.css` als fremd geaendert). Diese Datei wurde deshalb bewusst
-nicht angefasst. Solange nichts sie feuert, tragen die drei im Katalog `nurEingebaut: true` und
-erscheinen im Builder NICHT — ein Ausloeser, der nie ausloest, waere eine Luege im UI.
+Solange nichts einen Ausloeser feuert, traegt er im Katalog `nurEingebaut: true` und erscheint im
+Builder NICHT — ein Ausloeser, der nie ausloest, waere eine Luege im UI.
+
+Gefeuert wird an fuenf Fundstellen: `public/store.js — neueKarte` („karte-angelegt"),
+`public/board.js — schiebe` („karte-spalte-gewechselt"), `public/detail.js — Skript speichern`
+(„skript-gespeichert"), `public/detail.js — videoUploadZone` („video-hochgeladen") und
+`public/detail.js — Drehtermin zuordnen` („drehtermin-zugeordnet").
+
+**Nachtrag 04.09.2026 — die drei Fundstellen in `detail.js`.** Beim Bau des Pakets lagen sie
+brach: an `public/detail.js` arbeitete eine PARALLELE SITZUNG (`git status` zeigte `detail.js`,
+`app.js`, `index.html`, `style.css` als fremd geaendert), die Datei wurde deshalb bewusst nicht
+angefasst und die drei Ereignisse blieben `nurEingebaut`. Dieselbe Sitzung hat `detail.js`
+danach freigegeben und die Freigabe belegt (`git status -s -- public/detail.js` leer, hier
+gegengeprueft: `git diff HEAD -- public/detail.js` ebenfalls leer). Die drei `feuere()`-Aufrufe
+stehen jetzt drin; im Katalog sind sie `ausfuehrbar: true` mit Fundstelle.
 
 **D6 — Eigene Stilseite statt Anbau an `style.css`.**
 Aus demselben Grund: `public/workflowbuilder.css` wird vom Tab beim ersten Oeffnen nachgeladen
@@ -126,7 +133,7 @@ Bausteine an — man kann also gar keinen Workflow bauen, der nur behauptet zu l
 
 | Art | ausfuehrbar (Builder bietet sie an) | nur beschrieben |
 |---|---|---|
-| Ausloeser | `karte-angelegt`, `karte-spalte-gewechselt` | `skript-gespeichert`, `video-hochgeladen`, `drehtermin-zugeordnet`, `upload-datum-gesetzt`, `kein-drehtermin-im-fenster`, `drehtermin-geaendert`, `hook-visuell-gewaehlt`, `server-leerlauf` |
+| Ausloeser | `karte-angelegt`, `karte-spalte-gewechselt`, `skript-gespeichert`, `video-hochgeladen`, `drehtermin-zugeordnet` | `upload-datum-gesetzt`, `kein-drehtermin-im-fenster`, `drehtermin-geaendert`, `hook-visuell-gewaehlt`, `server-leerlauf` |
 | Bedingungen | `karte-in-spalte`, `spaltenwechsel`, `feld-vergleich` (7 Vergleiche), `plattform-gewaehlt` | `qualitaetstore-frei`, `karte-vor-videodreh`, `kein-drive-ordner` |
 | Aktionen | `karte-verschieben`, `feld-setzen` (21 Karten-Felder, `column`/`driveName` nur lesbar), `meldung-zeigen`, `drive-ordner-anlegen` | `karte-naechste-phase`, `termine-rueckwaerts-rechnen`, `gcal-spiegeln`, `drive-ordner-mitziehen`, `drehtermin-automatisch-setzen`, `server-beenden` |
 
@@ -164,9 +171,11 @@ Befehle: `node --check`, `curl -sk https://localhost:4399/api/workflows`, `diff`
 Screenshots: Tab leer · eigener Workflow in der Kette · Editor · eingebaute Neun · Dark Mode
 
 Offen:
-- Die drei Ausloeser mit Fundstelle in `public/detail.js` (Skript gespeichert, Video
-  hochgeladen, Drehtermin zugeordnet) sind im Katalog beschrieben, aber nicht verdrahtet —
-  nachziehen, sobald die Datei nicht mehr parallel bearbeitet wird (siehe D5).
+- ~~Die drei Ausloeser mit Fundstelle in `public/detail.js`~~ — **erledigt 04.09.2026**, siehe
+  Nachtrag unter D5. Beleg: `feuere()` an `public/detail.js:507,1116,1240`; im Browser gegen
+  einen Probe-Workflow gefeuert (Ausloeser `skript-gespeichert`, Aktion „Meldung zeigen") —
+  die Meldung erschien, der Probe-Workflow wurde danach wieder geloescht
+  (`data/own-workflows.json` = `[]`).
 - Server-seitige Ausloeser (z. B. „taeglich um X Uhr"): die Engine laeuft im Browser, ein
   eigener Workflow braucht also ein offenes Board. Der Tab sagt das; ein Hintergrunddienst
   ist Stoff fuer ein eigenes Paket.
