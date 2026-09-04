@@ -17,7 +17,7 @@ import {
   INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
+import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an, feuere } from "./store.js";
 import { statusChip, escape, knopf, leer } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -219,6 +219,9 @@ export async function schiebe(k, ziel) {
   k.column = ziel;
   zeichne();
   await speichere();
+  // Ausloeser "karte-spalte-gewechselt" fuer die selbstgebauten Workflows (v27). Bewusst hier,
+  // VOR dem Drive-Nachzug: der eigene Workflow haengt an der Karte, nicht an Google.
+  feuere("karte-spalte-gewechselt", { karte: k, von: alt, nach: ziel });
   if (!k.title) return;
   // Workflow "drive-ordner-mitziehen" (v26): aus laeuft das Board bewusst ohne Drive-Nachzug.
   if (!an("drive-ordner-mitziehen")) return;

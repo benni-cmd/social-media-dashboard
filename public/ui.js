@@ -901,7 +901,8 @@ export function einstellungenModal(onThemeChange) {
   const hint6 = document.createElement("p");
   hint6.className = "einst-provider-sub";
   hint6.textContent =
-    "Alles, was das Board von selbst tut. Ein ausgeschalteter Workflow laeuft wirklich nicht mehr.";
+    "Alles, was das Board von selbst tut — eingebaut oder selbst gebaut, in einer Form: " +
+    "Wenn · Und · Dann. Jede Kachel sagt, ob sie wirklich laeuft oder fest im Code haengt.";
   seite6.appendChild(hint6);
   const wfListe = document.createElement("div");
   wfListe.className = "einst-wf-liste";
@@ -1096,70 +1097,151 @@ async function zeichnePrompts(ziel) {
   }
 }
 
-// --- Tab „Workflows" (v26) ------------------------------------------------
+// --- Tab „Workflows": der Builder (v27) -----------------------------------
+//
+// EINE Form fuer alles. Ob eingebaut oder selbst gebaut — jeder Workflow erscheint als dieselbe
+// Kette: Wenn (ein Ausloeser) · Und (beliebig viele Bedingungen) · Dann (beliebig viele Aktionen).
+//
+// Der Unterschied steht an jeder Kachel, nicht im Kleingedruckten:
+//   „laeuft"          -> public/workflowengine.js fuehrt diesen Baustein wirklich aus
+//   „fest verdrahtet" -> der Baustein steht im Code (Fundstelle im Fuss), hier nur beschrieben
+// Der Builder bietet deshalb ausschliesslich ausfuehrbare Bausteine an: einen Workflow, der bloss
+// behauptet zu laufen, kann man hier gar nicht erst bauen.
 
-function workflowBlock(w, nachAenderung) {
+// Der Builder bringt seine eigene Stilseite mit, statt style.css anzufassen — so bleibt diese
+// Ergaenzung unabhaengig von paralleler Arbeit an der grossen Stilseite.
+function stilLaden() {
+  if (document.getElementById("wfb-stil")) return;
+  const l = document.createElement("link");
+  l.id = "wfb-stil";
+  l.rel = "stylesheet";
+  l.href = "/workflowbuilder.css";
+  document.head.appendChild(l);
+}
+
+const wahlOptionen = (f) => (typeof f.wahl === "function" ? f.wahl() : f.wahl || []);
+
+// Eine Baustein-Kachel: der Satz plus die Marke, ob sie laeuft oder nur beschrieben ist.
+function bausteinKachel(art, baustein) {
+  const def = WFB.bausteinDef(art, baustein && baustein.typ);
+  const el = document.createElement("span");
+  el.className = "wfb-kachel" + (def && def.ausfuehrbar ? "" : " wfb-kachel-fest");
+  const text = document.createElement("span");
+  text.className = "wfb-kachel-text";
+  text.textContent = WFB.beschreibe(art, baustein);
+  el.appendChild(text);
+  const marke = document.createElement("span");
+  marke.className = "wfb-marke " + (def && def.ausfuehrbar ? "wfb-marke-laeuft" : "wfb-marke-fest");
+  marke.textContent = def && def.ausfuehrbar ? "laeuft" : "fest verdrahtet";
+  el.appendChild(marke);
+  if (def && def.satz) el.title = def.satz;
+  return el;
+}
+
+// Die Kette Wenn/Und/Dann — dieselbe Zeichnung fuer eingebaute und eigene Workflows.
+function ketteAnsicht(wf) {
+  const kette = document.createElement("div");
+  kette.className = "wfb-kette";
+
+  const stufe = (label, kacheln, leerText) => {
+    const z = document.createElement("div");
+    z.className = "wfb-stufe";
+    const l = document.createElement("span");
+    l.className = "wfb-stufe-label";
+    l.textContent = label;
+    z.appendChild(l);
+    const inhalt = document.createElement("div");
+    inhalt.className = "wfb-stufe-inhalt";
+    if (!kacheln.length) {
+      const leer = document.createElement("span");
+      leer.className = "wfb-leer";
+      leer.textContent = leerText;
+      inhalt.appendChild(leer);
+    } else for (const k of kacheln) inhalt.appendChild(k);
+    z.appendChild(inhalt);
+    kette.appendChild(z);
+  };
+
+  stufe("Wenn", wf.ausloeser ? [bausteinKachel("ausloeser", wf.ausloeser)] : [], "kein Ausloeser gesetzt");
+  stufe("Und", (wf.bedingungen || []).map((b) => bausteinKachel("bedingung", b)), "ohne Bedingung — laeuft immer");
+  stufe("Dann", (wf.aktionen || []).map((a) => bausteinKachel("aktion", a)), "keine Aktion — der Workflow tut nichts");
+  return kette;
+}
+
+// --- Die eingebauten Neun in derselben Form -------------------------------
+//
+// Bausteine nur lesen (sie stehen im Code), Schalter und Parameter wie bisher bedienbar. Am
+// Verhalten der Neun aendert dieser Tab damit nichts — er zeigt es nur zum ersten Mal ganz.
+
+function eingebauteKarte(w, nachAenderung) {
+  const plan = WFB.alsBauplan(w);
   const box = document.createElement("div");
-  box.className = "einst-abschnitt einst-wf";
+  box.className = "wfb-karte wfb-karte-eingebaut";
 
-  const kopf = document.createElement("label");
-  kopf.className = "einst-wf-kopf";
+  const kopf = document.createElement("div");
+  kopf.className = "wfb-kopf";
+  const schalterLabel = document.createElement("label");
+  schalterLabel.className = "wfb-schalter";
   const schalter = document.createElement("input");
   schalter.type = "checkbox";
   schalter.checked = !!w.an;
+  schalterLabel.appendChild(schalter);
   const name = document.createElement("span");
-  name.className = "einst-label";
+  name.className = "wfb-name";
   name.textContent = w.name;
-  kopf.appendChild(schalter);
-  kopf.appendChild(name);
+  schalterLabel.appendChild(name);
+  kopf.appendChild(schalterLabel);
+  const herkunft = document.createElement("span");
+  herkunft.className = "wfb-herkunft";
+  herkunft.textContent = "eingebaut";
+  kopf.appendChild(herkunft);
+  const status = document.createElement("span");
+  status.className = "wfb-status";
+  status.textContent = w.an ? "laeuft" : "aus";
+  kopf.appendChild(status);
   box.appendChild(kopf);
 
+  box.appendChild(ketteAnsicht(plan));
+
   const saetze = document.createElement("p");
-  saetze.className = "einst-provider-sub";
-  saetze.innerHTML =
-    `<b>Wenn:</b> ${escape(w.ausloeser)}<br><b>Dann:</b> ${escape(w.wirkung)}`;
+  saetze.className = "wfb-satz";
+  saetze.innerHTML = `<b>Wenn:</b> ${escape(w.ausloeser)}<br><b>Dann:</b> ${escape(w.wirkung)}`;
   box.appendChild(saetze);
 
   if (w.warnung) {
     const warn = document.createElement("p");
-    warn.className = "einst-wf-warnung";
+    warn.className = "wfb-warnung";
     warn.textContent = w.warnung;
     box.appendChild(warn);
   }
 
-  const status = document.createElement("div");
-  status.className = "einst-ping-status";
-  status.textContent = w.an ? "laeuft" : "aus";
-
   for (const p of w.params || []) {
     const zeile = document.createElement("div");
-    zeile.className = "einst-wf-param";
+    zeile.className = "wfb-param";
     const lbl = document.createElement("span");
     lbl.textContent = p.label + (p.einheit ? ` (${p.einheit})` : "");
     zeile.appendChild(lbl);
-    let eingabe;
+    const eingabeEl = document.createElement("input");
     if (p.typ === "schalter") {
-      eingabe = document.createElement("input");
-      eingabe.type = "checkbox";
-      eingabe.checked = !!p.wert;
+      eingabeEl.type = "checkbox";
+      eingabeEl.checked = !!p.wert;
     } else {
-      eingabe = document.createElement("input");
-      eingabe.type = "number";
-      eingabe.value = p.wert;
-      if (p.min !== undefined) eingabe.min = p.min;
-      if (p.max !== undefined) eingabe.max = p.max;
+      eingabeEl.type = "number";
+      eingabeEl.value = p.wert;
+      if (p.min !== undefined) eingabeEl.min = p.min;
+      if (p.max !== undefined) eingabeEl.max = p.max;
     }
-    eingabe.className = "einst-wf-eingabe";
-    eingabe.addEventListener("change", async () => {
-      const wert = p.typ === "schalter" ? eingabe.checked : Number(eingabe.value);
+    eingabeEl.className = "wfb-eingabe";
+    eingabeEl.addEventListener("change", async () => {
+      const wert = p.typ === "schalter" ? eingabeEl.checked : Number(eingabeEl.value);
       status.textContent = "Speichere …";
       const ok = await nachAenderung(w.id, { params: { [p.key]: wert } });
-      status.textContent = ok ? "✅ gespeichert" : "❌ nicht gespeichert";
+      status.textContent = ok ? "gespeichert" : "nicht gespeichert";
     });
-    zeile.appendChild(eingabe);
+    zeile.appendChild(eingabeEl);
     if (p.hinweis) {
       const h = document.createElement("span");
-      h.className = "einst-wf-hinweis";
+      h.className = "wfb-hinweis";
       h.textContent = p.hinweis;
       zeile.appendChild(h);
     }
@@ -1167,44 +1249,410 @@ function workflowBlock(w, nachAenderung) {
   }
 
   const fuss = document.createElement("div");
-  fuss.className = "einst-wf-fuss";
+  fuss.className = "wfb-fuss";
   fuss.innerHTML = `<code>${escape(w.ort)}</code>`;
-  fuss.appendChild(status);
   box.appendChild(fuss);
 
   schalter.addEventListener("change", async () => {
     status.textContent = "Speichere …";
     const ok = await nachAenderung(w.id, { an: schalter.checked });
-    status.textContent = ok ? (schalter.checked ? "✅ laeuft" : "✅ aus") : "❌ nicht gespeichert";
+    status.textContent = ok ? (schalter.checked ? "laeuft" : "aus") : "nicht gespeichert";
     if (!ok) schalter.checked = !schalter.checked;
   });
 
   return box;
 }
 
+// --- Der Editor fuer selbstgebaute Workflows ------------------------------
+
+// Ein Eingabefeld nach Baustein-Definition. `wahl` wird zum Auswahlfeld, alles andere zum Textfeld.
+function bausteinFeld(fDef, baustein, beiAenderung) {
+  const wrap = document.createElement("label");
+  wrap.className = "wfb-feld";
+  const lbl = document.createElement("span");
+  lbl.className = "wfb-feld-label";
+  lbl.textContent = fDef.label;
+  wrap.appendChild(lbl);
+
+  let el;
+  if (fDef.typ === "wahl") {
+    el = document.createElement("select");
+    el.className = "wfb-eingabe wfb-eingabe-wahl";
+    if (fDef.leerText !== undefined) {
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = fDef.leerText;
+      el.appendChild(o);
+    }
+    for (const opt of wahlOptionen(fDef)) {
+      const o = document.createElement("option");
+      o.value = opt.wert;
+      o.textContent = opt.name;
+      el.appendChild(o);
+    }
+    el.value = baustein[fDef.key] ?? fDef.standard ?? "";
+  } else {
+    el = document.createElement("input");
+    el.type = "text";
+    el.className = "wfb-eingabe wfb-eingabe-text";
+    el.value = baustein[fDef.key] ?? fDef.standard ?? "";
+  }
+  el.addEventListener("change", () => {
+    baustein[fDef.key] = el.value;
+    beiAenderung();
+  });
+  el.addEventListener("input", () => {
+    baustein[fDef.key] = el.value;
+  });
+  wrap.appendChild(el);
+  return wrap;
+}
+
+// Eine Zeile im Editor: Baustein-Typ waehlen, seine Felder ausfuellen, Zeile entfernen.
+function bausteinZeile(art, katalog, baustein, { entfernbar, beiAenderung }) {
+  const zeile = document.createElement("div");
+  zeile.className = "wfb-zeile";
+  // Zwei Ebenen: oben die Bedienelemente in EINER Reihe, darunter der Erklaersatz. Sonst
+  // schiebt der Satz den Entfernen-Knopf in eine eigene Zeile.
+  const oben = document.createElement("div");
+  oben.className = "wfb-zeile-oben";
+  zeile.appendChild(oben);
+  const satzEl = document.createElement("p");
+  satzEl.className = "wfb-zeile-satz";
+  zeile.appendChild(satzEl);
+
+  const wahl = document.createElement("select");
+  wahl.className = "wfb-eingabe wfb-eingabe-typ";
+  for (const def of katalog) {
+    const o = document.createElement("option");
+    o.value = def.typ;
+    o.textContent = def.name;
+    wahl.appendChild(o);
+  }
+  wahl.value = baustein.typ;
+  oben.appendChild(wahl);
+
+  const felderBox = document.createElement("div");
+  felderBox.className = "wfb-zeile-felder";
+  oben.appendChild(felderBox);
+
+  const zeichneFelder = () => {
+    felderBox.innerHTML = "";
+    const def = katalog.find((d) => d.typ === baustein.typ);
+    satzEl.textContent = (def && def.satz) || "";
+    if (!def) return;
+    for (const f of def.felder || []) {
+      if (baustein[f.key] === undefined) baustein[f.key] = f.standard ?? "";
+      felderBox.appendChild(bausteinFeld(f, baustein, beiAenderung));
+    }
+  };
+  zeichneFelder();
+
+  wahl.addEventListener("change", () => {
+    const def = katalog.find((d) => d.typ === wahl.value);
+    for (const k of Object.keys(baustein)) delete baustein[k];
+    baustein.typ = wahl.value;
+    for (const f of (def && def.felder) || []) baustein[f.key] = f.standard ?? "";
+    zeichneFelder();
+    beiAenderung();
+  });
+
+  if (entfernbar) {
+    const weg = document.createElement("button");
+    weg.className = "wfb-weg";
+    weg.type = "button";
+    weg.setAttribute("aria-label", "Zeile entfernen");
+    weg.innerHTML = icon("schliessen");
+    weg.addEventListener("click", () => entfernbar());
+    oben.appendChild(weg);
+  }
+
+  return zeile;
+}
+
+// Der Editor selbst. `wf` ist ein Arbeitsstand, der beim Speichern zum Server geht.
+function eigenerEditor(wf, { speichern, loeschen, abbrechen }) {
+  const box = document.createElement("div");
+  box.className = "wfb-karte wfb-karte-editor";
+
+  const kopf = document.createElement("div");
+  kopf.className = "wfb-kopf";
+  const nameFeld = document.createElement("input");
+  nameFeld.type = "text";
+  nameFeld.className = "wfb-eingabe wfb-name-feld";
+  nameFeld.placeholder = "Name des Workflows";
+  nameFeld.value = wf.name || "";
+  nameFeld.addEventListener("input", () => {
+    wf.name = nameFeld.value;
+    pruefeNach();
+  });
+  kopf.appendChild(nameFeld);
+  const schalterLabel = document.createElement("label");
+  schalterLabel.className = "wfb-schalter";
+  const schalter = document.createElement("input");
+  schalter.type = "checkbox";
+  schalter.checked = wf.an !== false;
+  schalter.addEventListener("change", () => {
+    wf.an = schalter.checked;
+  });
+  schalterLabel.appendChild(schalter);
+  const sTxt = document.createElement("span");
+  sTxt.textContent = "eingeschaltet";
+  schalterLabel.appendChild(sTxt);
+  kopf.appendChild(schalterLabel);
+  box.appendChild(kopf);
+
+  const koerper = document.createElement("div");
+  koerper.className = "wfb-editor-koerper";
+  box.appendChild(koerper);
+
+  const befund = document.createElement("div");
+  befund.className = "wfb-befund";
+
+  const zeichneKoerper = () => {
+    koerper.innerHTML = "";
+
+    // Wenn — genau ein Ausloeser.
+    const wennBlock = document.createElement("div");
+    wennBlock.className = "wfb-block";
+    const wennTitel = document.createElement("div");
+    wennTitel.className = "wfb-block-titel";
+    wennTitel.textContent = "Wenn";
+    wennBlock.appendChild(wennTitel);
+    if (!wf.ausloeser) wf.ausloeser = { typ: WFB.baubar(WFB.AUSLOESER)[0].typ };
+    wennBlock.appendChild(
+      bausteinZeile("ausloeser", WFB.baubar(WFB.AUSLOESER), wf.ausloeser, { beiAenderung: pruefeNach })
+    );
+    koerper.appendChild(wennBlock);
+
+    // Und — beliebig viele Bedingungen.
+    const undBlock = document.createElement("div");
+    undBlock.className = "wfb-block";
+    const undTitel = document.createElement("div");
+    undTitel.className = "wfb-block-titel";
+    undTitel.textContent = "Und (Bedingungen)";
+    undBlock.appendChild(undTitel);
+    if (!wf.bedingungen.length) {
+      const leer = document.createElement("p");
+      leer.className = "wfb-leer";
+      leer.textContent = "Ohne Bedingung laeuft der Workflow bei jedem Ausloeser.";
+      undBlock.appendChild(leer);
+    }
+    wf.bedingungen.forEach((b, i) => {
+      undBlock.appendChild(
+        bausteinZeile("bedingung", WFB.baubar(WFB.BEDINGUNGEN), b, {
+          beiAenderung: pruefeNach,
+          entfernbar: () => {
+            wf.bedingungen.splice(i, 1);
+            zeichneKoerper();
+            pruefeNach();
+          },
+        })
+      );
+    });
+    undBlock.appendChild(
+      knopf("Bedingung hinzufuegen", {
+        zeichen: "plus",
+        klick: () => {
+          const def = WFB.baubar(WFB.BEDINGUNGEN)[0];
+          const neu = { typ: def.typ };
+          for (const f of def.felder || []) neu[f.key] = f.standard ?? "";
+          wf.bedingungen.push(neu);
+          zeichneKoerper();
+          pruefeNach();
+        },
+      })
+    );
+    koerper.appendChild(undBlock);
+
+    // Dann — beliebig viele Aktionen.
+    const dannBlock = document.createElement("div");
+    dannBlock.className = "wfb-block";
+    const dannTitel = document.createElement("div");
+    dannTitel.className = "wfb-block-titel";
+    dannTitel.textContent = "Dann (Aktionen)";
+    dannBlock.appendChild(dannTitel);
+    wf.aktionen.forEach((a, i) => {
+      dannBlock.appendChild(
+        bausteinZeile("aktion", WFB.baubar(WFB.AKTIONEN), a, {
+          beiAenderung: pruefeNach,
+          entfernbar: () => {
+            wf.aktionen.splice(i, 1);
+            zeichneKoerper();
+            pruefeNach();
+          },
+        })
+      );
+    });
+    dannBlock.appendChild(
+      knopf("Aktion hinzufuegen", {
+        zeichen: "plus",
+        klick: () => {
+          const def = WFB.baubar(WFB.AKTIONEN)[0];
+          const neu = { typ: def.typ };
+          for (const f of def.felder || []) neu[f.key] = f.standard ?? "";
+          wf.aktionen.push(neu);
+          zeichneKoerper();
+          pruefeNach();
+        },
+      })
+    );
+    koerper.appendChild(dannBlock);
+  };
+
+  function pruefeNach() {
+    const fehlt = WFB.pruefe(wf);
+    befund.innerHTML = "";
+    if (!fehlt.length) {
+      befund.appendChild(
+        (() => {
+          const s = document.createElement("span");
+          s.className = "wfb-befund-ok";
+          s.textContent = "Vollstaendig — dieser Workflow laeuft, sobald er gespeichert ist.";
+          return s;
+        })()
+      );
+      return;
+    }
+    for (const f of fehlt) befund.appendChild(befundZeile("hinweis", f));
+  }
+
+  zeichneKoerper();
+  pruefeNach();
+  box.appendChild(befund);
+
+  const fuss = document.createElement("div");
+  fuss.className = "wfb-editor-fuss";
+  fuss.appendChild(knopf("Speichern", { art: "haupt", zeichen: "check", klick: () => speichern(wf) }));
+  fuss.appendChild(knopf("Abbrechen", { klick: () => abbrechen() }));
+  if (loeschen)
+    fuss.appendChild(
+      knopf("Loeschen", {
+        art: "gefahr",
+        zeichen: "muell",
+        klick: () => bestaetigen(`„${wf.name}“ wirklich loeschen?`, "Loeschen", () => loeschen(wf)),
+      })
+    );
+  box.appendChild(fuss);
+
+  return box;
+}
+
+// Ein fertiger eigener Workflow in der Leseansicht — dieselbe Kette wie bei den Eingebauten.
+function eigeneKarte(wf, { bearbeiten, schalten }) {
+  const box = document.createElement("div");
+  box.className = "wfb-karte";
+
+  const kopf = document.createElement("div");
+  kopf.className = "wfb-kopf";
+  const schalterLabel = document.createElement("label");
+  schalterLabel.className = "wfb-schalter";
+  const schalter = document.createElement("input");
+  schalter.type = "checkbox";
+  schalter.checked = wf.an !== false;
+  schalterLabel.appendChild(schalter);
+  const name = document.createElement("span");
+  name.className = "wfb-name";
+  name.textContent = wf.name;
+  schalterLabel.appendChild(name);
+  kopf.appendChild(schalterLabel);
+  const herkunft = document.createElement("span");
+  herkunft.className = "wfb-herkunft wfb-herkunft-eigen";
+  herkunft.textContent = "selbst gebaut";
+  kopf.appendChild(herkunft);
+  const status = document.createElement("span");
+  status.className = "wfb-status";
+  status.textContent = (wf.fehlt || []).length ? "Entwurf — laeuft nicht" : wf.an === false ? "aus" : "laeuft";
+  kopf.appendChild(status);
+  kopf.appendChild(knopf("Bearbeiten", { zeichen: "zahnrad", klick: () => bearbeiten(wf) }));
+  box.appendChild(kopf);
+
+  box.appendChild(ketteAnsicht(wf));
+
+  for (const f of wf.fehlt || []) box.appendChild(befundZeile("hinweis", f));
+
+  schalter.addEventListener("change", async () => {
+    status.textContent = "Speichere …";
+    const ok = await schalten(wf, schalter.checked);
+    if (!ok) schalter.checked = !schalter.checked;
+    status.textContent = ok
+      ? (wf.fehlt || []).length
+        ? "Entwurf — laeuft nicht"
+        : schalter.checked
+          ? "laeuft"
+          : "aus"
+      : "nicht gespeichert";
+  });
+
+  return box;
+}
+
+// --- Der Tab ---------------------------------------------------------------
+
+let WFB = null; // der Baustein-Katalog, einmal geladen
+
 async function zeichneWorkflows(ziel) {
+  stilLaden();
   ziel.textContent = "Lade …";
-  let liste;
+  if (!WFB) {
+    try {
+      WFB = await import("/lib/workflowblocks.js");
+    } catch (e) {
+      ziel.textContent = `Der Baustein-Katalog liess sich nicht laden: ${e.message}`;
+      return;
+    }
+  }
+
+  let eingebaute = [];
+  let eigene = [];
   try {
     const res = await fetch("/api/workflows");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    liste = (await res.json()).workflows || [];
+    const d = await res.json();
+    eingebaute = d.workflows || [];
+    eigene = d.eigene || [];
   } catch {
     ziel.textContent = "Die Workflows liessen sich nicht laden — laeuft der Server?";
     return;
   }
 
-  // Speichern und den Stand im laufenden Board sofort nachziehen, ohne Neuladen.
-  const speichere = async (id, aenderung) => {
+  const store = await import("./store.js");
+
+  // Schalter/Parameter eines eingebauten Workflows speichern und den laufenden Stand nachziehen.
+  const speichereEingebauten = async (id, aenderung) => {
     try {
-      const res = await fetch("/api/workflows", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, ...aenderung }),
-      });
-      if (!res.ok) return false;
-      const { ladeWorkflows } = await import("./store.js");
-      await ladeWorkflows();
+      await store.setzeWorkflow(id, aenderung);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const neuZeichnen = () => zeichneWorkflows(ziel);
+
+  const speichereEigenen = async (wf) => {
+    try {
+      await store.setzeEigenenWorkflow(wf);
+      meldung(`Workflow „${wf.name}“ gespeichert.`, "erfolg");
+      neuZeichnen();
+    } catch (e) {
+      meldung(`Speichern ging nicht: ${e.message}`, "fehler");
+    }
+  };
+
+  const loescheEigenen = async (wf) => {
+    try {
+      await store.loescheEigenenWorkflow(wf.id);
+      meldung(`Workflow „${wf.name}“ geloescht.`, "erfolg");
+      neuZeichnen();
+    } catch (e) {
+      meldung(`Loeschen ging nicht: ${e.message}`, "fehler");
+    }
+  };
+
+  const schalteEigenen = async (wf, an) => {
+    try {
+      await store.setzeEigenenWorkflow({ ...wf, an });
       return true;
     } catch {
       return false;
@@ -1212,7 +1660,88 @@ async function zeichneWorkflows(ziel) {
   };
 
   ziel.innerHTML = "";
-  for (const w of liste) ziel.appendChild(workflowBlock(w, speichere));
+
+  // --- Eigene Workflows -----------------------------------------------------
+  const eigenKopf = document.createElement("div");
+  eigenKopf.className = "wfb-abschnitt-kopf";
+  const eigenTitel = document.createElement("div");
+  eigenTitel.className = "einst-label";
+  eigenTitel.textContent = "Eigene Workflows";
+  eigenKopf.appendChild(eigenTitel);
+  const editorPlatz = document.createElement("div");
+  editorPlatz.className = "wfb-editor-platz";
+  const neuKnopf = knopf("Neuen Workflow bauen", {
+    art: "haupt",
+    zeichen: "plus",
+    klick: () => {
+      editorPlatz.innerHTML = "";
+      const def = WFB.baubar(WFB.AUSLOESER)[0];
+      const entwurf = {
+        id: WFB.neueEigeneId(),
+        name: "",
+        an: true,
+        ausloeser: { typ: def.typ },
+        bedingungen: [],
+        aktionen: [],
+      };
+      editorPlatz.appendChild(
+        eigenerEditor(entwurf, {
+          speichern: speichereEigenen,
+          abbrechen: () => (editorPlatz.innerHTML = ""),
+        })
+      );
+      editorPlatz.scrollIntoView({ block: "nearest" });
+    },
+  });
+  eigenKopf.appendChild(neuKnopf);
+  ziel.appendChild(eigenKopf);
+
+  const eigenHinweis = document.createElement("p");
+  eigenHinweis.className = "einst-provider-sub";
+  eigenHinweis.textContent =
+    "Selbstgebaute Workflows laufen im Board, waehrend es offen ist — nicht als Hintergrunddienst. " +
+    "Angeboten wird nur, was die Engine wirklich ausfuehrt.";
+  ziel.appendChild(eigenHinweis);
+
+  ziel.appendChild(editorPlatz);
+
+  if (!eigene.length) {
+    const leer = document.createElement("p");
+    leer.className = "wfb-leer";
+    leer.textContent = "Noch keiner gebaut. „Neuen Workflow bauen“ setzt den ersten zusammen.";
+    ziel.appendChild(leer);
+  }
+  for (const wf of eigene) {
+    ziel.appendChild(
+      eigeneKarte(wf, {
+        schalten: schalteEigenen,
+        bearbeiten: (w) => {
+          editorPlatz.innerHTML = "";
+          editorPlatz.appendChild(
+            eigenerEditor(JSON.parse(JSON.stringify(w)), {
+              speichern: speichereEigenen,
+              loeschen: loescheEigenen,
+              abbrechen: () => (editorPlatz.innerHTML = ""),
+            })
+          );
+          editorPlatz.scrollIntoView({ block: "nearest" });
+        },
+      })
+    );
+  }
+
+  // --- Eingebaute Workflows -------------------------------------------------
+  const einTitel = document.createElement("div");
+  einTitel.className = "einst-label wfb-abschnitt-trenner";
+  einTitel.textContent = "Eingebaute Workflows";
+  ziel.appendChild(einTitel);
+  const einHinweis = document.createElement("p");
+  einHinweis.className = "einst-provider-sub";
+  einHinweis.textContent =
+    "Dieselbe Form, aber die Bausteine stehen im Code — der Fuss jeder Karte nennt die Fundstelle. " +
+    "Schalter und Stellschrauben sind hier bedienbar.";
+  ziel.appendChild(einHinweis);
+  for (const w of eingebaute) ziel.appendChild(eingebauteKarte(w, speichereEingebauten));
 }
 
 export function escape(s) {

@@ -2,6 +2,7 @@
 
 import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster, rueckwaertsplan } from "/lib/pipeline.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
+import { feuere } from "./workflowengine.js";
 
 export const S = {
   version: 1,
@@ -17,6 +18,7 @@ export const S = {
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN },
   workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
+  eigeneWorkflows: [], // selbstgebaute Workflows (v27); die Engine fragt genau diese Liste
 };
 
 // --- Workflows (v26) ------------------------------------------------------
@@ -27,20 +29,48 @@ export const S = {
 export const an = (id) => wfIstAn(S.workflows, id);
 export const stellschraube = (id, key) => wfParam(S.workflows, id, key);
 
+function uebernimm(d) {
+  S.workflows = {};
+  for (const w of d.workflows || []) {
+    S.workflows[w.id] = {
+      an: w.an,
+      params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
+    };
+  }
+  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
+}
+
 export async function ladeWorkflows() {
   try {
     const d = await hole("/api/workflows");
-    S.workflows = {};
-    for (const w of d.workflows || []) {
-      S.workflows[w.id] = {
-        an: w.an,
-        params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
-      };
-    }
+    uebernimm(d);
     return d.workflows || [];
   } catch {
     return []; // ohne Antwort gelten die Standards des Registers
   }
+}
+
+// --- Selbstgebaute Workflows (v27) ----------------------------------------
+//
+// `feuere` ist der einzige Weg, auf dem ein eigener Workflow ueberhaupt laeuft. Jede Fundstelle
+// unten im Board ruft ihn mit ihrem Ereignis — genau wie die eingebauten Neun `an(id)` rufen.
+
+export { feuere };
+
+export async function setzeEigenenWorkflow(workflow) {
+  const d = await hole("/api/workflows/eigene", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ workflow }),
+  });
+  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
+  return d.eigene || [];
+}
+
+export async function loescheEigenenWorkflow(id) {
+  const d = await hole(`/api/workflows/eigene?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
+  return d.eigene || [];
 }
 
 export async function setzeWorkflow(id, { an: schalter, params } = {}) {
@@ -49,13 +79,7 @@ export async function setzeWorkflow(id, { an: schalter, params } = {}) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ id, an: schalter, params }),
   });
-  S.workflows = {};
-  for (const w of d.workflows || []) {
-    S.workflows[w.id] = {
-      an: w.an,
-      params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
-    };
-  }
+  uebernimm(d);
   return d.workflows || [];
 }
 
@@ -132,6 +156,10 @@ async function hole(pfad, optionen) {
 }
 
 export async function ladeBoard() {
+  // Erst die Workflows, dann das Board: `pruefeAutoDreh()` unten fragt schon `an(...)`, und die
+  // selbstgebauten Workflows (v27) muessen stehen, bevor das erste Ereignis feuert. Faellt der
+  // Aufruf aus, gelten die Standards des Registers — das Board laedt trotzdem.
+  await ladeWorkflows();
   const daten = await hole("/api/board");
   S.version = daten.version;
   S.cards = (daten.cards || []).map(migriere);
@@ -195,6 +223,8 @@ export function neueKarte(spalte) {
   const k = leereKarte(spalte);
   S.cards.push(k);
   speichere();
+  // Ausloeser "karte-angelegt" fuer die selbstgebauten Workflows (v27).
+  feuere("karte-angelegt", { karte: k });
   return k;
 }
 
