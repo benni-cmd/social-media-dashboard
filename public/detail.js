@@ -84,6 +84,7 @@ import {
   meldung,
   bestaetigen,
 } from "./ui.js";
+import { FOKUS } from "./fokus.js";
 
 let schiebe = async () => {};
 export const beiSchieben = (f) => (schiebe = f);
@@ -113,6 +114,7 @@ export function zeichneDetail(el) {
   const p = phase(k.column);
   const stand = S.driveStand.get(k.id);
   const toreListe = tore(k, stand);
+  const blockiert = sperren(toreListe);
 
   el.innerHTML = "";
 
@@ -120,16 +122,33 @@ export function zeichneDetail(el) {
   const kopf = document.createElement("div");
   kopf.className = "detail-kopf";
   kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>`;
+
+  // Fokus-Ansicht (P27 F4): Board ausblenden, nur diese Karte zeigen — konzentriertes Abarbeiten.
+  const fokusKnopf = document.createElement("button");
+  fokusKnopf.className = "detail-fokus" + (FOKUS.an ? " an" : "");
+  fokusKnopf.setAttribute("aria-label", FOKUS.an ? "Fokus-Ansicht verlassen" : "Fokus-Ansicht: nur diese Karte zeigen");
+  fokusKnopf.title = FOKUS.an ? "Board wieder einblenden" : "Board ausblenden, konzentriert an dieser Karte arbeiten";
+  fokusKnopf.innerHTML = icon("ziel");
+  fokusKnopf.addEventListener("click", () => {
+    FOKUS.an = !FOKUS.an;
+    zeichne();
+  });
+  kopf.appendChild(fokusKnopf);
+
   const zu = document.createElement("button");
   zu.className = "detail-schliessen";
   zu.setAttribute("aria-label", "Karte schliessen");
   zu.innerHTML = icon("schliessen");
   zu.addEventListener("click", () => {
     S.aktiv = null;
+    FOKUS.an = false; // Fokus-Ansicht verlaesst sich automatisch mit dem Schliessen der Karte.
     zeichne();
   });
   kopf.appendChild(zu);
   el.appendChild(kopf);
+
+  // --- Fortschritt: sofort sichtbar, ohne Scrollen (P27 F1) ---
+  el.appendChild(blockFortschritt(k, blockiert));
 
   const koerper = document.createElement("div");
   koerper.className = "detail-koerper";
@@ -179,6 +198,42 @@ export function zeichneDetail(el) {
 
 // --- Bloecke --------------------------------------------------------------
 
+// Fortschritt sofort sichtbar, ohne Scrollen (P27 F1): Phasenband + die wichtigste Frage
+// zuerst — was haelt die Karte auf. Bewusst kein `gruppe()`/details-Element: das hier soll
+// nicht wegklappbar sein, es ist die erste Antwort, nicht ein Nebenblock.
+function blockFortschritt(k, blockiert) {
+  const wrap = document.createElement("div");
+  wrap.className = "detail-fortschritt";
+
+  // Phasenband nur fuer die Arbeitsschritte (Idee..Upload) — "Fertig"/"Verworfen" sind
+  // Endzustaende, kein "Fortschritt" mehr im selben Sinn.
+  if (k.column !== "fertig" && k.column !== "verworfen") {
+    const arbeitsPhasen = PHASEN.filter((ph) => ph.id !== "fertig" && ph.id !== "verworfen");
+    const idx = phaseIndex(k.column);
+    const band = document.createElement("div");
+    band.className = "phasenband";
+    for (let i = 0; i < arbeitsPhasen.length; i++) {
+      const teil = document.createElement("span");
+      teil.className = "phasenband-teil" + (i < idx ? " erledigt" : i === idx ? " hier" : "");
+      band.appendChild(teil);
+    }
+    wrap.appendChild(band);
+  }
+
+  const zeile = document.createElement("div");
+  zeile.className = "befund";
+  zeile.innerHTML = blockiert.length
+    ? statusChip("befund") +
+      `<span class="befund-satz"><strong>${blockiert.length}</strong> Punkt${blockiert.length === 1 ? "" : "e"} halten die Karte auf.</span>`
+    : statusChip("ok") + `<span class="befund-satz">Nichts haelt die Karte auf.</span>`;
+  wrap.appendChild(zeile);
+  return wrap;
+}
+
+// P27 F2: Karten-IDs, deren Stamm-Felder trotz vollstaendiger Wahl gerade zum Bearbeiten
+// aufgeklappt sind. Rein im Speicher — nach einem Neuladen startet jede Karte eingeklappt.
+const stammOffenIds = new Set();
+
 function blockStamm(k, merke) {
   const g = gruppe("Worum geht es", null, true);
   const box = document.createElement("div");
@@ -188,51 +243,74 @@ function blockStamm(k, merke) {
   titel.addEventListener("change", () => zeichne());
   box.appendChild(feld("Thema", titel));
 
-  // Content-Typ: Single-Select Toggle-Buttons
-  box.appendChild(feld("Typ", einzelwahlReihe(CONTENTTYPEN, k.contenttyp || "", (id) => merke("contenttyp", id, true))));
+  // P27 F2: Sind Typ+Kategorie+Ziel+Plattform alle gesetzt, verschwinden die vier offenen
+  // Wahlreihen zugunsten einer kompakten Zeile — sie haben ihre Entscheidung schon getroffen,
+  // permanente Buttons dafuer sind nur noch Ablenkung. Solange nicht alle vier stehen, bleibt
+  // die volle Ansicht (Erstausfuellen darf nicht erschwert werden).
+  const stammVollstaendig = !!(k.contenttyp && k.kategorie && k.goal && (k.platforms || []).length);
+  const offen = !stammVollstaendig || stammOffenIds.has(k.id);
 
-  // Kategorie (ex Content-Saeule): Single-Select Toggle-Buttons
-  box.appendChild(feld("Kategorie", einzelwahlReihe(INHALTSKATEGORIEN, k.kategorie || "", (id) => merke("kategorie", id, true))));
+  if (!offen) {
+    box.appendChild(stammZusammenfassung(k));
+  } else {
+    // Content-Typ: Single-Select Toggle-Buttons
+    box.appendChild(feld("Typ", einzelwahlReihe(CONTENTTYPEN, k.contenttyp || "", (id) => merke("contenttyp", id, true))));
 
-  // Ziel: Single-Select Toggle-Buttons
-  box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE, k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
+    // Kategorie (ex Content-Saeule): Single-Select Toggle-Buttons
+    box.appendChild(feld("Kategorie", einzelwahlReihe(INHALTSKATEGORIEN, k.kategorie || "", (id) => merke("kategorie", id, true))));
 
-  // Plattformen: Multi-Select Toggle-Buttons
-  const plattformen = document.createElement("div");
-  plattformen.className = "schalterreihe";
-  for (const pl of PLATTFORMEN) {
-    const an = (k.platforms || []).includes(pl.id);
-    const l = document.createElement("label");
-    l.className = "schalter" + (an ? " an" : "");
-    l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>${escape(pl.name)}</span>`;
-    l.querySelector("input").addEventListener("change", (e) => {
-      const liste = new Set(k.platforms || []);
-      e.target.checked ? liste.add(pl.id) : liste.delete(pl.id);
-      merke("platforms", [...liste], true);
-    });
-    plattformen.appendChild(l);
+    // Ziel: Single-Select Toggle-Buttons
+    box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE, k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
+
+    // Plattformen: Multi-Select Toggle-Buttons
+    const plattformen = document.createElement("div");
+    plattformen.className = "schalterreihe";
+    for (const pl of PLATTFORMEN) {
+      const an = (k.platforms || []).includes(pl.id);
+      const l = document.createElement("label");
+      l.className = "schalter" + (an ? " an" : "");
+      l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>${escape(pl.name)}</span>`;
+      l.querySelector("input").addEventListener("change", (e) => {
+        const liste = new Set(k.platforms || []);
+        e.target.checked ? liste.add(pl.id) : liste.delete(pl.id);
+        merke("platforms", [...liste], true);
+      });
+      plattformen.appendChild(l);
+    }
+    const plWrap = feld("Plattformen", plattformen);
+
+    const defaultPl = new Set(S.defaults.plattformen || []);
+    const aktuellPl = new Set(k.platforms || []);
+    const weichtAb = aktuellPl.size !== defaultPl.size || [...aktuellPl].some((p) => !defaultPl.has(p));
+    if (weichtAb && k.platforms && k.platforms.length) {
+      const stdBtn = knopf("Neuen Standard speichern", {
+        klick: async (e) => {
+          try {
+            await speichereDefaults({ plattformen: [...k.platforms] });
+            e.currentTarget.remove();
+            meldung("Plattform-Standard gespeichert.", "erfolg");
+          } catch {
+            meldung("Standard konnte nicht gespeichert werden.", "fehler");
+          }
+        },
+      });
+      stdBtn.classList.add("standard-speichern");
+      plWrap.appendChild(stdBtn);
+    }
+    box.appendChild(plWrap);
+
+    if (stammVollstaendig) {
+      const fertig = knopf("Fertig — einklappen", {
+        zeichen: "check",
+        klick: () => {
+          stammOffenIds.delete(k.id);
+          zeichne();
+        },
+      });
+      fertig.classList.add("knopf-inline");
+      box.appendChild(fertig);
+    }
   }
-  const plWrap = feld("Plattformen", plattformen);
-
-  const defaultPl = new Set(S.defaults.plattformen || []);
-  const aktuellPl = new Set(k.platforms || []);
-  const weichtAb = aktuellPl.size !== defaultPl.size || [...aktuellPl].some((p) => !defaultPl.has(p));
-  if (weichtAb && k.platforms && k.platforms.length) {
-    const stdBtn = knopf("Neuen Standard speichern", {
-      klick: async (e) => {
-        try {
-          await speichereDefaults({ plattformen: [...k.platforms] });
-          e.currentTarget.remove();
-          meldung("Plattform-Standard gespeichert.", "erfolg");
-        } catch {
-          meldung("Standard konnte nicht gespeichert werden.", "fehler");
-        }
-      },
-    });
-    stdBtn.classList.add("standard-speichern");
-    plWrap.appendChild(stdBtn);
-  }
-  box.appendChild(plWrap);
   g.appendChild(box);
 
   const { d, box: mehr } = klappe("Weitere Angaben");
@@ -276,6 +354,32 @@ function einzelwahlReihe(optionen, aktuell, beiWahl) {
     reihe.appendChild(l);
   }
   return reihe;
+}
+
+// P27 F2: die eingeklappte Zeile fuer vollstaendig gesetzte Stamm-Felder.
+function stammZusammenfassung(k) {
+  const wrap = document.createElement("div");
+  wrap.className = "stamm-zusammenfassung";
+  const teile = [
+    contenttypName(k.contenttyp),
+    saeuleName(k.kategorie),
+    zielInfo(k.goal).name,
+    (k.platforms || []).map(plattformName).join(", "),
+  ].filter(Boolean);
+  const text = document.createElement("span");
+  text.className = "stamm-zusammenfassung-text";
+  text.textContent = teile.join(" · ");
+  text.title = text.textContent;
+  wrap.appendChild(text);
+  const bearbeiten = knopf("bearbeiten", {
+    klick: () => {
+      stammOffenIds.add(k.id);
+      zeichne();
+    },
+  });
+  bearbeiten.classList.add("knopf-inline");
+  wrap.appendChild(bearbeiten);
+  return wrap;
 }
 
 function blockTermine(k, merke) {
@@ -1507,12 +1611,8 @@ function blockAbschluss(k, toreListe) {
       weiter.title = blockiert.map((b) => b.satz).join(" ");
     }
     box.appendChild(weiter);
-    if (blockiert.length) {
-      const p = document.createElement("p");
-      p.className = "feld-hinweis";
-      p.textContent = `${blockiert.length} Punkt${blockiert.length === 1 ? "" : "e"} halten die Karte auf.`;
-      box.appendChild(p);
-    }
+    // Die "N Punkte halten die Karte auf"-Zeile steht seit P27 F1 bereits oben, sofort
+    // sichtbar direkt unter dem Kopf — hier keine zweite, redundante Zeile mehr.
   }
 
   // Verwerfen: parkt die Karte in „Verworfen", die KI schlaegt sie nicht mehr vor.

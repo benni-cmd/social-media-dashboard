@@ -8,6 +8,10 @@ import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
 import { fortschritt, statusChip, escape, einstellungenModal, meldung } from "./ui.js";
+// P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
+// anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
+import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
+import { FOKUS } from "./fokus.js";
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -24,6 +28,7 @@ const boardEl = el("board");
 const lastEl = el("wochenlast");
 const auswertungEl = el("ansicht-auswertung");
 const detailEl = el("detail");
+const hauptflaecheEl = el("hauptflaeche");
 
 const ansichten = {
   board: el("ansicht-board"),
@@ -49,6 +54,35 @@ kalenderOeffnet(oeffne);
 auswertungOeffnet(oeffne);
 beiSchieben(schiebe);
 
+// --- Naechster Schritt (P27 F3) --------------------------------------------
+//
+// Springt automatisch zur sinnvollsten offenen Karte, statt dass man das Board selbst nach
+// ihr absuchen muss. Heuristik bewusst einfach gehalten: erst nach Phasen-Reihenfolge
+// (phaseIndex — "Skript schreiben" vor "Videodreh" vor ...), innerhalb derselben Phase nach
+// Dringlichkeit der Faelligkeit (ueberfaellig zuerst, dann je naeher am Termin). Karten ohne
+// gesetztes Datum zaehlen als mittel dringend, nicht als dringlichste — siehe Paket-Doc.
+function dringlichkeit(k) {
+  const f = faelligkeit(k);
+  if (f.tage == null) return 0;
+  return f.tage < 0 ? -100000 + f.tage : f.tage;
+}
+function naechsteSinnvolleKarte() {
+  const offen = S.cards.filter((k) => k.column !== "fertig" && k.column !== "verworfen");
+  if (!offen.length) return null;
+  return [...offen].sort((a, b) => {
+    const diff = phaseIndex(a.column) - phaseIndex(b.column);
+    return diff !== 0 ? diff : dringlichkeit(a) - dringlichkeit(b);
+  })[0];
+}
+el("naechster-schritt").addEventListener("click", () => {
+  const k = naechsteSinnvolleKarte();
+  if (!k) {
+    meldung("Keine offene Karte gefunden — alles ist fertig oder verworfen.", "erfolg");
+    return;
+  }
+  oeffne(k.id);
+});
+
 // --- Ansichten ------------------------------------------------------------
 
 function wechsle(name) {
@@ -70,6 +104,9 @@ beiAenderung(() => {
     if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
     else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
     zeichneDetail(detailEl);
+    // Fokus-Ansicht (P27 F4) nur wirksam, solange auch eine Karte offen ist — schliesst sich
+    // die Karte, verlaesst die Fokus-Ansicht sich damit von selbst, ohne S.fokus zu verwalten.
+    hauptflaecheEl.classList.toggle("fokus", FOKUS.an && !!S.aktiv);
   } finally {
     zeichnetGerade = false;
   }
