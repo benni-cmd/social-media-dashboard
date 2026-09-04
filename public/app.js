@@ -94,21 +94,45 @@ function wechsle(name) {
 for (const [name, knopf] of Object.entries(knoepfe)) knopf.addEventListener("click", () => wechsle(name));
 
 // --- Zeichnen -------------------------------------------------------------
+//
+// Jede Ansicht zeichnet in ihrem EIGENEN try/catch: ein Fehler in einer Ansicht darf die
+// anderen nicht mitreissen und — wichtiger — nie aus `zeichne()` herausschlagen. Frueher
+// brach ein Zeichenfehler beim Start die ganze Start-Schleife ab (Board blieb leer, der
+// weiter unten verdrahtete Beenden-Slider wurde nie erreicht). Der Slider haengt jetzt nicht
+// mehr am Zeichnen (siehe verdrahteShutdownSlider), und ein transienter Zeichenfehler heilt
+// sich selbst durch einen kurzen erneuten Zeichenlauf — kein Ansichtswechsel von Hand noetig.
 
 let zeichnetGerade = false;
+let zeichenFehlerRetries = 0;
 
 beiAenderung(() => {
   if (zeichnetGerade) return;
   zeichnetGerade = true;
+  let fehler = null;
   try {
-    if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
-    else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
-    zeichneDetail(detailEl);
-    // Fokus-Ansicht (P27 F4) nur wirksam, solange auch eine Karte offen ist — schliesst sich
-    // die Karte, verlaesst die Fokus-Ansicht sich damit von selbst, ohne S.fokus zu verwalten.
-    hauptflaecheEl.classList.toggle("fokus", FOKUS.an && !!S.aktiv);
+    try {
+      if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
+      else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
+    } catch (e) { fehler = fehler || e; }
+    try { zeichneDetail(detailEl); } catch (e) { fehler = fehler || e; }
+    try {
+      // Fokus-Ansicht (P27 F4) nur wirksam, solange auch eine Karte offen ist — schliesst sich
+      // die Karte, verlaesst die Fokus-Ansicht sich damit von selbst, ohne S.fokus zu verwalten.
+      hauptflaecheEl.classList.toggle("fokus", FOKUS.an && !!S.aktiv);
+    } catch (e) { fehler = fehler || e; }
   } finally {
     zeichnetGerade = false;
+  }
+  if (fehler) {
+    console.error(`Zeichenfehler (Versuch ${zeichenFehlerRetries + 1}):`, fehler);
+    // Begrenzt neu versuchen: die haeufigste Ursache ist ein noch nicht fertig geladener
+    // Zustand, der sich in Millisekunden legt. Ein echter Dauerfehler loopt dank Zaehler nicht.
+    if (zeichenFehlerRetries < 5) {
+      zeichenFehlerRetries += 1;
+      setTimeout(() => zeichne(), 200);
+    }
+  } else {
+    zeichenFehlerRetries = 0;
   }
 });
 
@@ -185,6 +209,90 @@ el("einstellungen").addEventListener("click", () => {
   });
 }
 
+// --- Beenden-Slider -------------------------------------------------------
+//
+// Bewusst SYNCHRON beim Modulstart verdrahtet und unabhaengig vom Board-Laden/Zeichnen: der
+// Slider-DOM steht schon im HTML (das Script liegt am Body-Ende). Frueher lief diese
+// Verdrahtung am Ende der async Start-Schleife — brach dort davor etwas ab (z. B. ein
+// Zeichenfehler), wurde der Slider nie verdrahtet und blieb tot. Eigenes try/catch, damit ein
+// Fehler hier umgekehrt den Start nicht kippt.
+function verdrahteShutdownSlider() {
+  const track = el("shutdown-slider");
+  const handle = el("shutdown-handle");
+  if (!track || !handle) return;
+  const SCHWELLE = 0.82;
+  let ziehen = false;
+  let startX = 0;
+  let maxX = 0;
+
+  function berechneMaxX() {
+    return track.offsetWidth - handle.offsetWidth - 6;
+  }
+
+  function setzeX(x) {
+    const begrenzt = Math.max(0, Math.min(x, maxX));
+    handle.style.transform = `translateX(${begrenzt}px)`;
+    const fortschritt = begrenzt / maxX;
+    track.querySelector(".shutdown-label").style.opacity = String(1 - fortschritt * 1.6);
+    return begrenzt / maxX;
+  }
+
+  function losgelassen(x) {
+    const ratio = setzeX(x);
+    if (ratio >= SCHWELLE) {
+      track.classList.add("ausgeloest");
+      handle.style.transform = `translateX(${maxX}px)`;
+      track.querySelector(".shutdown-label").textContent = "wird beendet …";
+      track.querySelector(".shutdown-label").style.opacity = "1";
+      fetch("/api/shutdown", { method: "POST" })
+        .then(() => { setTimeout(() => window.close(), 600); })
+        .catch(() => { meldung("Server antwortet nicht – CMD-Fenster manuell schließen.", "fehler"); });
+    } else {
+      handle.style.transition = "transform 0.25s cubic-bezier(.4,0,.2,1)";
+      handle.style.transform = "translateX(0)";
+      track.querySelector(".shutdown-label").style.opacity = "1";
+      setTimeout(() => { handle.style.transition = ""; }, 260);
+    }
+    ziehen = false;
+  }
+
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    ziehen = true;
+    startX = e.clientX;
+    maxX = berechneMaxX();
+  });
+  handle.addEventListener("touchstart", (e) => {
+    ziehen = true;
+    startX = e.touches[0].clientX;
+    maxX = berechneMaxX();
+  }, { passive: true });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!ziehen) return;
+    setzeX(e.clientX - startX);
+  });
+  document.addEventListener("touchmove", (e) => {
+    if (!ziehen) return;
+    setzeX(e.touches[0].clientX - startX);
+  }, { passive: true });
+
+  document.addEventListener("mouseup", (e) => {
+    if (!ziehen) return;
+    losgelassen(e.clientX - startX);
+  });
+  document.addEventListener("touchend", (e) => {
+    if (!ziehen) return;
+    losgelassen(e.changedTouches[0].clientX - startX);
+  });
+}
+
+try {
+  verdrahteShutdownSlider();
+} catch (e) {
+  console.error("Beenden-Slider konnte nicht verdrahtet werden:", e);
+}
+
 // --- Start ----------------------------------------------------------------
 
 (async () => {
@@ -228,75 +336,4 @@ el("einstellungen").addEventListener("click", () => {
     .catch(() => {
       meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler");
     });
-
-  // --- Shutdown-Slider -----------------------------------------------------
-  {
-    const track = el("shutdown-slider");
-    const handle = el("shutdown-handle");
-    const SCHWELLE = 0.82;
-    let ziehen = false;
-    let startX = 0;
-    let maxX = 0;
-
-    function berechneMaxX() {
-      return track.offsetWidth - handle.offsetWidth - 6;
-    }
-
-    function setzeX(x) {
-      const begrenzt = Math.max(0, Math.min(x, maxX));
-      handle.style.transform = `translateX(${begrenzt}px)`;
-      const fortschritt = begrenzt / maxX;
-      track.querySelector(".shutdown-label").style.opacity = String(1 - fortschritt * 1.6);
-      return begrenzt / maxX;
-    }
-
-    function losgelassen(x) {
-      const ratio = setzeX(x);
-      if (ratio >= SCHWELLE) {
-        track.classList.add("ausgeloest");
-        handle.style.transform = `translateX(${maxX}px)`;
-        track.querySelector(".shutdown-label").textContent = "wird beendet …";
-        track.querySelector(".shutdown-label").style.opacity = "1";
-        fetch("/api/shutdown", { method: "POST" })
-          .then(() => { setTimeout(() => window.close(), 600); })
-          .catch(() => { meldung("Server antwortet nicht – CMD-Fenster manuell schließen.", "fehler"); });
-      } else {
-        handle.style.transition = "transform 0.25s cubic-bezier(.4,0,.2,1)";
-        handle.style.transform = "translateX(0)";
-        track.querySelector(".shutdown-label").style.opacity = "1";
-        setTimeout(() => { handle.style.transition = ""; }, 260);
-      }
-      ziehen = false;
-    }
-
-    handle.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      ziehen = true;
-      startX = e.clientX;
-      maxX = berechneMaxX();
-    });
-    handle.addEventListener("touchstart", (e) => {
-      ziehen = true;
-      startX = e.touches[0].clientX;
-      maxX = berechneMaxX();
-    }, { passive: true });
-
-    document.addEventListener("mousemove", (e) => {
-      if (!ziehen) return;
-      setzeX(e.clientX - startX);
-    });
-    document.addEventListener("touchmove", (e) => {
-      if (!ziehen) return;
-      setzeX(e.touches[0].clientX - startX);
-    }, { passive: true });
-
-    document.addEventListener("mouseup", (e) => {
-      if (!ziehen) return;
-      losgelassen(e.clientX - startX);
-    });
-    document.addEventListener("touchend", (e) => {
-      if (!ziehen) return;
-      losgelassen(e.changedTouches[0].clientX - startX);
-    });
-  }
 })();
