@@ -2222,6 +2222,151 @@ body {
   cursor: pointer;
 }
 
+/* Hilfe, wenn Ollama nicht laeuft oder kein Modell da ist (v26). */
+.einst-ollama-hilfe {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 10px 12px;
+}
+.einst-befehl {
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  user-select: all;
+}
+
+/* --- System Prompts und Workflows (v26) --- */
+/* Beide Tabs zeigen laengere Texte als die uebrigen — das Fenster wird dafuer breiter. */
+.einstellungen-modal.breit { max-width: 880px; }
+.einstellungen-modal.breit .einst-inhalt {
+  max-height: 74vh;
+  overflow-y: auto;
+}
+
+.einst-prompt-liste,
+.einst-wf-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.einst-prompt {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 10px 12px;
+}
+.einst-prompt[open] { border-color: var(--akzent); }
+.einst-prompt-kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+}
+.einst-prompt-kopf::-webkit-details-marker { display: none; }
+.einst-prompt-titel { font-size: 13px; font-weight: 600; }
+.einst-prompt-ort {
+  font-size: 12px;
+  color: var(--text-still);
+  flex: 1 1 auto;
+}
+.einst-prompt-marke {
+  font-size: 11px;
+  color: var(--text-still);
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 1px 8px;
+  flex-shrink: 0;
+}
+.einst-prompt-marke.aktiv {
+  color: var(--text);
+  border-color: var(--akzent);
+  background: var(--akzent-tief);
+}
+.einst-prompt-feld {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.einst-prompt-legende { margin: 10px 0; }
+.einst-prompt-platzhalter {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-still);
+  padding: 2px 0;
+}
+.einst-prompt-platzhalter code {
+  flex: 0 0 168px;
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.einst-wf {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 12px;
+  margin-bottom: 0;
+}
+.einst-wf-kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.einst-wf-kopf .einst-label { margin-bottom: 0; text-transform: none; font-size: 13px; color: var(--text); }
+.einst-wf-warnung {
+  font-size: 12px;
+  color: var(--warnung, #b45309);
+  margin: 8px 0 0;
+}
+.einst-wf-param {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-still);
+}
+.einst-wf-eingabe {
+  width: 88px;
+  padding: 5px 8px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+.einst-wf-eingabe[type="checkbox"] { width: auto; }
+.einst-wf-hinweis { flex: 1 1 auto; }
+.einst-wf-fuss {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-still);
+}
+.einst-wf-fuss code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
 /* --- Terminvorschlag --- */
 /* --- Termin-Kacheln --- */
 .termin-kacheln {

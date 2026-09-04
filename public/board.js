@@ -17,7 +17,7 @@ import {
   INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen } from "./store.js";
+import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
 import { statusChip, escape, knopf, leer } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -220,6 +220,8 @@ export async function schiebe(k, ziel) {
   zeichne();
   await speichere();
   if (!k.title) return;
+  // Workflow "drive-ordner-mitziehen" (v26): aus laeuft das Board bewusst ohne Drive-Nachzug.
+  if (!an("drive-ordner-mitziehen")) return;
   setStand("Ziehe den Drive-Ordner nach …");
   try {
     await driveVerschieben(k, ziel);

@@ -1,7 +1,7 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
 import { PHASEN } from "/lib/pipeline.js";
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus, ladeDefaults } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus, ladeDefaults, ladeWorkflows } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
@@ -152,6 +152,9 @@ el("einstellungen").addEventListener("click", () => {
 
 (async () => {
   try {
+    // Der Workflow-Stand muss VOR dem Board stehen: das Laden setzt ggf. selbst einen
+    // Drehtermin, und dieser Griff ist einer der abschaltbaren Workflows (v26).
+    await ladeWorkflows();
     await Promise.all([ladeBoard(), ladeDefaults()]);
     setStand(`${S.cards.length} Karten geladen.`);
   } catch (e) {

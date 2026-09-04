@@ -18,7 +18,7 @@ import {
   faelligkeit,
   tore,
   sperren,
-  rueckwaertsplan,
+  // rueckwaertsplan laeuft ab v26 ueber store.terminplan() — Workflow-Schalter
   einfacherPlan,
   drehFenster,
   drehImFenster,
@@ -59,6 +59,9 @@ import {
   downloadUrl,
   videoHochladen,
   dateiHochladen,
+  an,
+  stellschraube,
+  terminplan,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -340,7 +343,7 @@ function blockTermine(k, merke) {
         melde("hinweis", "Setz zuerst das Veroeffentlichungsdatum — daraus rechnet der Plan rueckwaerts.");
         return;
       }
-      merke("dates", { ...rueckwaertsplan(upload), upload }, true);
+      merke("dates", { ...terminplan(upload), upload }, true);
       setStand("Die uebrigen Termine stehen jetzt rueckwaerts vom Upload-Datum.");
     },
   });
@@ -396,7 +399,9 @@ function blockDrehtermin(k) {
     const zuordnen = async (terminId) => {
       const r = karteZuTermin(k.id, terminId);
       if (r && r.warnung) melde("hinweis", r.warnung);
-      if (r && r.ok && phaseIndex(k.column) < phaseIndex("videodreh")) await schiebe(k, "videodreh");
+      // Workflow "drehtermin-zuordnen-videodreh" (v26)
+      if (r && r.ok && an("drehtermin-zuordnen-videodreh") && phaseIndex(k.column) < phaseIndex("videodreh"))
+        await schiebe(k, "videodreh");
     };
 
     if (kommend.length) {
@@ -884,8 +889,8 @@ function guidedIdee(k, box) {
           setzeTief(k, "chosenVisuell", i);
           setzeTief(k, "hook.visual", hvis.hooks[i].visuell || "");
           await speichere();
-          // Drive-Ordner automatisch anlegen, wenn noch nicht vorhanden.
-          if (k.title && !k.driveName) {
+          // Drive-Ordner automatisch anlegen — Workflow "drive-ordner-anlegen" (v26).
+          if (an("drive-ordner-anlegen") && k.title && !k.driveName) {
             driveAnlegen(k)
               .then(() => meldung("Projektordner im Drive angelegt.", "erfolg"))
               .catch(() => meldung("Drive-Ordner konnte nicht angelegt werden.", "fehler"));
@@ -1002,6 +1007,12 @@ function skriptLoop(k, box) {
         await nachDrive(k, DATEINAMEN.skript, skript.value, e.currentTarget, box);
         setzeTief(k, "skriptGespeichert", true);
         await speichere();
+        // Workflow "skript-gespeichert-weiter" (v26): aus bleibt die Karte stehen.
+        if (!an("skript-gespeichert-weiter")) {
+          meldung("Skript gespeichert. Die Karte bleibt stehen (Workflow ist aus).", "erfolg");
+          zeichne();
+          return;
+        }
         // v16c: Upload wurde in Schritt 1 schon aus dem Redaktionsplan gesetzt — direkt weiter
         // zu „Drehtermin festlegen". Fehlt es doch, wird es hier als Fallback nachgeholt.
         if ((k.dates || {}).upload) {
@@ -1012,7 +1023,7 @@ function skriptLoop(k, box) {
             "Aus dem Upload-Datum setzt das Board Schnitt- und Freigabetermine automatisch.",
             fensterFuerTyp(k.contenttyp || ""),
             async (datum, zeit) => {
-              setzeTief(k, "dates", { ...rueckwaertsplan(datum), upload: datum });
+              setzeTief(k, "dates", { ...terminplan(datum), upload: datum });
               if (zeit) setzeTief(k, "uploadTime", zeit);
               await speichere();
               await schiebe(k, "skript");
@@ -1119,8 +1130,14 @@ function videoUploadZone(k) {
       const weg = fortschritt(zone, `Lade „${datei.name}" nach Drive — das kann bei grossen Dateien dauern …`);
       try {
         const r = await videoHochladen(k, datei);
+        // Workflow "upload-fertig-weiter" (v26): aus bleibt die Karte stehen, egal wie die Tore stehen.
+        if (!an("upload-fertig-weiter")) {
+          meldung(r.satz || "Video hochgeladen.", "erfolg");
+          zeichne();
+          return;
+        }
         const frisch = await driveScan(k, true).catch(() => null);
-        const offen = sperren(tore(k, frisch));
+        const offen = stellschraube("upload-fertig-weiter", "toreBeachten") ? sperren(tore(k, frisch)) : [];
         if (offen.length) {
           await melde("hinweis", `${r.satz || "Video hochgeladen."} Die Karte bleibt in Schnitt: ${offen.map((b) => b.satz).join(" ")}`);
           zeichne();

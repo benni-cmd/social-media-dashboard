@@ -6,11 +6,11 @@
 //   Plan    — Termine fuer die naechsten Wochen, mindestens drei je Woche.
 
 import {
-  INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, rueckwaertsplan, saeulenVerteilung, MASSE,
+  INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, saeulenVerteilung, MASSE,
   contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
-import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -161,7 +161,7 @@ export async function holeIdee() {
       k.contenttyp = (slot && slot.typ) || "reel";
       k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie) || "";
       if (slot) {
-        k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
+        k.dates = { ...terminplan(slot.datum), upload: slot.datum };
         k.uploadTime = slot.uhrzeit || "";
         if (slot.ziel) k.goal = slot.ziel;
         if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
@@ -240,7 +240,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
           // Slot-Daten vorbelegen wenn vorhanden
           const slot = idee.slotIndex != null ? offeneSlots[idee.slotIndex] : null;
           if (slot) {
-            k.dates = { ...rueckwaertsplan(slot.datum), upload: slot.datum };
+            k.dates = { ...terminplan(slot.datum), upload: slot.datum };
             k.uploadTime = slot.uhrzeit || "";
             k.contenttyp = slot.typ || "reel";
             if (slot.kategorie) k.kategorie = slot.kategorie;
@@ -377,7 +377,7 @@ function zeigePlan(plan, hinweis, anker) {
             neu++;
           }
           // Der Rueckwaertsplan setzt die uebrigen Termine gleich mit.
-          k.dates = { ...rueckwaertsplan(e.datum), upload: e.datum };
+          k.dates = { ...terminplan(e.datum), upload: e.datum };
           gesetzt++;
         }
         speichere();

@@ -29,6 +29,9 @@ import * as kpi from "./lib/kpi.js";
 import * as kpiDrive from "./lib/kpi-drive-lesen.js";
 import * as gcal from "./lib/gcal.js";
 import * as zip from "./lib/zip.js";
+import * as prompts from "./lib/promptstore.js";
+import * as workflows from "./lib/workflowstore.js";
+import * as wfRegister from "./lib/workflows.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -38,8 +41,14 @@ const TOKEN_FILE = join(DATA_DIR, "tokens.json");
 const DEFAULTS_FILE = join(DATA_DIR, "defaults.json");
 const PLAN_FILE = join(DATA_DIR, "plan.json");
 const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
+const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
+const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
+
+// Die beiden Ablagen kennen ihren Pfad nicht von selbst — hier bekommt jede ihren (v26).
+prompts.setzePfad(PROMPTS_FILE);
+workflows.setzePfad(WORKFLOWS_FILE);
 
 // --- .env laden (ohne dotenv-Paket) --------------------------------------
 async function ladeEnv() {
@@ -387,9 +396,14 @@ async function handler(req, res) {
     // ---- KI --------------------------------------------------------------
 
     if (pfad === "/api/ai" && req.method === "POST") {
-      const { task, card, provider = "claude", ollamaModel = "llama3.2" } = JSON.parse(await readBody(req));
-      const bauen = ki.AUFGABEN[task];
-      if (!bauen) {
+      const {
+        task,
+        card,
+        provider = "ollama",
+        ollamaModel = "llama3.2",
+        claudeModell = ki.CLAUDE_MODELL_STANDARD,
+      } = JSON.parse(await readBody(req));
+      if (!ki.PROMPTS[task]) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
       }
@@ -399,12 +413,14 @@ async function handler(req, res) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
-        const userMsg = kontextBlock + "\n\n---\n\n" + bauen(card || {});
+        // v26: Prompt und Vorspann kommen aus der Ablage — Bens Fassung, sonst die Vorlage.
+        const system = await prompts.systemPrompt();
+        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}));
         let text;
         if (provider === "ollama") {
-          text = await ki.runOllama(ki.MARKE_REGELN, userMsg, ollamaModel);
+          text = await ki.runOllama(system, userMsg, ollamaModel);
         } else {
-          text = await ki.runClaude(ki.MARKE_REGELN + userMsg);
+          text = await ki.runClaude(system + userMsg, { modell: claudeModell });
         }
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         sendJson(res, 200, { text, data });
@@ -416,9 +432,14 @@ async function handler(req, res) {
 
     // Gleiche Aufgabe, aber der Text kommt live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"}.
     if (pfad === "/api/ai/stream" && req.method === "POST") {
-      const { task, card, provider = "claude", ollamaModel = "llama3.2" } = JSON.parse(await readBody(req));
-      const bauen = ki.AUFGABEN[task];
-      if (!bauen) {
+      const {
+        task,
+        card,
+        provider = "ollama",
+        ollamaModel = "llama3.2",
+        claudeModell = ki.CLAUDE_MODELL_STANDARD,
+      } = JSON.parse(await readBody(req));
+      if (!ki.PROMPTS[task]) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
       }
@@ -434,18 +455,22 @@ async function handler(req, res) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
-        const userMsg = kontextBlock + "\n\n---\n\n" + bauen(card || {});
+        const system = await prompts.systemPrompt();
+        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}));
         let text;
         if (provider === "ollama") {
-          text = await ki.runOllamaStream(ki.MARKE_REGELN, userMsg, ollamaModel, (delta) => {
+          text = await ki.runOllamaStream(system, userMsg, ollamaModel, (delta) => {
             if (delta) schreib({ t: "delta", text: delta });
           });
         } else {
-          const prompt = ki.MARKE_REGELN + userMsg;
-          text = await ki.runClaudeStream(prompt, (delta, status) => {
-            if (delta) schreib({ t: "delta", text: delta });
-            if (status) schreib({ t: "status", text: status });
-          });
+          text = await ki.runClaudeStream(
+            system + userMsg,
+            (delta, status) => {
+              if (delta) schreib({ t: "delta", text: delta });
+              if (status) schreib({ t: "status", text: status });
+            },
+            { modell: claudeModell }
+          );
         }
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         schreib({ t: "done", text, data });
@@ -453,6 +478,53 @@ async function handler(req, res) {
         schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e, provider) });
       }
       res.end();
+      return;
+    }
+
+    // Die waehlbaren Claude-Modelle — eine Wahrheit, sie steht in lib/ai.js (v26).
+    if (pfad === "/api/ai/modelle" && req.method === "GET") {
+      sendJson(res, 200, { claude: ki.CLAUDE_MODELLE, standard: ki.CLAUDE_MODELL_STANDARD });
+      return;
+    }
+
+    // ---- System Prompts (v26) --------------------------------------------
+    // Was hinter jedem KI-Knopf steht: Vorlage, Bens Fassung, Platzhalter-Legende.
+
+    if (pfad === "/api/prompts" && req.method === "GET") {
+      sendJson(res, 200, {
+        ...(await prompts.uebersicht()),
+        claudeModelle: ki.CLAUDE_MODELLE,
+        claudeModellStandard: ki.CLAUDE_MODELL_STANDARD,
+      });
+      return;
+    }
+
+    if (pfad === "/api/prompts" && req.method === "PUT") {
+      const { id, text } = JSON.parse(await readBody(req));
+      try {
+        await prompts.setze(id, text);
+        sendJson(res, 200, await prompts.uebersicht());
+      } catch (e) {
+        sendJson(res, 400, { error: e.message });
+      }
+      return;
+    }
+
+    // ---- Workflows (v26) -------------------------------------------------
+    // Alle Automationen des Boards: einsehbar, abschaltbar, mit Parametern.
+
+    if (pfad === "/api/workflows" && req.method === "GET") {
+      sendJson(res, 200, { workflows: await workflows.uebersicht() });
+      return;
+    }
+
+    if (pfad === "/api/workflows" && req.method === "PUT") {
+      const { id, an, params } = JSON.parse(await readBody(req));
+      try {
+        sendJson(res, 200, { workflows: await workflows.setze(id, { an, params }) });
+      } catch (e) {
+        sendJson(res, 400, { error: e.message });
+      }
       return;
     }
 
@@ -1040,8 +1112,20 @@ const tls = await ladeTls();
 const server = createHttpsServer(tls, handler);
 // --- Auto-Shutdown nach 1 Stunde Inaktivitaet ----------------------------
 
-const IDLE_LIMIT_MS = 60 * 60 * 1000;
+// v26: Schalter und Leerlauf-Dauer kommen aus dem Workflow-Register (data/workflows.json).
+// Beim Start einmal gelesen — der Hinweis im UI sagt, dass eine Aenderung erst beim naechsten
+// Start greift.
+let idleAn = true;
+let IDLE_LIMIT_MS = 60 * 60 * 1000;
 let letzteAktivitaet = Date.now();
+
+(async () => {
+  try {
+    const config = await workflows.lies();
+    idleAn = wfRegister.istAn(config, "auto-shutdown");
+    IDLE_LIMIT_MS = wfRegister.param(config, "auto-shutdown", "leerlaufMinuten") * 60 * 1000;
+  } catch { /* ohne Datei gilt der Standard oben */ }
+})();
 
 function aktivitaetGemeldet() {
   letzteAktivitaet = Date.now();
@@ -1064,8 +1148,9 @@ async function ollamaEntladen() {
 }
 
 setInterval(async () => {
+  if (!idleAn) return;
   if (Date.now() - letzteAktivitaet >= IDLE_LIMIT_MS) {
-    console.log("Auto-Shutdown: 1 Stunde keine Aktivitaet.");
+    console.log(`Auto-Shutdown: ${Math.round(IDLE_LIMIT_MS / 60000)} Minuten keine Aktivitaet.`);
     await ollamaEntladen();
     process.exit(0);
   }

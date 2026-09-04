@@ -1,6 +1,7 @@
 // Zustand und Serverzugriff. Alles, was mehrere Ansichten teilen, steht hier — genau einmal.
 
-import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster } from "/lib/pipeline.js";
+import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster, rueckwaertsplan } from "/lib/pipeline.js";
+import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
 
 export const S = {
   version: 1,
@@ -15,7 +16,63 @@ export const S = {
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN },
+  workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
 };
+
+// --- Workflows (v26) ------------------------------------------------------
+//
+// Jede Automation fragt vor ihrer Wirkung `an(id)`. Ein ausgeschalteter Workflow laeuft damit
+// wirklich nicht mehr — ein Schalter ohne Wirkung waere eine Luege im UI.
+
+export const an = (id) => wfIstAn(S.workflows, id);
+export const stellschraube = (id, key) => wfParam(S.workflows, id, key);
+
+export async function ladeWorkflows() {
+  try {
+    const d = await hole("/api/workflows");
+    S.workflows = {};
+    for (const w of d.workflows || []) {
+      S.workflows[w.id] = {
+        an: w.an,
+        params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
+      };
+    }
+    return d.workflows || [];
+  } catch {
+    return []; // ohne Antwort gelten die Standards des Registers
+  }
+}
+
+export async function setzeWorkflow(id, { an: schalter, params } = {}) {
+  const d = await hole("/api/workflows", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id, an: schalter, params }),
+  });
+  S.workflows = {};
+  for (const w of d.workflows || []) {
+    S.workflows[w.id] = {
+      an: w.an,
+      params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
+    };
+  }
+  return d.workflows || [];
+}
+
+// --- System Prompts (v26) -------------------------------------------------
+
+export const promptsHolen = () => hole("/api/prompts");
+
+export const promptSetzen = (id, text) =>
+  hole("/api/prompts", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id, text }),
+  });
+
+// Schnitt- und Freigabetermin aus dem Upload-Datum — Workflow "rueckwaertsplan" (v26).
+// Ausgeschaltet bleibt nur das Upload-Datum stehen, die abgeleiteten Termine entfallen.
+export const terminplan = (uploadDatum) => (an("rueckwaertsplan") ? rueckwaertsplan(uploadDatum) : {});
 
 const abonnenten = new Set();
 export const beiAenderung = (f) => abonnenten.add(f);
@@ -86,10 +143,15 @@ export async function ladeBoard() {
   gcalStatus().then((s) => { S.googleVerbunden = !!s.verbunden; }).catch(() => {});
 }
 
-// Ohne Drehtermin in den naechsten 30 Tagen den Sonntag der Folgewoche setzen (auto).
+// Ohne Drehtermin im Vorlauf-Fenster den Sonntag der Folgewoche setzen (auto).
 // speichere() schreibt ihn zurueck; ein zweites Fenster faengt der Versions-Lock ab.
+// Workflow "auto-drehtermin" — abschaltbar, Fenster einstellbar (v26).
 function pruefeAutoDreh() {
-  const datum = autoDrehNoetig(S.drehtermine);
+  if (!an("auto-drehtermin")) return;
+  const heute = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const heuteIso = `${heute.getFullYear()}-${p(heute.getMonth() + 1)}-${p(heute.getDate())}`;
+  const datum = autoDrehNoetig(S.drehtermine, heuteIso, stellschraube("auto-drehtermin", "vorlaufTage"));
   if (!datum) return;
   const t = leereDrehtermin(datum, "");
   t.auto = true;
@@ -241,13 +303,16 @@ export const videoHochladen = (k, datei) => dateiHochladen(k, datei, "fertig");
 
 // --- KI -------------------------------------------------------------------
 
+// Standard ist Ollama: laeuft lokal, kostet keine Token. Wer auf Claude umstellt, bekommt
+// standardmaessig Haiku — schnellste Antwort, kleinster Verbrauch (v26).
 function kiKonfig() {
   try {
     return {
-      provider: localStorage.getItem("cm-ai-provider") || "claude",
+      provider: localStorage.getItem("cm-ai-provider") || "ollama",
       ollamaModel: localStorage.getItem("cm-ollama-model") || "llama3.2",
+      claudeModell: localStorage.getItem("cm-claude-modell") || "haiku",
     };
-  } catch { return { provider: "claude", ollamaModel: "llama3.2" }; }
+  } catch { return { provider: "ollama", ollamaModel: "llama3.2", claudeModell: "haiku" }; }
 }
 
 export async function ki(task, nutzlast) {
@@ -460,6 +525,7 @@ export async function gcalSync(terminId) {
 // Zugang oder ein API-Fehler darf die lokale Aktion NIE blockieren.
 const syncInFlight = new Map();
 export function autoSync(terminId) {
+  if (!an("gcal-autosync")) return; // Workflow "gcal-autosync" (v26)
   if (!S.googleVerbunden || !terminId) return;
   const prev = syncInFlight.get(terminId) || Promise.resolve();
   const next = prev.catch(() => {}).then(() => gcalSync(terminId)).catch(() => {})
@@ -469,6 +535,7 @@ export function autoSync(terminId) {
 
 // Loescht Event + Task eines Termins (beim Loeschen auf dem Board).
 export async function gcalLoeschen(t) {
+  if (!an("gcal-autosync")) return; // Workflow "gcal-autosync" (v26)
   if (!S.googleVerbunden || !t || (!t.gcalEventId && !t.gtaskId)) return;
   try {
     await hole("/api/gcal/loeschen", {

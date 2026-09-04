@@ -380,7 +380,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle"]) {
+  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle", "System Prompts", "Workflows"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -442,26 +442,30 @@ export function einstellungenModal(onThemeChange) {
   kiLabel.textContent = "KI-Anbieter";
   kiAbschnitt.appendChild(kiLabel);
 
+  // Standard ist Ollama: lokal und ohne Token-Verbrauch (v26).
   let aktuellerProvider;
-  try { aktuellerProvider = localStorage.getItem("cm-ai-provider") || "claude"; } catch { aktuellerProvider = "claude"; }
+  try { aktuellerProvider = localStorage.getItem("cm-ai-provider") || "ollama"; } catch { aktuellerProvider = "ollama"; }
   let aktuellesModell;
   try { aktuellesModell = localStorage.getItem("cm-ollama-model") || "llama3.2"; } catch { aktuellesModell = "llama3.2"; }
+  let aktuellesClaudeModell;
+  try { aktuellesClaudeModell = localStorage.getItem("cm-claude-modell") || "haiku"; } catch { aktuellesClaudeModell = "haiku"; }
 
   const providerOptionen = [
+    {
+      id: "ollama",
+      label: "Ollama (lokal · kostenlos)",
+      sub: "Standard · kein Token-Verbrauch · läuft auf deinem Rechner · install: winget install Ollama.Ollama",
+    },
     {
       id: "claude",
       label: "Claude (via CLI)",
       sub: "Läuft über dein Claude-Abo · keine separate Installation",
     },
-    {
-      id: "ollama",
-      label: "Ollama (lokal · kostenlos)",
-      sub: "Kein Token-Verbrauch · läuft auf deinem Rechner · install: winget install Ollama.Ollama",
-    },
   ];
   const providerReihe = document.createElement("div");
   providerReihe.className = "einst-provider-reihe";
   let ollamaKonfig;
+  let claudeKonfig;
 
   for (const opt of providerOptionen) {
     const label = document.createElement("label");
@@ -487,6 +491,8 @@ export function einstellungenModal(onThemeChange) {
       label.classList.add("aktiv");
       try { localStorage.setItem("cm-ai-provider", opt.id); } catch {}
       if (ollamaKonfig) ollamaKonfig.style.display = opt.id === "ollama" ? "flex" : "none";
+      if (claudeKonfig) claudeKonfig.style.display = opt.id === "claude" ? "flex" : "none";
+      if (opt.id === "ollama") ladeModelle();
     });
     providerReihe.appendChild(label);
   }
@@ -501,12 +507,26 @@ export function einstellungenModal(onThemeChange) {
   ladeZeile.className = "einst-ping-zeile";
   const ladeBtn = document.createElement("button");
   ladeBtn.className = "chip";
-  ladeBtn.textContent = "Modelle laden";
+  ladeBtn.textContent = "Neu suchen";
   const ladeStatus = document.createElement("div");
   ladeStatus.className = "einst-ping-status";
-  ladeStatus.textContent = "↑ Klicken um installierte Modelle zu laden";
+  ladeStatus.textContent = "Suche installierte Modelle …";
   ladeZeile.appendChild(ladeBtn);
   ladeZeile.appendChild(ladeStatus);
+
+  // Ist nichts installiert (oder Ollama laeuft nicht), zeigt das Board die Befehle, die es
+  // in Gang bringen — statt den Nutzer raten zu lassen (v26, Owner-Auftrag 04.09.2026).
+  const hilfe = document.createElement("div");
+  hilfe.className = "einst-ollama-hilfe";
+  hilfe.hidden = true;
+  hilfe.innerHTML =
+    `<div class="einst-label">So bekommst du ein Modell</div>` +
+    `<p class="einst-provider-sub">Nacheinander im Terminal ausfuehren. Das 14b-Modell reicht ` +
+    `fuer Hooks und Captions und laeuft auf schwaecherer Hardware; 32b schreibt merklich besser, ` +
+    `braucht aber mehr Speicher.</p>` +
+    `<pre class="einst-befehl">winget install Ollama.Ollama</pre>` +
+    `<pre class="einst-befehl">ollama pull qwen2.5:14b</pre>` +
+    `<pre class="einst-befehl">ollama pull qwen2.5:32b</pre>`;
 
   const modellWahl = document.createElement("select");
   modellWahl.className = "einst-modell-select";
@@ -521,8 +541,9 @@ export function einstellungenModal(onThemeChange) {
 
   async function ladeModelle() {
     ladeBtn.disabled = true;
-    ladeStatus.textContent = "Verbinde mit Ollama…";
+    ladeStatus.textContent = "Suche installierte Modelle …";
     modellWahl.style.display = "none";
+    hilfe.hidden = true;
     try {
       const res = await fetch("/api/ai/ping-ollama", {
         method: "POST",
@@ -532,9 +553,11 @@ export function einstellungenModal(onThemeChange) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       if (!d.ok) {
-        ladeStatus.textContent = `❌ Ollama nicht erreichbar – läuft es? (Taskleisten-Icon oder: ollama serve)`;
+        ladeStatus.textContent = "❌ Ollama laeuft nicht — starte es ueber das Taskleisten-Icon oder mit „ollama serve“.";
+        hilfe.hidden = false;
       } else if (!d.modelle || d.modelle.length === 0) {
-        ladeStatus.textContent = `⚠️ Verbunden, aber kein Modell installiert. Terminal: ollama pull qwen2.5:32b`;
+        ladeStatus.textContent = "⚠️ Ollama laeuft, aber es ist kein Modell installiert.";
+        hilfe.hidden = false;
       } else {
         const gespeichert = (() => { try { return localStorage.getItem("cm-ollama-model") || ""; } catch { return ""; } })();
         modellWahl.innerHTML = "";
@@ -551,7 +574,8 @@ export function einstellungenModal(onThemeChange) {
         ladeStatus.textContent = `✅ ${d.modelle.length} Modell${d.modelle.length !== 1 ? "e" : ""} gefunden`;
       }
     } catch {
-      ladeStatus.textContent = "❌ Verbindung fehlgeschlagen – Server neu starten?";
+      ladeStatus.textContent = "❌ Verbindung fehlgeschlagen — laeuft der Server noch?";
+      hilfe.hidden = false;
     } finally {
       ladeBtn.disabled = false;
     }
@@ -561,7 +585,44 @@ export function einstellungenModal(onThemeChange) {
 
   ollamaKonfig.appendChild(ladeZeile);
   ollamaKonfig.appendChild(modellWahl);
+  ollamaKonfig.appendChild(hilfe);
   kiAbschnitt.appendChild(ollamaKonfig);
+
+  // Claude-Modell (v26): dieselbe Auswahl-Logik wie bei Ollama, nur mit fester Liste.
+  // Standard ist Haiku — schnellste Antwort und der kleinste Verbrauch.
+  claudeKonfig = document.createElement("div");
+  claudeKonfig.className = "einst-ollama-konfig";
+  claudeKonfig.style.display = aktuellerProvider === "claude" ? "flex" : "none";
+  {
+    const hinweis = document.createElement("div");
+    hinweis.className = "einst-ping-status";
+    hinweis.textContent = "Welches Claude-Modell die Knoepfe benutzen:";
+    const wahl = document.createElement("select");
+    wahl.className = "einst-modell-select";
+    wahl.addEventListener("change", () => {
+      try { localStorage.setItem("cm-claude-modell", wahl.value); } catch {}
+    });
+    // Die Liste steht in lib/ai.js und kommt von dort — nicht hier zweitgeschrieben.
+    fetch("/api/ai/modelle")
+      .then((r) => r.json())
+      .then((d) => {
+        wahl.innerHTML = "";
+        for (const m of d.claude || []) {
+          const o = document.createElement("option");
+          o.value = m.id;
+          o.textContent = `${m.name} — ${m.sub}`;
+          if (m.id === aktuellesClaudeModell) o.selected = true;
+          wahl.appendChild(o);
+        }
+        if (!wahl.value && (d.claude || []).length) wahl.value = d.standard || d.claude[0].id;
+      })
+      .catch(() => {
+        hinweis.textContent = "Die Modell-Liste liess sich nicht laden — laeuft der Server?";
+      });
+    claudeKonfig.appendChild(hinweis);
+    claudeKonfig.appendChild(wahl);
+  }
+  kiAbschnitt.appendChild(claudeKonfig);
   seite2.appendChild(kiAbschnitt);
 
   // --- Seite 3: Externe Dienste (v24) ---
@@ -812,30 +873,73 @@ export function einstellungenModal(onThemeChange) {
       "3. Client-ID + Secret unten eintragen. Produkte: Community Management / Organization Social.",
   });
 
+  // Seite 5: System Prompts — was hinter jedem KI-Knopf steht (v26).
+  const seite5 = document.createElement("div");
+  seite5.className = "einst-seite";
+  const titel5 = document.createElement("div");
+  titel5.className = "einst-titel";
+  titel5.textContent = "System Prompts";
+  seite5.appendChild(titel5);
+  const hint5 = document.createElement("p");
+  hint5.className = "einst-provider-sub";
+  hint5.textContent =
+    "Der Vorspann geht in jeden Aufruf, darunter steht je Knopf der Prompt, den er ausloest. " +
+    "Text in {{doppelten Klammern}} setzt das Board beim Aufruf ein — die Legende darunter sagt, was.";
+  seite5.appendChild(hint5);
+  const promptListe = document.createElement("div");
+  promptListe.className = "einst-prompt-liste";
+  promptListe.textContent = "Lade …";
+  seite5.appendChild(promptListe);
+
+  // Seite 6: Workflows — alle Automationen des Boards (v26).
+  const seite6 = document.createElement("div");
+  seite6.className = "einst-seite";
+  const titel6 = document.createElement("div");
+  titel6.className = "einst-titel";
+  titel6.textContent = "Workflows";
+  seite6.appendChild(titel6);
+  const hint6 = document.createElement("p");
+  hint6.className = "einst-provider-sub";
+  hint6.textContent =
+    "Alles, was das Board von selbst tut. Ein ausgeschalteter Workflow laeuft wirklich nicht mehr.";
+  seite6.appendChild(hint6);
+  const wfListe = document.createElement("div");
+  wfListe.className = "einst-wf-liste";
+  wfListe.textContent = "Lade …";
+  seite6.appendChild(wfListe);
+
   rechts.appendChild(seite1);
   rechts.appendChild(seite2);
   rechts.appendChild(seite3);
   rechts.appendChild(seite4);
+  rechts.appendChild(seite5);
+  rechts.appendChild(seite6);
 
   // --- Tab-Switching ---
-  const seiten = [seite1, seite2, seite3, seite4];
+  const seiten = [seite1, seite2, seite3, seite4, seite5, seite6];
+  let promptsGeladen = false;
+  let wfGeladen = false;
   navItems.forEach((btn, i) => {
     btn.addEventListener("click", () => {
       navItems.forEach((b) => b.classList.remove("aktiv"));
       seiten.forEach((s) => s.classList.remove("aktiv"));
       btn.classList.add("aktiv");
       seiten[i].classList.add("aktiv");
+      // Prompts und Workflows brauchen mehr Breite als die uebrigen Tabs.
+      box.classList.toggle("breit", i >= 4);
       // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
-      if (i === 1 && aktuellerProvider === "ollama") ladeModelle();
+      // Verbindungen-Tab: das Board sucht die Ollama-Modelle immer selbst (v26).
+      if (i === 1) ladeModelle();
       // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
       if (i === 2 || i === 3) ladeVerbStatus();
+      if (i === 4 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
+      if (i === 5 && !wfGeladen) { wfGeladen = true; zeichneWorkflows(wfListe); }
     });
   });
 
-  // Wenn Ollama bereits Standard ist, beim ersten Öffnen des Modals sofort laden
-  if (aktuellerProvider === "ollama") {
-    setTimeout(() => ladeModelle(), 50);
-  }
+  // Das Board sucht die installierten Modelle immer selbst — der Nutzer soll nicht erst
+  // einen Knopf finden muessen (v26, Owner-Auftrag 04.09.2026).
+  setTimeout(() => ladeModelle(), 50);
 
   box.appendChild(links);
   box.appendChild(rechts);
@@ -851,6 +955,264 @@ export function einstellungenModal(onThemeChange) {
   overlay.appendChild(box);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) zu(); });
   document.body.appendChild(overlay);
+}
+
+// --- Tab „System Prompts" (v26) -------------------------------------------
+//
+// Ein Block je KI-Knopf: der Prompt im Textfeld, die Platzhalter-Legende darunter, Speichern
+// und Zuruecksetzen. Leerer Text heisst „wieder die Vorlage" — deshalb loescht Zuruecksetzen
+// den Eintrag, statt den Standard hineinzukopieren.
+
+function promptBlock(eintrag, offen) {
+  const box = document.createElement("details");
+  box.className = "einst-prompt";
+  box.open = !!offen;
+
+  const kopf = document.createElement("summary");
+  kopf.className = "einst-prompt-kopf";
+  const titel = eintrag.knopf ? `Knopf „${eintrag.knopf}"` : eintrag.name;
+  kopf.innerHTML =
+    `<span class="einst-prompt-titel">${escape(titel)}</span>` +
+    `<span class="einst-prompt-ort">${escape(eintrag.ort || "")}</span>` +
+    `<span class="einst-prompt-marke"></span>`;
+  box.appendChild(kopf);
+  const marke = kopf.querySelector(".einst-prompt-marke");
+
+  if (eintrag.hinweis) {
+    const h = document.createElement("p");
+    h.className = "einst-provider-sub";
+    h.textContent = eintrag.hinweis;
+    box.appendChild(h);
+  }
+
+  const feld = document.createElement("textarea");
+  feld.className = "einst-prompt-feld";
+  feld.rows = 14;
+  feld.spellcheck = false;
+  feld.value = eintrag.eigen || eintrag.vorlage;
+  box.appendChild(feld);
+
+  const schluessel = Object.keys(eintrag.platzhalter || {});
+  if (schluessel.length) {
+    const legende = document.createElement("div");
+    legende.className = "einst-prompt-legende";
+    legende.innerHTML =
+      `<div class="einst-label">Platzhalter</div>` +
+      schluessel
+        .map(
+          (k) =>
+            `<div class="einst-prompt-platzhalter"><code>{{${escape(k)}}}</code>` +
+            `<span>${escape(eintrag.platzhalter[k])}</span></div>`
+        )
+        .join("");
+    box.appendChild(legende);
+  }
+
+  const zeile = document.createElement("div");
+  zeile.className = "einst-ping-zeile";
+  const speichern = document.createElement("button");
+  speichern.className = "chip";
+  speichern.textContent = "Speichern";
+  const zuruecksetzen = document.createElement("button");
+  zuruecksetzen.className = "chip";
+  zuruecksetzen.textContent = "Auf Standard zuruecksetzen";
+  const status = document.createElement("div");
+  status.className = "einst-ping-status";
+  zeile.appendChild(speichern);
+  zeile.appendChild(zuruecksetzen);
+  zeile.appendChild(status);
+  box.appendChild(zeile);
+
+  const zeigeStand = () => {
+    const geaendert = feld.value !== eintrag.vorlage;
+    marke.textContent = geaendert ? "geaendert" : "Standard";
+    marke.classList.toggle("aktiv", geaendert);
+    zuruecksetzen.disabled = !geaendert;
+  };
+  zeigeStand();
+  feld.addEventListener("input", zeigeStand);
+
+  async function schicke(text) {
+    speichern.disabled = true;
+    zuruecksetzen.disabled = true;
+    status.textContent = "Speichere …";
+    try {
+      const res = await fetch("/api/prompts", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: eintrag.id, text }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      eintrag.eigen = text;
+      feld.value = text || eintrag.vorlage;
+      status.textContent = text ? "✅ Gespeichert — gilt ab dem naechsten Aufruf." : "✅ Zurueck auf die Vorlage.";
+    } catch {
+      status.textContent = "❌ Speichern fehlgeschlagen — laeuft der Server?";
+    } finally {
+      speichern.disabled = false;
+      zeigeStand();
+    }
+  }
+
+  speichern.addEventListener("click", () => schicke(feld.value === eintrag.vorlage ? "" : feld.value));
+  zuruecksetzen.addEventListener("click", () => schicke(""));
+  return box;
+}
+
+async function zeichnePrompts(ziel) {
+  ziel.textContent = "Lade …";
+  let d;
+  try {
+    const res = await fetch("/api/prompts");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    d = await res.json();
+  } catch {
+    ziel.textContent = "Die Prompts liessen sich nicht laden — laeuft der Server?";
+    return;
+  }
+  ziel.innerHTML = "";
+
+  ziel.appendChild(promptBlock(d.system, true));
+
+  const mitKnopf = (d.aufgaben || []).filter((a) => a.knopf);
+  const ohneKnopf = (d.aufgaben || []).filter((a) => !a.knopf);
+
+  const t1 = document.createElement("div");
+  t1.className = "einst-label";
+  t1.textContent = `Knoepfe mit KI-Funktion (${mitKnopf.length})`;
+  ziel.appendChild(t1);
+  for (const a of mitKnopf) ziel.appendChild(promptBlock(a, false));
+
+  if (ohneKnopf.length) {
+    const t2 = document.createElement("div");
+    t2.className = "einst-label";
+    t2.textContent = `Prompts ohne Knopf (${ohneKnopf.length})`;
+    ziel.appendChild(t2);
+    const h = document.createElement("p");
+    h.className = "einst-provider-sub";
+    h.textContent = "Diese Prompts sind fertig, es gibt im UI aber noch keinen Knopf dafuer.";
+    ziel.appendChild(h);
+    for (const a of ohneKnopf) ziel.appendChild(promptBlock(a, false));
+  }
+}
+
+// --- Tab „Workflows" (v26) ------------------------------------------------
+
+function workflowBlock(w, nachAenderung) {
+  const box = document.createElement("div");
+  box.className = "einst-abschnitt einst-wf";
+
+  const kopf = document.createElement("label");
+  kopf.className = "einst-wf-kopf";
+  const schalter = document.createElement("input");
+  schalter.type = "checkbox";
+  schalter.checked = !!w.an;
+  const name = document.createElement("span");
+  name.className = "einst-label";
+  name.textContent = w.name;
+  kopf.appendChild(schalter);
+  kopf.appendChild(name);
+  box.appendChild(kopf);
+
+  const saetze = document.createElement("p");
+  saetze.className = "einst-provider-sub";
+  saetze.innerHTML =
+    `<b>Wenn:</b> ${escape(w.ausloeser)}<br><b>Dann:</b> ${escape(w.wirkung)}`;
+  box.appendChild(saetze);
+
+  if (w.warnung) {
+    const warn = document.createElement("p");
+    warn.className = "einst-wf-warnung";
+    warn.textContent = w.warnung;
+    box.appendChild(warn);
+  }
+
+  const status = document.createElement("div");
+  status.className = "einst-ping-status";
+  status.textContent = w.an ? "laeuft" : "aus";
+
+  for (const p of w.params || []) {
+    const zeile = document.createElement("div");
+    zeile.className = "einst-wf-param";
+    const lbl = document.createElement("span");
+    lbl.textContent = p.label + (p.einheit ? ` (${p.einheit})` : "");
+    zeile.appendChild(lbl);
+    let eingabe;
+    if (p.typ === "schalter") {
+      eingabe = document.createElement("input");
+      eingabe.type = "checkbox";
+      eingabe.checked = !!p.wert;
+    } else {
+      eingabe = document.createElement("input");
+      eingabe.type = "number";
+      eingabe.value = p.wert;
+      if (p.min !== undefined) eingabe.min = p.min;
+      if (p.max !== undefined) eingabe.max = p.max;
+    }
+    eingabe.className = "einst-wf-eingabe";
+    eingabe.addEventListener("change", async () => {
+      const wert = p.typ === "schalter" ? eingabe.checked : Number(eingabe.value);
+      status.textContent = "Speichere …";
+      const ok = await nachAenderung(w.id, { params: { [p.key]: wert } });
+      status.textContent = ok ? "✅ gespeichert" : "❌ nicht gespeichert";
+    });
+    zeile.appendChild(eingabe);
+    if (p.hinweis) {
+      const h = document.createElement("span");
+      h.className = "einst-wf-hinweis";
+      h.textContent = p.hinweis;
+      zeile.appendChild(h);
+    }
+    box.appendChild(zeile);
+  }
+
+  const fuss = document.createElement("div");
+  fuss.className = "einst-wf-fuss";
+  fuss.innerHTML = `<code>${escape(w.ort)}</code>`;
+  fuss.appendChild(status);
+  box.appendChild(fuss);
+
+  schalter.addEventListener("change", async () => {
+    status.textContent = "Speichere …";
+    const ok = await nachAenderung(w.id, { an: schalter.checked });
+    status.textContent = ok ? (schalter.checked ? "✅ laeuft" : "✅ aus") : "❌ nicht gespeichert";
+    if (!ok) schalter.checked = !schalter.checked;
+  });
+
+  return box;
+}
+
+async function zeichneWorkflows(ziel) {
+  ziel.textContent = "Lade …";
+  let liste;
+  try {
+    const res = await fetch("/api/workflows");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    liste = (await res.json()).workflows || [];
+  } catch {
+    ziel.textContent = "Die Workflows liessen sich nicht laden — laeuft der Server?";
+    return;
+  }
+
+  // Speichern und den Stand im laufenden Board sofort nachziehen, ohne Neuladen.
+  const speichere = async (id, aenderung) => {
+    try {
+      const res = await fetch("/api/workflows", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, ...aenderung }),
+      });
+      if (!res.ok) return false;
+      const { ladeWorkflows } = await import("./store.js");
+      await ladeWorkflows();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  ziel.innerHTML = "";
+  for (const w of liste) ziel.appendChild(workflowBlock(w, speichere));
 }
 
 export function escape(s) {
