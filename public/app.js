@@ -122,6 +122,32 @@ el("einstellungen").addEventListener("click", () => {
   einstellungenModal((theme) => setzeTheme(theme));
 });
 
+// --- Kopf-Menue: Seltenes hinter einem Knopf, statt staendig sichtbar -----
+
+{
+  const knopfEl = el("kopf-menu-knopf");
+  const listeEl = el("kopf-menu-liste");
+  const schliesse = () => {
+    listeEl.hidden = true;
+    knopfEl.setAttribute("aria-expanded", "false");
+  };
+  knopfEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const offen = !listeEl.hidden;
+    listeEl.hidden = offen;
+    knopfEl.setAttribute("aria-expanded", String(!offen));
+  });
+  listeEl.addEventListener("click", (e) => {
+    if (e.target.closest(".kopf-menu-item")) schliesse();
+  });
+  document.addEventListener("click", (e) => {
+    if (!listeEl.hidden && !e.target.closest(".kopf-menu")) schliesse();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") schliesse();
+  });
+}
+
 // --- Start ----------------------------------------------------------------
 
 (async () => {

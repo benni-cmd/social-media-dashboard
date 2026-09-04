@@ -12,14 +12,13 @@ import {
   sperren,
   saeuleName,
   plattformName,
-  contenttypName,
   wochenlast,
   saeulenVerteilung,
   INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen } from "./store.js";
-import { icon, statusChip, escape, knopf, leer } from "./ui.js";
+import { statusChip, escape, knopf, leer } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
@@ -45,10 +44,6 @@ export function kachel(k) {
   el.draggable = true;
   el.dataset.saeule = k.kategorie || "";
 
-  const untertitel = k.serie
-    ? `${k.serie} · Episode ${k.episode || "?"} · ${contenttypName(k.contenttyp || "reel")}`
-    : `Einzelvideo · ${contenttypName(k.contenttyp || "reel")}`;
-
   const marken = [];
   if (k.kategorie) marken.push(`<span class="marke">${escape(saeuleName(k.kategorie))}</span>`);
   for (const p of k.platforms || [])
@@ -56,35 +51,21 @@ export function kachel(k) {
 
   const f = faelligkeit(k);
   const offen = offenePunkte(k);
-  const stand = S.driveStand.get(k.id);
 
   // Was aufhaelt, hat Vorrang vor dem Termin — sonst sieht die Karte gruen aus, obwohl
-  // sie nicht weiterkann.
-  const statusZeile = offen.length
-    ? statusChip(offen[0].status) +
-      `<span>${escape(
-        offen.length === 1
-          ? offen[0].satz
-          : `${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`
-      )}</span>`
-    : statusChip(f.status) + `<span>${escape(f.satz)}</span>`;
-
-  // Der Ordnername gehoert nicht abgeschnitten auf die Kachel — abgeschnitten ist er ein
-  // Fragment. Auf die Kachel kommt der Zustand, der volle Name in den Hinweistext.
-  const driveZeichen = k.driveName
-    ? `<span class="eintrag-fuss-rechts" title="${escape(
-        stand && stand.vorhanden ? stand.satz : `Der Ordner heisst "${k.driveName}".`
-      )}">${icon("ordner")}<span>${
-        stand && stand.vorhanden === false ? "Ordner fehlt" : "in Drive"
-      }</span></span>`
-    : "";
+  // sie nicht weiterkann. Die Kachel zeigt nur noch den Punkt; Wort und Satz stehen in der
+  // Detailspalte, damit die Uebersicht knapp bleibt und trotzdem nichts verschwindet.
+  const statusCode = offen.length ? offen[0].status : f.status;
+  const statusSatz = offen.length
+    ? offen.length === 1
+      ? offen[0].satz
+      : `${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`
+    : f.satz;
 
   el.innerHTML =
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
-    `<div class="eintrag-untertitel">${escape(untertitel)}</div>` +
     (marken.length ? `<div class="eintrag-marken">${marken.join("")}</div>` : "") +
-    `<div class="eintrag-status">${statusZeile}</div>` +
-    (driveZeichen ? `<div class="eintrag-fuss">${driveZeichen}</div>` : "");
+    `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
 
   el.addEventListener("click", () => oeffne(k.id));
   el.addEventListener("dragstart", (e) => {
