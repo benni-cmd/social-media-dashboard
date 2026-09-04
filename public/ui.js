@@ -926,8 +926,9 @@ export function einstellungenModal(onThemeChange) {
       seiten.forEach((s) => s.classList.remove("aktiv"));
       btn.classList.add("aktiv");
       seiten[i].classList.add("aktiv");
-      // Prompts und Workflows brauchen mehr Breite als die uebrigen Tabs.
-      box.classList.toggle("breit", i >= 4);
+      // v29: Das Fenster hat fuer jeden Tab dieselbe Groesse (public/einstellungen.css).
+      // Frueher wurde hier auf „breit" umgeschaltet — das liess das Fenster bei jedem Klick
+      // springen und half den vier schmalen Tabs nicht, die dadurch abgeschnitten waren.
       // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
       // Verbindungen-Tab: das Board sucht die Ollama-Modelle immer selbst (v26).
       if (i === 1) ladeModelle();

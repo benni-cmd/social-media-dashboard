@@ -1,0 +1,128 @@
+/* Geometrie des Einstellungsfensters (v29).
+ *
+ * WARUM eine eigene Datei: die Groessenregeln standen in style.css, an der zur Zeit eine
+ * parallele Sitzung arbeitet (Retro-Look). Wer style.css committet, nimmt deren unfertige
+ * Arbeit mit. Diese Datei wird in index.html NACH style.css geladen und ueberschreibt nur die
+ * Groessen — Farben, Rahmen und Formen bleiben dort, wo sie sind.
+ *
+ * Die Regel dahinter: der Inhalt richtet sich nach dem Fenster, nicht das Fenster nach dem
+ * Inhalt. Sonst springt das Fenster bei jedem Klick in der linken Liste — vorher reichte die
+ * Hoehe von 260 bis 863 Pixel, und der Tab „Social Media Kanäle" ragte oben und unten aus dem
+ * Bild, ohne dass man scrollen konnte.
+ *
+ * Sobald style.css frei ist: die alten .einstellungen-modal-Groessenregeln dort loeschen,
+ * damit es nur eine Stelle gibt (offener Punkt in docs/packages/v29-…md).
+ */
+
+.modal-overlay:has(.einstellungen-modal) {
+  padding: 24px;
+}
+
+.einstellungen-modal {
+  /* Eine Groesse fuer alle sechs Tabs. */
+  width: 920px;
+  max-width: 92vw;
+  height: 78vh;
+  min-height: 520px;
+  max-height: 860px;
+
+  flex-direction: row;
+  padding: 0;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Auf kleinen Fenstern zaehlt der Platz mehr als die Mindesthoehe. */
+@media (max-height: 600px) {
+  .einstellungen-modal {
+    height: calc(100vh - 48px);
+    min-height: 0;
+  }
+}
+
+/* Linke Liste: feste Breite, scrollt bei Bedarf fuer sich. */
+.einstellungen-modal .einst-nav {
+  flex: 0 0 176px;
+  border-right: 1px solid var(--linie);
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.einstellungen-modal .einst-nav-item {
+  padding: 9px 16px;
+  line-height: 1.35;
+}
+
+/* Inhaltsspalte: das Einzige, was scrollt. `min-height: 0` ist Pflicht — ohne das waechst ein
+ * Flex-Kind ueber seinen Container hinaus, statt zu scrollen. */
+.einstellungen-modal .einst-inhalt {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 22px 26px 26px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Der Schliessen-Knopf sitzt ueber der scrollenden Spalte, nicht in ihr. */
+.einstellungen-modal .einst-schliessen {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+}
+
+/* Die Ueberschrift laesst rechts Platz fuer den Schliessen-Knopf. */
+.einstellungen-modal .einst-titel {
+  padding-right: 34px;
+}
+
+/* Eingabefelder fuellen die Spalte, statt in willkuerlichen Breiten zu stehen. */
+.einstellungen-modal .einst-inhalt input[type="text"],
+.einstellungen-modal .einst-inhalt input[type="password"],
+.einstellungen-modal .einst-inhalt select,
+.einstellungen-modal .einst-inhalt textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Kurze Auswahlreihen (Theme, Datenquelle) wachsen nicht auf die volle Spaltenbreite —
+ * zwei Knoepfe ueber 740 Pixel zu ziehen macht sie nicht besser lesbar, nur breiter. */
+.einstellungen-modal .einst-theme-reihe {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 460px;
+}
+.einstellungen-modal .einst-theme-option {
+  flex: 1 1 200px;
+}
+
+/* Die Anbieter-Karten und die Dienst-Abschnitte bekommen eine lesbare Zeilenlaenge. */
+.einstellungen-modal .einst-provider-reihe,
+.einstellungen-modal .einst-ollama-konfig,
+.einstellungen-modal .einst-ollama-hilfe {
+  max-width: 620px;
+}
+
+/* Lange Anleitungen und Pfade brechen um, statt die Spalte breiter zu machen. */
+.einstellungen-modal .einst-inhalt code,
+.einstellungen-modal .einst-inhalt pre {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Die Sonderbreite der Prompt-/Workflow-Tabs ist mit der einheitlichen Groesse hinfaellig. */
+.einstellungen-modal.breit {
+  width: 920px;
+  max-width: 92vw;
+}
+.einstellungen-modal.breit .einst-inhalt {
+  max-height: none;
+}
