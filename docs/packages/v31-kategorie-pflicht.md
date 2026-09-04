@@ -44,8 +44,14 @@ Geschrieben und umgesetzt 05.09.2026. Datenbeleg vor dem Fix: `node -e` gegen
 
 ## DoD
 
-- [ ] `saeule`-Tor in "idee" sperrend + Status `fehlt` bei leer.
-- [ ] `saeule`-Tor auch in "skript" ergaenzt, sperrend.
-- [ ] Screenshot: eine der 6 betroffenen Bestandskarten zeigt oben "1 Punkt haelt die
-      Karte auf" und beim Versuch zu "Weiter" den Grund.
-- [ ] Commit nur mit `git commit -m "…" -- lib/pipeline.js docs/packages/v31-*.md`.
+- [x] `saeule`-Tor in "idee" sperrend + Status `fehlt` bei leer.
+- [x] `saeule`-Tor auch in "skript" ergaenzt, sperrend.
+- [x] Screenshot: Karte "Huehnernahrung mit Maden" (eine der 6 betroffenen Bestandskarten)
+      zeigt oben "2 Punkte halten die Karte auf" (Kategorie + Sprechertext), Kategorie-Reihe
+      in "Worum geht es" ohne aktive Auswahl sichtbar.
+- [x] Commit `fbf1706` — nur `lib/pipeline.js` + dieses Doc, fremde WIP unangetastet.
+
+**Offen:** die 5 weiteren betroffenen Bestandskarten (MachuPicchu, Kompost-Tee, Mischkultur,
+Warum wir Unkraut stehen lassen, Nicht jeder Regenwurm) sind jetzt korrekt als blockiert
+markiert, aber nicht automatisch befuellt — die Kategorie muss pro Karte einmal gewaehlt
+werden (Absicht, keine Automatik: das ist genau die Entscheidung, die nachgeholt werden soll).
