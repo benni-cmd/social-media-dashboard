@@ -119,9 +119,16 @@ gesetzt -> erste schwebende Karte rutschte automatisch auf 8.9., die zweite auf 
 keine Kollision zwischen den schwebenden Karten, `schwebendeNeuBerechnen()` rechnet bei jedem
 Lauf alle schwebenden Karten komplett neu statt inkrementell zu patchen.
 
-pipeline.js: nur die zwei v30-Hunks (naechsteFreieSlots, floatUpload) wurden per
-`git apply --cached` gezielt gestaged — ein fremder, unfertiger Ampel-Schwellen-Hunk (v29)
-blieb absichtlich uncommitted in der Datei stehen.
+**Korrektur (nach Commit festgestellt):** Der Versuch, in pipeline.js nur die zwei
+v30-Hunks per `git apply --cached` gezielt zu staged, ist NICHT wie beabsichtigt aufgegangen —
+`git commit -- lib/pipeline.js ...` in diesem Workspace committet fuer benannte Pfade den
+WORKING-TREE-Stand (nicht den Index-Stand), genau wie CLAUDE.md es beschreibt ("Pruefkommando
+ist `git diff HEAD -- <pfad>`, nicht `--cached`"). Dadurch ist der fremde Ampel-Schwellen-Hunk
+(v29, andere Session, unveraendert korrekter Code) ungewollt MIT in Commit `bb93689`
+gelandet — die urspruengliche Commit-Botschaft, er bleibe uncommitted, ist falsch. Inhaltlich
+harmlos (der Ampel-Code ist fertig, korrekt, Owner-abgesegnet) — aber die andere v29-Session
+sollte wissen, dass dieser Teil ihrer Arbeit schon unter einer fremden Commit-Botschaft
+gesichert ist, damit sie ihn nicht doppelt committet.
 
 ## DoD
 
