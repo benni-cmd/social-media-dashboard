@@ -1,6 +1,10 @@
 // Zustand und Serverzugriff. Alles, was mehrere Ansichten teilen, steht hier — genau einmal.
 
-import { migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster, rueckwaertsplan } from "/lib/pipeline.js";
+import {
+  migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
+  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots,
+} from "/lib/pipeline.js";
+import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
 import { feuere } from "./workflowengine.js";
 
@@ -166,6 +170,7 @@ export async function ladeBoard() {
   S.spalten = Array.isArray(daten.spalten) ? daten.spalten : [];
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   pruefeAutoDreh();
+  await schwebendeNeuBerechnen(); // v30: schwebende Karten bei jedem Laden neu verteilen
   zeichne();
   // Google-Verbindungsstand fuer den Auto-Sync cachen (nicht blockierend).
   gcalStatus().then((s) => { S.googleVerbunden = !!s.verbunden; }).catch(() => {});
@@ -433,6 +438,61 @@ export async function slotBelegen(slotId, karteId) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ slotId, karteId }),
   });
+}
+
+// --- Forecast: schwebende Upload-Termine (v30) -----------------------------
+//
+// Eine Karte mit floatUpload===true traegt kein getipptes Datum, sondern "den naechsten
+// freien Slot" — verschiebt sich automatisch, sobald eine andere, explizit datierte Karte
+// diesen Slot belegt. Lauf: bei jedem Board-Laden (ladeBoard) und nach jeder Datums-relevanten
+// Aenderung (Aufrufer in detail.js/nachschub.js). Stabile Reihenfolge: erst Phase (phaseIndex),
+// dann die bestehende Reihenfolge in S.cards (entspricht der Spalten-Position).
+//
+// Schreibt ganz normal ueber terminplan(datum)+upload in k.dates (wie nachschub.js/detail.js
+// es bei jedem anderen Termin auch tun) — faelligkeit(), tore(), wochenlast(), Kalender und
+// KPI-Planung lesen dieselben Felder und brauchen keinen Sonderfall.
+export async function schwebendeNeuBerechnen() {
+  const schwebend = S.cards
+    .filter((c) => c.floatUpload && c.column !== "fertig" && c.column !== "verworfen")
+    .sort((a, b) => phaseIndex(a.column) - phaseIndex(b.column)); // stabiler Sort (Array#sort)
+
+  if (!schwebend.length) return false;
+
+  const plan = await ladePlan();
+  const heute = new Date();
+  const heuteIso = isoDatum(heute);
+  const rohSlots = [];
+  for (let delta = 0; delta < 2; delta++) {
+    const year = heute.getFullYear() + Math.floor((heute.getMonth() + delta) / 12);
+    const month = (heute.getMonth() + delta) % 12;
+    rohSlots.push(...slotsForMonth(plan, year, month));
+  }
+  const alleSlots = rohSlots
+    .filter((s) => s.datum >= heuteIso)
+    .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit || "").localeCompare(b.uhrzeit || ""));
+
+  // Belegt ist jedes Upload-Datum einer NICHT-schwebenden Karte — schwebende Karten selbst
+  // duerfen sich nicht gegenseitig blockieren, bevor sie neu verteilt sind.
+  const schwebendIds = new Set(schwebend.map((c) => c.id));
+  const belegt = new Set(
+    S.cards
+      .filter((c) => c.column !== "verworfen" && !schwebendIds.has(c.id) && (c.dates || {}).upload)
+      .map((c) => c.dates.upload + "|" + (c.uploadTime || ""))
+  );
+
+  let geaendert = false;
+  for (const k of schwebend) {
+    const frei = naechsteFreieSlots(alleSlots, belegt, 1)[0];
+    if (!frei) continue; // kein freier Slot in den naechsten 2 Monaten — Datum bleibt stehen
+    belegt.add(frei.datum + "|" + (frei.uhrzeit || ""));
+    if (k.dates.upload !== frei.datum || (k.uploadTime || "") !== (frei.uhrzeit || "")) {
+      k.dates = { ...terminplan(frei.datum), upload: frei.datum };
+      k.uploadTime = frei.uhrzeit || "";
+      geaendert = true;
+    }
+  }
+  if (geaendert) speichere();
+  return geaendert;
 }
 
 // --- Drehtermine ----------------------------------------------------------

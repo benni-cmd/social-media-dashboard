@@ -7,10 +7,10 @@
 
 import {
   INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, saeulenVerteilung, MASSE,
-  contenttypName, kategorieName, contenttypFormat, zielInfo,
+  contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
-import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan, schwebendeNeuBerechnen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -48,7 +48,7 @@ export async function holeIdee() {
   );
   // Ein freier Redaktionsplan-Slot ist ein Bonus (belegt das Upload-Datum vor), aber KEINE
   // Voraussetzung: ohne Slot entsteht eine reine Idee-Karte ohne Termin (spaeter planbar).
-  const slot = alleSlots.find((s) => !belegteUploads.has(s.datum + "|" + (s.uhrzeit || ""))) || null;
+  const slot = naechsteFreieSlots(alleSlots, belegteUploads, 1)[0] || null;
 
   return new Promise((resolve) => {
     const abgelehnt = []; // sitzungslokale Ablehnliste — verhindert Wiederholungen im Prompt
@@ -171,6 +171,8 @@ export async function holeIdee() {
       zeigeLaden(`Lege „${k.title}" an und erstelle den Drive-Ordner …`);
       try {
         await speichere();
+        // Der neue Slot kann eine schwebende Karte verdraengt haben (v30) — neu rechnen.
+        if (slot) { await schwebendeNeuBerechnen(); zeichne(); }
         await driveAnlegen(k); // erst beim Uebernehmen: Drive-Ordner + (AI only)/projekt.json
         meldung(`Idee „${k.title}" als Karte und Drive-Ordner angelegt.`, "erfolg");
       } catch (e) {
@@ -274,6 +276,9 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
           } catch {
             meldung("Slot konnte nicht belegt werden.", "fehler");
           }
+          // Die neu belegten Slots koennen schwebende Karten verdraengt haben (v30).
+          await schwebendeNeuBerechnen();
+          zeichne();
         }
 
         meldung(
@@ -362,7 +367,7 @@ function zeigePlan(plan, hinweis, anker) {
     knopf("Plan uebernehmen", {
       art: "haupt",
       zeichen: "kalender",
-      klick: () => {
+      klick: async () => {
         let neu = 0;
         let gesetzt = 0;
         for (const e of plan) {
@@ -381,6 +386,8 @@ function zeigePlan(plan, hinweis, anker) {
           gesetzt++;
         }
         speichere();
+        // Die frisch gesetzten Termine koennen schwebende Karten verdraengt haben (v30).
+        if (gesetzt) await schwebendeNeuBerechnen();
         zeichne();
         setStand(
           `${gesetzt} Veroeffentlichungen terminiert, davon ${neu} als neue Karten. Mindestens ${MASSE.postsProWocheMin} je Woche sind das Ziel.`

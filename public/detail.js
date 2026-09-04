@@ -63,6 +63,7 @@ import {
   stellschraube,
   terminplan,
   feuere,
+  schwebendeNeuBerechnen,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -397,41 +398,49 @@ function blockTermine(k, merke) {
   satz.innerHTML = statusChip(f.status) + `<span class="befund-satz">${escape(f.satz)}</span>`;
   box.appendChild(satz);
 
-  const hatUpload = (k.dates || {}).upload;
-  if (hatUpload) {
-    const zeile = document.createElement("div");
-    zeile.className = "termin-kompakt";
-    zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatUpload)}</strong>${k.uploadTime ? ` · ${k.uploadTime}` : ""}</span>`;
-    const bearbeiten = knopf("bearbeiten", {
-      zeichen: "kalender",
-      klick: () => {
-        modalKalender(
-          "Upload-Datum aendern",
-          "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-          fensterFuerTyp(k.contenttyp || ""),
-          (datum, zeit) => {
-            merke("dates", einfacherPlan(datum), true);
-            if (zeit) merke("uploadTime", zeit, false);
-            setStand(`Upload am ${deutschesDatum(datum)}.`);
-          }
-        );
-      },
-    });
-    bearbeiten.classList.add("knopf-inline");
-    zeile.appendChild(bearbeiten);
-    box.appendChild(zeile);
+  box.appendChild(floatSchalter(k, merke));
+
+  if (k.floatUpload) {
+    box.appendChild(schwebendAnzeige(k));
   } else {
-    const uZeile = document.createElement("div");
-    uZeile.className = "feld-reihe";
-    const uDatum = eingabe("", { typ: "date" });
-    uDatum.addEventListener("change", () => setzeTermin(k, "upload", uDatum.value, merke));
-    uZeile.appendChild(feld("Veroeffentlichung", uDatum));
-    const uZeit = eingabe(k.uploadTime || "", { typ: "time" });
-    uZeit.addEventListener("change", () => merke("uploadTime", uZeit.value, true));
-    const zf = feld("Uhrzeit", uZeit);
-    zf.classList.add("feld-schmal");
-    uZeile.appendChild(zf);
-    box.appendChild(uZeile);
+    const hatUpload = (k.dates || {}).upload;
+    if (hatUpload) {
+      const zeile = document.createElement("div");
+      zeile.className = "termin-kompakt";
+      zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatUpload)}</strong>${k.uploadTime ? ` · ${k.uploadTime}` : ""}</span>`;
+      const bearbeiten = knopf("bearbeiten", {
+        zeichen: "kalender",
+        klick: () => {
+          modalKalender(
+            "Upload-Datum aendern",
+            "Dreh wird automatisch 2 Wochen vorher gesetzt.",
+            fensterFuerTyp(k.contenttyp || ""),
+            async (datum, zeit) => {
+              merke("dates", einfacherPlan(datum), false);
+              if (zeit) merke("uploadTime", zeit, false);
+              setStand(`Upload am ${deutschesDatum(datum)}.`);
+              await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
+              zeichne();
+            }
+          );
+        },
+      });
+      bearbeiten.classList.add("knopf-inline");
+      zeile.appendChild(bearbeiten);
+      box.appendChild(zeile);
+    } else {
+      const uZeile = document.createElement("div");
+      uZeile.className = "feld-reihe";
+      const uDatum = eingabe("", { typ: "date" });
+      uDatum.addEventListener("change", () => setzeTermin(k, "upload", uDatum.value, merke));
+      uZeile.appendChild(feld("Veroeffentlichung", uDatum));
+      const uZeit = eingabe(k.uploadTime || "", { typ: "time" });
+      uZeit.addEventListener("change", () => merke("uploadTime", uZeit.value, true));
+      const zf = feld("Uhrzeit", uZeit);
+      zf.classList.add("feld-schmal");
+      uZeile.appendChild(zf);
+      box.appendChild(uZeile);
+    }
   }
 
   g.appendChild(box);
@@ -456,6 +465,19 @@ function blockTermine(k, merke) {
   details.appendChild(plan);
 
   for (const t of TERMINE) {
+    if (t.key === "dreh") {
+      // B1 (v30): kein zweites, roh editierbares Dreh-Datum mehr — das kann den zugeordneten
+      // Drehtermin unbemerkt ueberschreiben, ohne ihn zu loesen oder zu syncen. Zugeordnet:
+      // das Datum steht schon oben im Block "Drehtermin", hier keine eigene Zeile. Sonst ein
+      // Hinweis statt eines Feldes — genau EINE Stelle im UI kann ein Dreh-Datum erzeugen.
+      if (!k.drehterminId) {
+        const hinweis = document.createElement("p");
+        hinweis.className = "feld-hinweis";
+        hinweis.textContent = "Kein Drehtermin zugeordnet — im Block „Drehtermin“ oben zuordnen oder neu anlegen.";
+        details.appendChild(hinweis);
+      }
+      continue;
+    }
     const zeile = document.createElement("div");
     zeile.className = "feld-reihe";
     const datum = eingabe((k.dates || {})[t.key] || "", { typ: "date" });
@@ -555,6 +577,15 @@ function blockDrehtermin(k) {
 function blockTermineIdee(k, merke) {
   const g = gruppe("Termin", null, true);
   const box = document.createElement("div");
+
+  box.appendChild(floatSchalter(k, merke));
+
+  if (k.floatUpload) {
+    box.appendChild(schwebendAnzeige(k));
+    g.appendChild(box);
+    return g;
+  }
+
   const hatDatum = (k.dates || {}).upload;
 
   if (hatDatum) {
@@ -569,10 +600,12 @@ function blockTermineIdee(k, merke) {
           "Upload-Datum aendern",
           "Dreh wird automatisch 2 Wochen vorher gesetzt.",
           fensterFuerTyp(k.contenttyp || ""),
-          (datum, zeit) => {
-            merke("dates", einfacherPlan(datum), true);
+          async (datum, zeit) => {
+            merke("dates", einfacherPlan(datum), false);
             if (zeit) merke("uploadTime", zeit, false);
             setStand(`Upload am ${deutschesDatum(datum)}.`);
+            await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
+            zeichne();
           }
         );
       },
@@ -608,6 +641,7 @@ function blockTermineIdee(k, merke) {
           slotBelegen(naechster.id, k.id).catch(() => {
             meldung("Slot konnte nicht belegt werden.", "fehler");
           });
+          await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
           zeichne();
           meldung(`Upload am ${deutschesDatum(naechster.datum)} geplant.`, "erfolg");
         });
@@ -631,10 +665,12 @@ function blockTermineIdee(k, merke) {
         "Wann soll das Video veroeffentlicht werden?",
         "Dreh wird automatisch 2 Wochen vorher gesetzt.",
         fensterFuerTyp(k.contenttyp || ""),
-        (datum, zeit) => {
-          merke("dates", einfacherPlan(datum), true);
+        async (datum, zeit) => {
+          merke("dates", einfacherPlan(datum), false);
           if (zeit) merke("uploadTime", zeit, false);
           setStand(`Upload am ${deutschesDatum(datum)}.`);
+          await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
+          zeichne();
         }
       );
     });
@@ -651,7 +687,50 @@ function setzeTermin(k, key, wert, merke) {
   const neu = { ...(k.dates || {}) };
   if (wert) neu[key] = wert;
   else delete neu[key];
-  merke("dates", neu, true);
+  merke("dates", neu, key === "upload" ? false : true);
+  // Ein explizit gesetztes Upload-Datum kann eine schwebende Karte verdraengt haben (v30).
+  if (key === "upload") schwebendeNeuBerechnen().then(zeichne);
+}
+
+// v30: Checkbox "Naechsten freien Upload-Termin" — an: die Karte traegt kein getipptes
+// Datum mehr, sondern zeigt den live berechneten Slot (schwebendAnzeige). Aus: das zuletzt
+// berechnete Datum bleibt als expliziter Wert stehen (k.dates.upload wurde bereits beim
+// letzten Lauf von schwebendeNeuBerechnen() geschrieben) — die Karte steht nie ohne Datum da.
+function floatSchalter(k, merke) {
+  const reihe = document.createElement("div");
+  reihe.className = "schalterreihe";
+  const an = !!k.floatUpload;
+  const l = document.createElement("label");
+  l.className = "schalter" + (an ? " an" : "");
+  l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>Naechsten freien Upload-Termin</span>`;
+  l.querySelector("input").addEventListener("change", async (e) => {
+    const checked = e.target.checked;
+    merke("floatUpload", checked, false);
+    if (checked) await schwebendeNeuBerechnen();
+    zeichne();
+  });
+  reihe.appendChild(l);
+  return reihe;
+}
+
+// v30: Read-only-Zeile fuer eine schwebende Karte — kein Datumsfeld, sondern der live
+// berechnete Stand (statusChip + Satz, kein nackter Wert ohne Kontext).
+function schwebendAnzeige(k) {
+  const wrap = document.createElement("div");
+  wrap.className = "befund";
+  const datum = (k.dates || {}).upload;
+  if (datum) {
+    wrap.innerHTML =
+      statusChip("hinweis") +
+      `<span class="befund-satz">Wuerde jetzt gepostet am ${escape(deutschesDatum(datum))}` +
+      `${k.uploadTime ? ` um ${escape(k.uploadTime)} Uhr` : ""} — rutscht automatisch weiter, ` +
+      `sobald eine andere Karte den Termin belegt.</span>`;
+  } else {
+    wrap.innerHTML =
+      statusChip("fehlt") +
+      `<span class="befund-satz">Kein freier Redaktionsplan-Slot in den naechsten zwei Monaten gefunden.</span>`;
+  }
+  return wrap;
 }
 
 // Aufklappbarer Unterblock — Sekundaeres ausblenden, ohne es zu verlieren.
@@ -1184,7 +1263,7 @@ function uploadZone(k, opt) {
   const zone = document.createElement("div");
   zone.className = "upload-zone";
   zone.innerHTML =
-    `<div class="upload-zone-inner">${icon("pfeil-hoch")}` +
+    `<div class="upload-zone-inner knopf-symbol knopf-symbol-ordner">${icon("ordner")}` +
     `<p><strong>${escape(opt.titel)}</strong><br>oder klicken zum Auswaehlen</p></div>`;
 
   const feldEingabe = document.createElement("input");
