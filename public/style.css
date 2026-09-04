@@ -36,6 +36,14 @@
   --rund-klein: 7px;
   --schatten: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06);
 
+  /* Regel Schatten/Radius (v23-2): --rund + --schatten fuer kompakte Zusammenfassungs-Karten,
+     die direkt auf der Grundflaeche liegen (kpi, bester, rang, letzte-zeile, vergleich-karte,
+     kanal, modal). --rund-klein OHNE Schatten fuer alles, was in einem bereits umrandeten
+     Container sitzt (Board-Kachel .eintrag in .spalte, .drehkachel in .drehleiste,
+     .termin-kachel/.gruppe in .detail) — der Container traegt die Abgrenzung schon, ein
+     zweiter Schatten waere doppelt. .spalte selbst bleibt ohne Schatten: sie ist der
+     Container, keine Zusammenfassungs-Karte. */
+
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   color-scheme: light;
@@ -487,7 +495,16 @@ body {
 }
 
 .spalte {
-  flex: 0 0 272px;
+  /* v23-2 (F4): flexibel statt starr 272px — nutzt freien Platz bei wenigen Spalten,
+     schrumpft bis min-width bei vielen. Loest den Horizontal-Scroll bei der vollen
+     8-Phasen-Pipeline (idee..verworfen) NICHT vollstaendig: acht Spalten mit lesbarem
+     Kacheltext brauchen mehr als eine typische Fensterbreite. Ein echter Fix braucht
+     einklappbare/seltene Endspalten (z. B. "Fertig", "Verworfen" auf Namen+Zahl reduziert)
+     — bewusst nicht in diesem Paket umgesetzt, siehe DoD/Offen.
+  */
+  flex: 1 1 260px;
+  min-width: 230px;
+  max-width: 320px;
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: var(--rund);
@@ -1160,7 +1177,9 @@ body {
   padding: 2px;
 }
 
-/* Auswertungs-Kacheln */
+/* Auswertungs-Kacheln (v23-2: .zahl/.zahlenreihe sind unbenutzt — auswertung.js baut die
+   KPI-Reihe laengst mit .kpi/.kpi-reihe weiter unten. Hier stehen gelassen statt geloescht,
+   um den Umbau nicht zu vergroessern; kein neuer Code sollte .zahl mehr verwenden.) */
 .zahlenreihe {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1611,6 +1630,7 @@ body {
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: var(--rund);
+  box-shadow: var(--schatten);
   padding: 13px 14px;
   display: flex;
   flex-direction: column;
