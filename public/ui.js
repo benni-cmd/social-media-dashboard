@@ -363,11 +363,15 @@ export function auswahl(optionen, wert, { leerText = null } = {}) {
 }
 
 // Unbestimmte Fortschritts-Leiste. Gibt die Entfern-Funktion zurueck.
+// v32 E: traegt jetzt die drehende Sanduhr vor dem Text — damit JEDE Fortschritt-Stelle
+// (Abgleich, Upload, Ordner anlegen, Drive-Speichern) denselben „hier passiert gerade was"-
+// Indikator zeigt wie der Rest der App.
 export function fortschritt(container, text) {
   const box = document.createElement("div");
   box.className = "fortschritt";
   box.innerHTML =
-    `<span class="fortschritt-text">${escape(text || "Einen Moment …")}</span>` +
+    `<span class="fortschritt-kopf"><span class="lade-sanduhr-icon">${icon("sanduhr")}</span>` +
+    `<span class="fortschritt-text">${escape(text || "Einen Moment …")}</span></span>` +
     `<span class="fortschritt-schiene"><span class="fortschritt-balken"></span></span>`;
   container.appendChild(box);
   return () => box.remove();

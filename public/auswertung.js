@@ -15,7 +15,7 @@
 import { zielInfo, plattformName } from "/lib/pipeline.js";
 import { S, instagramZahlen, linkedinZahlen, zeichne } from "./store.js";
 import { zeichneKalender } from "./kalender.js";
-import { icon, statusChip, escape, knopf, leer, gruppe, fortschritt } from "./ui.js";
+import { icon, statusChip, escape, knopf, leer, gruppe, sanduhr } from "./ui.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
@@ -54,8 +54,17 @@ export async function zeichneAuswertung(el) {
   );
   el.appendChild(kopf);
 
+  // v32 E: Beim Holen der Zahlen die drehende Sanduhr zeigen (nicht mehr nur einen Balken) —
+  // derselbe „hier passiert gerade was"-Indikator wie ueberall sonst.
+  const ladeMarke = (text) => {
+    const w = document.createElement("div");
+    w.style.cssText = "padding:18px 11px";
+    w.appendChild(sanduhr(text));
+    el.appendChild(w);
+    return () => w.remove();
+  };
   if (S.zahlen === null) {
-    const weg = fortschritt(el, "Hole die Zahlen von Instagram …");
+    const weg = ladeMarke("Hole die Zahlen von Instagram …");
     try {
       S.zahlen = await instagramZahlen();
     } catch (e) {
@@ -64,7 +73,7 @@ export async function zeichneAuswertung(el) {
     weg();
   }
   if (S.zahlenLi === null) {
-    const weg = fortschritt(el, "Hole die Zahlen von LinkedIn …");
+    const weg = ladeMarke("Hole die Zahlen von LinkedIn …");
     try {
       S.zahlenLi = await linkedinZahlen();
     } catch (e) {

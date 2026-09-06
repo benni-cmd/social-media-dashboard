@@ -1191,6 +1191,11 @@ body {
   gap: 6px;
   padding: 9px 0;
 }
+.fortschritt-kopf {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
 .fortschritt-text {
   font-size: 12px;
   color: var(--text-still);

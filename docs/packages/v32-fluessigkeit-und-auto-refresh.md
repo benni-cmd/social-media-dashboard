@@ -250,6 +250,23 @@ laufen soll — Owner-Entscheidung ueber Ausloeser/Intervalle) — beide bewusst
 spekulativer, `server.js` ist von der Parallel-Session (v33) umkaempft, und C2 traegt
 Staleness-Risiken. Als eigenstaendige Schritte vormerken.
 
+### Gruppe E erweitert: Auswertung + alle Fortschritt-Stellen (05.09.2026, Owner „wirklich ueberall")
+
+- **Auswertung** (`auswertung.js`): beim Holen der IG-/LI-Zahlen jetzt die drehende Sanduhr statt
+  eines blossen Fortschrittsbalkens.
+- **Gemeinsame `fortschritt`-Komponente** (`ui.js`): traegt jetzt die Sanduhr vor dem Text —
+  damit tragen ALLE Fortschritt-Stellen sie automatisch: Drive-Abgleich (Kopf), Datei-Upload,
+  Projektordner-anlegen, „Speichere nach Drive". Ein Griff, alle Stellen.
+
+**Verify (live, Server 4323):** Wechsel auf Auswertung → Sanduhr „Hole die Zahlen von
+Instagram …" sichtbar, danach weg. `fortschritt`-Komponente per Import gerendert → Sanduhr
+(`sanduhr-dreht 1.8s`) + Text + Balken, Screenshot erstellt.
+
+**Bewusst NICHT bestueckt:** die „Lade …"/„Speichere …"-Texte im Einstellungsfenster
+(prompts/workflows/kontext-Listen) — liegen im von v33 umkaempften `einstellungenModal`; klein
+und sekundaer. Ebenso die haeufigen kurzen `setStand("Speichere …")` (wuerden bei jedem Save
+flackern). Bei Bedarf spaeter.
+
 ## DoD
 
 - [x] Owner hat ausgewaehlt: Gruppe A.
