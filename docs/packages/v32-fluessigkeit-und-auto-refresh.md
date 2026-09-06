@@ -281,9 +281,34 @@ zweiter (Cache) **2 ms**. `frisch=1` umgeht den Cache (**2376 ms** echter Scan),
 **2 ms** (Cache vom frischen Scan neu gefuellt). Invalidierung bei Mutationen code-seitig
 (scanCacheWeg/scanCacheLeeren an den vier Stellen).
 
-**Offen (C3, Owner-Entscheidung):** WANN ein Voll-Abgleich automatisch laufen soll — Vorschlag
-liegt dem Owner vor (Hintergrund-Abgleich beim Start; KEIN Voll-Abgleich beim Beenden, stattdessen
-Flush der offenen Spiegelungen; gedrosselter Intervall waehrend die App offen ist; Button bleibt).
+### Gruppe C3 umgesetzt + verifiziert (06.09.2026, Owner-Entscheidung)
+
+Owner-Wahl: Abgleich beim Start + alle 30 Min (nicht 10), Flush beim Beenden (kein voller
+Abgleich), Button bleibt.
+
+- **Start + Intervall** (`app.js`, `store.js`): nach dem Board-Laden ein Voll-Abgleich im
+  HINTERGRUND (nicht blockierend — der Start haengt/leert nie), danach alle 30 Min, aber nur
+  wenn das Fenster im Vordergrund ist. `driveAbgleich` teilt einen laufenden Abgleich
+  (`abgleichLaeuft`/In-Flight-Promise), sodass Start/Intervall/Button sich nicht ueberlagern.
+- **Flush beim Beenden** statt vollem Abgleich (der waere im 400ms-Fenster bis `process.exit`
+  ohnehin abgeschnitten): (a) Client (`app.js`-Slider) schreibt den lokalen Stand erst durch
+  (`await speichere()`), dann `/api/shutdown`; (b) Server (`server.js`) merkt sich die offenen
+  Hintergrund-Spiegelungen (seit C1) und bringt sie beim Beenden zu Ende (mit 8s-Zeitgrenze,
+  damit ein haengender rclone nicht ewig blockiert).
+
+**Warum Flush reicht (Owner-Frage „Unterschied Flush vs. Abgleich; gehen Skripte verloren?"):**
+Flush = nur die letzten LOKALEN Aenderungen nach Drive schreiben (Board→Drive, billig). Voller
+Abgleich = ganze Drive-Struktur lesen und das Board daran heilen (Drive→Board, teuer). Verloren
+geht nichts: Skripte werden schon beim Speichern DIREKT nach Drive geschrieben (`/api/drive/save`
+wartet auf den Schreibvorgang), board.json ist lokal die persistierte Wahrheit, und der Abgleich
+hat einen Schnellpfad (`projects.js:297`) — Karten in ihrer Phase werden uebersprungen, „Drive
+gewinnt" nur bei einer Hand-Verschiebung/-Umbenennung in Drive.
+
+**Verify (live, Server 4325):** Start feuert `POST /api/drive/reconcile` (genau einer — Dedup
+greift). Board laedt (8 Spalten, 17 Karten), Slider mechanisch intakt. Slider ueber Schwelle:
+`PUT /api/board` (Flush) kommt VOR `/api/shutdown` (Reihenfolge belegt), Server beendet sauber
+(exit 0, Log „Shutdown via UI ausgeloest."). Flush-WARTE-Zweig (offene Spiegelung beim Beenden)
+nur code-verifiziert — mangels Karten-Mutation im Test nicht zur Laufzeit ausgeloest.
 
 ## DoD
 

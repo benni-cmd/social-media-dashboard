@@ -1,7 +1,7 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
 import { PHASEN } from "/lib/pipeline.js";
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, driveStatus, ladeDefaults, ladeWorkflows } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
@@ -253,9 +253,14 @@ function verdrahteShutdownSlider() {
     if (ratio >= SCHWELLE) {
       track.classList.add("ausgeloest");
       handle.style.transform = `translateX(${maxX}px)`;
-      track.querySelector(".shutdown-label").textContent = "wird beendet …";
+      track.querySelector(".shutdown-label").textContent = "sichert & beendet …";
       track.querySelector(".shutdown-label").style.opacity = "1";
-      fetch("/api/shutdown", { method: "POST" })
+      // v32 C3 (Flush): erst den lokalen Stand durchschreiben (offene, debouncte Speicherung),
+      // dann beenden — der Server bringt danach die letzte Drive-Spiegelung zu Ende. So steht
+      // der letzte Stand sicher in board.json UND in Drive, bevor der Prozess endet.
+      Promise.resolve(speichere())
+        .catch(() => {})
+        .then(() => fetch("/api/shutdown", { method: "POST" }))
         .then(() => { setTimeout(() => window.close(), 600); })
         .catch(() => { meldung("Server antwortet nicht – CMD-Fenster manuell schließen.", "fehler"); });
     } else {
@@ -356,4 +361,20 @@ try {
     .catch(() => {
       meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler");
     });
+
+  // --- Hintergrund-Abgleich (v32 C3) ---------------------------------------
+  //
+  // Das Board steht sofort aus dem schnellen Cache; ein Voll-Abgleich mit Drive holt
+  // Hand-Aenderungen (in Drive verschobene/umbenannte Ordner) still nach — NICHT blockierend,
+  // damit der Start nie wieder haengt/leer aussieht. Beim Start einmal und danach alle 30 Min,
+  // aber nur wenn das Fenster im Vordergrund ist (kein Sinn, im Hintergrund rclone zu treiben).
+  // `driveAbgleich` teilt einen laufenden Abgleich, ein Fehler bleibt still (Board fuehrt).
+  function hintergrundAbgleich() {
+    if (abgleichLaeuft()) return;
+    driveAbgleich().catch(() => {});
+  }
+  hintergrundAbgleich();
+  setInterval(() => {
+    if (document.visibilityState === "visible") hintergrundAbgleich();
+  }, 30 * 60 * 1000);
 })();

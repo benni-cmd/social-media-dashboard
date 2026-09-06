@@ -312,14 +312,28 @@ export async function driveSpeichern(k, dateiname, inhalt) {
   });
 }
 
-export async function driveAbgleich() {
-  const ergebnis = await hole("/api/drive/reconcile", { method: "POST" });
-  S.cards = (ergebnis.cards || []).map(migriere);
-  if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
-  S.version = ergebnis.version;
-  S.driveStand.clear();
-  zeichne();
-  return ergebnis;
+// Ein laufender Abgleich wird geteilt (v32 C3): Start-, Intervall- und Button-Abgleich duerfen
+// sich nicht ueberlagern — der zweite Aufrufer bekommt dasselbe laufende Promise.
+let abgleichInFlight = null;
+export function abgleichLaeuft() {
+  return !!abgleichInFlight;
+}
+export function driveAbgleich() {
+  if (abgleichInFlight) return abgleichInFlight;
+  abgleichInFlight = (async () => {
+    try {
+      const ergebnis = await hole("/api/drive/reconcile", { method: "POST" });
+      S.cards = (ergebnis.cards || []).map(migriere);
+      if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
+      S.version = ergebnis.version;
+      S.driveStand.clear();
+      zeichne();
+      return ergebnis;
+    } finally {
+      abgleichInFlight = null;
+    }
+  })();
+  return abgleichInFlight;
 }
 
 // Spalte umbenennen (v17b): benennt den Drive-Ordner mit und aktualisiert die Spalten-Wahrheit.

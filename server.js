@@ -125,6 +125,12 @@ async function schreibeBoard(cards, version, drehtermine) {
   await rename(temp, BOARD_FILE);
 }
 
+// v32 C3 (Flush): Seit C1 antwortet der Save sofort und spiegelt die Karten DANACH im
+// Hintergrund nach Drive. Diese Menge haelt die laufenden Spiegelungen, damit der Beenden-Weg
+// (/api/shutdown) sie zu Ende bringen kann, bevor der Prozess endet — so steht der letzte
+// lokale Stand sicher in Drive.
+const spiegelungenInFlight = new Set();
+
 async function leseTokens() {
   try {
     return JSON.parse(await readFile(TOKEN_FILE, "utf8"));
@@ -292,7 +298,7 @@ async function handler(req, res) {
       // Hintergrund-Spiegelung: nur tatsaechlich geaenderte Karten mit vorhandenem Drive-Ordner
       // (Diff gegen den alten Cache), damit ein Save nicht 17 Drive-Schreibvorgaenge ausloest.
       const altPerId = new Map(aktuell.cards.map((c) => [c.id, JSON.stringify(c)]));
-      (async () => {
+      const spiegelung = (async () => {
         for (const k of neueKarten) {
           if (!k.driveName) continue; // noch kein Ordner -> nichts zu spiegeln
           if (altPerId.get(k.id) === JSON.stringify(k)) continue; // unveraendert
@@ -303,6 +309,9 @@ async function handler(req, res) {
           }
         }
       })();
+      // Fuer den Flush beim Beenden merken (C3).
+      spiegelungenInFlight.add(spiegelung);
+      spiegelung.finally(() => spiegelungenInFlight.delete(spiegelung));
       return;
     }
 
@@ -608,6 +617,16 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       setTimeout(async () => {
         console.log("Shutdown via UI ausgeloest.");
+        // v32 C3 (Flush): offene Drive-Spiegelungen zu Ende bringen, damit der letzte Stand
+        // sicher in Drive steht. Mit Zeitgrenze, damit ein haengender rclone das Beenden nicht
+        // ewig blockiert.
+        if (spiegelungenInFlight.size) {
+          console.log(`Warte auf ${spiegelungenInFlight.size} offene Drive-Spiegelung(en) …`);
+          await Promise.race([
+            Promise.allSettled([...spiegelungenInFlight]),
+            new Promise((r) => setTimeout(r, 8000)),
+          ]);
+        }
         await ollamaEntladen();
         process.exit(0);
       }, 400);
