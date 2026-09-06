@@ -18,6 +18,7 @@ export const S = {
   ansicht: "board",
   monat: new Date(), // fuer die Kalenderansicht
   driveStand: new Map(), // Karten-id -> Ergebnis von /api/drive/scan
+  driveScanLaeuft: new Set(), // Karten-ids, deren Drive-Scan gerade laeuft (v32 E2/B: Sanduhr auf der Kachel)
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN },
@@ -242,15 +243,40 @@ export function loescheKarte(id) {
 
 // --- Drive ----------------------------------------------------------------
 
+// Laufende Scans je Karten-id, damit derselbe Scan nicht mehrfach parallel startet. Wichtig:
+// zeichneDetail ruft driveScan bei JEDEM Neuzeichnen, solange der Stand fehlt — ohne diese
+// Deduplizierung wuerde der Start-Redraw (Sanduhr) einen zweiten Scan ausloesen und sich
+// aufschaukeln. Ein zweiter Aufruf bekommt einfach dasselbe laufende Promise zurueck.
+const scanInFlight = new Map();
+
 export async function driveScan(k, frisch = false) {
   if (!frisch && S.driveStand.has(k.id)) return S.driveStand.get(k.id);
-  const stand = await hole("/api/drive/scan", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(k),
-  });
-  S.driveStand.set(k.id, stand);
-  return stand;
+  if (!frisch && scanInFlight.has(k.id)) return scanInFlight.get(k.id);
+  // v32 E2/B: laufenden Scan markieren (Kachel zeigt Sanduhr) und bei Abschluss das Board neu
+  // zeichnen — so aktualisiert sich die Kachel VON SELBST, sobald die Drive-Daten da sind, ohne
+  // dass man die Karte erst oeffnen und wieder schliessen muss.
+  const p = (async () => {
+    S.driveScanLaeuft.add(k.id);
+    // Deferred: der Scan wird oft MITTEN im Zeichnen ausgeloest (aus zeichneDetail heraus). Ein
+    // sofortiges zeichne() faellt dann in den Reentrance-Schutz und verpufft — als Microtask
+    // laeuft es nach dem aktuellen Zeichenlauf, sodass die Kachel-Sanduhr wirklich erscheint.
+    queueMicrotask(() => zeichne());
+    try {
+      const stand = await hole("/api/drive/scan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(k),
+      });
+      S.driveStand.set(k.id, stand);
+      return stand;
+    } finally {
+      S.driveScanLaeuft.delete(k.id);
+      scanInFlight.delete(k.id);
+      zeichne();
+    }
+  })();
+  scanInFlight.set(k.id, p);
+  return p;
 }
 
 export async function driveAnlegen(k) {

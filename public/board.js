@@ -66,10 +66,17 @@ export function kachel(k) {
 
   const formatText = contenttypName(k.contenttyp || "reel");
 
+  // v32 E2: Laeuft gerade der Drive-Scan dieser Karte, traegt die Kachel die drehende Sanduhr
+  // statt des Status-Punkts — „die Drive-Daten sind noch nicht da, gleich aktualisiert sich das".
+  // Sobald der Scan landet (store.driveScan zeichnet neu), erscheint der echte Status-Punkt.
+  const statusHtml = S.driveScanLaeuft.has(k.id)
+    ? `<span class="eintrag-punkt-lade" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
+    : `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
+
   el.innerHTML =
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
     `<span class="format-symbol format-${formatSymbol}" title="${escape(formatText)}" aria-label="${escape(formatText)}">${icon(formatSymbol)}</span>` +
-    `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
+    statusHtml;
 
   el.addEventListener("click", () => oeffne(k.id));
   el.addEventListener("dragstart", (e) => {

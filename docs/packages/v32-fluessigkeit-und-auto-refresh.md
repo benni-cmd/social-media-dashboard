@@ -206,6 +206,33 @@ Das Risiko eines Schreibkonflikts war es nicht wert. Der Fix beseitigt aber den 
 (Kopplung Zeichnen↔Slider + fehlende Fehlerisolierung) unabhaengig vom genauen Ausloeser, und
 die Selbstheilung ist mit einem erzwungenen Fehler live nachgewiesen.
 
+### Gruppe D + E umgesetzt + verifiziert (05.09.2026) — Owner-Auswahl B+C+D+E
+
+- **D** — `nachschub.js` `naechste()`: statischer Ladetext + leerer kiStream-Callback ersetzt
+  durch `denkPanel` (Sanduhr-Kopf + Live-Textstrom). `.denk-text` auf Monospace (Konsolen-Look).
+- **E0** — `ui.js` `sanduhr(text, {klein})`: eine wiederverwendbare Sanduhr-Primitive (dreht,
+  respektiert prefers-reduced-motion), plus CSS `.lade-sanduhr` und `.eintrag-punkt-lade`.
+- **E1** — `app.js`: Board zeigt beim Laden die Sanduhr statt leeres Board.
+- **E2 + B** — `store.js` `driveScan`: laufende Scans dedupliziert (Map `scanInFlight`), Kachel
+  traegt waehrend des Scans die Sanduhr (`board.js` `.eintrag-punkt-lade`), und bei Abschluss
+  zeichnet das Board VON SELBST neu — die Kachel aktualisiert sich ohne Karte-oeffnen-und-zurueck.
+- **E3** — `detail.js` `blockDrive`: „Drive wird gelesen …" jetzt mit Sanduhr.
+- **E4** — `app.js`: Kopf-Stand zeigt Sanduhr bei „Aktualisieren"/„Mit Drive abgleichen".
+- **E5** — `denkPanel` (Ideen-Popup + Redaktionsplan) traegt die Sanduhr konsistent.
+
+**Verify (live, eigener Server — Parallel-Session hatte ihren beendet):** E1 (Board-Lade-Sanduhr,
+`sanduhr-dreht 1.8s`), E3, E4 je mit sichtbarer drehender Sanduhr. D: `denkPanel` streamt Text in
+Monospace + Sanduhr (mit simulierten Deltas belegt; echter Ollama-Stream nicht pruefbar — Modell
+in dieser Umgebung nicht geladen, Fehlerpfad greift korrekt). E2+B: Karte geoeffnet → Kachel zeigt
+Sanduhr waehrend des Scans → nach Scan-Abschluss automatisch echter Status-Punkt (Selbst-Update
+ohne Klick-und-zurueck), kein Redraw-Loop (Scan-Dedup verifiziert). Nur eigene Dateien; `ui.js`
+hunk-genau gestaged, fremde v33-Arbeit (Unternehmenskontext) unberuehrt.
+
+**Offen (ehrlich):** Der urspruengliche „neue Karte, Termin laedt erst nach Klick-und-zurueck"
+wurde nicht 1:1 reproduziert (haette das Anlegen+Ausfuellen einer echten Karte auf Live-Daten
+verlangt). Der Selbst-Update-Mechanismus (driveScan zeichnet bei Abschluss neu) + die bestehenden
+Termin-Redraws decken aber die Klasse „Kachel haengt hinterher, bis ein Redraw erzwungen wird".
+
 ## DoD
 
 - [x] Owner hat ausgewaehlt: Gruppe A.
