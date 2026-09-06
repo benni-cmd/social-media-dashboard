@@ -3,5 +3,9 @@
     "text": "",
     "quellen": []
   },
+  "eingebaut": {
+    "global": true,
+    "reihe": true
+  },
   "projekte": []
 }

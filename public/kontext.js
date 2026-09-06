@@ -72,6 +72,17 @@ function quellenBlock(ziel, quellen, neuZeichnen) {
   kopf.textContent = `Quellen (${quellen.length})`;
   box.appendChild(kopf);
 
+  // Die reihenbezogene Drive-Quelle steht hier bewusst nicht: sie haengt an der Karte
+  // (Kontext/<reihe>) und entsteht erst beim Aufruf. Der Satz sagt das, statt sie zu verschweigen.
+  if (ziel === "firma") {
+    const reihe = document.createElement("p");
+    reihe.className = "einst-provider-sub";
+    reihe.textContent =
+      "Dazu kommt je Karte der Drive-Ordner „Kontext/<Reihe>“, sofern die Karte eine Reihe hat. " +
+      "Er steht hier nicht in der Liste, weil er von der Karte abhaengt.";
+    box.appendChild(reihe);
+  }
+
   if (!quellen.length) {
     const leer = document.createElement("p");
     leer.className = "einst-provider-sub";
@@ -82,34 +93,58 @@ function quellenBlock(ziel, quellen, neuZeichnen) {
 
   for (const q of quellen) {
     const zeile = document.createElement("div");
-    zeile.className = "kontext-quelle" + (q.fehler ? " fehler" : "");
+    zeile.className = "kontext-quelle" + (q.fehler ? " fehler" : "") + (q.eingebaut ? " eingebaut" : "");
 
     const links = document.createElement("div");
     links.className = "kontext-quelle-text";
-    const stand = q.fehler
-      ? `konnte nicht gelesen werden: ${q.fehler}`
-      : q.anzahl
-        ? `${q.anzahl} Datei${q.anzahl === 1 ? "" : "en"} · ${q.zeichen.toLocaleString("de-DE")} Zeichen`
-        : "keine lesbare Textdatei gefunden (.md, .txt)";
+    const stand = q.an === false
+      ? "abgeschaltet — geht nicht in die Prompts"
+      : q.fehler
+        ? `konnte nicht gelesen werden: ${q.fehler}`
+        : q.anzahl
+          ? `${q.anzahl} Datei${q.anzahl === 1 ? "" : "en"} · ${q.zeichen.toLocaleString("de-DE")} Zeichen`
+          : "keine lesbare Textdatei gefunden (.md, .txt)";
     links.innerHTML =
       `<span class="kontext-quelle-art">${escape(artName(q.art))}</span>` +
+      (q.eingebaut ? `<span class="kontext-marke">eingebaut</span>` : "") +
       `<code>${escape(q.pfad)}</code>` +
-      `<span class="kontext-quelle-stand">${escape(stand)}</span>`;
-
-    const weg = document.createElement("button");
-    weg.className = "chip";
-    weg.textContent = "Entfernen";
-    weg.addEventListener("click", async () => {
-      weg.disabled = true;
-      try {
-        neuZeichnen(await aendere({ was: "quelle-entfernen", ziel, quelleId: q.id }));
-      } catch {
-        weg.disabled = false;
-      }
-    });
+      `<span class="kontext-quelle-stand">${escape(stand)}</span>` +
+      (q.satz ? `<span class="kontext-quelle-satz">${escape(q.satz)}</span>` : "");
 
     zeile.appendChild(links);
-    zeile.appendChild(weg);
+
+    // v34: Eingebaute Drive-Quellen gehoeren zur Konvention, nicht zu Bens Eingabe — sie lassen
+    // sich abschalten, aber nicht loeschen. Ein Loeschen-Knopf, der nichts darf, waere schlimmer
+    // als keiner.
+    if (q.eingebaut) {
+      const schalter = document.createElement("input");
+      schalter.type = "checkbox";
+      schalter.checked = q.an !== false;
+      schalter.title = "An: geht in die Prompts";
+      schalter.addEventListener("change", async () => {
+        schalter.disabled = true;
+        try {
+          neuZeichnen(await aendere({ was: "eingebaut-schalten", welche: "global", an: schalter.checked }));
+        } catch {
+          schalter.checked = !schalter.checked;
+          schalter.disabled = false;
+        }
+      });
+      zeile.appendChild(schalter);
+    } else {
+      const weg = document.createElement("button");
+      weg.className = "chip";
+      weg.textContent = "Entfernen";
+      weg.addEventListener("click", async () => {
+        weg.disabled = true;
+        try {
+          neuZeichnen(await aendere({ was: "quelle-entfernen", ziel, quelleId: q.id }));
+        } catch {
+          weg.disabled = false;
+        }
+      });
+      zeile.appendChild(weg);
+    }
     box.appendChild(zeile);
   }
 

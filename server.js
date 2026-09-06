@@ -196,30 +196,9 @@ const umleitung = (res, ziel) => {
   res.end();
 };
 
-// Liest den Kontext aus Drive (global und je Reihe) fuer die Prompt-Anreicherung.
-async function leseKontext(serie) {
-  const ordner = ["Kontext/_global"];
-  if (serie) ordner.push(`Kontext/${serie}`);
-  const teile = [];
-  for (const o of ordner) {
-    let dateien = [];
-    try {
-      dateien = await drive.list(o, { filesOnly: true });
-    } catch {
-      continue; // Kontext ist Beiwerk; eine Stoerung darf den KI-Aufruf nicht verhindern.
-    }
-    for (const d of dateien) {
-      if (!/\.(md|txt)$/i.test(d)) continue;
-      try {
-        const inhalt = await drive.readFile(`${o}/${d}`);
-        if (inhalt.trim()) teile.push(`# Kontext: ${o}/${d}\n${inhalt.trim()}`);
-      } catch {
-        /* einzelne Datei unlesbar — der Rest zaehlt trotzdem */
-      }
-    }
-  }
-  return teile.join("\n\n");
-}
+// v34: leseKontext() ist entfallen. Die Drive-Ordner Kontext/_global und Kontext/<reihe>
+// laufen jetzt als eingebaute Quellen ueber lib/kontextstore.js — damit steht an EINER Stelle,
+// was in den Prompt geht, und der Tab zeigt es auch an.
 
 // --- Wegweisung -----------------------------------------------------------
 
@@ -419,19 +398,14 @@ async function handler(req, res) {
         return;
       }
       try {
-        let kontextBlock = "";
-        if (card && card.serie && ["recherche", "skript", "regieplan"].includes(task)) {
-          const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
-          if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
-        }
         // v26: Prompt und Vorspann kommen aus der Ablage — Bens Fassung, sonst die Vorlage.
         // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
         // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
         const firmenKontext = await unternehmen
-          .sammle()
+          .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
           .catch(() => ({ firmenkontext: "", projektkontext: "" }));
         const system = await prompts.systemPrompt(firmenKontext);
-        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        const userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
         let text;
         if (provider === "ollama") {
           text = await ki.runOllama(system, userMsg, ollamaModel);
@@ -466,18 +440,13 @@ async function handler(req, res) {
       });
       const schreib = (o) => res.write(JSON.stringify(o) + "\n");
       try {
-        let kontextBlock = "";
-        if (card && card.serie && ["recherche", "hooks_verbal", "hooks_visuell", "skript", "regieplan"].includes(task)) {
-          const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
-          if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
-        }
-        // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
+       // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
         // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
         const firmenKontext = await unternehmen
-          .sammle()
+          .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
           .catch(() => ({ firmenkontext: "", projektkontext: "" }));
         const system = await prompts.systemPrompt(firmenKontext);
-        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        const userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
         let text;
         if (provider === "ollama") {
           text = await ki.runOllamaStream(system, userMsg, ollamaModel, (delta) => {
@@ -537,6 +506,9 @@ async function handler(req, res) {
           case "quelle-hinzufuegen":
             stand = await unternehmen.quelleHinzufuegen(body.ziel, { art: body.art, pfad: body.pfad });
             break;
+          case "eingebaut-schalten":
+            stand = await unternehmen.setzeEingebaut(body.welche, body.an);
+            break;
           case "quelle-entfernen":
             stand = await unternehmen.quelleEntfernen(body.ziel, body.quelleId);
             break;
@@ -554,7 +526,7 @@ async function handler(req, res) {
     // Zeigt, was aus dem hinterlegten Kontext tatsaechlich in den Prompt geht — damit die
     // Wirkung nachpruefbar ist und nicht geglaubt werden muss.
     if (pfad === "/api/kontext/probe" && req.method === "GET") {
-      sendJson(res, 200, await unternehmen.sammle(url.searchParams.get("projekt") || null));
+      sendJson(res, 200, await unternehmen.sammle({ projektId: url.searchParams.get("projekt") || null, serie: url.searchParams.get("serie") || "" }));
       return;
     }
 
@@ -805,7 +777,11 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/drive/kontext" && req.method === "GET") {
-      const text = await leseKontext(pipeline.slug(url.searchParams.get("serie") || "")).catch(() => "");
+      // v34: laeuft ueber den einen Weg. Kein Frontend ruft das hier, es bleibt der Vollstaendigkeit halber.
+      const gesammelt = await unternehmen
+        .sammle({ serie: pipeline.slug(url.searchParams.get("serie") || "") })
+        .catch(() => ({ firmenkontext: "", projektkontext: "" }));
+      const text = (gesammelt.firmenkontext + gesammelt.projektkontext).trim();
       sendJson(res, 200, { text });
       return;
     }

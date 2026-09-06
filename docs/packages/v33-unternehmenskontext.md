@@ -107,6 +107,10 @@ Dienste · Social Media Kanäle · **Unternehmenskontext** · System Prompts · 
   ausdruecklich NICHT Teil dieses Pakets [Owner, 05.09.2026]. Heute gehen alle aktiven Projekte
   zusammen in den Prompt; `sammle(projektId)` kann bereits ein einzelnes waehlen, es fehlt nur
   die Stelle, die das entscheidet.
+- ~~Der aeltere Drive-Weg `leseKontext()`~~ — **erledigt mit v34**, siehe
+  `docs/packages/v34-kontext-wege-zusammenlegen.md`: die beiden Drive-Ordner sind jetzt
+  eingebaute Quellen im Tab, `leseKontext()` ist entfallen, und derselbe Text kann nicht mehr
+  zweimal im Prompt landen. Der urspruengliche Befund lautete:
 - Der aeltere Drive-Weg `leseKontext()` in `server.js:197` (`Kontext/_global`, `Kontext/<reihe>`)
   laeuft unveraendert weiter und kann sich mit einer Drive-Quelle im neuen Tab ueberschneiden —
   dann steht derselbe Text zweimal im Prompt. Zusammenlegen waere ein eigenes kleines Paket.

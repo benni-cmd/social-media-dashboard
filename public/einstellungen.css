@@ -255,3 +255,21 @@
 .einstellungen-modal.breit .einst-inhalt {
   max-height: none;
 }
+
+/* Eingebaute Drive-Quellen (v34): erkennbar, abschaltbar, nicht loeschbar. */
+.kontext-marke {
+  font-size: 11px;
+  color: var(--text-still);
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+.kontext-quelle.eingebaut {
+  border-left: 2px solid var(--akzent);
+  padding-left: 8px;
+}
+.kontext-quelle-satz {
+  flex: 1 1 100%;
+  color: var(--text-still);
+  font-size: 11px;
+}
