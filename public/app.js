@@ -7,7 +7,7 @@ import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, statusChip, escape, einstellungenModal, meldung } from "./ui.js";
+import { fortschritt, statusChip, escape, einstellungenModal, meldung, sanduhr } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
@@ -23,6 +23,16 @@ if (gespeichertesTheme) setzeTheme(gespeichertesTheme);
 // Kein gespeichertes Theme = Light (Default, steht in CSS).
 
 const el = (id) => document.getElementById(id);
+
+// Kopf-Stand mit drehender Sanduhr (v32 E4): waehrend Aktualisieren/Drive-Abgleich laufen,
+// zeigt der Kopf die Sanduhr statt nur Text — „da passiert gerade was". setStand(text) danach
+// setzt wieder reinen Text und raeumt die Sanduhr weg.
+function standLaedt(text) {
+  const s = el("stand");
+  if (!s) return;
+  s.innerHTML = "";
+  s.appendChild(sanduhr(text));
+}
 
 const boardEl = el("board");
 const lastEl = el("wochenlast");
@@ -140,7 +150,7 @@ beiAenderung(() => {
 
 el("neuladen").addEventListener("click", async (e) => {
   e.currentTarget.disabled = true;
-  setStand("Lade den Stand neu …");
+  standLaedt("Lade den Stand neu …");
   S.driveStand.clear();
   S.zahlen = null;
   try {
@@ -155,6 +165,7 @@ el("neuladen").addEventListener("click", async (e) => {
 
 el("abgleichen").addEventListener("click", async (e) => {
   e.currentTarget.disabled = true;
+  standLaedt("Gleiche mit Drive ab …");
   const weg = fortschritt(lastEl, "Lese alle Phasenordner in Drive und vergleiche sie mit dem Board …");
   try {
     const ergebnis = await driveAbgleich();
@@ -296,6 +307,15 @@ try {
 // --- Start ----------------------------------------------------------------
 
 (async () => {
+  // Ladezustand (v32 E1): nie ein totes leeres Board zeigen, solange /api/board laedt — eine
+  // drehende Sanduhr signalisiert „da kommt gleich was". Der erste Zeichenlauf ersetzt sie.
+  try {
+    const ladeMarke = document.createElement("div");
+    ladeMarke.style.cssText = "padding:40px;display:flex;justify-content:center;width:100%";
+    ladeMarke.appendChild(sanduhr("Board wird geladen …"));
+    boardEl.innerHTML = "";
+    boardEl.appendChild(ladeMarke);
+  } catch {}
   try {
     // Der Workflow-Stand muss VOR dem Board stehen: das Laden setzt ggf. selbst einen
     // Drehtermin, und dieser Griff ist einer der abschaltbaren Workflows (v26).

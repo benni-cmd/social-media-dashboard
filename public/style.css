@@ -1886,7 +1886,8 @@ body {
   word-break: break-word;
   max-height: 240px;
   overflow: auto;
-  font-family: inherit;
+  /* Konsolen-Look (v32 D): der Live-Denkprozess der KI liest sich als Terminal-Ausgabe. */
+  font-family: ui-monospace, "Cascadia Code", "Consolas", "SFMono-Regular", Menlo, monospace;
 }
 .denk-text:empty {
   display: none;
@@ -2768,6 +2769,31 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .denk-symbol.knopf-symbol-sanduhr .icon { animation: none; }
+}
+
+/* Sanduhr-Indikator (v32 E): der eine, ueberall gleiche „hier passiert gerade etwas"-Marker.
+   Leichte Inline-Form (nur drehende Glyphe, kein farbiger Kachel-Hintergrund) — passt an
+   Kacheln, in die Detailspalte, in die Kopfzeile. Nutzt dieselbe Dreh-Keyframe wie das Panel. */
+.lade-sanduhr {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-still);
+  font-size: 12px;
+  vertical-align: middle;
+}
+.lade-sanduhr-icon { display: inline-flex; flex: 0 0 auto; }
+.lade-sanduhr-icon .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--akzent);
+  animation: sanduhr-dreht 1.8s linear infinite;
+  transform-origin: 50% 50%;
+}
+.lade-sanduhr-klein .lade-sanduhr-icon .icon { width: 12px; height: 12px; }
+.lade-sanduhr-text { min-width: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .lade-sanduhr-icon .icon { animation: none; }
 }
 
 /* Upload-Zone (v29): Ordner-Symbol als grosse Kachel statt kleinem Pfeil-Icon — dieselbe

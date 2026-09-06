@@ -176,6 +176,22 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
   };
 }
 
+// Sanduhr-Indikator (v32 E): der EINE, ueberall gleiche „hier passiert gerade etwas"-Marker.
+// Ueberall dort einsetzen, wo die KI arbeitet, etwas laedt, ein Drive-Abgleich laeuft oder
+// Daten noch fehlen — nie tote Leere/statischer Text, sondern diese drehende Sanduhr, damit
+// klar ist: einen Moment warten, da kommt noch was. Dreht sich (respektiert
+// prefers-reduced-motion). `klein:true` = nur das drehende Icon (fuer Kacheln/inline, Text als
+// Tooltip); sonst Icon + Text als Block.
+export function sanduhr(text = "", { klein = false } = {}) {
+  const el = document.createElement("span");
+  el.className = "lade-sanduhr" + (klein ? " lade-sanduhr-klein" : "");
+  el.innerHTML =
+    `<span class="lade-sanduhr-icon">${icon("sanduhr")}</span>` +
+    (!klein && text ? `<span class="lade-sanduhr-text">${escape(text)}</span>` : "");
+  if (text) el.title = text;
+  return el;
+}
+
 // Kalender-Pop-up: Monatsraster, Slot-Tage hervorgehoben, Klick waehlt.
 // fenster: [{tag, uhrzeit}] aus scheduler.fensterFuerTyp — leeres Array = kein Highlighting.
 // onConfirm(iso, uhrzeit) — uhrzeit ist die empfohlene Zeit fuer den gewaehlten Wochentag.

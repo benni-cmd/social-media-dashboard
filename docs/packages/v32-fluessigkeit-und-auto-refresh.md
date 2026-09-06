@@ -118,6 +118,44 @@ Google-Netz-Round-Trip pro Aufruf (~Hunderte ms bis Sekunden). Zwei heisse Pfade
   von verstreuten Einzelaufrufen abhaengen. Nur wenn Owner die verstreuten `zeichne()` als
   Wurzel bestaetigt — sonst reicht B1.
 
+### Gruppe D — Live-Denk-Konsole im „Idee von der KI"-Popup (klein, hoher Nutzen)
+
+Owner 05.09.2026: Beim „Idee von der KI"-Popup steht nur „Die KI recherchiert eine Idee …" —
+es fuehlt sich an, als passiere nichts. Gewuenscht: die drehende Sanduhr UND darunter ein
+konsolenartiges Fenster (im Dashboard-Stil), das den ECHTEN Live-Denkprozess der KI zeigt
+(was geschrieben wird, in welcher Geschwindigkeit).
+
+**Befund:** Das Streaming-Panel existiert bereits (`ui.js` `denkPanel` — Sanduhr-Kopf +
+`<pre class="denk-text">`, streamt Deltas, scrollt mit) und wird beim Redaktionsplan
+(`nachschub.js` `holePlan`) genutzt. Das Ideen-Popup (`nachschub.js` `naechste()`) ruft aber
+`kiStream(..., () => {})` mit **leerem** Ereignis-Callback — die Live-Deltas werden weggeworfen,
+darum der statische Text. Keine neue Streaming-Infrastruktur noetig.
+
+- **D1** In `naechste()` den statischen Ladetext + leeren Callback durch ein `denkPanel` im
+  Modal ersetzen und `kiStream`s `onEreignis` auf `panel.delta`/`panel.status` verdrahten.
+- **D2** `.denk-text` konsolen-tauglich machen (Monospace, im Dashboard-Stil) — wirkt auch auf
+  das schon vorhandene Plan-Panel konsistent.
+
+### Gruppe E — Sanduhr ueberall als „hier passiert gerade was"-Indikator (querschnitt)
+
+Owner 05.09.2026: An JEDER Stelle, wo die KI arbeitet, etwas laedt, ein Drive-Abgleich laeuft
+oder Daten noch fehlen/nicht da sind, soll die drehende Sanduhr stehen — damit klar ist „da
+kommt noch was, einen Moment warten". Nie einfach nichts oder ein toter statischer Text.
+
+**Ansatz:** EINE wiederverwendbare Sanduhr-Primitive (spinnendes Sanduhr-Icon + optionaler
+Text, respektiert `prefers-reduced-motion`) in `ui.js`, konsistent an allen Wartepunkten
+eingesetzt. Das Sanduhr-Icon + die Dreh-Animation existieren schon (`knopf-symbol-sanduhr`,
+`@keyframes sanduhr-dreht`, v29 R7); E buendelt sie in einen einzigen Helfer statt Einzelloesungen.
+
+Wartepunkte (Bestand zu pruefen, dann bestuecken):
+- **E1** Board-Start/Laden: solange `/api/board` laedt, Sanduhr statt leeres Board (verzahnt mit A).
+- **E2** Kachel mit ausstehendem Drive-Scan: kleine Sanduhr am Status-Punkt, bis der Scan da
+  ist — dann echter Status (verzahnt mit B).
+- **E3** Detailspalte Drive-Block: Sanduhr, solange `driveScan` laeuft (heute leer/statisch).
+- **E4** Kopfzeile „Aktualisieren"/„Mit Drive abgleichen": Sanduhr waehrend des Laufs.
+- **E5** KI-Panels (Ideen-Popup D, Redaktionsplan): Sanduhr im `denkPanel` — bereits vorhanden,
+  nur konsistent halten.
+
 ### Gruppe C — Drive schneller / zu richtigen Zeitpunkten (mittel–gross, Owner-Entscheidung)
 
 - **C1** Drive-Spiegelung im Speicher-Pfad **nicht mehr blockierend**: `PUT /api/board`

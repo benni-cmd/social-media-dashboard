@@ -93,7 +93,11 @@ export async function holeIdee() {
 
     async function naechste() {
       laeuft = true;
-      zeigeLaden("Die KI recherchiert eine Idee …");
+      // Live-Denk-Konsole (v32 D): drehende Sanduhr + der echte Textstrom der KI, statt eines
+      // statischen „… recherchiert" das sich anfuehlt, als passiere nichts. denkPanel bringt die
+      // Sanduhr im Kopf und streamt die Deltas in ein konsolenartiges Fenster.
+      box.innerHTML = "";
+      const panel = denkPanel(box, "Die KI recherchiert eine Idee …");
       const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
         .map((s) => `${s.name}: ${s.anzahl}`)
         .join(", ");
@@ -111,8 +115,12 @@ export async function holeIdee() {
             kategorie: (slot && slot.kategorie) || "",
             offeneSlots: slot ? [slot] : [],
           },
-          () => {},
+          (e) => {
+            if (e.delta) panel.delta(e.delta);
+            if (e.status) panel.status(e.status);
+          },
         );
+        panel.weg();
         laeuft = false;
         const ideen = (antwort.data && antwort.data.ideen) || [];
         if (!ideen.length) { zeigeFehler("Die KI hat keine verwertbare Idee geliefert."); return; }

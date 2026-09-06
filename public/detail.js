@@ -81,6 +81,7 @@ import {
   eigenschaft,
   fortschritt,
   denkPanel,
+  sanduhr,
   modalKalender,
   infoTipp,
   meldung,
@@ -1507,7 +1508,7 @@ function blockDrive(k, stand) {
   if (!stand) {
     const p = document.createElement("p");
     p.className = "feld-hinweis";
-    p.textContent = "Drive wird gelesen …";
+    p.appendChild(sanduhr("Drive wird gelesen …"));
     box.appendChild(p);
   } else if (!stand.driveOk) {
     const z = document.createElement("div");
