@@ -303,22 +303,27 @@ async function handler(req, res) {
         neueVersion,
         Array.isArray(drehtermine) ? drehtermine : undefined
       );
-      // Drive ist die WAHRHEIT: geaenderte Karten mit vorhandenem Drive-Ordner in ihre volle
-      // projekt.json spiegeln. Nur die tatsaechlich geaenderten (Diff gegen den alten Cache),
-      // damit ein Save nicht 17 Drive-Schreibvorgaenge ausloest. Ein Drive-Fehler kippt den Save
-      // NICHT — er wird als Warnung gemeldet, der naechste Abgleich heilt.
+      // v32 C1: SOFORT antworten, sobald board.json (der schnelle Cache, die Wahrheit) steht.
+      // Frueher wartete die Antwort auf ALLE Drive-Spiegelungen (je ein rclone-Aufruf pro
+      // geaenderter Karte) — bei mehreren Karten sekundenlang. Die Spiegelung laeuft jetzt NACH
+      // der Antwort im Hintergrund; ein Fehler kippt den Save nicht und der naechste Abgleich
+      // heilt. (Das Frontend hat driveWarnungen nie ausgewertet — geprueft.)
+      sendJson(res, 200, { ok: true, version: neueVersion });
+
+      // Hintergrund-Spiegelung: nur tatsaechlich geaenderte Karten mit vorhandenem Drive-Ordner
+      // (Diff gegen den alten Cache), damit ein Save nicht 17 Drive-Schreibvorgaenge ausloest.
       const altPerId = new Map(aktuell.cards.map((c) => [c.id, JSON.stringify(c)]));
-      const driveWarnungen = [];
-      for (const k of neueKarten) {
-        if (!k.driveName) continue; // noch kein Ordner -> nichts zu spiegeln
-        if (altPerId.get(k.id) === JSON.stringify(k)) continue; // unveraendert
-        try {
-          await projekte.spiegeleKarte(k);
-        } catch (e) {
-          driveWarnungen.push({ id: k.id, title: k.title, satz: `Drive-Spiegelung fehlgeschlagen: ${e.message}` });
+      (async () => {
+        for (const k of neueKarten) {
+          if (!k.driveName) continue; // noch kein Ordner -> nichts zu spiegeln
+          if (altPerId.get(k.id) === JSON.stringify(k)) continue; // unveraendert
+          try {
+            await projekte.spiegeleKarte(k);
+          } catch (e) {
+            console.log(`Drive-Spiegelung fehlgeschlagen (${k.title}): ${e.message}`);
+          }
         }
-      }
-      sendJson(res, 200, { ok: true, version: neueVersion, driveWarnungen });
+      })();
       return;
     }
 

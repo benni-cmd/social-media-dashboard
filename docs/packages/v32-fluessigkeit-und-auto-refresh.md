@@ -233,6 +233,23 @@ wurde nicht 1:1 reproduziert (haette das Anlegen+Ausfuellen einer echten Karte a
 verlangt). Der Selbst-Update-Mechanismus (driveScan zeichnet bei Abschluss neu) + die bestehenden
 Termin-Redraws decken aber die Klasse „Kachel haengt hinterher, bis ein Redraw erzwungen wird".
 
+### Gruppe C1 umgesetzt + verifiziert (05.09.2026)
+
+- **C1** — `server.js` `PUT /api/board`: antwortet jetzt SOFORT nach dem board.json-Schreiben;
+  die Drive-Spiegelung der geaenderten Karten (je ein rclone-Aufruf) laeuft DANACH im
+  Hintergrund statt die Antwort zu blockieren. Frueher wartete jeder Save auf N sequentielle
+  rclone-Schreibvorgaenge. `driveWarnungen` aus der Antwort entfernt (Frontend hat es nie
+  ausgewertet — per grep geprueft); Fehler werden geloggt, der naechste Abgleich heilt.
+
+**Verify (live, eigener Server 4321 neu gestartet):** `node --check server.js` gruen; GET+PUT-
+Roundtrip **8 ms**, Status 200, Version 229→230, keine `driveWarnungen` mehr im Body. Die
+Nicht-Blockierung ist strukturell garantiert (sendJson steht VOR der Spiegel-Schleife).
+
+**Offen:** C2 (serverseitiger Scan-Cache / Scans entzerren) und C3 (WANN ein Voll-Abgleich
+laufen soll — Owner-Entscheidung ueber Ausloeser/Intervalle) — beide bewusst NICHT gebaut:
+spekulativer, `server.js` ist von der Parallel-Session (v33) umkaempft, und C2 traegt
+Staleness-Risiken. Als eigenstaendige Schritte vormerken.
+
 ## DoD
 
 - [x] Owner hat ausgewaehlt: Gruppe A.
