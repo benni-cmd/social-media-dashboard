@@ -635,7 +635,10 @@ async function handler(req, res) {
 
     if (pfad === "/api/drive/scan" && req.method === "POST") {
       const card = JSON.parse(await readBody(req));
-      sendJson(res, 200, await projekte.scan(card));
+      // v32 C2: `frisch=1` umgeht den Scan-Cache (Client erzwingt eine frische Messung nach
+      // eigenen Aenderungen); sonst darf der kurzlebige Cache in projects.js antworten.
+      const frisch = url.searchParams.get("frisch") === "1";
+      sendJson(res, 200, await projekte.scan(card, frisch));
       return;
     }
 

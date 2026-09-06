@@ -262,7 +262,9 @@ export async function driveScan(k, frisch = false) {
     // laeuft es nach dem aktuellen Zeichenlauf, sodass die Kachel-Sanduhr wirklich erscheint.
     queueMicrotask(() => zeichne());
     try {
-      const stand = await hole("/api/drive/scan", {
+      // frisch=1: der Server-Scan-Cache (v32 C2) wird umgangen, wenn wir bewusst eine frische
+      // Messung wollen (z. B. direkt nach Anlegen/Verschieben/Upload).
+      const stand = await hole("/api/drive/scan" + (frisch ? "?frisch=1" : ""), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(k),

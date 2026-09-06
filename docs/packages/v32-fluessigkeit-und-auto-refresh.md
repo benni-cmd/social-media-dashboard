@@ -267,6 +267,24 @@ Instagram …" sichtbar, danach weg. `fortschritt`-Komponente per Import gerende
 und sekundaer. Ebenso die haeufigen kurzen `setStand("Speichere …")` (wuerden bei jedem Save
 flackern). Bei Bedarf spaeter.
 
+### Gruppe C2 umgesetzt + verifiziert (05.09.2026)
+
+- **C2** — Serverseitiger Scan-Cache in `lib/projects.js` (uncontested, damit `server.js` — von
+  der Parallel-Session/v34 gerade umkaempft — nur EINE Zeile braucht): `scan(card, frisch)` cacht
+  erfolgreiche Scans je Karte 60 s lang. Jede Karten-veraendernde Operation verwirft ihren
+  Eintrag sofort (`anlegen`/`verschiebe`/`speichereDatei`), der Voll-Abgleich leert alles
+  (`abgleich`). `server.js` reicht `?frisch=1` durch, `store.js` (`driveScan`) setzt es bei
+  bewussten Refreshes (nach Anlegen/Verschieben/Upload) — so bleibt eine erzwungene Messung frisch.
+
+**Verify (live, Server 4324):** derselbe Scan zweimal — erster (rclone kalt) **21057 ms**,
+zweiter (Cache) **2 ms**. `frisch=1` umgeht den Cache (**2376 ms** echter Scan), danach wieder
+**2 ms** (Cache vom frischen Scan neu gefuellt). Invalidierung bei Mutationen code-seitig
+(scanCacheWeg/scanCacheLeeren an den vier Stellen).
+
+**Offen (C3, Owner-Entscheidung):** WANN ein Voll-Abgleich automatisch laufen soll — Vorschlag
+liegt dem Owner vor (Hintergrund-Abgleich beim Start; KEIN Voll-Abgleich beim Beenden, stattdessen
+Flush der offenen Spiegelungen; gedrosselter Intervall waehrend die App offen ist; Button bleibt).
+
 ## DoD
 
 - [x] Owner hat ausgewaehlt: Gruppe A.
