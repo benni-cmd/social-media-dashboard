@@ -111,6 +111,135 @@
   max-width: 620px;
 }
 
+/* --- Tab „Unternehmenskontext" (v33) --- */
+
+.kontext-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.kontext-block {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 12px 14px;
+  margin-bottom: 0;
+}
+.kontext-feld {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 4px;
+  padding: 10px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.kontext-projekte-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.kontext-projekte-kopf .einst-label {
+  margin-bottom: 0;
+  flex: 1 1 auto;
+}
+.kontext-projekt-kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.kontext-projektname {
+  flex: 1 1 auto;
+  padding: 6px 9px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kontext-quellen {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--linie);
+}
+.kontext-quellen .einst-label {
+  margin-bottom: 6px;
+}
+.kontext-quelle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.kontext-quelle-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+.kontext-quelle-art {
+  font-weight: 600;
+  color: var(--text);
+}
+.kontext-quelle-text code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  color: var(--text-still);
+  overflow-wrap: anywhere;
+}
+.kontext-quelle-stand {
+  color: var(--text-still);
+}
+.kontext-quelle.fehler .kontext-quelle-stand {
+  color: var(--warnung, #b45309);
+}
+.kontext-quelle-neu {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+.kontext-artwahl {
+  width: auto;
+  flex: 0 0 auto;
+}
+.kontext-pfad {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+.kontext-probe {
+  margin-top: 10px;
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 /* Lange Anleitungen und Pfade brechen um, statt die Spalte breiter zu machen. */
 .einstellungen-modal .einst-inhalt code,
 .einstellungen-modal .einst-inhalt pre {

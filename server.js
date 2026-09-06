@@ -31,6 +31,7 @@ import * as gcal from "./lib/gcal.js";
 import * as zip from "./lib/zip.js";
 import * as prompts from "./lib/promptstore.js";
 import * as workflows from "./lib/workflowstore.js";
+import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as eigeneWorkflows from "./lib/ownworkflowstore.js";
 
@@ -44,6 +45,7 @@ const PLAN_FILE = join(DATA_DIR, "plan.json");
 const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
 const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
+const KONTEXT_FILE = join(DATA_DIR, "kontext.json");
 const EIGENE_WORKFLOWS_FILE = join(DATA_DIR, "own-workflows.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
@@ -51,6 +53,7 @@ const LIB_DIR = join(__dirname, "lib");
 // Die beiden Ablagen kennen ihren Pfad nicht von selbst — hier bekommt jede ihren (v26).
 prompts.setzePfad(PROMPTS_FILE);
 workflows.setzePfad(WORKFLOWS_FILE);
+unternehmen.setzePfad(KONTEXT_FILE); // v33: Unternehmens- und Projektkontext
 eigeneWorkflows.setzePfad(EIGENE_WORKFLOWS_FILE); // v27: die selbstgebauten Workflows
 
 // --- .env laden (ohne dotenv-Paket) --------------------------------------
@@ -417,8 +420,13 @@ async function handler(req, res) {
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
         // v26: Prompt und Vorspann kommen aus der Ablage — Bens Fassung, sonst die Vorlage.
-        const system = await prompts.systemPrompt();
-        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}));
+        // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
+        // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
+        const firmenKontext = await unternehmen
+          .sammle()
+          .catch(() => ({ firmenkontext: "", projektkontext: "" }));
+        const system = await prompts.systemPrompt(firmenKontext);
+        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
         let text;
         if (provider === "ollama") {
           text = await ki.runOllama(system, userMsg, ollamaModel);
@@ -458,8 +466,13 @@ async function handler(req, res) {
           const kt = await leseKontext(pipeline.slug(card.serie)).catch(() => "");
           if (kt) kontextBlock = `\n\n--- Projekt-Kontext (aus Drive) ---\n${kt}`;
         }
-        const system = await prompts.systemPrompt();
-        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}));
+        // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
+        // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
+        const firmenKontext = await unternehmen
+          .sammle()
+          .catch(() => ({ firmenkontext: "", projektkontext: "" }));
+        const system = await prompts.systemPrompt(firmenKontext);
+        const userMsg = kontextBlock + "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
         let text;
         if (provider === "ollama") {
           text = await ki.runOllamaStream(system, userMsg, ollamaModel, (delta) => {
@@ -487,6 +500,56 @@ async function handler(req, res) {
     // Die waehlbaren Claude-Modelle — eine Wahrheit, sie steht in lib/ai.js (v26).
     if (pfad === "/api/ai/modelle" && req.method === "GET") {
       sendJson(res, 200, { claude: ki.CLAUDE_MODELLE, standard: ki.CLAUDE_MODELL_STANDARD });
+      return;
+    }
+
+    // ---- Unternehmenskontext (v33) ---------------------------------------
+    // Firmen-/Brandwissen und Projektwissen: Freitext plus Verweise auf Dateien, lokal oder in
+    // Drive. Geht ueber die Platzhalter {{firmenkontext}}/{{projektkontext}} in jeden Prompt.
+
+    if (pfad === "/api/kontext" && req.method === "GET") {
+      sendJson(res, 200, await unternehmen.uebersicht());
+      return;
+    }
+
+    if (pfad === "/api/kontext" && req.method === "PUT") {
+      const body = JSON.parse(await readBody(req));
+      try {
+        let stand;
+        switch (body.was) {
+          case "firma-text":
+            stand = await unternehmen.setzeFirmaText(body.text);
+            break;
+          case "projekt-anlegen":
+            stand = await unternehmen.projektAnlegen(body.name);
+            break;
+          case "projekt-aendern":
+            stand = await unternehmen.projektAendern(body.id, body);
+            break;
+          case "projekt-loeschen":
+            stand = await unternehmen.projektLoeschen(body.id);
+            break;
+          case "quelle-hinzufuegen":
+            stand = await unternehmen.quelleHinzufuegen(body.ziel, { art: body.art, pfad: body.pfad });
+            break;
+          case "quelle-entfernen":
+            stand = await unternehmen.quelleEntfernen(body.ziel, body.quelleId);
+            break;
+          default:
+            sendJson(res, 400, { error: `Unbekannte Aenderung: ${body.was}` });
+            return;
+        }
+        sendJson(res, 200, stand);
+      } catch (e) {
+        sendJson(res, 400, { error: e.message });
+      }
+      return;
+    }
+
+    // Zeigt, was aus dem hinterlegten Kontext tatsaechlich in den Prompt geht — damit die
+    // Wirkung nachpruefbar ist und nicht geglaubt werden muss.
+    if (pfad === "/api/kontext/probe" && req.method === "GET") {
+      sendJson(res, 200, await unternehmen.sammle(url.searchParams.get("projekt") || null));
       return;
     }
 

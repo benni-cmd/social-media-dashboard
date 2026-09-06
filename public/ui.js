@@ -411,7 +411,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle", "System Prompts", "Workflows"]) {
+  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts", "Workflows"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -940,15 +940,36 @@ export function einstellungenModal(onThemeChange) {
   wfListe.textContent = "Lade …";
   seite6.appendChild(wfListe);
 
+  // Seite 7: Unternehmenskontext (v33) — Firmen-/Markenwissen und Projektwissen, das in
+  // jeden KI-Prompt gehen kann. Der Inhalt steckt in public/kontext.js.
+  const seite7 = document.createElement("div");
+  seite7.className = "einst-seite";
+  const titel7 = document.createElement("div");
+  titel7.className = "einst-titel";
+  titel7.textContent = "Unternehmenskontext";
+  seite7.appendChild(titel7);
+  const hint7 = document.createElement("p");
+  hint7.className = "einst-provider-sub";
+  hint7.textContent =
+    "Was die KI ueber die Firma wissen soll, fuer die geschrieben wird — als Text und als " +
+    "Verweis auf Dateien, lokal oder in Drive. Geht ueber zwei Platzhalter in jeden Prompt.";
+  seite7.appendChild(hint7);
+  const kontextListe = document.createElement("div");
+  kontextListe.className = "kontext-liste";
+  kontextListe.textContent = "Lade …";
+  seite7.appendChild(kontextListe);
+
   rechts.appendChild(seite1);
   rechts.appendChild(seite2);
   rechts.appendChild(seite3);
   rechts.appendChild(seite4);
+  rechts.appendChild(seite7);
   rechts.appendChild(seite5);
   rechts.appendChild(seite6);
 
   // --- Tab-Switching ---
-  const seiten = [seite1, seite2, seite3, seite4, seite5, seite6];
+  const seiten = [seite1, seite2, seite3, seite4, seite7, seite5, seite6];
+  let kontextGeladen = false;
   let promptsGeladen = false;
   let wfGeladen = false;
   navItems.forEach((btn, i) => {
@@ -965,8 +986,12 @@ export function einstellungenModal(onThemeChange) {
       if (i === 1) ladeModelle();
       // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
       if (i === 2 || i === 3) ladeVerbStatus();
-      if (i === 4 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
-      if (i === 5 && !wfGeladen) { wfGeladen = true; zeichneWorkflows(wfListe); }
+      if (i === 4 && !kontextGeladen) {
+        kontextGeladen = true;
+        import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
+      }
+      if (i === 5 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
+      if (i === 6 && !wfGeladen) { wfGeladen = true; zeichneWorkflows(wfListe); }
     });
   });
 
