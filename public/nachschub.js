@@ -7,11 +7,11 @@
 
 import {
   INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, saeulenVerteilung, MASSE,
-  contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots,
+  contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots, fruehesterUpload,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan, schwebendeNeuBerechnen } from "./store.js";
-import { icon, statusChip, escape, knopf, denkPanel, meldung } from "./ui.js";
+import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
 
@@ -29,7 +29,10 @@ async function ladeOffeneSlots() {
       const month = (heute.getMonth() + delta) % 12;
       slots.push(...slotsForMonth(plan, year, month));
     }
-    return slots.filter((s) => s.datum >= heuteISO);
+    // P4 (v37): nie ein Upload-Datum vor „naechster Drehtermin + 8 Tage" anbieten, sonst
+    // landen Schnitt/Dreh in der Vergangenheit.
+    const frueh = fruehesterUpload(S.drehtermine, heuteISO);
+    return slots.filter((s) => s.datum >= frueh);
   } catch {}
   return [];
 }
@@ -79,11 +82,17 @@ export async function holeIdee() {
     }
     document.addEventListener("keydown", onKey);
 
-    const zeigeLaden = (text) =>
-      (box.innerHTML = `<div style="padding:28px 10px;color:var(--fg2)">${escape(text)}</div>`);
+    // P3 (v37): der Ladezustand traegt die drehende Sanduhr — derselbe Indikator wie ueberall
+    // sonst, statt eines statischen Textes, der sich anfuehlt, als passiere nichts.
+    const zeigeLaden = (text) => {
+      box.innerHTML = "";
+      const s = sanduhr(text);
+      s.style.padding = "28px 10px";
+      box.appendChild(s);
+    };
 
     function zeigeFehler(satz) {
-      zeigeLaden(satz);
+      box.innerHTML = `<div style="padding:28px 10px;color:var(--fg2)">${escape(satz)}</div>`;
       const r = document.createElement("div");
       r.className = "modal-knoepfe";
       r.appendChild(knopf("Nochmal", { art: "haupt", klick: () => naechste() }));
@@ -136,15 +145,17 @@ export async function holeIdee() {
       const katId = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie);
       const typName = contenttypName((slot && slot.typ) || "reel");
       const marke = katId ? `${kategorieName(katId)} · ${typName}` : typName;
+      // P2 (v37): system-eigene Tokens (--linie-hell/--flaeche-hoch) statt erfundener
+      // --rand/--flaeche2 (die immer auf dunkle Fallbacks fielen, im Hellmodus falsch) und
+      // ohne die redundante „← andere Idee · übernehmen →"-Zeile — die Knoepfe sagen das schon.
       box.innerHTML =
         `<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px">Neue Idee</div>` +
-        `<div style="border:1px solid var(--rand,#3a3a3a);border-radius:12px;padding:18px 16px;text-align:left;background:var(--flaeche2,rgba(255,255,255,.03))">` +
+        `<div style="border:1px solid var(--linie-hell);border-radius:12px;padding:18px 16px;text-align:left;background:var(--flaeche-hoch)">` +
           `<div style="font-size:20px;font-weight:700;line-height:1.25;margin-bottom:6px">${escape(idee.titel || "(ohne Titel)")}</div>` +
           `<div style="font-size:12px;color:var(--fg2);margin-bottom:10px">${escape(marke)}</div>` +
           `<p style="margin:0;line-height:1.5">${escape(idee.warum || "")}</p>` +
           (idee.hook ? `<p style="margin:10px 0 0;color:var(--fg2);font-size:13px"><em>Hook: ${escape(idee.hook)}</em></p>` : "") +
-        `</div>` +
-        `<div style="font-size:12px;color:var(--fg2);margin:12px 0 2px">← andere Idee · übernehmen →</div>`;
+        `</div>`;
       const r = document.createElement("div");
       r.className = "modal-knoepfe";
       r.appendChild(knopf("Andere Idee", { zeichen: "schliessen", klick: () => dislike() }));

@@ -2,7 +2,7 @@
 
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
-  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots,
+  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -509,8 +509,10 @@ export async function schwebendeNeuBerechnen() {
     const month = (heute.getMonth() + delta) % 12;
     rohSlots.push(...slotsForMonth(plan, year, month));
   }
+  // P4 (v37): schwebende Karten rutschen nie vor „naechster Drehtermin + 8 Tage".
+  const frueh = fruehesterUpload(S.drehtermine, heuteIso);
   const alleSlots = rohSlots
-    .filter((s) => s.datum >= heuteIso)
+    .filter((s) => s.datum >= frueh)
     .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit || "").localeCompare(b.uhrzeit || ""));
 
   // Belegt ist jedes Upload-Datum einer NICHT-schwebenden Karte — schwebende Karten selbst
