@@ -898,6 +898,9 @@ function blockPhase(k, toreListe, stand) {
   const p = phase(k.column);
   const g = gruppe(`Arbeit in "${p.name}"`, null, true);
   const box = document.createElement("div");
+  // P5 (v37): vertikaler Abstand zwischen den gestapelten Elementen (Buttons, Felder,
+  // Ergebniszeilen) — ohne Gap klebten sie aneinander.
+  box.className = "phasen-arbeit";
 
   const merke = (pfad, wert, neu = false) => {
     setzeTief(k, pfad, wert);
@@ -1061,6 +1064,21 @@ function guidedIdee(k, box) {
   box.appendChild(gewaehltZeile("Fokus", r.fokus[k.chosenFokus].titel));
   box.appendChild(gewaehltZeile("Verbaler Hook", (k.hook && k.hook.text) || ""));
   const hvis = k.hooksVisuell;
+  // P6a (v37): Ist der sichtbare Hook gewaehlt, ist die Entscheidung getroffen — dann keine
+  // Auswahlpunkte mehr, sondern die Ergebniszeile (wie Fokus/Verbaler Hook darueber). Der
+  // Skript-Loop erscheint darunter (ideeFertig). „Zurueck" oeffnet die Auswahl wieder.
+  if (k.chosenVisuell != null) {
+    box.appendChild(gewaehltZeile("Sichtbarer Hook", (k.hook && k.hook.visual) || ""));
+    box.appendChild(
+      zurueckKnopf(() => {
+        delete k.chosenVisuell;
+        if (k.hook) delete k.hook.visual;
+        speichere();
+        zeichne();
+      })
+    );
+    return;
+  }
   if (!hvis || !Array.isArray(hvis.hooks)) {
     box.appendChild(
       knopf("Visuelle Hooks holen", { art: "haupt", zeichen: "funken", klick: (e) => rufeKi("hooks_visuell", k, e.currentTarget, box) })
@@ -1120,6 +1138,19 @@ function zurueckKnopf(klick) {
   return b;
 }
 
+// P6b (v37): ein Textfeld waechst mit seinem Inhalt bis maxPx, danach scrollt es. Die erste
+// Messung braucht das Element im DOM — die Karte wird erst nach dem Bau eingehaengt, deshalb
+// requestAnimationFrame statt sofortiger Messung (scrollHeight waere sonst 0).
+function wachsePassend(el, maxPx = 260) {
+  const anpassen = () => {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, maxPx) + "px";
+    el.style.overflowY = el.scrollHeight > maxPx ? "auto" : "hidden";
+  };
+  el.addEventListener("input", anpassen);
+  requestAnimationFrame(anpassen);
+}
+
 function rechercheKlappe(text) {
   const d = document.createElement("details");
   d.className = "gruppe";
@@ -1145,17 +1176,23 @@ function skriptLoop(k, box) {
       : k.recherche && k.chosenFokus != null && k.recherche.fokus && k.recherche.fokus[k.chosenFokus]
       ? `${k.recherche.fokus[k.chosenFokus].titel}: ${k.recherche.fokus[k.chosenFokus].text}`
       : "";
-  const fokusEl = textfeld(fokusStart, 2, "Der gewaehlte Fokus");
+  // P6b (v37): alle drei Felder mehrzeilig (textfeld) statt einzeiliger Eingaben — langer Text
+  // war in <input> weder ganz sichtbar noch bequem editierbar. Textareas scrollen von selbst;
+  // wachsePassend() vergroessert sie zusaetzlich bis zu einer Deckelung mit dem Inhalt.
+  const fokusEl = textfeld(fokusStart, 3, "Der gewaehlte Fokus");
   fokusEl.addEventListener("change", () => merke("fokusText", fokusEl.value));
   box.appendChild(feld("Fokus", fokusEl));
+  wachsePassend(fokusEl);
 
-  const vEl = eingabe((k.hook && k.hook.text) || "", { platzhalter: "Der gesprochene Einstieg" });
+  const vEl = textfeld((k.hook && k.hook.text) || "", 2, "Der gesprochene Einstieg");
   vEl.addEventListener("change", () => merke("hook.text", vEl.value));
   box.appendChild(feld("Verbaler Hook", vEl, `Hoechstens etwa ${MASSE.hookWoerterMax} Woerter.`));
+  wachsePassend(vEl);
 
-  const viEl = eingabe((k.hook && k.hook.visual) || "", { platzhalter: "Was man in Sekunde 0 bis 1 sieht" });
+  const viEl = textfeld((k.hook && k.hook.visual) || "", 2, "Was man in Sekunde 0 bis 1 sieht");
   viEl.addEventListener("change", () => merke("hook.visual", viEl.value));
   box.appendChild(feld("Sichtbarer Hook", viEl, "Vier von fuenf schauen ohne Ton — das Bild muss den Hook tragen."));
+  wachsePassend(viEl);
 
   // Ein Knopf, der alles schreibt.
   box.appendChild(

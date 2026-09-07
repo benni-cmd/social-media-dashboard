@@ -1023,6 +1023,13 @@ body {
 .gruppe > *:not(summary) {
   padding: 0 11px 11px;
 }
+/* Phasen-Arbeit (v37, P5): gestapelte Buttons/Felder/Ergebniszeilen brauchen vertikalen
+   Abstand — ohne Gap kleben sie aneinander. */
+.phasen-arbeit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .gruppe[open] .gruppe-kopf {
   border-bottom: 1px solid var(--linie);
   margin-bottom: 10px;
