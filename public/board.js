@@ -176,29 +176,34 @@ export function zeichneBoard(boardEl, lastEl) {
     if (!karten.length) {
       const l = document.createElement("div");
       l.className = "spalte-leer";
-      l.textContent = "Hier liegt nichts. Zieh eine Karte her oder leg unten eine neue an.";
+      // Karten entstehen nur am Kettenanfang (idee) — spaetere Spalten fuellen sich per Zug.
+      l.textContent =
+        p.id === "idee"
+          ? "Hier liegt nichts. Zieh eine Karte her oder leg unten eine neue an."
+          : "Hier liegt nichts. Zieh eine Karte her.";
       liste.appendChild(l);
     }
     for (const k of karten) liste.appendChild(kachel(k));
     spalte.appendChild(liste);
 
-    const fuss = document.createElement("div");
-    fuss.className = "spalte-fuss";
-    const neuKnopf = knopf("Karte anlegen", {
-      art: "still",
-      zeichen: "plus",
-      klick: () => {
-        const k = neueKarte(p.id);
-        zeichne();
-        oeffne(k.id);
-      },
-    });
-    neuKnopf.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-plus");
-    fuss.appendChild(neuKnopf);
-
-    // Nachschub gehoert an den Anfang der Kette, nicht in den Kopf: wer Ideen braucht,
-    // steht vor der Idee-Spalte.
+    // Karten entstehen nur am Kettenanfang: „Karte anlegen" und „Idee von der KI" gibt es
+    // ausschliesslich in der ersten Spalte (idee). Weiter hinten fuellen sich Spalten per Zug
+    // oder Weiter-Schritt — dort wuerde eine Anlage-Option nur eine Karte ohne Vorlauf erzeugen.
     if (p.id === "idee") {
+      const fuss = document.createElement("div");
+      fuss.className = "spalte-fuss";
+      const neuKnopf = knopf("Karte anlegen", {
+        art: "still",
+        zeichen: "plus",
+        klick: () => {
+          const k = neueKarte(p.id);
+          zeichne();
+          oeffne(k.id);
+        },
+      });
+      neuKnopf.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-plus");
+      fuss.appendChild(neuKnopf);
+
       const ideenKnopf = knopf("Idee von der KI", {
         zeichen: "funken",
         titel: "Eine Idee fuer den naechsten freien Upload-Slot recherchieren.",
@@ -217,8 +222,8 @@ export function zeichneBoard(boardEl, lastEl) {
       ideenKnopf.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-funken");
       ideenKnopf.style.marginTop = "7px";
       fuss.appendChild(ideenKnopf);
+      spalte.appendChild(fuss);
     }
-    spalte.appendChild(fuss);
 
     boardEl.appendChild(spalte);
   }
