@@ -72,12 +72,14 @@ kollabiert nach der Wahl und das Skript laesst sich bequem bearbeiten.
 - **P1:** Kleinster Eingriff — `neuKnopf` nur anhaengen, wenn `p.id === "idee"`. Keine neue
   Konfiguration; die Kette hat einen definierten Anfang, spaetere Spalten bekommen Karten nur
   per Zug oder Weiter-Schritt.
-- **P4:** Ein Mindestvorlauf `MIN_UPLOAD_VORLAUF_TAGE`, abgeleitet aus dem Rueckwaertsplan, damit
-  die Regel EINE Quelle hat und nicht dreifach driftet. Untergrenze so, dass Dreh und Schnitt in
-  der Zukunft liegen: `upload ≥ heute + VORLAUF_TAGE.schnitt + Dreh-Puffer`. Der Puffer wird beim
-  Bau festgelegt (Vorschlag: kleiner Dreh-Vorlauf, z. B. 2 Tage → Mindestvorlauf 8 Tage) und im
-  Paket begruendet. Der Filter wandert von `nachschub.js:32` in eine gemeinsame Helferfunktion in
-  `lib/pipeline.js`, damit Popup, Detail-Checkbox und schwebende Karten dieselbe Grenze nutzen.
+- **P4 (Owner 07.09.2026):** Frühestes Upload-Datum = **nächster Drehtermin + 8 Tage**. So hängt
+  die Grenze am REALEN Drehtermin — es ist garantiert, dass der Content bis dahin gedreht werden
+  kann. Rechnung geht auf: Schnitt = Upload−6 = Dreh+2 (liegt hinter dem Dreh), Freigabe = Dreh+5,
+  Dreh-Fenster [Upload−20, Upload−6] = [Dreh−12, Dreh+2] enthält den Dreh. Kein Termin mehr in der
+  Vergangenheit. Gibt es keinen kommenden Drehtermin, greift der Sonntag der Folgewoche
+  (`sonntagFolgewoche` — genau das Datum, das der Auto-Drehtermin setzen würde). Neuer Helfer
+  `fruehesterUpload(drehtermine, heute)` in `lib/pipeline.js`, damit die Regel EINE Quelle hat;
+  der Slot-Filter wandert von `nachschub.js:32` und `store.js:513` auf diese Grenze.
 - **P6a:** Symmetrie zu Fokus/Verbal — bei gesetztem `chosenVisuell` eine `gewaehltZeile`
   („Sichtbarer Hook: …") statt der Wahlgruppe, mit demselben „Einen Schritt zurueck".
 - **P6b:** Alle drei Skript-Felder auf ein mehrzeiliges, mitwachsendes/scrollbares Textfeld
@@ -107,16 +109,35 @@ kollabiert nach der Wahl und das Skript laesst sich bequem bearbeiten.
 
 ## Stand
 
-- 07.09.2026: Bestand gemessen, Plan angelegt. Bau noch nicht begonnen.
+- 07.09.2026: Bestand gemessen, Plan angelegt.
+- 07.09.2026: Alle vier Phasen gebaut, `node --check` gruen. Optische Abnahme im Browser
+  (https://localhost:4321, Karte „Helft uns, Waldvierecke zu pflanzen" durch den Flow gefuehrt).
+  - P1 ✓: „Karte anlegen"/„Idee von der KI" nur in Spalte „Skript schreiben"; leere Spaeter-Spalten
+    (Caption/Upload) zeigen „Hier liegt nichts. Zieh eine Karte her."
+  - P2 ✓: „Neue Idee"-Popup („Alte Sorten bewahren") auf hellem Grund (Token-Fix), ohne die
+    redundante „← andere Idee · übernehmen →"-Zeile.
+  - P3 (Code + node --check): trivialer Tausch auf den `sanduhr()`-Helfer; NICHT live ausgeloest,
+    weil „Als Karte anlegen" einen echten Google-Drive-Ordner erzeugt haette — unnoetiger
+    externer Seiteneffekt fuer einen Cosmetic-Check. Der Ladeindikator selbst (denkPanel-Sanduhr)
+    rendert im selben Popup nachweislich korrekt.
+  - P4 ✓: `_p4test.mjs` (drei Faelle) — Schnitt/Dreh nie in der Vergangenheit, Dreh im Fenster.
+    Der „Idee von der KI"-Lauf nutzt den neuen Slot-Filter live.
+  - P5 ✓: Fokus-/Hook-Zeilen und Buttons im Detail-Panel mit sichtbarem vertikalem Abstand.
+  - P6a ✓: nach Wahl von „Haupt-Bild" kollabiert der sichtbare Hook zur ✓-Ergebniszeile, die
+    Auswahlpunkte verschwinden, der Skript-Loop erscheint darunter.
+  - P6b ✓: Fokus/Verbaler/Sichtbarer Hook sind mehrzeilige Textfelder; der lange Sichtbar-Hook-Text
+    steht vollstaendig statt in einer abgeschnittenen einzeiligen Eingabe.
 
 ## DoD
 
-- [ ] P1: „Karte anlegen" nur in der ersten Spalte; spaetere Spalten ohne Anlage-Option
-- [ ] P2: „Neue Idee"-Popup ohne Fremdtext/Doppelung, system-konform (Screenshot)
-- [ ] P3: „Lege … an"-Ladezustand zeigt die drehende Sanduhr (Screenshot)
-- [ ] P4: Auto-Upload-Datum haelt Mindestvorlauf; erzeugte Dreh-/Schnitt-Termine nie in der
-      Vergangenheit; kein Fehler bei Auto-Drehterminen (belegt mit Datumswerten)
-- [ ] P5: Detail-Panel-Buttons mit sichtbarem vertikalem Abstand (Screenshot)
-- [ ] P6a: Nach Hook-Wahl keine Auswahlpunkte mehr, nur Ergebniszeile (Screenshot)
-- [ ] P6b: Fokus/Verbaler/Sichtbarer Hook komfortabel editierbar (mehrzeilig/scrollbar)
-- [ ] `node --check` gruen fuer alle geaenderten Dateien
+- [x] P1: „Karte anlegen" nur in der ersten Spalte; spaetere Spalten ohne Anlage-Option (Screenshot)
+- [x] P2: „Neue Idee"-Popup ohne Fremdtext/Doppelung, system-konform (Screenshot)
+- [~] P3: „Lege … an"-Ladezustand nutzt den `sanduhr()`-Helfer (Code + node --check; live nicht
+      ausgeloest, um keinen Drive-Ordner anzulegen)
+- [x] P4: Auto-Upload-Datum = naechster Drehtermin + 8 Tage; erzeugte Dreh-/Schnitt-Termine nie in
+      der Vergangenheit (belegt via `_p4test.mjs`)
+- [x] P5: Detail-Panel-Buttons mit sichtbarem vertikalem Abstand (Screenshot)
+- [x] P6a: Nach Hook-Wahl keine Auswahlpunkte mehr, nur Ergebniszeile (Screenshot)
+- [x] P6b: Fokus/Verbaler/Sichtbarer Hook komfortabel editierbar, mehrzeilig (Screenshot)
+- [x] `node --check` gruen fuer alle geaenderten Dateien (board.js, nachschub.js, store.js,
+      detail.js, pipeline.js)
