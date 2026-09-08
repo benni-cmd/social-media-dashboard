@@ -167,9 +167,14 @@ Geprueft gegen: lokale Verify-Skripte für Tabelle 1 (beitraege) und Tabellen 2+
 (kanal-verlauf, demografie, backfill) — alle Prüfungen bestanden; `node --check` aller
 Module OK · IG-/LI-Felder gegen die belegten API-Quellen (2 je Plattform) · Legende +
 `drive-convention.md`.
-Offen: **Live-Verify** — echte Tokens → Server starten → CSVs in Drive öffnen; besonders die
-Antwort-Formen von IG `follower_demographics` und LI-Demografie (URN-Auflösung zu Klarnamen)
-und der `edgeType`-Fix (Follower-Zahl auch der bestehenden Auswertung-Seite) sind noch nicht
-gegen Live-Daten geprüft.
 Erledigt: Schema, Ordner-Layout, alle drei Tabellen-Schreiber + Legende, `edgeType`-Fix,
-Auto-Auslöser beim Server-Start (alles lokal verifiziert bzw. `node --check`).
+Auto-Auslöser beim Server-Start.
+**Live-Verify Instagram (02.09.2026, bestanden):** Server-Start schrieb `kanal-verlauf.csv`
+mit echten Kontozahlen (follower_gesamt=99, media_anzahl=21; BOM/Semikolon/Spalten korrekt)
+und `LIESMICH.txt`. `follower-demografie.csv` korrekt NICHT angelegt (Konto <100 Follower →
+Meta liefert keine Demografie — Schutzregel greift). `beitraege-kpi.csv` noch leer (keine
+Post-Messung fällig).
+Offen: (a) LinkedIn-Live-Verify — API noch in Freigabe. (b) IG-Demografie erst ab 100
+Followern prüfbar. (c) beitraege-kpi.csv sobald ein Post ein Intervall erreicht.
+(d) Verfeinerung: Konto-`reichweite`/`views` als 28-Tage-Fenster statt `period=day`.
+(e) LinkedIn-Demografie-URNs → Klarnamen (Folgeschritt).

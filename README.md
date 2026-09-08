@@ -46,8 +46,23 @@ Fuer die Auswertung: `.env` aus `.env.example` anlegen und die App-Zugaenge eint
 npm start
 ```
 
-Dann `http://localhost:4321` oeffnen. Der Server braucht **keine** npm-Abhaengigkeiten, nur
-Node ab Version 20 — er nutzt ausschliesslich Bordmittel.
+Dann `https://localhost:4321` oeffnen (HTTPS, selbstsigniert — der Browser fragt einmal nach).
+Der Server braucht **keine** npm-Abhaengigkeiten, nur Node ab Version 20 — er nutzt ausschliesslich
+Bordmittel. Unter Windows startet `Start-Board.cmd` dasselbe per Doppelklick.
+
+## Auf einem anderen Rechner
+
+```
+git clone https://github.com/benni-cmd/social-media-dashboard.git
+cd social-media-dashboard
+npm start          # oder: node server.js
+```
+
+Voraussetzungen: **Node ab 20** und **`openssl` im PATH** — beim ersten Start erzeugt der Server
+daraus sein selbstsigniertes Zertifikat (`data/localhost.key`/`.crt`). Bei „Git fuer Windows" ist
+`openssl` dabei; fehlt es im `cmd`-PATH, bricht der Start ab. Google Drive (`rclone`) und die
+Auswertungs-Zugaenge (`.env`) sind optional — ohne sie startet das Board mit dem mitgelieferten
+Karten-Stand (`data/board.json`) und meldet Drive-Aktionen als „geht gerade nicht".
 
 ## Aufbau
 

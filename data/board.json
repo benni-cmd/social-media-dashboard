@@ -1,14 +1,15 @@
 {
-  "version": 181,
+  "version": 269,
   "cards": [
     {
+      "name": "ProjectOasis_EP01_DigitalerSandkasten",
       "id": "test-oasis-01",
       "column": "fertig",
       "title": "Digitaler Sandkasten",
       "notes": "Testprojekt 1 — gematcht mit Drive: In Bearbeitung/Skript/ProjectOasis_EP01_DigitalerSandkasten",
       "serie": "ProjectOasis",
       "episode": "01",
-      "format": "Reel",
+      "format": "",
       "checks": {},
       "ai": {},
       "driveCreated": true,
@@ -51,9 +52,14 @@
       "metrics": {},
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "uploadDate": null,
+      "aktualisiert": "2026-09-02T15:45:38.398Z",
+      "floatUpload": false
     },
     {
+      "name": "WorldEden_EP03_BodenwieeinSchwamm",
       "id": "test-worldeden-03",
       "column": "videodreh",
       "title": "Boden wie ein Schwamm",
@@ -64,7 +70,11 @@
       "checks": {},
       "ai": {},
       "driveCreated": true,
-      "dates": {},
+      "dates": {
+        "schnitt": "2026-09-25",
+        "freigabe": "2026-09-28",
+        "upload": "2026-10-01"
+      },
       "platforms": [
         "instagram"
       ],
@@ -98,14 +108,19 @@
         "speakerOnCamera": false,
         "directGaze": false
       },
-      "uploadTime": "",
+      "uploadTime": "17:00",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": "cmtk4icomrqfn",
+      "uploadDate": null,
+      "aktualisiert": "2026-09-03T16:58:01.489Z",
+      "floatUpload": true
     },
     {
+      "name": "HuehnernahrungmitMaden",
       "id": "cmtbicpmpuzv8",
       "column": "skript",
       "title": "Hühnernahrung mit Maden",
@@ -155,7 +170,11 @@
       "chosenHook": 2,
       "freigabe": "Fokus: Hauptfokus — Kreislauf statt Import: Kuechen- und Ernteabfaelle werden ueber BSF-Larven in Huehnerfutter verwandelt, das sonst importiertes Soja- oder Fischmehl ersetzt - konkreter Baustein im geschlossenen System von Project Oasis, nicht nur ein netter Trick.\nHook verbal: Guck mal, wie dein Huhn reagiert, wenn da ploetzlich was Lebendiges im Futter ist - das ist kein Zufall.\nHook visuell: Slow-Motion Huhn, das aktiv nach einer Made pickt, sichtbare Erregung/Interesse",
       "driveCreated": true,
-      "dates": {},
+      "dates": {
+        "schnitt": "2026-09-23",
+        "freigabe": "2026-09-26",
+        "upload": "2026-09-29"
+      },
       "platforms": [
         "instagram"
       ],
@@ -189,14 +208,19 @@
         "speakerOnCamera": false,
         "directGaze": false
       },
-      "uploadTime": "",
+      "uploadTime": "11:00",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": "cmtk4icomrqfn",
+      "uploadDate": null,
+      "aktualisiert": "2026-09-03T17:16:33.443Z",
+      "floatUpload": true
     },
     {
+      "name": "tetst_EP00_MachuPicchu",
       "id": "cmtcwivirlgqi",
       "schema": 2,
       "column": "skript",
@@ -238,11 +262,11 @@
         "directGaze": false
       },
       "dates": {
-        "idee": "2026-08-28",
-        "skript": "2026-09-03",
-        "dreh": "2026-09-03"
+        "schnitt": "2026-09-23",
+        "freigabe": "2026-09-26",
+        "upload": "2026-09-29"
       },
-      "uploadTime": "",
+      "uploadTime": "15:00",
       "checks": {},
       "ai": {},
       "driveName": "tetst_EP00_MachuPicchu",
@@ -298,9 +322,13 @@
       "chosenHook": 2,
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:48:43.854Z",
+      "floatUpload": true
     },
     {
+      "name": "KompostTeeausKuechenresten",
       "id": "cmtebmd8o6sja",
       "schema": 2,
       "column": "skript",
@@ -349,9 +377,9 @@
         "directGaze": false
       },
       "dates": {
-        "upload": "2026-09-03"
+        "upload": "2026-09-07"
       },
-      "uploadTime": "",
+      "uploadTime": "08:00",
       "checks": {},
       "ai": {
         "skript": "[CHUNK 1]\nSchalen, Kaffeesatz, Wasser: dein Dünger-Rezept in drei Schritten.\n\n[CHUNK 2]\nJeden Tag landet Dünger-Rohstoff im Müll — und genau dafür kaufst du Flüssigdünger.\n\n[CHUNK 3]\nRechne das mal aufs Jahr hoch: Da steckt locker der Gegenwert von mehreren Flaschen Dünger drin.\n\n[CHUNK 4]\nUnd so holst du sie dir zurück: Reste in einen Eimer mit Wasser, täglich umrühren.\n\n[CHUNK 5]\nNach ein, zwei Tagen ist er fertig — verdünnt ans Gießwasser, direkt an die Wurzeln.\n\n[CHUNK 6]\nWas steckt bei dir in der Biotonne? Wenn du's ausprobierst, schreib mir, wie's gelaufen ist.\n\n---\n\n**Zur Einordnung:** ca. 80 Wörter, damit bei natürlichem Sprechtempo rund 30–32 Sekunden — trifft den Instagram-Korridor für \"Neue Leute erreichen\" und bleibt klar unter der 50-Sekunden-Grenze. Hook hat 8 Wörter. Problem (C2) und machbare Handlung (C4/C5) sind beide benannt, Schluss ist eine offene Frage gefolgt von genau einem indirekten Aufruf, keine Likes erwähnt."
@@ -426,9 +454,13 @@
       "chosenVisuell": 0,
       "skriptFinal": "[CHUNK 1]\nSchalen, Kaffeesatz, Wasser: dein Dünger-Rezept in drei Schritten.\n\n[CHUNK 2]\nJeden Tag landet Dünger-Rohstoff im Müll — und genau dafür kaufst du Flüssigdünger.\n\n[CHUNK 3]\nRechne das mal aufs Jahr hoch: Da steckt locker der Gegenwert von mehreren Flaschen Dünger drin.\n\n[CHUNK 4]\nUnd so holst du sie dir zurück: Reste in einen Eimer mit Wasser, täglich umrühren.\n\n[CHUNK 5]\nNach ein, zwei Tagen ist er fertig — verdünnt ans Gießwasser, direkt an die Wurzeln.\n\n[CHUNK 6]\nWas steckt bei dir in der Biotonne? Wenn du's ausprobierst, schreib mir, wie's gelaufen ist.\n\n---\n\n**Zur Einordnung:** ca. 80 Wörter, damit bei natürlichem Sprechtempo rund 30–32 Sekunden — trifft den Instagram-Korridor für \"Neue Leute erreichen\" und bleibt klar unter der 50-Sekunden-Grenze. Hook hat 8 Wörter. Problem (C2) und machbare Handlung (C4/C5) sind beide benannt, Schluss ist eine offene Frage gefolgt von genau einem indirekten Aufruf, keine Likes erwähnt.",
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:49:47.290Z",
+      "floatUpload": false
     },
     {
+      "name": "MischkulturindreiSchritten",
       "id": "cmtebmd8odtl3",
       "schema": 2,
       "column": "skript",
@@ -533,9 +565,13 @@
       "skriptGespeichert": true,
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:51:51.360Z",
+      "floatUpload": false
     },
     {
+      "name": "WarumwirUnkrautstehenlassen",
       "id": "cmtebmd8o939l",
       "schema": 2,
       "column": "skript",
@@ -579,7 +615,7 @@
       "uploadTime": "",
       "checks": {},
       "ai": {},
-      "driveName": "",
+      "driveName": "WarumwirUnkrautstehenlassen",
       "published": {},
       "metrics": {},
       "recherche": {
@@ -634,9 +670,13 @@
       "chosenHook": 0,
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:52:48.207Z",
+      "floatUpload": false
     },
     {
+      "name": "NichtjederRegenwurmhilftdeinemBo",
       "id": "cmtebmd8okz16",
       "schema": 2,
       "column": "skript",
@@ -682,7 +722,7 @@
       "ai": {
         "skript": "[CHUNK 1]\nDieser Wurm frisst deine Laubschicht in wenigen Wochen leer.\n\n[CHUNK 2]\nViele Würmer bedeuten nicht automatisch gesunden Boden.\n\n[CHUNK 3]\nDer asiatische Springwurm vermehrt sich explosionsartig und frisst binnen Wochen die komplette Streuschicht weg – genau die Schicht, die Feuchtigkeit hält und Boden aufbaut.\n\n[CHUNK 4]\nÜbrig bleibt Erde wie Kaffeesatz, ohne Struktur und ohne Halt für Wurzeln.\n\n[CHUNK 5]\nEr verrät sich, wenn er beim Anfassen wild zappelt, statt sich ruhig zu winden.\n\n[CHUNK 6]\nDeshalb lohnt sich ein Blick: Woher kommt dein Kompost oder Mulch wirklich?\n\n[CHUNK 7]\nHast du schon mal Würmer entdeckt, die sich so ungewöhnlich verhalten?\n\n[CHUNK 8]\nWenn du unsicher bist, was in deinem Boden lebt, schick mir ein Foto.\n\n—\nCa. 100 Wörter, geschätzt 32–38 Sekunden Sprechzeit — innerhalb der Hausregel, etwas über dem 15–30-Sekunden-Zielkorridor wegen der nötigen Erklärung."
       },
-      "driveName": "",
+      "driveName": "NichtjederRegenwurmhilftdeinemBo",
       "published": {},
       "metrics": {},
       "recherche": {
@@ -738,12 +778,16 @@
       "skriptFinal": "[CHUNK 1]\nDieser Wurm frisst deine Laubschicht in wenigen Wochen leer.\n\n[CHUNK 2]\nViele Würmer bedeuten nicht automatisch gesunden Boden.\n\n[CHUNK 3]\nDer asiatische Springwurm vermehrt sich explosionsartig und frisst binnen Wochen die komplette Streuschicht weg – genau die Schicht, die Feuchtigkeit hält und Boden aufbaut.\n\n[CHUNK 4]\nÜbrig bleibt Erde wie Kaffeesatz, ohne Struktur und ohne Halt für Wurzeln.\n\n[CHUNK 5]\nEr verrät sich, wenn er beim Anfassen wild zappelt, statt sich ruhig zu winden.\n\n[CHUNK 6]\nDeshalb lohnt sich ein Blick: Woher kommt dein Kompost oder Mulch wirklich?\n\n[CHUNK 7]\nHast du schon mal Würmer entdeckt, die sich so ungewöhnlich verhalten?\n\n[CHUNK 8]\nWenn du unsicher bist, was in deinem Boden lebt, schick mir ein Foto.\n\n—\nCa. 100 Wörter, geschätzt 32–38 Sekunden Sprechzeit — innerhalb der Hausregel, etwas über dem 15–30-Sekunden-Zielkorridor wegen der nötigen Erklärung.",
       "kpiMessungen": {},
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:54:39.163Z",
+      "floatUpload": false
     },
     {
+      "name": "Lehmboden",
       "id": "cmth5jsy499im",
       "schema": 2,
-      "column": "videodreh",
+      "column": "schnitt",
       "title": "Lehmboden",
       "notes": "",
       "serie": "",
@@ -789,10 +833,14 @@
         "directGaze": false
       },
       "dates": {
-        "dreh": "2026-08-25",
-        "upload": "2026-09-08"
+        "idee": "2026-09-04",
+        "skript": "2026-09-06",
+        "dreh": "2026-09-08",
+        "schnitt": "2026-09-11",
+        "freigabe": "2026-09-13",
+        "upload": "2026-09-14"
       },
-      "uploadTime": "11:00",
+      "uploadTime": "",
       "checks": {},
       "ai": {
         "skript": "Hier ist der Sprechertext für Phase 2, Thema Lehmboden (Content-Säule Hard Facts):\n\n[CHUNK 1]\nDein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.\n\n[CHUNK 2]\nLehm speichert mehr Nährstoffe als Sandboden – wie ein Tresor, aus dem nichts einfach rausrutscht.\n\n[CHUNK 3]\nDas eigentliche Problem ist nicht der Mangel, sondern die Struktur: Nach Regen steht das Wasser tagelang, im Sommer wird der Boden hart wie Estrich – Wurzeln ersticken oder reißen ab.\n\n[CHUNK 4]\nDie Lösung: organisches Material einarbeiten, tiefwurzelnden Ölrettich als Gründüngung setzen, und den Boden nie bearbeiten, solange er noch nass klebt.\n\n[CHUNK 5]\nHast du Lehmboden und kämpfst noch mit der Struktur? Wenn du diesen Weg schon gehst, schreib mir gern, was bei dir funktioniert.\n\nKurz zur Einordnung: ~91 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 33–38 Sekunden – nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\", aber innerhalb der 50-Sekunden-Hausregel, weil sowohl die CEC-Erklärung als auch Problem und Handlung Platz brauchen."
@@ -868,9 +916,13 @@
       "skriptFinal": "Hier ist der Sprechertext für Phase 2, Thema Lehmboden (Content-Säule Hard Facts):\n\n[CHUNK 1]\nDein Lehmboden ist kein Problem, sondern dein Nährstoff-Tresor.\n\n[CHUNK 2]\nLehm speichert mehr Nährstoffe als Sandboden – wie ein Tresor, aus dem nichts einfach rausrutscht.\n\n[CHUNK 3]\nDas eigentliche Problem ist nicht der Mangel, sondern die Struktur: Nach Regen steht das Wasser tagelang, im Sommer wird der Boden hart wie Estrich – Wurzeln ersticken oder reißen ab.\n\n[CHUNK 4]\nDie Lösung: organisches Material einarbeiten, tiefwurzelnden Ölrettich als Gründüngung setzen, und den Boden nie bearbeiten, solange er noch nass klebt.\n\n[CHUNK 5]\nHast du Lehmboden und kämpfst noch mit der Struktur? Wenn du diesen Weg schon gehst, schreib mir gern, was bei dir funktioniert.\n\nKurz zur Einordnung: ~91 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 33–38 Sekunden – nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\", aber innerhalb der 50-Sekunden-Hausregel, weil sowohl die CEC-Erklärung als auch Problem und Handlung Platz brauchen.",
       "skriptGespeichert": true,
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-03T11:34:48.367Z",
+      "floatUpload": false
     },
     {
+      "name": "TestIdee1",
       "id": "cmthdus43lidh",
       "schema": 2,
       "column": "skript",
@@ -997,67 +1049,13 @@
       },
       "chosenVisuell": 0,
       "skriptFinal": "[CHUNK 1]\nRegenwürmer und Pilze bauen deinen Boden – nicht du.\n\n[CHUNK 2]\nNach Regen stehen Pfützen, nach drei trockenen Wochen ist derselbe Boden hart wie Beton.\n\n[CHUNK 3]\nDer Grund: Regenwürmer graben Tunnel, Pilzfäden verweben sich zu einem Netz, das Wasser hält wie ein Schwamm.\n\n[CHUNK 4]\nFüttere dieses Bodenleben: eine Schicht Mulch oder Kompost auflegen, nicht umgraben. Nach wenigen Wochen fühlt sich der Boden spürbar anders an.\n\n[CHUNK 5]\nWeißt du, was in deinem Boden lebt? Wenn du das bei dir ausprobierst, schreib mir, wie sich dein Boden verändert.\n\n---\n\nKurz zur Einordnung: ca. 80 Wörter, das liegt bei natürlichem Sprechtempo bei etwa 28–32 Sekunden — nah am 15–30-Sekunden-Korridor für \"Neue Leute erreichen\" und deutlich unter der 50-Sekunden-Grenze.",
-      "skriptGespeichert": true
+      "skriptGespeichert": true,
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:55:51.020Z",
+      "floatUpload": false
     },
     {
-      "id": "cmtheojumdt5g",
-      "schema": 2,
-      "column": "idee",
-      "title": "Wie viel Wasser speichert dein Boden wirklich?",
-      "notes": "",
-      "serie": "",
-      "episode": "",
-      "format": "Reel",
-      "pillar": "",
-      "goal": "",
-      "platforms": [
-        "instagram"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "",
-        "visual": ""
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-08-21",
-        "skript": "2026-08-23",
-        "dreh": "2026-08-25",
-        "schnitt": "2026-08-28",
-        "freigabe": "2026-08-30",
-        "upload": "2026-08-31"
-      },
-      "uploadTime": "",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {},
-      "contenttyp": "",
-      "kategorie": ""
-    },
-    {
+      "name": "NeueIdee",
       "id": "cmthexilpbwr6",
       "schema": 2,
       "column": "skript",
@@ -1112,7 +1110,7 @@
       "uploadTime": "",
       "checks": {},
       "ai": {},
-      "driveName": "",
+      "driveName": "NeueIdee",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
@@ -1181,69 +1179,16 @@
       },
       "chosenVisuell": 0,
       "contenttyp": "reel",
-      "kategorie": ""
+      "kategorie": "",
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:55:59.311Z",
+      "floatUpload": false
     },
     {
-      "id": "cmthp51mzjq7z",
-      "schema": 2,
-      "column": "idee",
-      "title": "Warum Monokultur deinen Boden auslaugt",
-      "notes": "Selbstversorger mit kleinem Beet oder Feld planen oft Jahr fuer Jahr die gleiche Flaeche gleich und wundern sich ueber sinkende Ertraege, ohne den Zusammenhang zur Nachbarsaat zu kennen",
-      "serie": "",
-      "episode": "",
-      "contenttyp": "beitrag",
-      "kategorie": "bildung",
-      "goal": "deepen",
-      "platforms": [
-        "instagram",
-        "linkedin"
-      ],
-      "owner": "",
-      "hook": {
-        "text": "Dein Ertrag sinkt und du weisst nicht warum?",
-        "visual": "Zeitraffer eines Beets ueber drei Jahre: erst ueppig, dann sichtbar duenner, waehrend eine Hand Samentuetchen derselben Sorte immer wieder in dieselbe Reihe legt"
-      },
-      "cta": {
-        "text": "",
-        "directness": "indirekt"
-      },
-      "frame": {
-        "problem": "",
-        "solution": ""
-      },
-      "caption": {
-        "lead": "",
-        "body": "",
-        "keywords": [],
-        "hashtags": {}
-      },
-      "video": {
-        "seconds": 0,
-        "hasCaptions": false,
-        "watermarkFree": false,
-        "speakerOnCamera": false,
-        "directGaze": false
-      },
-      "dates": {
-        "idee": "2026-08-22",
-        "skript": "2026-08-24",
-        "dreh": "2026-08-26",
-        "schnitt": "2026-08-29",
-        "freigabe": "2026-08-31",
-        "upload": "2026-09-01"
-      },
-      "uploadTime": "15:00",
-      "checks": {},
-      "ai": {},
-      "driveName": "",
-      "published": {},
-      "metrics": {},
-      "kpiMessungen": {}
-    },
-    {
+      "name": "BiointensiveLandwirtschaft",
       "id": "cmthq86cun1eg",
       "schema": 2,
-      "column": "idee",
+      "column": "skript",
       "title": "Biointensive Landwirtschaft",
       "notes": "Die Zielgruppe kann effizient und nachhaltig an ihren Farms oder Gärten arbeiten, indem sie Ressourcen minimalisieren und Erträge maximieren.",
       "serie": "",
@@ -1298,7 +1243,7 @@
       "uploadTime": "17:00",
       "checks": {},
       "ai": {},
-      "driveName": "",
+      "driveName": "BiointensiveLandwirtschaft",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
@@ -1365,45 +1310,101 @@
           }
         ]
       },
-      "chosenVisuell": 2
+      "chosenVisuell": 2,
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:56:55.762Z",
+      "floatUpload": false
     },
     {
-      "id": "cmthqx5gyzjfb",
+      "name": "KPI",
+      "id": "cmtjdoln6ibt7",
       "schema": 2,
-      "column": "idee",
-      "title": "Bienenfreundliche Blüten",
-      "notes": "Natürliches Schädlingsschutzsystem und gleichzeitig Bienenförderung, was dem Ökosystem auf der Farm guttut.",
+      "column": "fertig",
+      "title": "KPI",
+      "notes": "Aus dem Drive-Ordner uebernommen — es gab keine projekt.json zum Auslesen.",
       "serie": "",
       "episode": "",
-      "contenttyp": "story",
-      "kategorie": "bildung",
-      "goal": "deepen",
+      "contenttyp": "reel",
+      "kategorie": "",
+      "goal": "reach_new",
       "platforms": [
         "instagram"
       ],
       "owner": "",
       "hook": {
-        "text": "Wo wir Bienen brauchen",
-        "visual": "Ein blühender Garten voller wilder Bienen, die von Blume zu Blume fliegen und Pollen übertragen."
+        "text": "",
+        "visual": ""
       },
       "cta": {
         "text": "",
         "directness": "indirekt"
       },
       "frame": {
-        "problem": "Nahrungsquellen und Lebensräume von Bienen auf der Farm sind durch Schädlinge und chemische Pflanzenschutzmittel gefährdet",
-        "solution": "Bienenfreundliche Pflanzen zur natürlichen Schädlingsbekämpfung anzubauen und Lebensräume zu schaffen, die Bienen schützen"
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "KPI",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "drehterminId": null,
+      "aktualisiert": "2026-09-02T15:57:49.110Z",
+      "floatUpload": false
+    },
+    {
+      "name": "WaspflegstduindeinemGarten",
+      "id": "cmtk7n2wise77",
+      "schema": 2,
+      "column": "skript",
+      "title": "Was pflegst du in deinem Garten?",
+      "notes": "Die Zielgruppe hat oft persönliche Erfahrungen und Kenntnisse, die geteilt werden können, um sich gegenseitig zu unterstützen.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "reel",
+      "kategorie": "umfrage",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Teile deine Erfahrungen im Garten!",
+        "visual": "Eine ausgewachsene Tomate an einem Stamm, umgeben von fruchtbarer, dunkler Erde, das Bild ist von einem Schwarm bunter Schmetterlinge umgeben."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Viele Menschen suchen nach bewährten und nachhaltigen Methoden, um ihren Garten zu pflegen, und stoßen auf Herausforderungen.",
+        "solution": "Indem du deine Erfahrungen teilst, kann man gemeinsam lernen, bessere Praktiken anwenden und Unterstützung erhalten."
       },
       "caption": {
         "lead": "",
         "body": "",
         "keywords": [
-          "bienenfreundlich",
-          "blütenpflanzen",
-          "natürliche schädlingsbekämpfung",
-          "bienenförderung",
-          "farm-ökosystem",
-          "naturalschutz"
+          "Gartenpflege",
+          "Nachhaltige Gartentechniken",
+          "Selbstversorger",
+          "Gartenbekanntschaften"
         ],
         "hashtags": {}
       },
@@ -1415,47 +1416,46 @@
         "directGaze": false
       },
       "dates": {
-        "idee": "2026-08-24",
-        "skript": "2026-08-26",
-        "dreh": "2026-08-28",
-        "schnitt": "2026-08-31",
+        "schnitt": "2026-08-30",
         "freigabe": "2026-09-02",
-        "upload": "2026-09-03"
+        "upload": "2026-09-05",
+        "dreh": "2026-09-13"
       },
-      "uploadTime": "08:00",
+      "uploadTime": "20:00",
+      "drehterminId": "cmtk4icomrqfn",
       "checks": {},
-      "ai": {},
-      "driveName": "",
+      "ai": {
+        "skript": "[CHUNK 1]\nTeile deine Erfahrungen im Garten!\n\n[CHUNK 2]\nViele suchen nach nachhaltigen Methoden, um ihre Gärten zu pflegen.\n\n[CHUNK 3]\nDeine Erfolge könnten anderen helfen, bessere Anbaupraktiken zu finden.\n\n[CHUNK 4]\nWas pflegst du in deinem Garten? Teile deine Erfahrungen.\n\n[CHUNK 5]\nWenn du auch damit anfängst, schreib mir!"
+      },
+      "driveName": "WaspflegstduindeinemGarten",
       "published": {},
       "metrics": {},
       "kpiMessungen": {},
       "recherche": {
-        "zusammenfassung": "Bienenfreundliche Blüten nicht nur für die Bienen, sondern auch für den gesamten Farm-Ökosystem ein Natur-Schutzsystem. Sie dienen als natürlicher Schutz gegen Schädlinge und stärken gleichzeitig die ökologische Vielfalt.",
+        "zusammenfassung": "Die Pflege des Gartens ist ein essentieller Bestandteil der Selbstversorgung und des Naturschutzes. Es ist wichtig zu verstehen, welche Methoden effektiv sind, um den Garten gesund und ertragreich zu machen. Wir möchten von unseren Gärtnerinnen und Gärtnergemeinschaften lernen, welche Techniken sie erfolgreich anwenden.",
         "fokus": [
           {
             "titel": "Hauptfokus",
-            "text": "Bienenfreundliche Blüten nutzen, um natürliche Schädlingsbekämpfung zu unterstützen und gleichzeitig Bienenpopulationen zu stärken."
+            "text": "Wir wollen Erfahrungen im Gartenmanagement teilen, um bessere Praktiken zu identifizieren und zu fördern."
           },
           {
             "titel": "Alternative A",
-            "text": "Einführung von Blütenpflanzen, die den Arealbienen und Wildbienen einen essentiellen Nahrungs-, Unterschlupf- und Fortpflanzungsraum bieten."
+            "text": "Wir laden dich ein, deine gartenbezogenen Herausforderungen zu teilen, um gemeinsam Lösungen zu finden und Lösungen zu entwickeln."
           },
           {
             "titel": "Alternative B",
-            "text": "Einen biologischen Schutz durch Blütenpflanzen, welche Schädlinge natürlich kontrollieren und gleichzeitig eine sichere Umgebung für Bienen schaffen."
+            "text": "Deine Erfolge im Gartenpflegen können anderen dabei helfen, ihre Anbaupraktiken zu verbessern und nachhaltiger zu gestalten."
           }
         ],
         "frame": {
-          "problem": "Nahrungsquellen und Lebensräume von Bienen auf der Farm sind durch Schädlinge und chemische Pflanzenschutzmittel gefährdet",
-          "solution": "Bienenfreundliche Pflanzen zur natürlichen Schädlingsbekämpfung anzubauen und Lebensräume zu schaffen, die Bienen schützen"
+          "problem": "Viele Menschen suchen nach bewährten und nachhaltigen Methoden, um ihren Garten zu pflegen, und stoßen auf Herausforderungen.",
+          "solution": "Indem du deine Erfahrungen teilst, kann man gemeinsam lernen, bessere Praktiken anwenden und Unterstützung erhalten."
         },
         "keywords": [
-          "bienenfreundlich",
-          "blütenpflanzen",
-          "natürliche schädlingsbekämpfung",
-          "bienenförderung",
-          "farm-ökosystem",
-          "naturalschutz"
+          "Gartenpflege",
+          "Nachhaltige Gartentechniken",
+          "Selbstversorger",
+          "Gartenbekanntschaften"
         ]
       },
       "chosenFokus": 2,
@@ -1463,18 +1463,608 @@
         "hooks": [
           {
             "label": "Haupt-Hook",
-            "verbal": "Wo wir Bienen brauchen"
+            "verbal": "Teile deine Erfahrungen im Garten!"
           },
           {
             "label": "Alternative 1",
-            "verbal": "Schädlinge kontrollieren, Bienen schützen"
+            "verbal": "Deine Tipps helfen anderen in ihrem Garten!"
           },
           {
             "label": "Alternative 2",
-            "verbal": "Blütenpflanzen für eine sichere Biobase"
+            "verbal": "Was funktioniert in deinem Garten? Teile es!"
           }
         ]
-      }
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Ein fruchtbarer Garten, voller sattgrüner Pflanzen und blühender Blumen, mit einem großen, grünen Sprühnebel, der das Bild einhüllt."
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Ein lachender Farmer, der inmitten seines gut gepflegten Gartens steht, mit einer leuchtenden Schere in der Hand und umgeben von gesunden Pflanzen."
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Eine ausgewachsene Tomate an einem Stamm, umgeben von fruchtbarer, dunkler Erde, das Bild ist von einem Schwarm bunter Schmetterlinge umgeben."
+          }
+        ]
+      },
+      "chosenVisuell": 2,
+      "skriptFinal": "[CHUNK 1]\nTeile deine Erfahrungen im Garten!\n\n[CHUNK 2]\nViele suchen nach nachhaltigen Methoden, um ihre Gärten zu pflegen.\n\n[CHUNK 3]\nDeine Erfolge könnten anderen helfen, bessere Anbaupraktiken zu finden.\n\n[CHUNK 4]\nWas pflegst du in deinem Garten? Teile deine Erfahrungen.\n\n[CHUNK 5]\nWenn du auch damit anfängst, schreib mir!",
+      "skriptGespeichert": true,
+      "aktualisiert": "2026-09-03T11:32:54.993Z",
+      "floatUpload": false
+    },
+    {
+      "name": "Auswertung-Tabellen",
+      "id": "cmtka5l9etn3q",
+      "schema": 2,
+      "column": "fertig",
+      "title": "Auswertung-Tabellen",
+      "notes": "Aus dem Drive-Ordner uebernommen — es gab keine projekt.json zum Auslesen.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "",
+      "kategorie": "",
+      "goal": "",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "drehterminId": null,
+      "checks": {},
+      "ai": {},
+      "driveName": "Auswertung-Tabellen",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "aktualisiert": "2026-09-02T15:58:01.516Z",
+      "floatUpload": false
+    },
+    {
+      "name": "OberflaechenspannungvonWasser",
+      "id": "cmtnklqbsk6xz",
+      "schema": 2,
+      "column": "videodreh",
+      "title": "Oberflächenspannung von Wasser",
+      "notes": "",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "reel",
+      "kategorie": "bildung",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Deine Aquaponik —aber deine Pflanzenfunktioniert leiden. Grund: Oberflächenspannung.",
+        "visual": "Nahaufnahme einer welkenden Pflanze, während im Hintergrund das Wasser eines Systems ruhig fließt."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Dein Wasser läuft auf Blättern ab statt einzudringen; dein sandiger Boden speichert Feuchtigkeit nicht; deine natürlichen Spritzmittel haften nicht—obwohl du mechanisch alles richtig machst.",
+        "solution": "Mit drei kleinen Handgriffen basierend auf Oberflächenspannung (mehr Humus, richtige Netzmittel, Mulch) bekommen deine Pflanzen das Wasser, das sie brauchen, und natürliche Mittel wirken endlich wirklich."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Wasserspeicherung Boden",
+          "Bodenstruktur verbessern",
+          "natürliche Schädlingsbekämpfung",
+          "Bewässerung Garten",
+          "Mulch Wasserhaltung"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "schnitt": "2026-10-22",
+        "freigabe": "2026-10-25",
+        "upload": "2026-10-28",
+        "dreh": "2026-09-13"
+      },
+      "uploadTime": "10:00",
+      "floatUpload": false,
+      "drehterminId": "cmtk4icomrqfn",
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1] Deine Aquaponik – aber deine Pflanzen leiden.\n\n[CHUNK 2] Der Grund: Oberflächenspannung. Wasser zieht sich zusammen wie ein Spinnweb, schmiegt sich an Wurzeln an, oder läuft einfach ab. \n\n[CHUNK 3] Dein Boden zu trocken? Wirkung natürlicher Mittel schwächer, als sie sollten? Heute lernst du, wie Oberflächenspannung deine Pflanzen rettet und wie du sie optimierst – ohne Chemikalien.\n\n[CHUNK 4] Mehr Humus macht dein Boden wasserfängernder. Er wirkt wie ein Spaziergänger, der im Regen sein Jackett über sich hält und für alles Raum hat.\n\n[CHUNK 5] Nutze speziell angepasste Netzmittel, die den Oberflächenzwang des Wassers ausnutzen und gleichzeitig verhindern, dass sich Luftblasen bilden.\n\n[CHUNK 6] Schütze dein Boden und pflanzenziehende Nährstoffe mit Mulch. So wie eine warme Wolldecke am Winterabend, lässt Mulch die Bodenfeuchtigkeit länger halten.\n\n[CHUNK 7] Deine Aquaponik-Flüssigkeiten benötigen ähnliche Aufmerksamkeit: das Richtige an Netzmittel, damit das Wasser an den Wurzeln hält, ohne zu schwelgen oder sich zu ziehen.\n\n[CHUNK 8] Nun bist du dran: Erzähl uns, welche Techniken du erfolgreich angewendet hast und wie sie sich auf deine Pflanzen ausgewirkt haben!\n\n[CHUNK 9] Schreib mir eine Nachricht oder teile deine Erfahrungen im Chat – wir freuen uns, von dir zu hören!"
+      },
+      "driveName": "OberflaechenspannungvonWasser",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Oberflächenspannung ist eine chemische Kraft, bei der sich Wassermoleküle gegenseitig stärker anziehen als zur Luft—das erzeugt eine unsichtbare Membran. Diese Kraft bestimmt drei zentrale Dinge für Selbstversorger: (1) Ob Wasser auf Blättern haftet oder abläuft, (2) Wie tief Wasser in Bodenkörnchen eindringt und dort gespeichert wird, (3) Wie gut Schädlingsbekämpfungsmittel am Blatt kleben bleiben. Die Oberflächenspannung ist eine Naturkonstante, lässt sich aber durch Bodenstruktur und Zusätze lokal manipulieren.",
+        "fokus": [
+          {
+            "titel": "Blattbenetzung und Wasserhaftung",
+            "text": "Warum rollen Wassertropfen auf manchen Blättern ab und auf anderen ein? Das bestimmt direkt, ob deine Bewässerung wirkt und ob natürliche Spritzmittel richtig haften—Kernproblem für jeden Gärtner."
+          },
+          {
+            "titel": "Bodenstruktur und Wasserspeicherung",
+            "text": "Oberflächenspannung steuert, wie tief Wasser in deinen Boden eindringt und wie lange er es speichert. Humusreiche Böden mit stabiler Struktur speichern Wasser besser, weil Mulch und Kompost lokal die Oberflächenspannung verändern—das ist der praktische Hebel für Bodenfruchtbarkeit."
+          },
+          {
+            "titel": "Alternative Anbau: Hydroponik und Wurzelhaftung",
+            "text": "In Aquaponik und hydroponischen Systemen muss Wasser exakt an Wurzeln haften, ohne zu stagnieren—Oberflächenspannung ist der entscheidende Faktor. Zu hoch führt zu Wurzeldürre, zu niedrig zu Fäulnis; das ist zentral für technische Anbausysteme."
+          }
+        ],
+        "frame": {
+          "problem": "Dein Wasser läuft auf Blättern ab statt einzudringen; dein sandiger Boden speichert Feuchtigkeit nicht; deine natürlichen Spritzmittel haften nicht—obwohl du mechanisch alles richtig machst.",
+          "solution": "Mit drei kleinen Handgriffen basierend auf Oberflächenspannung (mehr Humus, richtige Netzmittel, Mulch) bekommen deine Pflanzen das Wasser, das sie brauchen, und natürliche Mittel wirken endlich wirklich."
+        },
+        "keywords": [
+          "Wasserspeicherung Boden",
+          "Bodenstruktur verbessern",
+          "natürliche Schädlingsbekämpfung",
+          "Bewässerung Garten",
+          "Mulch Wasserhaltung"
+        ]
+      },
+      "chosenFokus": 2,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Deine Aquaponik funktioniert—aber deine Pflanzen leiden. Grund: Oberflächenspannung."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "In Hydroponik bestimmt Oberflächenspannung: trinken die Wurzeln, oder verfaulen sie?"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Deine Hydroponik-Pflanzen kriegen nie das Wasser, das sie brauchen? Check: Oberflächenspannung."
+          }
+        ]
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Extreme Makroaufnahme: Wassertropfen perlen wie kleine Kugeln auf einer Wurzel ab, anstatt einzuziehen."
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Schneller Cut: Erst eine saubere, plätschernde Aquaponik-Pumpe, dann sofort eine kranke, gelbe Pflanze."
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Nahaufnahme einer welkenden Pflanze, während im Hintergrund das Wasser eines Systems ruhig fließt."
+          }
+        ]
+      },
+      "chosenVisuell": 2,
+      "skriptFinal": "[CHUNK 1] Deine Aquaponik – aber deine Pflanzen leiden.\n\n[CHUNK 2] Der Grund: Oberflächenspannung. Wasser zieht sich zusammen wie ein Spinnweb, schmiegt sich an Wurzeln an, oder läuft einfach ab. \n\n[CHUNK 3] Dein Boden zu trocken? Wirkung natürlicher Mittel schwächer, als sie sollten? Heute lernst du, wie Oberflächenspannung deine Pflanzen rettet und wie du sie optimierst – ohne Chemikalien.\n\n[CHUNK 4] Mehr Humus macht dein Boden wasserfängernder. Er wirkt wie ein Spaziergänger, der im Regen sein Jackett über sich hält und für alles Raum hat.\n\n[CHUNK 5] Nutze speziell angepasste Netzmittel, die den Oberflächenzwang des Wassers ausnutzen und gleichzeitig verhindern, dass sich Luftblasen bilden.\n\n[CHUNK 6] Schütze dein Boden und pflanzenziehende Nährstoffe mit Mulch. So wie eine warme Wolldecke am Winterabend, lässt Mulch die Bodenfeuchtigkeit länger halten.\n\n[CHUNK 7] Deine Aquaponik-Flüssigkeiten benötigen ähnliche Aufmerksamkeit: das Richtige an Netzmittel, damit das Wasser an den Wurzeln hält, ohne zu schwelgen oder sich zu ziehen.\n\n[CHUNK 8] Nun bist du dran: Erzähl uns, welche Techniken du erfolgreich angewendet hast und wie sie sich auf deine Pflanzen ausgewirkt haben!\n\n[CHUNK 9] Schreib mir eine Nachricht oder teile deine Erfahrungen im Chat – wir freuen uns, von dir zu hören!",
+      "aktualisiert": "2026-09-07T14:20:20.556Z",
+      "skriptGespeichert": true
+    },
+    {
+      "id": "cmtnlsloy1i0p",
+      "schema": 2,
+      "column": "idee",
+      "title": "Helft uns, Waldvierecke zu pflanzen",
+      "notes": "Die Zielgruppe kann sich mit nachhaltigen Waldpflegepraktiken identifizieren und möchte möglicherweise dazu beitragen, dass mehr Lebewesen und Biodiversität gefördert werden.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "story",
+      "kategorie": "spendenaufruf",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Pflanzen zurückschaffen, was wir nehmen.",
+        "visual": "Nahaufnahme einer Hand, die einen grünen Setzling in dunkle Erde pflanzt — Erde an den Fingern, Wurzeln sichtbar, Moment des Einsetzens. Klare, natürliche Beleuchtung. Der Fokus liegt auf der regenerativen Geste: Leben geben, zurückgeben."
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Durch übermäßige Waldnutzung und zunehmender Fragmentierung wird die Biodiversität gefährdet und lokale Ökosysteme geschwächt.",
+        "solution": "Mit dem Begriff der Waldvierecke können Menschen aktiv dazu beitragen, Lebensräume wiederherzustellen und den Wald regenerativ zu gestalten."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Waldvierecke",
+          "Biodiversität",
+          "regenerative Waldwirtschaft",
+          "naturnahe Landwirtschaft",
+          "Pflanzen zurückschaffen",
+          "Wiederaufforstung"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "schnitt": "2026-09-17",
+        "freigabe": "2026-09-20",
+        "upload": "2026-09-23"
+      },
+      "uploadTime": "08:00",
+      "floatUpload": false,
+      "drehterminId": null,
+      "checks": {},
+      "ai": {},
+      "driveName": "HelftunsWaldviereckezupflanzen",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Waldvierecke stellen eine wichtige Methode dar, um Biodiversität zu fördern und die natürlichen Ressourcen des Waldes regenerativ zu nutzen. Durch die pflanzliche Regeneration können Menschen, die sich für nachhaltiges Handeln einsetzen, zu einer umweltfreundlichen Zukunft beitragen. Diese Praxis fördert nicht nur die lokale Fauna und Flora, sondern verbessert auch die Wasserspeicherung und den Bodenschutz.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Waldvierecke fördern Biodiversität und regenerativen Ansatz zur Ressourcenverwaltung, ideal für Selfversorger und Naturliebhaber."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Ein Beitrag zum Klimaschutz und Wiederaufforstung durch nachhaltiges Waldmanagement, einfach zu verstehen und umzusetzen."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Stärkung der Umwelt durch den Anbau lokal anpassungsfähiger Pflanzen, besonders für Kleintierzüchter und Selbstversorger relevant."
+          }
+        ],
+        "frame": {
+          "problem": "Durch übermäßige Waldnutzung und zunehmender Fragmentierung wird die Biodiversität gefährdet und lokale Ökosysteme geschwächt.",
+          "solution": "Mit dem Begriff der Waldvierecke können Menschen aktiv dazu beitragen, Lebensräume wiederherzustellen und den Wald regenerativ zu gestalten."
+        },
+        "keywords": [
+          "Waldvierecke",
+          "Biodiversität",
+          "regenerative Waldwirtschaft",
+          "naturnahe Landwirtschaft",
+          "Pflanzen zurückschaffen",
+          "Wiederaufforstung"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Pflanzen zurückschaffen, was wir nehmen."
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Der Wald heilt, wenn wir Waldvierecke pflanzen."
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Mit Waldvierecken bringst du Artenvielfalt selbst zurück."
+          }
+        ]
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Nahaufnahme einer Hand, die einen grünen Setzling in dunkle Erde pflanzt — Erde an den Fingern, Wurzeln sichtbar, Moment des Einsetzens. Klare, natürliche Beleuchtung. Der Fokus liegt auf der regenerativen Geste: Leben geben, zurückgeben."
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Vogelperspektive auf ein Waldviereck im Aufbau oder bereits etabliert: mehrere Schichten sichtbar (Bodendecker, Strauchwerk, junge Bäume in verschiedenen Grüntönen), dichte Artenvielfalt erkennbar. Im Kontrast daneben: weniger dichter, monotonerer Waldbestand. Die Wiederherstellung ist visuell klar."
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Detailaufnahme eines lebendigen Waldbodens: Wurzeln, Moos, kleine Pflanzen, Pilze, eine Schnecke oder Insekt — das sichtbare Ökosystem, das entsteht. Eine oder zwei Hände arbeiten behutsam im Boden oder pflanzen zwischen dieser Vielfalt. Zeigende Bewegung: 'Das ist, was wir fördern.'"
+          }
+        ]
+      },
+      "chosenVisuell": 0
+    },
+    {
+      "name": "_selbsttest_moved_1788309943359",
+      "id": "cmtjdojyh9fqw",
+      "schema": 2,
+      "column": "idee",
+      "title": "_selbsttest_moved_1788309943359",
+      "notes": "Aus dem Drive-Ordner uebernommen — es gab keine projekt.json zum Auslesen.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "reel",
+      "kategorie": "",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "",
+        "visual": ""
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {},
+      "uploadTime": "",
+      "checks": {},
+      "ai": {},
+      "driveName": "_selbsttest_moved_1788309943359",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "drehterminId": null,
+      "aktualisiert": "2026-09-04T22:22:54.208Z",
+      "floatUpload": false
+    },
+    {
+      "id": "cmtrew5e7wcag",
+      "schema": 2,
+      "column": "skript",
+      "title": "Jungbodenschutz mit natuerlichen Mitteln",
+      "notes": "Naturschutz spielt im Bodenmanagement eine entscheidende Rolle, besonders wenn man nachhaltig und ressourcenschonend produzieren will",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "beitrag",
+      "kategorie": "spendenaufruf",
+      "goal": "community",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Kompost: natürliche Bodenbooster",
+        "visual": "Eine Schaufel volle, duftender, brauner Kompost auf roter Erde, die von saftigen Pflanzen umgeben ist"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Übermäßige Nutzung von synthetischen Düngern und Pestiziden kann das Bodenleben im Erdreich stören und die Bodenstruktur verschlechtern, was zu Versauerung und Schädigung der Bodenorganismen führt.",
+        "solution": "Natürliche Alternative, wie Kompost und natürliche Bodenbedeckung, bieten eine effektive Methode, um Bodenerosion und Versauerung zu verhindern und eine gesunde und lebensfähige Bodenstruktur zu erhalten."
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Jungbodenschutz",
+          "natürlicher Bodenbepflanzung",
+          "synthetische Dünger",
+          "Bodenprobleme",
+          "Bodenversorgung",
+          "Pflanzenreste Verwenden"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "schnitt": "2026-09-11",
+        "freigabe": "2026-09-14",
+        "upload": "2026-09-17"
+      },
+      "uploadTime": "15:00",
+      "floatUpload": false,
+      "drehterminId": null,
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1]  \nKompost: natürliche Bodenbooster  \n\n[CHUNK 2]  \nWerden Sie jemals auf Kompost angewiesen? Wollen wir uns damit näher beschäftigen?  \n\n[CHUNK 3]  \nKompostierung von Pflanzenresten und tierischen Abfällen, wie Kuhmist, kann die Bodenstruktur verbessern und eine gesunde Bodenfauna fördern.  \n\n[CHUNK 4]  \nSynthetische Dünger und Pestizide stören das Bodenleben und führen zu Versauerung und Bodenerosion.  \n\n[CHUNK 5]  \nNaturfreundliche Alternativen wie Kompost und natürliche Bodenbedeckung helfen, das Bodenleben zu erhalten und die Bodenstruktur gesund zu halten.  \n\n[CHUNK 6]  \nGemeinsam können wir nachhaltig produzieren und unser Umweltbewusstsein steigern. Was verspricht Euch Kompost beim Bodenmanagement?"
+      },
+      "driveName": "JungbodenschutzmitnatuerlichenMi",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Der Jungbodenschutz mit natürlichen Mitteln ist ein entscheidender Bestandteil für nachhaltiges und ressourcenschonendes Landwirtschaftsbetrieb. Er hilft dabei, die Bodenqualität auf Dauer zu erhalten und zu verbessern, ohne künstliche Produkte zu verwenden.",
+        "fokus": [
+          {
+            "titel": "Bodenverlust durch unfaetige Praktiken",
+            "text": "Die übermäßige Nutzung synthetischer Dünger und Pestizide kann zu einer starken Versauerung und Ernährungsmangel im Boden führen, was sich auf die Qualität der Produkte negativ auswirkt."
+          },
+          {
+            "titel": "Einsatz von Kompost",
+            "text": "Kompostierung von Pflanzenresten und tierischen Abfällen, wie Kuhmist, verbessert die Bodenstruktur und fördert eine gesunde Bodenfauna, ohne dass synthetische Produkte hinzukommen."
+          },
+          {
+            "titel": "Bodenbedeckung mit Gräsern und Kräutern",
+            "text": "Natürliche Bodenbedeckung mit Gräsern und Kräutern hilft dabei, die Bodenfeuchtigkeit optimal zu bewahren und das Ero berzus der Bodenoberfläche zu lindern."
+          }
+        ],
+        "frame": {
+          "problem": "Übermäßige Nutzung von synthetischen Düngern und Pestiziden kann das Bodenleben im Erdreich stören und die Bodenstruktur verschlechtern, was zu Versauerung und Schädigung der Bodenorganismen führt.",
+          "solution": "Natürliche Alternative, wie Kompost und natürliche Bodenbedeckung, bieten eine effektive Methode, um Bodenerosion und Versauerung zu verhindern und eine gesunde und lebensfähige Bodenstruktur zu erhalten."
+        },
+        "keywords": [
+          "Jungbodenschutz",
+          "natürlicher Bodenbepflanzung",
+          "synthetische Dünger",
+          "Bodenprobleme",
+          "Bodenversorgung",
+          "Pflanzenreste Verwenden"
+        ]
+      },
+      "chosenFokus": 1,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Kompost: natürliche Bodenbooster"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Pflanzenabfälle verwandeln ins Gold"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Boden ernten ohne Chemie"
+          }
+        ]
+      },
+      "chosenVerbal": 0,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Eine Schaufel volle, duftender, brauner Kompost auf roter Erde, die von saftigen Pflanzen umgeben ist"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Ein junges, gesundes Feld bedeckt mit einer dicken Schicht von frischem Kompost"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Ein Kran zerreißt eine Plane und füllt einen großen Kartoffelacker mit Kompost"
+          }
+        ]
+      },
+      "chosenVisuell": 0,
+      "skriptFinal": "[CHUNK 1]  \nKompost: natürliche Bodenbooster  \n\n[CHUNK 2]  \nWerden Sie jemals auf Kompost angewiesen? Wollen wir uns damit näher beschäftigen?  \n\n[CHUNK 3]  \nKompostierung von Pflanzenresten und tierischen Abfällen, wie Kuhmist, kann die Bodenstruktur verbessern und eine gesunde Bodenfauna fördern.  \n\n[CHUNK 4]  \nSynthetische Dünger und Pestizide stören das Bodenleben und führen zu Versauerung und Bodenerosion.  \n\n[CHUNK 5]  \nNaturfreundliche Alternativen wie Kompost und natürliche Bodenbedeckung helfen, das Bodenleben zu erhalten und die Bodenstruktur gesund zu halten.  \n\n[CHUNK 6]  \nGemeinsam können wir nachhaltig produzieren und unser Umweltbewusstsein steigern. Was verspricht Euch Kompost beim Bodenmanagement?",
+      "skriptGespeichert": true
+    },
+    {
+      "id": "cmtrfaumotpb5",
+      "schema": 2,
+      "column": "idee",
+      "title": "Bienen und ihre Blumenfreunde",
+      "notes": "Bienen sind entscheidend fuer die Bestaenkevielfalt und natuerliche Biodiversitaet, was Selbstversorger und Kleintierzuechter besonders interessieren wird.",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "reel",
+      "kategorie": "bildung",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Bienen brauchen bestimmte Blumen",
+        "visual": "Bienen auf farbenfrohen Blumen"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "",
+        "solution": ""
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "schnitt": "2026-09-19",
+        "freigabe": "2026-09-22",
+        "upload": "2026-09-25"
+      },
+      "uploadTime": "20:00",
+      "floatUpload": false,
+      "drehterminId": null,
+      "checks": {},
+      "ai": {},
+      "driveName": "BienenundihreBlumenfreunde",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {}
+    }
+  ],
+  "drehtermine": [
+    {
+      "id": "cmtk4icomrqfn",
+      "datum": "2026-09-13",
+      "zeit": "",
+      "ort": "",
+      "titel": "",
+      "notiz": "",
+      "karteIds": [
+        "test-worldeden-03",
+        "cmtbicpmpuzv8",
+        "cmtnklqbsk6xz"
+      ],
+      "gcalEventId": "9j47me2tbhsc86lh4nmnnhvpqo",
+      "auto": true,
+      "gtaskId": "VTZ2R3RVelVQYTJTdlFXcQ"
     }
   ]
 }
