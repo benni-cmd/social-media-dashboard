@@ -494,7 +494,7 @@ export function einstellungenModal(onThemeChange) {
     {
       id: "claude",
       label: "Claude (via CLI)",
-      sub: "Läuft über dein Claude-Abo · keine separate Installation",
+      sub: "Läuft über die lokale Claude-Code-CLI · einmal installieren und mit dem eigenen Claude-Abo einloggen",
     },
   ];
   const providerReihe = document.createElement("div");
@@ -551,14 +551,15 @@ export function einstellungenModal(onThemeChange) {
 
   // Ist nichts installiert (oder Ollama laeuft nicht), zeigt das Board die Befehle, die es
   // in Gang bringen — statt den Nutzer raten zu lassen (v26, Owner-Auftrag 04.09.2026).
-  const hilfe = document.createElement("div");
+  // Immer sichtbar (eingeklappt), damit ein neuer Nutzer die Befehle findet, ohne dass erst
+  // etwas kaputt sein muss; bei erkanntem Problem klappt der Block automatisch auf (v39).
+  const hilfe = document.createElement("details");
   hilfe.className = "einst-ollama-hilfe";
-  hilfe.hidden = true;
   hilfe.innerHTML =
-    `<div class="einst-label">So bekommst du ein Modell</div>` +
-    `<p class="einst-provider-sub">Nacheinander im Terminal ausfuehren. Das 14b-Modell reicht ` +
-    `fuer Hooks und Captions und laeuft auf schwaecherer Hardware; 32b schreibt merklich besser, ` +
-    `braucht aber mehr Speicher.</p>` +
+    `<summary class="einst-label">So installierst du Ollama und ein Modell</summary>` +
+    `<p class="einst-provider-sub">Nacheinander im Terminal ausfuehren. Schritt 1 installiert ` +
+    `Ollama selbst, Schritt 2 laedt das Modell. Das 14b-Modell reicht fuer Hooks und Captions und ` +
+    `laeuft auf schwaecherer Hardware; 32b schreibt merklich besser, braucht aber mehr Speicher.</p>` +
     `<pre class="einst-befehl">winget install Ollama.Ollama</pre>` +
     `<pre class="einst-befehl">ollama pull qwen2.5:14b</pre>` +
     `<pre class="einst-befehl">ollama pull qwen2.5:32b</pre>`;
@@ -578,7 +579,7 @@ export function einstellungenModal(onThemeChange) {
     ladeBtn.disabled = true;
     ladeStatus.textContent = "Suche installierte Modelle …";
     modellWahl.style.display = "none";
-    hilfe.hidden = true;
+    hilfe.open = false;
     try {
       const res = await fetch("/api/ai/ping-ollama", {
         method: "POST",
@@ -589,10 +590,10 @@ export function einstellungenModal(onThemeChange) {
       const d = await res.json();
       if (!d.ok) {
         ladeStatus.textContent = "❌ Ollama laeuft nicht — starte es ueber das Taskleisten-Icon oder mit „ollama serve“.";
-        hilfe.hidden = false;
+        hilfe.open = true;
       } else if (!d.modelle || d.modelle.length === 0) {
         ladeStatus.textContent = "⚠️ Ollama laeuft, aber es ist kein Modell installiert.";
-        hilfe.hidden = false;
+        hilfe.open = true;
       } else {
         const gespeichert = (() => { try { return localStorage.getItem("cm-ollama-model") || ""; } catch { return ""; } })();
         modellWahl.innerHTML = "";
@@ -610,7 +611,7 @@ export function einstellungenModal(onThemeChange) {
       }
     } catch {
       ladeStatus.textContent = "❌ Verbindung fehlgeschlagen — laeuft der Server noch?";
-      hilfe.hidden = false;
+      hilfe.open = true;
     } finally {
       ladeBtn.disabled = false;
     }
@@ -656,6 +657,19 @@ export function einstellungenModal(onThemeChange) {
       });
     claudeKonfig.appendChild(hinweis);
     claudeKonfig.appendChild(wahl);
+
+    // Setup-Befehle, immer sichtbar (eingeklappt) — parallel zur Ollama-Hilfe (v39). Die
+    // Anbindung nutzt das auf DIESEM Rechner eingeloggte Claude-Konto, nicht das eines anderen.
+    const claudeHilfe = document.createElement("details");
+    claudeHilfe.className = "einst-ollama-hilfe";
+    claudeHilfe.innerHTML =
+      `<summary class="einst-label">So richtest du die Claude-CLI ein</summary>` +
+      `<p class="einst-provider-sub">Einmalig im Terminal. Schritt 1 installiert die CLI, ` +
+      `Schritt 2 startet sie fuer den interaktiven Login mit dem <b>eigenen</b> Claude-Abo ` +
+      `(nicht „API key“). Der Login liegt auf diesem Rechner — er reist nicht mit dem Repo mit.</p>` +
+      `<pre class="einst-befehl">npm i -g @anthropic-ai/claude-code</pre>` +
+      `<pre class="einst-befehl">claude</pre>`;
+    claudeKonfig.appendChild(claudeHilfe);
   }
   kiAbschnitt.appendChild(claudeKonfig);
   seite2.appendChild(kiAbschnitt);
