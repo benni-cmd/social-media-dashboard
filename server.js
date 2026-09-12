@@ -981,6 +981,7 @@ async function handler(req, res) {
         "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET",
         "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
         "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET",
+        "TAVILY_API_KEY", // v40: optionaler Web-Such-Key der Recherche-Rolle
       ]);
       const { key, value } = JSON.parse(await readBody(req));
       if (!ENV_ERLAUBT.has(key)) {
@@ -1006,6 +1007,7 @@ async function handler(req, res) {
         instagram: { verbunden: !!(tokens.instagram && tokens.instagram.accessToken), clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID },
         linkedin: { verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken), clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID },
         claude: { verbunden: claudeOk },
+        tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
       return;
     }

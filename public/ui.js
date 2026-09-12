@@ -666,6 +666,74 @@ export function einstellungenModal(onThemeChange) {
     }
     wrap.appendChild(claudeKonfig);
 
+    // Web-Suche der Recherche-Rolle (v40): schluessellos ueber DuckDuckGo (Standard, kein Key).
+    // Optional ein Gratis-Tavily-Key fuer stabilere Treffer — bleibt lokal in .env, nie im Repo.
+    if (rolle === "recherche") {
+      const web = document.createElement("div");
+      web.className = "einst-ollama-konfig";
+      web.style.display = "flex";
+
+      const wLabel = document.createElement("div");
+      wLabel.className = "einst-label";
+      wLabel.textContent = "Web-Suche";
+      const wChip = document.createElement("span");
+      wChip.className = "chip chip-fehlt";
+      wChip.style.marginLeft = "8px";
+      wChip.textContent = "…";
+      wLabel.appendChild(wChip);
+      web.appendChild(wLabel);
+
+      const wSub = document.createElement("p");
+      wSub.className = "einst-provider-sub";
+      wSub.textContent =
+        "Leer = DuckDuckGo (Standard, kein Key noetig, laeuft sofort). Fuer stabilere Treffer " +
+        "optional ein Gratis-Tavily-Key: tavily.com — 1000 Suchen/Monat, keine Karte.";
+      web.appendChild(wSub);
+
+      const keyFeld = eingabe("", { typ: "password", platzhalter: "Tavily API-Key (optional)" });
+      web.appendChild(keyFeld);
+
+      const reihe = document.createElement("div");
+      reihe.className = "einst-ping-zeile";
+      const speichern = document.createElement("button");
+      speichern.className = "chip";
+      speichern.textContent = "Speichern";
+      const info = document.createElement("div");
+      info.className = "einst-ping-status";
+      reihe.appendChild(speichern);
+      reihe.appendChild(info);
+      web.appendChild(reihe);
+
+      const statusZeigen = async () => {
+        try {
+          const s = await (await fetch("/api/verbindungen/status")).json();
+          const an = !!(s.tavily && s.tavily.konfiguriert);
+          wChip.textContent = an ? "Tavily aktiv" : "DuckDuckGo (Standard)";
+          wChip.className = "chip " + (an ? "chip-ok" : "chip-hinweis");
+        } catch {
+          wChip.textContent = "unbekannt";
+          wChip.className = "chip chip-fehlt";
+        }
+      };
+      speichern.addEventListener("click", async () => {
+        info.textContent = "Speichere …";
+        try {
+          await fetch("/api/config/env", {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ key: "TAVILY_API_KEY", value: keyFeld.value.trim() }),
+          });
+          keyFeld.value = "";
+          info.textContent = "Gespeichert in .env.";
+          statusZeigen();
+        } catch {
+          info.textContent = "Speichern fehlgeschlagen.";
+        }
+      });
+      statusZeigen();
+      wrap.appendChild(web);
+    }
+
     if (konfig.provider === "ollama") ladeModelle();
     return wrap;
   }

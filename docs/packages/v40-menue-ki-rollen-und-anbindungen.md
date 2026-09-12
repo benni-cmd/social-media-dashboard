@@ -118,8 +118,11 @@ für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bis
       in beide `/api/ai`-Handler vorgeschaltet für `task==="recherche"`. E2E verifiziert am
       Stream-Endpunkt: „Sucht im Internet …" → „6 Web-Treffer (duckduckgo)"; DDG-Parser live gegen
       echtes HTML geprüft (Umweltbundesamt/destatis). Tavily-Pfad codeseitig da, key-gated (12.09.2026)
-- [ ] T2-Rest: Tavily-Key-Feld in den Einstellungen (heute nur via .env) + eigener
-      `kontextabgleich`-Task (gleicht Web-/Recherche-Ergebnisse mit Firmen-/Projektkontext ab)
+- [x] T2-Rest a) Tavily-Key-Feld in den Einstellungen (Recherche-Rolle): server.js Whitelist
+      + `/api/verbindungen/status` meldet `tavily.konfiguriert`; ui.js Feld + Chip. Screenshot +
+      Speichern-Probe (leer → „DuckDuckGo (Standard)") abgenommen (12.09.2026)
+- [ ] T2-Rest b) eigener `kontextabgleich`-Task (gleicht Web-/Recherche-Ergebnisse mit
+      Firmen-/Projektkontext ab — erst dann nutzt die dritte Rolle wirklich ihr Modell)
 - [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
 - [ ] T3 Verbinden/Trennen
 
