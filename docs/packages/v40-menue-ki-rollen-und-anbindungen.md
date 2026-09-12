@@ -41,15 +41,17 @@ nach Zweck); Anbindungen sollen sich so leicht trennen wie verbinden lassen.
   Status über `/api/verbindungen/status` (`server.js:971`). Kein Trennen.
 - OAuth-Callbacks: Google `server.js:882–969`, Instagram `:813`, LinkedIn `:1025`.
 
-## Offene Fragen (BLOCKER vor T2/T3-Bau)
+## Entscheidungen (Owner, 12.09.2026)
 
-1. **Recherche „die im Internet sucht"**: DeepSeek R1 lokal sucht NICHT selbst im Web. Braucht die
-   Recherche-Rolle eine echte Web-Suche (Such-API/Tool, deren Treffer das lokale Modell
-   zusammenfasst), oder heißt „Recherche" hier nur „das für Recherche-Aufgaben genutzte Modell"?
-2. **Parallel-Working-Tree**: `index.html`, `app.js`, `board.js`, `drehtermine.js`, `data/board.json`
-   haben ungesicherte Änderungen (heute 11:49–11:50, Vereinfachungs-Umbau: kopf-pfad raus,
-   Wochenlast-Säulen raus, Drehtermine-Icon-only) — vermutlich eine parallele Session. Übernehmen
-   (als Wahrheit behandeln) oder unangetastet lassen? Betrifft T1 (index.html/app.js).
+1. **Recherche „die im Internet sucht"** → **echte Web-Suche jetzt**: T2 bekommt eine echte
+   Such-Quelle, deren Treffer das lokale DeepSeek R1 zusammenfasst. Offene Sub-Entscheidung:
+   welche Quelle (lokal/kostenlos wie SearXNG · scraping-basiert wie DuckDuckGo · API-Key wie
+   Brave/Tavily). Empfehlung SearXNG/lokal — passt zu „100% lokal/kostenlos".
+2. **Parallel-Working-Tree** → **als Wahrheit übernommen**. Erledigt durch die Realität: die
+   Parallel-Session hat den Vereinfachungs-Umbau am 12.09. committet (`44538f4 v29 Runde 9`,
+   `bffefcb`) — und mein Zahnrad-Icon dabei mitgenommen. Es steckt bereits in HEAD.
+   **Achtung:** die Session arbeitet aktiv an denselben Dateien (index.html/app.js/board.js) —
+   T1-Rest (Menü) daher NACH T2 (server.js/store.js/ui.js-Settings, geringere Kollision).
 
 ## Teilpakete
 
@@ -84,10 +86,11 @@ nach Zweck); Anbindungen sollen sich so leicht trennen wie verbinden lassen.
 ## Stand
 
 - [x] Bestand gemessen (Menü, Icon, KI-Routing, Verbinden-UI) — 10.09.2026
-- [ ] T1 Zahnrad-Icon (ICONS + Knopf) + Screenshot
-- [ ] Blocker 1 (Web-Suche) + Blocker 2 (Parallel-Tree) geklärt
-- [ ] T1 Gruppierung/Zustand/A11y
-- [ ] T2 KI-Rollen 3-fach
+- [x] T1 Zahnrad-Icon (ICONS.zahnrad + Kopf-Knopf) — Screenshot abgenommen; in HEAD via `bffefcb`
+- [x] Weichen geklärt: Web-Suche = echt · Parallel-Tree = übernommen (12.09.2026)
+- [ ] Sub-Entscheidung: Web-Such-Quelle (Empfehlung SearXNG/lokal)
+- [ ] T2 KI-Rollen 3-fach (Reihenfolge: Routing zuerst, Web-Suche danach)
+- [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
 - [ ] T3 Verbinden/Trennen
 
 ## DoD
