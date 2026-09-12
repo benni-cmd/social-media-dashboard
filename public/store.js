@@ -380,23 +380,62 @@ export const videoHochladen = (k, datei) => dateiHochladen(k, datei, "fertig");
 
 // --- KI -------------------------------------------------------------------
 
-// Standard ist Ollama: laeuft lokal, kostet keine Token. Wer auf Claude umstellt, bekommt
-// standardmaessig Haiku — schnellste Antwort, kleinster Verbrauch (v26).
-function kiKonfig() {
+// --- KI-Rollen (v40) ------------------------------------------------------
+// Drei Rollen mit je eigenem Modell: Userkommunikation (Ausgabe an den Nutzer),
+// Recherche (sucht/verdichtet), Kontextabgleich (gleicht Rechercheergebnisse mit Firmen- und
+// Projektkontext ab). Jede KI-Aufgabe haengt an genau EINER Rolle; so laeuft die teure
+// Nutzer-Ausgabe ueber Claude, die interne Recherche/Abgleich lokal ueber DeepSeek R1.
+export const ROLLEN = ["userkomm", "recherche", "kontext"];
+
+export const ROLLEN_META = {
+  userkomm:  { name: "Userkommunikation", sub: "Texte, die der Nutzer sieht (Hooks, Skript, Caption, Ideen, Plan)." },
+  recherche: { name: "Recherche",         sub: "Sucht im Internet und verdichtet die Treffer." },
+  kontext:   { name: "Kontextabgleich",   sub: "Gleicht Rechercheergebnisse mit Firmen- und Projektkontext ab." },
+};
+
+// Defaults laut Owner (12.09.2026): Nutzer-Ausgabe ueber Claude/Abo, Recherche + Abgleich lokal.
+export const ROLLEN_DEFAULT = {
+  userkomm:  { provider: "claude", ollamaModel: "llama3.2",    claudeModell: "haiku" },
+  recherche: { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
+  kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
+};
+
+// Welche Aufgabe welche Rolle nutzt. Alles Nicht-Gelistete faellt auf userkomm zurueck.
+export const TASK_ROLLE = {
+  recherche: "recherche",
+  kontextabgleich: "kontext",
+};
+
+export function rolleFuerTask(task) {
+  return TASK_ROLLE[task] || "userkomm";
+}
+
+export function rolleKonfig(rolle) {
+  const def = ROLLEN_DEFAULT[rolle] || ROLLEN_DEFAULT.userkomm;
   try {
-    return {
-      provider: localStorage.getItem("cm-ai-provider") || "ollama",
-      ollamaModel: localStorage.getItem("cm-ollama-model") || "llama3.2",
-      claudeModell: localStorage.getItem("cm-claude-modell") || "haiku",
-    };
-  } catch { return { provider: "ollama", ollamaModel: "llama3.2", claudeModell: "haiku" }; }
+    const roh = localStorage.getItem(`cm-rolle-${rolle}`);
+    return roh ? { ...def, ...JSON.parse(roh) } : { ...def };
+  } catch { return { ...def }; }
+}
+
+export function setzeRolleKonfig(rolle, teil) {
+  try {
+    localStorage.setItem(`cm-rolle-${rolle}`, JSON.stringify({ ...rolleKonfig(rolle), ...teil }));
+  } catch {}
+}
+
+// Body-Felder fuer den KI-Aufruf: die Rolle des Tasks bestimmt Provider + Modell. Der Server
+// (server.js:397/433) liest provider/ollamaModel/claudeModell unveraendert aus dem Body.
+function kiKonfig(task) {
+  const { provider, ollamaModel, claudeModell } = rolleKonfig(rolleFuerTask(task));
+  return { provider, ollamaModel, claudeModell };
 }
 
 export async function ki(task, nutzlast) {
   return hole("/api/ai", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig(task) }),
   });
 }
 
@@ -406,7 +445,7 @@ export async function kiStream(task, nutzlast, onEreignis) {
   const res = await fetch("/api/ai/stream", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig(task) }),
   });
   if (!res.ok || !res.body) {
     let d = {};

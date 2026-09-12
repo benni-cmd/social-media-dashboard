@@ -4,6 +4,10 @@
 //   Punkt 3  Sechs Status-Woerter, nie Farbe allein — immer ueber statusChip(code).
 //   Punkt 5  Kein Unicode-Symbol statt Icon. Alle Zeichen sind Lucide-SVGs aus ICONS.
 
+// KI-Rollen-Konfig kommt aus store.js (eine Wahrheit): ui.js importiert statisch, store.js
+// zieht ui.js nur dynamisch (store.js:130) — deshalb kein Zyklus.
+import { ROLLEN, ROLLEN_META, rolleKonfig, setzeRolleKonfig } from "./store.js";
+
 // --- Icons (Lucide, 24x24, Strich) ---------------------------------------
 
 export const ICONS = {
@@ -472,208 +476,201 @@ export function einstellungenModal(onThemeChange) {
   titel2.textContent = "Verbindungen";
   seite2.appendChild(titel2);
 
+  // --- KI-Modelle je Rolle (v40) ---
+  // Drei Rollen mit je eigenem Modell: Userkommunikation laeuft per Default ueber Claude/Abo,
+  // Recherche und Kontextabgleich lokal ueber DeepSeek R1. Ein Renderer je Rolle, jede Wahl
+  // (Provider + Modell) getrennt in cm-rolle-<rolle> gespeichert (siehe store.js).
   const kiAbschnitt = document.createElement("div");
   kiAbschnitt.className = "einst-abschnitt";
   const kiLabel = document.createElement("div");
   kiLabel.className = "einst-label";
-  kiLabel.textContent = "KI-Anbieter";
+  kiLabel.textContent = "KI-Modelle je Rolle";
   kiAbschnitt.appendChild(kiLabel);
+  const kiIntro = document.createElement("p");
+  kiIntro.className = "einst-provider-sub";
+  kiIntro.textContent =
+    "Jede KI-Aufgabe laeuft ueber das Modell ihrer Rolle: die Ausgabe an dich ueber Claude, " +
+    "Recherche und Kontextabgleich lokal ueber DeepSeek R1 (kostenlos, kein Token-Verbrauch).";
+  kiAbschnitt.appendChild(kiIntro);
 
-  // Standard ist Ollama: lokal und ohne Token-Verbrauch (v26).
-  let aktuellerProvider;
-  try { aktuellerProvider = localStorage.getItem("cm-ai-provider") || "ollama"; } catch { aktuellerProvider = "ollama"; }
-  let aktuellesModell;
-  try { aktuellesModell = localStorage.getItem("cm-ollama-model") || "llama3.2"; } catch { aktuellesModell = "llama3.2"; }
-  let aktuellesClaudeModell;
-  try { aktuellesClaudeModell = localStorage.getItem("cm-claude-modell") || "haiku"; } catch { aktuellesClaudeModell = "haiku"; }
+  function baueRollenKonfig(rolle) {
+    const meta = ROLLEN_META[rolle] || { name: rolle, sub: "" };
+    const konfig = rolleKonfig(rolle);
 
-  const providerOptionen = [
-    {
-      id: "ollama",
-      label: "Ollama (lokal · kostenlos)",
-      sub: "Standard · kein Token-Verbrauch · läuft auf deinem Rechner · install: winget install Ollama.Ollama",
-    },
-    {
-      id: "claude",
-      label: "Claude (via CLI)",
-      sub: "Läuft über die lokale Claude-Code-CLI · einmal installieren und mit dem eigenen Claude-Abo einloggen",
-    },
-  ];
-  const providerReihe = document.createElement("div");
-  providerReihe.className = "einst-provider-reihe";
-  let ollamaKonfig;
-  let claudeKonfig;
-
-  for (const opt of providerOptionen) {
-    const label = document.createElement("label");
-    label.className = "einst-provider-option" + (aktuellerProvider === opt.id ? " aktiv" : "");
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = "ki-provider";
-    radio.value = opt.id;
-    radio.checked = aktuellerProvider === opt.id;
-    const textWrap = document.createElement("div");
-    const lbl = document.createElement("div");
-    lbl.className = "einst-provider-label";
-    lbl.textContent = opt.label;
-    const sub = document.createElement("div");
+    const wrap = document.createElement("div");
+    wrap.className = "einst-rolle";
+    const kopf = document.createElement("div");
+    kopf.className = "einst-label";
+    kopf.textContent = meta.name;
+    wrap.appendChild(kopf);
+    const sub = document.createElement("p");
     sub.className = "einst-provider-sub";
-    sub.textContent = opt.sub;
-    textWrap.appendChild(lbl);
-    textWrap.appendChild(sub);
-    label.appendChild(radio);
-    label.appendChild(textWrap);
-    radio.addEventListener("change", () => {
-      providerReihe.querySelectorAll(".einst-provider-option").forEach((l) => l.classList.remove("aktiv"));
-      label.classList.add("aktiv");
-      try { localStorage.setItem("cm-ai-provider", opt.id); } catch {}
-      if (ollamaKonfig) ollamaKonfig.style.display = opt.id === "ollama" ? "flex" : "none";
-      if (claudeKonfig) claudeKonfig.style.display = opt.id === "claude" ? "flex" : "none";
-      if (opt.id === "ollama") ladeModelle();
-    });
-    providerReihe.appendChild(label);
-  }
-  kiAbschnitt.appendChild(providerReihe);
+    sub.textContent = meta.sub;
+    wrap.appendChild(sub);
 
-  // Ollama-Konfiguration (nur sichtbar wenn Ollama gewählt)
-  ollamaKonfig = document.createElement("div");
-  ollamaKonfig.className = "einst-ollama-konfig";
-  ollamaKonfig.style.display = aktuellerProvider === "ollama" ? "flex" : "none";
+    let ollamaKonfig;
+    let claudeKonfig;
 
-  const ladeZeile = document.createElement("div");
-  ladeZeile.className = "einst-ping-zeile";
-  const ladeBtn = document.createElement("button");
-  ladeBtn.className = "chip";
-  ladeBtn.textContent = "Neu suchen";
-  const ladeStatus = document.createElement("div");
-  ladeStatus.className = "einst-ping-status";
-  ladeStatus.textContent = "Suche installierte Modelle …";
-  ladeZeile.appendChild(ladeBtn);
-  ladeZeile.appendChild(ladeStatus);
-
-  // Ist nichts installiert (oder Ollama laeuft nicht), zeigt das Board die Befehle, die es
-  // in Gang bringen — statt den Nutzer raten zu lassen (v26, Owner-Auftrag 04.09.2026).
-  // Immer sichtbar (eingeklappt), damit ein neuer Nutzer die Befehle findet, ohne dass erst
-  // etwas kaputt sein muss; bei erkanntem Problem klappt der Block automatisch auf (v39).
-  const hilfe = document.createElement("details");
-  hilfe.className = "einst-ollama-hilfe";
-  hilfe.innerHTML =
-    `<summary class="einst-label">So installierst du Ollama und ein Modell</summary>` +
-    `<p class="einst-provider-sub">Nacheinander im Terminal ausfuehren. Schritt 1 installiert ` +
-    `Ollama selbst, Schritt 2 laedt das Modell. Das 14b-Modell reicht fuer Hooks und Captions und ` +
-    `laeuft auf schwaecherer Hardware; 32b schreibt merklich besser, braucht aber mehr Speicher.</p>` +
-    `<pre class="einst-befehl">winget install Ollama.Ollama</pre>` +
-    `<pre class="einst-befehl">ollama pull qwen2.5:14b</pre>` +
-    `<pre class="einst-befehl">ollama pull qwen2.5:32b</pre>`;
-
-  const modellWahl = document.createElement("select");
-  modellWahl.className = "einst-modell-select";
-  modellWahl.style.display = "none";
-  const standardOpt = document.createElement("option");
-  standardOpt.value = aktuellesModell;
-  standardOpt.textContent = aktuellesModell;
-  modellWahl.appendChild(standardOpt);
-  modellWahl.addEventListener("change", () => {
-    try { localStorage.setItem("cm-ollama-model", modellWahl.value); } catch {}
-  });
-
-  async function ladeModelle() {
-    ladeBtn.disabled = true;
-    ladeStatus.textContent = "Suche installierte Modelle …";
-    modellWahl.style.display = "none";
-    hilfe.open = false;
-    try {
-      const res = await fetch("/api/ai/ping-ollama", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: aktuellesModell }),
+    // Provider-Wahl (lokal vs. Claude) — Radios je Rolle mit eindeutigem name.
+    const providerReihe = document.createElement("div");
+    providerReihe.className = "einst-provider-reihe";
+    const providerOptionen = [
+      { id: "ollama", label: "Lokal (Ollama · DeepSeek R1)", sub: "kostenlos · kein Token-Verbrauch · laeuft auf deinem Rechner" },
+      { id: "claude", label: "Claude (via CLI · dein Abo)", sub: "beste Qualitaet fuer Nutzer-Texte · braucht die eingeloggte Claude-CLI" },
+    ];
+    for (const opt of providerOptionen) {
+      const label = document.createElement("label");
+      label.className = "einst-provider-option" + (konfig.provider === opt.id ? " aktiv" : "");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "ki-provider-" + rolle;
+      radio.value = opt.id;
+      radio.checked = konfig.provider === opt.id;
+      const textWrap = document.createElement("div");
+      const lbl = document.createElement("div");
+      lbl.className = "einst-provider-label";
+      lbl.textContent = opt.label;
+      const s = document.createElement("div");
+      s.className = "einst-provider-sub";
+      s.textContent = opt.sub;
+      textWrap.appendChild(lbl);
+      textWrap.appendChild(s);
+      label.appendChild(radio);
+      label.appendChild(textWrap);
+      radio.addEventListener("change", () => {
+        providerReihe.querySelectorAll(".einst-provider-option").forEach((l) => l.classList.remove("aktiv"));
+        label.classList.add("aktiv");
+        setzeRolleKonfig(rolle, { provider: opt.id });
+        if (ollamaKonfig) ollamaKonfig.style.display = opt.id === "ollama" ? "flex" : "none";
+        if (claudeKonfig) claudeKonfig.style.display = opt.id === "claude" ? "flex" : "none";
+        if (opt.id === "ollama") ladeModelle();
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = await res.json();
-      if (!d.ok) {
-        ladeStatus.textContent = "❌ Ollama laeuft nicht — starte es ueber das Taskleisten-Icon oder mit „ollama serve“.";
-        hilfe.open = true;
-      } else if (!d.modelle || d.modelle.length === 0) {
-        ladeStatus.textContent = "⚠️ Ollama laeuft, aber es ist kein Modell installiert.";
-        hilfe.open = true;
-      } else {
-        const gespeichert = (() => { try { return localStorage.getItem("cm-ollama-model") || ""; } catch { return ""; } })();
-        modellWahl.innerHTML = "";
-        for (const m of d.modelle) {
-          const o = document.createElement("option");
-          o.value = m;
-          o.textContent = m;
-          if (m === gespeichert || m === gespeichert + ":latest") o.selected = true;
-          modellWahl.appendChild(o);
-        }
-        if (!modellWahl.value && d.modelle.length) modellWahl.value = d.modelle[0];
-        try { localStorage.setItem("cm-ollama-model", modellWahl.value); } catch {}
-        modellWahl.style.display = "block";
-        ladeStatus.textContent = `✅ ${d.modelle.length} Modell${d.modelle.length !== 1 ? "e" : ""} gefunden`;
-      }
-    } catch {
-      ladeStatus.textContent = "❌ Verbindung fehlgeschlagen — laeuft der Server noch?";
-      hilfe.open = true;
-    } finally {
-      ladeBtn.disabled = false;
+      providerReihe.appendChild(label);
     }
-  }
+    wrap.appendChild(providerReihe);
 
-  ladeBtn.addEventListener("click", ladeModelle);
+    // Ollama-Konfig (nur sichtbar wenn lokal gewaehlt)
+    ollamaKonfig = document.createElement("div");
+    ollamaKonfig.className = "einst-ollama-konfig";
+    ollamaKonfig.style.display = konfig.provider === "ollama" ? "flex" : "none";
+    const ladeZeile = document.createElement("div");
+    ladeZeile.className = "einst-ping-zeile";
+    const ladeBtn = document.createElement("button");
+    ladeBtn.className = "chip";
+    ladeBtn.textContent = "Neu suchen";
+    const ladeStatus = document.createElement("div");
+    ladeStatus.className = "einst-ping-status";
+    ladeStatus.textContent = "Suche installierte Modelle …";
+    ladeZeile.appendChild(ladeBtn);
+    ladeZeile.appendChild(ladeStatus);
 
-  ollamaKonfig.appendChild(ladeZeile);
-  ollamaKonfig.appendChild(modellWahl);
-  ollamaKonfig.appendChild(hilfe);
-  kiAbschnitt.appendChild(ollamaKonfig);
+    const hilfe = document.createElement("details");
+    hilfe.className = "einst-ollama-hilfe";
+    hilfe.innerHTML =
+      `<summary class="einst-label">So installierst du Ollama und DeepSeek R1</summary>` +
+      `<p class="einst-provider-sub">Nacheinander im Terminal. Schritt 1 installiert Ollama, ` +
+      `Schritt 2 laedt DeepSeek R1 — das Modell fuer Recherche und Kontextabgleich.</p>` +
+      `<pre class="einst-befehl">winget install Ollama.Ollama</pre>` +
+      `<pre class="einst-befehl">ollama pull deepseek-r1</pre>`;
 
-  // Claude-Modell (v26): dieselbe Auswahl-Logik wie bei Ollama, nur mit fester Liste.
-  // Standard ist Haiku — schnellste Antwort und der kleinste Verbrauch.
-  claudeKonfig = document.createElement("div");
-  claudeKonfig.className = "einst-ollama-konfig";
-  claudeKonfig.style.display = aktuellerProvider === "claude" ? "flex" : "none";
-  {
-    const hinweis = document.createElement("div");
-    hinweis.className = "einst-ping-status";
-    hinweis.textContent = "Welches Claude-Modell die Knoepfe benutzen:";
-    const wahl = document.createElement("select");
-    wahl.className = "einst-modell-select";
-    wahl.addEventListener("change", () => {
-      try { localStorage.setItem("cm-claude-modell", wahl.value); } catch {}
-    });
-    // Die Liste steht in lib/ai.js und kommt von dort — nicht hier zweitgeschrieben.
-    fetch("/api/ai/modelle")
-      .then((r) => r.json())
-      .then((d) => {
-        wahl.innerHTML = "";
-        for (const m of d.claude || []) {
-          const o = document.createElement("option");
-          o.value = m.id;
-          o.textContent = `${m.name} — ${m.sub}`;
-          if (m.id === aktuellesClaudeModell) o.selected = true;
-          wahl.appendChild(o);
+    const modellWahl = document.createElement("select");
+    modellWahl.className = "einst-modell-select";
+    modellWahl.style.display = "none";
+    modellWahl.addEventListener("change", () => setzeRolleKonfig(rolle, { ollamaModel: modellWahl.value }));
+
+    async function ladeModelle() {
+      ladeBtn.disabled = true;
+      ladeStatus.textContent = "Suche installierte Modelle …";
+      modellWahl.style.display = "none";
+      hilfe.open = false;
+      const gewuenscht = rolleKonfig(rolle).ollamaModel;
+      try {
+        const res = await fetch("/api/ai/ping-ollama", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ model: gewuenscht }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const d = await res.json();
+        if (!d.ok) {
+          ladeStatus.textContent = "❌ Ollama laeuft nicht — starte es ueber das Taskleisten-Icon oder mit „ollama serve“.";
+          hilfe.open = true;
+        } else if (!d.modelle || d.modelle.length === 0) {
+          ladeStatus.textContent = "⚠️ Ollama laeuft, aber es ist kein Modell installiert.";
+          hilfe.open = true;
+        } else {
+          modellWahl.innerHTML = "";
+          for (const m of d.modelle) {
+            const o = document.createElement("option");
+            o.value = m;
+            o.textContent = m;
+            if (m === gewuenscht || m === gewuenscht + ":latest") o.selected = true;
+            modellWahl.appendChild(o);
+          }
+          if (!modellWahl.value && d.modelle.length) modellWahl.value = d.modelle[0];
+          setzeRolleKonfig(rolle, { ollamaModel: modellWahl.value });
+          modellWahl.style.display = "block";
+          ladeStatus.textContent = `✅ ${d.modelle.length} Modell${d.modelle.length !== 1 ? "e" : ""} gefunden`;
         }
-        if (!wahl.value && (d.claude || []).length) wahl.value = d.standard || d.claude[0].id;
-      })
-      .catch(() => {
-        hinweis.textContent = "Die Modell-Liste liess sich nicht laden — laeuft der Server?";
-      });
-    claudeKonfig.appendChild(hinweis);
-    claudeKonfig.appendChild(wahl);
+      } catch {
+        ladeStatus.textContent = "❌ Verbindung fehlgeschlagen — laeuft der Server noch?";
+        hilfe.open = true;
+      } finally {
+        ladeBtn.disabled = false;
+      }
+    }
+    ladeBtn.addEventListener("click", ladeModelle);
+    ollamaKonfig.appendChild(ladeZeile);
+    ollamaKonfig.appendChild(modellWahl);
+    ollamaKonfig.appendChild(hilfe);
+    wrap.appendChild(ollamaKonfig);
 
-    // Setup-Befehle, immer sichtbar (eingeklappt) — parallel zur Ollama-Hilfe (v39). Die
-    // Anbindung nutzt das auf DIESEM Rechner eingeloggte Claude-Konto, nicht das eines anderen.
-    const claudeHilfe = document.createElement("details");
-    claudeHilfe.className = "einst-ollama-hilfe";
-    claudeHilfe.innerHTML =
-      `<summary class="einst-label">So richtest du die Claude-CLI ein</summary>` +
-      `<p class="einst-provider-sub">Einmalig im Terminal. Schritt 1 installiert die CLI, ` +
-      `Schritt 2 startet sie fuer den interaktiven Login mit dem <b>eigenen</b> Claude-Abo ` +
-      `(nicht „API key“). Der Login liegt auf diesem Rechner — er reist nicht mit dem Repo mit.</p>` +
-      `<pre class="einst-befehl">npm i -g @anthropic-ai/claude-code</pre>` +
-      `<pre class="einst-befehl">claude</pre>`;
-    claudeKonfig.appendChild(claudeHilfe);
+    // Claude-Konfig (nur sichtbar wenn Claude gewaehlt) — feste Modell-Liste aus lib/ai.js.
+    claudeKonfig = document.createElement("div");
+    claudeKonfig.className = "einst-ollama-konfig";
+    claudeKonfig.style.display = konfig.provider === "claude" ? "flex" : "none";
+    {
+      const hinweis = document.createElement("div");
+      hinweis.className = "einst-ping-status";
+      hinweis.textContent = "Welches Claude-Modell diese Rolle benutzt:";
+      const wahl = document.createElement("select");
+      wahl.className = "einst-modell-select";
+      wahl.addEventListener("change", () => setzeRolleKonfig(rolle, { claudeModell: wahl.value }));
+      fetch("/api/ai/modelle")
+        .then((r) => r.json())
+        .then((d) => {
+          wahl.innerHTML = "";
+          for (const m of d.claude || []) {
+            const o = document.createElement("option");
+            o.value = m.id;
+            o.textContent = `${m.name} — ${m.sub}`;
+            if (m.id === konfig.claudeModell) o.selected = true;
+            wahl.appendChild(o);
+          }
+          if (!wahl.value && (d.claude || []).length) wahl.value = d.standard || d.claude[0].id;
+        })
+        .catch(() => {
+          hinweis.textContent = "Die Modell-Liste liess sich nicht laden — laeuft der Server?";
+        });
+      const claudeHilfe = document.createElement("details");
+      claudeHilfe.className = "einst-ollama-hilfe";
+      claudeHilfe.innerHTML =
+        `<summary class="einst-label">So richtest du die Claude-CLI ein</summary>` +
+        `<p class="einst-provider-sub">Einmalig im Terminal. Schritt 1 installiert die CLI, ` +
+        `Schritt 2 startet sie fuer den Login mit dem <b>eigenen</b> Claude-Abo (nicht „API key“).</p>` +
+        `<pre class="einst-befehl">npm i -g @anthropic-ai/claude-code</pre>` +
+        `<pre class="einst-befehl">claude</pre>`;
+      claudeKonfig.appendChild(hinweis);
+      claudeKonfig.appendChild(wahl);
+      claudeKonfig.appendChild(claudeHilfe);
+    }
+    wrap.appendChild(claudeKonfig);
+
+    if (konfig.provider === "ollama") ladeModelle();
+    return wrap;
   }
-  kiAbschnitt.appendChild(claudeKonfig);
+
+  for (const rolle of ROLLEN) kiAbschnitt.appendChild(baueRollenKonfig(rolle));
   seite2.appendChild(kiAbschnitt);
 
   // --- Seite 3: Externe Dienste (v24) ---

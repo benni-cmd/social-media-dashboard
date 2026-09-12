@@ -63,11 +63,28 @@ nach Zweck); Anbindungen sollen sich so leicht trennen wie verbinden lassen.
 - Mehr Aktionen: Kandidaten nach Bestätigung (offen, welche fehlen).
 
 ### T2 — KI-Rollen 3-fach
-- localStorage-Schema: `cm-ai-rolle-<rolle>` → `{provider, model}` für `userkomm`/`recherche`/`kontext`.
-- Server: `/api/ai` + `/api/ai/stream` nehmen optional eine Rolle/explizites Modell; Default-Fallback
-  bleibt rückwärtskompatibel.
-- Einstellungen: „Verbindungen" von 1 Auswahl auf 3 Rollen-Auswahlen umbauen; Defaults setzen.
-- Aufrufer (`store.js` KI-Buttons) senden die Rolle ihrer Aktion.
+
+**Design (gemessen 12.09.2026):** Alle KI-Aufrufe laufen über genau zwei Sendestellen —
+`ki(task, …)` und `kiStream(task, …)` in `store.js:395/405`, beide bauen den Body aus
+`kiKonfig()` (`store.js:385`). Der Server (`/api/ai`, `/api/ai/stream`, `server.js:397/433`)
+nimmt `provider`/`ollamaModel`/`claudeModell` schon aus dem Body — **also keine Server-Änderung
+für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bisher.
+
+- **Task→Rolle** (`store.js`, neue Konstante `TASK_ROLLE`):
+  `recherche` → `recherche` · (späterer `kontextabgleich`) → `kontext` · alles andere
+  (`hooks_verbal`,`hooks_visuell`,`skript`,`regieplan`,`caption`,`ideen`,`plan`,`analyse`)
+  → `userkomm`. Unbekannt → `userkomm`.
+- **localStorage-Schema** je Rolle: `cm-rolle-userkomm` / `-recherche` / `-kontext` =
+  JSON `{provider, ollamaModel, claudeModell}`. Defaults: userkomm =
+  `{claude, –, haiku}`; recherche + kontext = `{ollama, deepseek-r1, –}`. Fehlt der Key,
+  wird der Default gesetzt (Migration: alte `cm-ai-provider`/… als Seed für userkomm zulässig).
+- **`kiKonfig(task)`** schlägt die Rolle nach, liest deren Konfig, liefert die Body-Felder;
+  `ki`/`kiStream` rufen `kiKonfig(task)`. Rückwärtskompatibel (ohne task → userkomm-Default).
+- **Einstellungen „Verbindungen"** (`ui.js:465–675`): eine Auswahl → drei Rollen-Blöcke
+  (Userkommunikation · Recherche · Kontextabgleich), je Provider-Radio + Ollama-Modellliste
+  (`/api/ai/ping-ollama`) + Claude-Modellliste (`/api/ai/modelle`). Ein wiederverwendbarer
+  Renderer `baueRollenKonfig(rolle, defaults)` ersetzt den heutigen Einzelblock.
+- Web-Suche (SearXNG lokal) für die Recherche-Rolle: eigener Schritt NACH dem Routing.
 
 ### T3 — Verbinden/Trennen
 - Server: Disconnect-Endpoints (Token/Env sauber löschen/entwerten) für Claude-Status + Google
@@ -88,8 +105,11 @@ nach Zweck); Anbindungen sollen sich so leicht trennen wie verbinden lassen.
 - [x] Bestand gemessen (Menü, Icon, KI-Routing, Verbinden-UI) — 10.09.2026
 - [x] T1 Zahnrad-Icon (ICONS.zahnrad + Kopf-Knopf) — Screenshot abgenommen; in HEAD via `bffefcb`
 - [x] Weichen geklärt: Web-Suche = echt · Parallel-Tree = übernommen (12.09.2026)
-- [ ] Sub-Entscheidung: Web-Such-Quelle (Empfehlung SearXNG/lokal)
-- [ ] T2 KI-Rollen 3-fach (Reihenfolge: Routing zuerst, Web-Suche danach)
+- [x] Sub-Entscheidung: Web-Such-Quelle = SearXNG lokal (Owner, 12.09.2026)
+- [x] T2-Routing: `store.js` (ROLLEN/TASK_ROLLE/rolleKonfig/`kiKonfig(task)`) + `ui.js`
+      (3 Rollen-Blöcke) — Screenshot + Live-Funktionsprobe: recherche→ollama/deepseek-r1:14b,
+      ideen/hooks/plan→claude/haiku, kontextabgleich→ollama/deepseek-r1:14b (12.09.2026)
+- [ ] T2-Web-Suche: SearXNG lokal für die Recherche-Rolle vorschalten (+ Kontextabgleich-Task)
 - [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
 - [ ] T3 Verbinden/Trennen
 
