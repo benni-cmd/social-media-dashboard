@@ -161,6 +161,23 @@ Button, läuft über rclone) — kein Trennen ohne Verbinden.
   kein In-App-Verbinden → auch kein Trennen). Claude-Verbinden bleibt der Terminal-Login
   `claude auth login` (interaktiv, nicht als Button möglich) — nur Trennen ist ein Button.
 
+### T4 — Transparenz: welches Modell arbeitet gerade (12.09.2026)
+
+**PIG.** Problem: Die Rollen-Trennung wirkt (skript/hooks/caption/ideen/plan → userkomm/Claude;
+recherche → Recherche-Rolle; kontextabgleich → Kontext-Rolle), aber beim Arbeiten sieht man nicht,
+WELCHES Modell läuft — das Denk-Panel sagt nur „… die KI schreibt". Intent: sichtbar machen, dass
+Nutzer-Texte über Claude und interne Schritte lokal laufen. Goal: jede KI-Aktion zeigt live ein
+Etikett „⟨Rolle⟩ · ⟨Modell⟩".
+
+**Bau:** `store.js` `rollenEtikett(task)`; `ui.js` `denkPanel(…, etikett)` + `.modell()`-Updater +
+`.denk-modell`-Pill (style.css); `detail.js`/`nachschub.js` geben das Etikett mit, der
+Kontextabgleich-Pass aktualisiert es auf die Kontext-Rolle.
+
+**Stand:** [x] gebaut + verifiziert (12.09.2026). Live-Probe: rollenEtikett skript/ideen →
+„Userkommunikation · Claude", recherche/kontextabgleich → „… deepseek-r1:14b (lokal)"; Screenshot
+zeigt die Pill „Userkommunikation · Claude" im Denk-Panel. Damit ist am Handeln sichtbar, dass
+Nutzer-Texte (Skript, Hooks, Caption, Ideen, Plan) über Claude und Recherche/Abgleich lokal laufen.
+
 ## Offen (bewusst, nicht vergessen)
 
 - T1 „Mehr Aktionen aufnehmen": welche Aktionen ins Menü — Owner nennt sie (kein Feature geraten).

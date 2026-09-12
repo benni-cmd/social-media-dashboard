@@ -46,6 +46,7 @@ import {
   driveSpeichern,
   ki,
   kiStream,
+  rollenEtikett,
   melde,
   setStand,
   speichereDefaults,
@@ -1810,7 +1811,7 @@ function schalterFeld(k, box, merke, paare) {
 async function rufeKi(task, k, knopfEl, box) {
   const alle = box.querySelectorAll(".knopf");
   alle.forEach((b) => (b.disabled = true));
-  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`);
+  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`, rollenEtikett(task));
   try {
     const antwort = await kiStream(task, kiNutzlast(k), (e) => {
       if (e.delta) panel.delta(e.delta);
@@ -1824,6 +1825,8 @@ async function rufeKi(task, k, knopfEl, box) {
       if (antwort.data && antwort.data.zusammenfassung) {
         k.rechercheRoh = antwort.data;
         try {
+          panel.modell(rollenEtikett("kontextabgleich")); // Badge auf die Kontext-Rolle umstellen
+          panel.status("Kontextabgleich — passt an Firmen-/Projektkontext an …");
           const ab = await kiStream(
             "kontextabgleich",
             { ...kiNutzlast(k), recherche: antwort.data },

@@ -157,16 +157,19 @@ export function knopf(text, { art = "still", zeichen = null, klick = null, titel
 
 // Live-Panel fuer KI-Laeufe: zeigt den Text, wie die KI ihn schreibt — Beleg, dass gearbeitet wird.
 // Rueckgabe: { delta(text), status(text), weg() }.
-export function denkPanel(container, titel = "Die KI arbeitet …") {
+export function denkPanel(container, titel = "Die KI arbeitet …", etikett = "") {
   const el = document.createElement("div");
   el.className = "denk";
   el.innerHTML =
     `<div class="denk-kopf"><span class="denk-symbol knopf-symbol knopf-symbol-sanduhr">${icon("sanduhr")}</span>` +
-    `<span class="denk-titel">${escape(titel)}</span></div>` +
+    `<span class="denk-titel">${escape(titel)}</span>` +
+    // v40 (T4): zeigt live „⟨Rolle⟩ · ⟨Modell⟩", damit erkennbar ist, welches Modell gerade arbeitet.
+    `<span class="denk-modell"${etikett ? "" : " hidden"}>${escape(etikett)}</span></div>` +
     `<pre class="denk-text"></pre>`;
   container.appendChild(el);
   const textEl = el.querySelector(".denk-text");
   const titelEl = el.querySelector(".denk-titel");
+  const modellEl = el.querySelector(".denk-modell");
   return {
     el,
     delta(t) {
@@ -175,6 +178,11 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
     },
     status(s) {
       if (s) titelEl.textContent = s;
+    },
+    modell(t) {
+      if (!modellEl) return;
+      modellEl.textContent = t || "";
+      modellEl.hidden = !t;
     },
     weg() {
       el.remove();

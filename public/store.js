@@ -424,6 +424,16 @@ export function setzeRolleKonfig(rolle, teil) {
   } catch {}
 }
 
+// v40 (T4): kurzes, menschenlesbares Etikett „⟨Rolle⟩ · ⟨Modell⟩" fuer eine Aufgabe — damit beim
+// Arbeiten sichtbar ist, WELCHES Modell laeuft (Nutzer-Texte ueber Claude, interne Schritte lokal).
+export function rollenEtikett(task) {
+  const rolle = rolleFuerTask(task);
+  const k = rolleKonfig(rolle);
+  const name = (ROLLEN_META[rolle] || {}).name || rolle;
+  const modell = k.provider === "claude" ? "Claude" : `${k.ollamaModel} (lokal)`;
+  return `${name} · ${modell}`;
+}
+
 // Body-Felder fuer den KI-Aufruf: die Rolle des Tasks bestimmt Provider + Modell. Der Server
 // (server.js:397/433) liest provider/ollamaModel/claudeModell unveraendert aus dem Body.
 function kiKonfig(task) {

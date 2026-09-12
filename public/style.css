@@ -1929,6 +1929,18 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* v40 (T4): Pill rechts im Denk-Kopf — zeigt Rolle + Modell der laufenden KI-Aktion. */
+.denk-modell {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--akzent);
+  background: var(--flaeche-hoch);
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
 .denk-text {
   margin: 0;
   padding: 10px 11px;
