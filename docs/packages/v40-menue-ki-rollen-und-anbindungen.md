@@ -121,8 +121,10 @@ für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bis
 - [x] T2-Rest a) Tavily-Key-Feld in den Einstellungen (Recherche-Rolle): server.js Whitelist
       + `/api/verbindungen/status` meldet `tavily.konfiguriert`; ui.js Feld + Chip. Screenshot +
       Speichern-Probe (leer → „DuckDuckGo (Standard)") abgenommen (12.09.2026)
-- [ ] T2-Rest b) eigener `kontextabgleich`-Task (gleicht Web-/Recherche-Ergebnisse mit
-      Firmen-/Projektkontext ab — erst dann nutzt die dritte Rolle wirklich ihr Modell)
+- [x] T2-Rest b) `kontextabgleich`-Task: lib/ai.js (gleiches Schema, nimmt Roh-Recherche als
+      Variable, JSON-Aufgabe) + Auto-Verkettung in detail.js nach der Recherche (nicht-blockierend,
+      Rohfassung bleibt bei Fehler, in `k.rechercheRoh`). E2E verifiziert: Task akzeptiert, zu
+      ollama/deepseek-r1:14b (Kontext-Rolle) geroutet, korrektes Schema (12.09.2026). **T2 komplett.**
 - [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
 - [ ] T3 Verbinden/Trennen
 
