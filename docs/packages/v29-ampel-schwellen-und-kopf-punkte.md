@@ -241,6 +241,61 @@ nicht erst durch, nicht nur die Bildkompositierung). Aenderung selbst ist minima
 exakt demselben Muster wie die bereits verifizierte Plattform-Entfernung (Runde 4) — hohe
 Zuversicht, aber NICHT als visuell verifiziert gemeldet, bis das Fenster wieder vorne ist.
 
+### Runde 9 (Owner 10.09.2026: drei ueberfluessige Texte weg — Kopf-Pfad, Kategorie-Zahlen
+in der Wochenleiste, "Drehtermine"-Wortlabel — PLUS ein dabei gefundener echter Bug)
+
+**Text-Entfernungen umgesetzt:**
+- `public/index.html`/`app.js`: `.kopf-pfad` (Phasen-Kette "Skript schreiben > ... >
+  Verworfen") komplett raus, Element + Fuell-Zeile + ungenutzter `PHASEN`-Import entfernt.
+- `public/board.js` `zeichneWochenlast()`: die Kategorie-Zahlen-Zeile
+  (`.wochenlast-saeulen`, "Bildung: 4 Spendenaufruf: 3 ...") entfernt, `saeulenVerteilung`/
+  `INHALTSKATEGORIEN`-Importe mit entfernt (ungenutzt danach).
+- `public/drehtermine.js`: `<span>Drehtermine</span>` aus dem Leisten-Label entfernt, Wort
+  bleibt als `title`/`aria-label` erhalten (Icon-only, gleiches Muster wie zuvor etabliert).
+
+**Dabei gefunden: echter, schwerer Bug (nicht meiner, aber blockierend fuer die Abnahme).**
+`/api/plan` hing beim Board-Laden bis zu mehreren Minuten (drei sequentielle rclone-Aufrufe
+a 90s-Timeout in Serie, dazu noch eine globale App-weite rclone-Serialisierungs-Kette in
+`lib/drive.js`, die JEDEN anderen Drive-Aufruf mitblockiert). Ursache bis zum reproduzierbaren
+CLI-Befehl zurueckverfolgt: `rclone cat "gdrive:System (AI only)/redaktionsplan.json"` haengt/
+ist sehr langsam, obwohl `rclone lsf gdrive:` (einfache Ordnerliste) zuverlaessig schnell ist —
+passt zur rclone-eigenen Warnung ueber den auslaufenden "shared client_id" (Google drosselt/
+degradiert ihn offenbar schon vor der vollen Abschaltung 2026). Ausgeloest sichtbar durch
+`store.js:174 schwebendeNeuBerechnen()` (v30, "Naechster freier Upload-Termin"), das bei JEDEM
+Board-Laden ungefragt `/api/plan` zieht, sobald mindestens eine `floatUpload`-Karte existiert.
+
+**Owner-Entscheidung nach Rueckfrage:** robust machen UND bei echtem Fehler eine sichtbare
+Fehlermeldung MIT Fehlercode zeigen (nicht nur schneller/stiller fallbacken).
+
+**Umgesetzt (touched: `lib/drive.js`, `lib/planstore.js`, `server.js`, `public/store.js`):**
+- `lib/drive.js`: `readFile`/`writeFile`/`mkdir` nehmen jetzt optional `{ timeoutMs }` an
+  (Default weiterhin 90000 fuer alle bestehenden Aufrufer — reine additive Erweiterung,
+  nichts Bestehendes aendert sich).
+- `lib/planstore.js`: neue Konstante `PLAN_TIMEOUT_MS = 8000`, an allen vier Drive-Aufrufen
+  der Plan-Logik uebergeben (kleine JSON-Datei, 90s war nie noetig). Ausserdem einen echten
+  Logikfehler behoben: `leseConfigVonDrive`/`leseSlotsDatei` verschluckten JEDEN Fehler
+  (auch echte Stoerungen, nicht nur "Datei fehlt noch") und gaben `null` zurueck — der
+  eigene Code-Kommentar versprach "der Aufrufer entscheidet", loeste das aber nie ein. Jetzt:
+  `e.fehlend` (Datei existiert nicht) bleibt still, jede andere Stoerung wird durchgereicht.
+- `server.js` `/api/plan` GET: faengt jetzt das echte Error-Objekt (`message`, `code` aus
+  `DriveFehler`) statt es wegzuwerfen, haengt es bei einem Fallback als `planAbgleich.fehler`
+  an die Antwort UND in den `hinweis`-Text.
+- `public/store.js` `ladePlan()`: prueft `plan.planAbgleich.fehler` und ruft bei Vorhandensein
+  `melde("befund", ...)` auf — dieselbe sichtbare Banner-Meldung, die die App auch fuer andere
+  echte Fehler nutzt (z. B. `driveVerschieben`), mit Fehlercode im Text.
+- Bewusst NICHT gemacht: das Board render-blockierend NICHT mehr von `/api/plan` abhaengig
+  machen (waere die "richtig schnelle" Loesung, aber eine groessere Umstrukturierung der
+  v30-Ladereihenfolge einer aktiv arbeitenden Fremd-Session — ausserhalb dieser Rueckfrage).
+
+**Verifiziert:** `node --check` auf allen vier Dateien gruen. Direkt per curl gegen
+`/api/plan` gemessen (mehrfach, unabhaengig vom Browser): Antwortzeiten zwischen 4,2s und
+52s je nach Drive-Laune — IMMER endlich und zeitlich begrenzt (max. ~3×8s Timeout + Overhead),
+nie mehr unbegrenzt haengend wie vorher (vorher: `timeout 15` auf den rohen rclone-Befehl
+brach ergebnislos ab). Voller Board-Screenshot nach 52s Wartezeit erfolgreich eingeholt —
+zeigt alle drei Runde-9-Textentfernungen UND alle vorherigen Runden korrekt: keine
+Kopf-Pfad-Kette, keine Kategorie-Zahlen, "Drehtermine" nur als Icon, Formate/Schatten/
+Icon-Kacheln aus den Runden 1–8 weiterhin intakt.
+
 ## DoD
 
 - [x] Chrome-Punkte aus jedem Spaltenkopf entfernt, Platz freigegeben.
@@ -260,3 +315,7 @@ Zuversicht, aber NICHT als visuell verifiziert gemeldet, bis das Fenster wieder 
       `knopf()`), rotierende Sanduhr-Kachel waehrend die KI arbeitet (Drehung messtechnisch
       belegt). Voller Board-Screenshot in dieser Runde NICHT erbracht (Fenster minimiert,
       siehe Stand) — als offener Punkt vermerkt, nicht verschwiegen.
+- [x] Runde 9: drei weitere Texte entfernt (Kopf-Pfad, Kategorie-Zahlen, Drehtermine-Wort).
+      Dabei gefundener `/api/plan`-Haenger behoben (Timeout + sichtbare Fehlermeldung mit
+      Code) und per vollem Board-Screenshot nach Fix verifiziert — alle Runden zusammen
+      sichtbar korrekt.

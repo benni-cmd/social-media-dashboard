@@ -1,6 +1,5 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { PHASEN } from "/lib/pipeline.js";
 import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
@@ -50,7 +49,6 @@ const knoepfe = {
 };
 
 verdrahteKopf(el("stand"), el("meldung"));
-el("kopf-pfad").textContent = PHASEN.map((p) => p.name).join(" › ");
 
 // --- Karte oeffnen --------------------------------------------------------
 

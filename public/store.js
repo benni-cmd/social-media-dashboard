@@ -468,7 +468,13 @@ export async function linkedinZahlen() {
 
 export async function ladePlan() {
   try {
-    return await hole("/api/plan");
+    const plan = await hole("/api/plan");
+    // Owner 10.09.2026: ein haengender/fehlerhafter Drive-Zugriff darf nicht mehr still im
+    // Cache-Fallback verschwinden — sichtbare Meldung mit Fehlercode, wie an anderer Stelle
+    // (z. B. driveVerschieben) schon ueblich.
+    const f = plan?.planAbgleich?.fehler;
+    if (f) melde("befund", `Redaktionsplan: Drive-Zugriff fehlgeschlagen (${f.code ?? "?"}): ${f.message}`);
+    return plan;
   } catch {
     return { slots: [] };
   }

@@ -13,8 +13,6 @@ import {
   contenttypFormat,
   contenttypName,
   wochenlast,
-  saeulenVerteilung,
-  INHALTSKATEGORIEN,
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an, feuere } from "./store.js";
@@ -260,20 +258,7 @@ export async function schiebe(k, ziel) {
 function zeichneWochenlast(el) {
   if (!el) return;
   const w = wochenlast(S.cards);
-  const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie));
-  el.innerHTML =
-    statusChip(w.status) +
-    `<span>${escape(w.satz)}</span>` +
-    `<span class="wochenlast-saeulen">` +
-    INHALTSKATEGORIEN.map((s) => {
-      const v = verteilung.find((x) => x.id === s.id) || { anzahl: 0 };
-      return (
-        `<span class="saeulen-punkt" title="${escape(s.satz)}">` +
-        `<span class="saeulen-marke" style="background:var(--saeule-${s.id})"></span>` +
-        `${escape(s.name)}: ${v.anzahl}</span>`
-      );
-    }).join("") +
-    `</span>`;
+  el.innerHTML = statusChip(w.status) + `<span>${escape(w.satz)}</span>`;
 
   // Der Redaktionsplan haengt an der Wochenleiste, weil er genau deren Frage beantwortet:
   // wie die naechsten Wochen gefuellt werden.

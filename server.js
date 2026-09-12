@@ -342,15 +342,21 @@ async function handler(req, res) {
 
     if (pfad === "/api/plan" && req.method === "GET") {
       // Wahrheit ist die Config in Drive. Fehlt sie, aus Cache/Default seeden. Danach das
-      // deterministische Ergebnis gegen Drive abgleichen. Drive-Fehler kippen nichts.
-      let config = null, driveOk = true, quelle = "drive";
-      try { config = await planstore.leseConfigVonDrive(); } catch { driveOk = false; }
+      // deterministische Ergebnis gegen Drive abgleichen. Drive-Fehler kippen nichts (das Board
+      // bleibt bedienbar), aber der Fehler wird ab hier festgehalten statt verschluckt (Owner
+      // 10.09.2026: "es soll definitiv eine Fehlermeldung mit Fehlercode kommen").
+      let config = null, driveOk = true, quelle = "drive", driveFehler = null;
+      const merkeFehler = (e) => {
+        driveOk = false;
+        driveFehler = { message: e?.message || String(e), code: e?.code ?? null };
+      };
+      try { config = await planstore.leseConfigVonDrive(); } catch (e) { merkeFehler(e); }
       if (config) {
         await planCacheSchreiben(config);
       } else {
         config = (await planCacheLesen()) || pipeline.defaultPlan();
         quelle = driveOk ? "cache->drive" : "cache";
-        if (driveOk) { try { await planstore.schreibeConfigNachDrive(config); } catch { driveOk = false; } }
+        if (driveOk) { try { await planstore.schreibeConfigNachDrive(config); } catch (e) { merkeFehler(e); } }
         await planCacheSchreiben(config);
       }
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
@@ -358,9 +364,13 @@ async function handler(req, res) {
         try {
           const a = await planstore.abgleiche(config);
           planAbgleich = { neuGerechnet: a.neuGerechnet, hinweis: a.hinweis };
-        } catch { driveOk = false; }
+        } catch (e) { merkeFehler(e); }
       }
-      if (!driveOk) { quelle = "cache"; planAbgleich.hinweis = "Drive war nicht erreichbar — Redaktionsplan aus dem lokalen Cache."; }
+      if (!driveOk) {
+        quelle = "cache";
+        planAbgleich.hinweis = `Drive war nicht erreichbar — Redaktionsplan aus dem lokalen Cache. (${driveFehler.code ?? "?"}: ${driveFehler.message})`;
+        planAbgleich.fehler = driveFehler;
+      }
       sendJson(res, 200, { ...config, planAbgleich, quelle });
       return;
     }
