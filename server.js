@@ -34,6 +34,7 @@ import * as workflows from "./lib/workflowstore.js";
 import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as eigeneWorkflows from "./lib/ownworkflowstore.js";
+import * as websuche from "./lib/websuche.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -424,7 +425,14 @@ async function handler(req, res) {
           .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
           .catch(() => ({ firmenkontext: "", projektkontext: "" }));
         const system = await prompts.systemPrompt(firmenKontext);
-        const userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        let userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        // v40: Die Recherche-Rolle sucht erst im Web und gibt dem Modell frische Treffer als
+        // Faktenbasis. Fehler oder leer -> Recherche laeuft wie bisher aus dem Modellwissen.
+        if (task === "recherche") {
+          const frage = [card && card.title, card && card.serie].filter(Boolean).join(" ").trim();
+          const { treffer } = await websuche.sucheWeb(frage).catch(() => ({ treffer: [] }));
+          userMsg += websuche.alsPromptBlock(treffer);
+        }
         let text;
         if (provider === "ollama") {
           text = await ki.runOllama(system, userMsg, ollamaModel);
@@ -465,7 +473,15 @@ async function handler(req, res) {
           .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
           .catch(() => ({ firmenkontext: "", projektkontext: "" }));
         const system = await prompts.systemPrompt(firmenKontext);
-        const userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        let userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
+        // v40: Recherche-Rolle sucht erst im Web (Status sichtbar), dann verdichtet das Modell.
+        if (task === "recherche") {
+          schreib({ t: "status", text: "Sucht im Internet …" });
+          const frage = [card && card.title, card && card.serie].filter(Boolean).join(" ").trim();
+          const { treffer, quelle } = await websuche.sucheWeb(frage).catch(() => ({ treffer: [], quelle: "fehler" }));
+          userMsg += websuche.alsPromptBlock(treffer);
+          schreib({ t: "status", text: treffer && treffer.length ? `${treffer.length} Web-Treffer (${quelle})` : "Keine Web-Treffer — nutze Modellwissen" });
+        }
         let text;
         if (provider === "ollama") {
           text = await ki.runOllamaStream(system, userMsg, ollamaModel, (delta) => {

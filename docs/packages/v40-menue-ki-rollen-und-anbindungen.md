@@ -43,10 +43,14 @@ nach Zweck); Anbindungen sollen sich so leicht trennen wie verbinden lassen.
 
 ## Entscheidungen (Owner, 12.09.2026)
 
-1. **Recherche „die im Internet sucht"** → **echte Web-Suche jetzt**: T2 bekommt eine echte
-   Such-Quelle, deren Treffer das lokale DeepSeek R1 zusammenfasst. Offene Sub-Entscheidung:
-   welche Quelle (lokal/kostenlos wie SearXNG · scraping-basiert wie DuckDuckGo · API-Key wie
-   Brave/Tavily). Empfehlung SearXNG/lokal — passt zu „100% lokal/kostenlos".
+1. **Recherche „die im Internet sucht"** → **echte Web-Suche jetzt**, Quelle **DDG-Standard +
+   Tavily optional** (Owner, 12.09.2026; korrigiert die frühere SearXNG-Empfehlung). Grund:
+   Ziel ist „clone → läuft, keine Extra-Installs". SearXNG lokal = Docker + Redis/Valkey + JSON
+   extra freischalten (geprüft: cloudzun/perlod-Guides) → zu viel Setup für andere. Stattdessen
+   ein Such-Adapter IM Node-Server, zwei Backends: **DuckDuckGo schlüssellos** (Default, läuft
+   sofort; drosselt aber bei Last — link.sc/serpdive) und **Tavily** (optionaler Gratis-Key,
+   1.000 Suchen/Monat ohne Karte — parallel.ai). Brave verworfen (kein Free-Tier mehr seit
+   Feb 2026 — firecrawl). DeepSeek R1 verdichtet die Treffer.
 2. **Parallel-Working-Tree** → **als Wahrheit übernommen**. Erledigt durch die Realität: die
    Parallel-Session hat den Vereinfachungs-Umbau am 12.09. committet (`44538f4 v29 Runde 9`,
    `bffefcb`) — und mein Zahnrad-Icon dabei mitgenommen. Es steckt bereits in HEAD.
@@ -105,11 +109,17 @@ für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bis
 - [x] Bestand gemessen (Menü, Icon, KI-Routing, Verbinden-UI) — 10.09.2026
 - [x] T1 Zahnrad-Icon (ICONS.zahnrad + Kopf-Knopf) — Screenshot abgenommen; in HEAD via `bffefcb`
 - [x] Weichen geklärt: Web-Suche = echt · Parallel-Tree = übernommen (12.09.2026)
-- [x] Sub-Entscheidung: Web-Such-Quelle = SearXNG lokal (Owner, 12.09.2026)
+- [x] Sub-Entscheidung: Web-Suche = DDG-Standard + Tavily optional (Owner, 12.09.2026;
+      SearXNG lokal nach Prüfung verworfen — zu viel Setup für andere)
 - [x] T2-Routing: `store.js` (ROLLEN/TASK_ROLLE/rolleKonfig/`kiKonfig(task)`) + `ui.js`
       (3 Rollen-Blöcke) — Screenshot + Live-Funktionsprobe: recherche→ollama/deepseek-r1:14b,
       ideen/hooks/plan→claude/haiku, kontextabgleich→ollama/deepseek-r1:14b (12.09.2026)
-- [ ] T2-Web-Suche: SearXNG lokal für die Recherche-Rolle vorschalten (+ Kontextabgleich-Task)
+- [x] T2-Web-Suche (Kern): `lib/websuche.js` (DDG schlüssellos Default + Tavily via Key, Fehler→[])
+      in beide `/api/ai`-Handler vorgeschaltet für `task==="recherche"`. E2E verifiziert am
+      Stream-Endpunkt: „Sucht im Internet …" → „6 Web-Treffer (duckduckgo)"; DDG-Parser live gegen
+      echtes HTML geprüft (Umweltbundesamt/destatis). Tavily-Pfad codeseitig da, key-gated (12.09.2026)
+- [ ] T2-Rest: Tavily-Key-Feld in den Einstellungen (heute nur via .env) + eigener
+      `kontextabgleich`-Task (gleicht Web-/Recherche-Ergebnisse mit Firmen-/Projektkontext ab)
 - [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
 - [ ] T3 Verbinden/Trennen
 
