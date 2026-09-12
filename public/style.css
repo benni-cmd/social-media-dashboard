@@ -300,12 +300,6 @@ body {
   outline: 2px solid var(--akzent);
   outline-offset: -2px;
 }
-.kopf-menu-item[aria-busy="true"] .icon {
-  animation: kopf-menu-dreht 1s linear infinite;
-}
-@keyframes kopf-menu-dreht {
-  to { transform: rotate(360deg); }
-}
 .kopf-menu-trenner {
   height: 1px;
   background: var(--linie-hell);

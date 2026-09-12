@@ -156,4 +156,15 @@ Button, läuft über rclone) — kein Trennen ohne Verbinden.
 - Menü-Knopf und `ICONS.zahnrad` zeigen ein als Zahnrad erkennbares Icon (Screenshot belegt).
 - Je Rolle ein wählbares Modell mit den genannten Defaults; ein KI-Aufruf nutzt nachweislich das
   Rollen-Modell (Funktionsprobe).
-- Jeder verbundene Dienst lässt sich trennen; Status-Chip wechselt auf „bereit zum Verbinden".
+- Jeder Dienst MIT Verbinden (Google Kalender/Tasks, Instagram, LinkedIn, Claude) lässt sich
+  trennen; Status-Chip schlägt um. Ausnahme: Google Drive ist Status-only (Verbindung über rclone,
+  kein In-App-Verbinden → auch kein Trennen). Claude-Verbinden bleibt der Terminal-Login
+  `claude auth login` (interaktiv, nicht als Button möglich) — nur Trennen ist ein Button.
+
+## Offen (bewusst, nicht vergessen)
+
+- T1 „Mehr Aktionen aufnehmen": welche Aktionen ins Menü — Owner nennt sie (kein Feature geraten).
+- In-Menü-Zustand (Spinner am laufenden Eintrag) NICHT gebaut: das Menü schließt beim Klick,
+  Rückmeldung läuft über Kopf-„Stand" + Fortschrittsleiste + Ergebnis-Meldung (bestehend). Bei
+  Bedarf: Menü offen halten + `aria-busy` am Eintrag — dann eigener kleiner Schritt.
+- Claude-Verbinden als In-App-Fluss (Device-Code) wäre denkbar, aber Mehraufwand — heute Terminal.
