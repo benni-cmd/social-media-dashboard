@@ -319,3 +319,8 @@ Icon-Kacheln aus den Runden 1–8 weiterhin intakt.
       Dabei gefundener `/api/plan`-Haenger behoben (Timeout + sichtbare Fehlermeldung mit
       Code) und per vollem Board-Screenshot nach Fix verifiziert — alle Runden zusammen
       sichtbar korrekt.
+- [x] Committet (`44538f4`, 10 Dateien: die Runde-9-Aenderungen an `public/app.js`,
+      `board.js`, `drehtermine.js`, `index.html`, `ui.js`, `store.js`, `lib/drive.js`,
+      `lib/planstore.js`, `server.js` + dieses Paket-Dokument) und gepusht
+      (`benni-cmd/social-media-dashboard` `main`). `data/board.json` (Live-Nutzdaten, nicht
+      dieser Sitzung) und das fremde `docs/packages/v40-...md` bewusst NICHT mitgenommen.
