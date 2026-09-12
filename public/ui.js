@@ -759,6 +759,13 @@ export function einstellungenModal(onThemeChange) {
     try { s = await (await fetch("/api/verbindungen/status")).json(); } catch { s = {}; }
     for (const r of dienstRender) r(s);
   }
+  // v40: Trennen — POST an den Trennen-Endpoint, dann Status neu laden (Chip schlaegt um).
+  async function trenneDienst(pfad, knopfEl) {
+    if (knopfEl) knopfEl.disabled = true;
+    try { await fetch(pfad, { method: "POST" }); } catch { /* Netzfehler: Status bleibt */ }
+    await ladeVerbStatus();
+    if (knopfEl) knopfEl.disabled = false;
+  }
   async function putEnv(key, value) {
     if (!value) return;
     await fetch("/api/config/env", {
@@ -820,8 +827,12 @@ export function einstellungenModal(onThemeChange) {
       },
     });
     const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = "/api/auth/google"; } });
+    const trennen = knopf("Trennen", { klick: (e) => trenneDienst("/api/auth/google/trennen", e.currentTarget) });
+    // .knopf setzt per CSS display, das ein [hidden]-Attribut ueberschreibt — daher style.display.
+    trennen.style.display = "none";
     reihe.appendChild(speichern);
     reihe.appendChild(verbinden);
+    reihe.appendChild(trennen);
     reihe.appendChild(info);
     ab.appendChild(reihe);
     seite3.appendChild(ab);
@@ -830,6 +841,8 @@ export function einstellungenModal(onThemeChange) {
       const g = s.google || {};
       setzeChip(chip, g.verbunden, g.clientKonfiguriert);
       verbinden.disabled = !g.clientKonfiguriert;
+      verbinden.style.display = g.verbunden ? "none" : "";
+      trennen.style.display = g.verbunden ? "" : "none";
     });
   }
 
@@ -864,11 +877,30 @@ export function einstellungenModal(onThemeChange) {
     const t = document.createElement("p");
     t.className = "einst-provider-sub";
     t.innerHTML =
-      "Die KI-Texte laufen ueber deine <b>Claude-CLI</b> (dein Abo, keine API-Kosten). " +
-      "Nicht verbunden? Einmal im Terminal <code>claude</code> starten und einloggen, dann das Board neu starten.";
+      "Die KI-Texte der Userkommunikation laufen ueber deine <b>Claude-CLI</b> (dein Abo, keine API-Kosten). " +
+      "Verbinden: einmal im Terminal <code>claude auth login</code> und mit dem eigenen Abo einloggen.";
     ab.appendChild(t);
+    const cReihe = document.createElement("div");
+    cReihe.className = "einst-ping-zeile";
+    const cInfo = document.createElement("div");
+    cInfo.className = "einst-ping-status";
+    const cTrennen = knopf("Trennen", {
+      klick: async (e) => {
+        cInfo.textContent = "Melde ab …";
+        await trenneDienst("/api/auth/claude/trennen", e.currentTarget);
+        cInfo.textContent = "Abgemeldet. Neu verbinden: claude auth login im Terminal.";
+      },
+    });
+    cTrennen.style.display = "none";
+    cReihe.appendChild(cTrennen);
+    cReihe.appendChild(cInfo);
+    ab.appendChild(cReihe);
     seite3.appendChild(ab);
-    dienstRender.push((s) => setzeChip(chip, (s.claude || {}).verbunden, false));
+    dienstRender.push((s) => {
+      const c = s.claude || {};
+      setzeChip(chip, c.verbunden, false);
+      cTrennen.style.display = c.verbunden ? "" : "none";
+    });
   }
 
   // --- Seite 4: Social Media Kanaele (v24-2) ---
@@ -907,8 +939,11 @@ export function einstellungenModal(onThemeChange) {
       },
     });
     const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = opt.connectPfad; } });
+    const trennen = knopf("Trennen", { klick: (e) => trenneDienst(opt.trennenPfad, e.currentTarget) });
+    trennen.style.display = "none";
     reihe.appendChild(speichern);
     reihe.appendChild(verbinden);
+    reihe.appendChild(trennen);
     reihe.appendChild(info);
     ab.appendChild(reihe);
     container.appendChild(ab);
@@ -916,6 +951,8 @@ export function einstellungenModal(onThemeChange) {
       const d = s[opt.statusKey] || {};
       setzeChip(chip, d.verbunden, d.clientKonfiguriert);
       verbinden.disabled = !d.clientKonfiguriert;
+      verbinden.style.display = d.verbunden ? "none" : "";
+      trennen.style.display = d.verbunden ? "" : "none";
     });
   }
 
@@ -969,7 +1006,7 @@ export function einstellungenModal(onThemeChange) {
   baueApiDienst(seite4, {
     name: "Instagram",
     idKey: "INSTAGRAM_APP_ID", secretKey: "INSTAGRAM_APP_SECRET",
-    connectPfad: "/api/auth/instagram", statusKey: "instagram",
+    connectPfad: "/api/auth/instagram", trennenPfad: "/api/auth/instagram/trennen", statusKey: "instagram",
     idLabel: "App-ID", secretLabel: "App-Secret",
     idPlatz: "Instagram App-ID", secretPlatz: "App-Secret",
     anleitung:
@@ -980,7 +1017,7 @@ export function einstellungenModal(onThemeChange) {
   baueApiDienst(seite4, {
     name: "LinkedIn",
     idKey: "LINKEDIN_CLIENT_ID", secretKey: "LINKEDIN_CLIENT_SECRET",
-    connectPfad: "/api/auth/linkedin", statusKey: "linkedin",
+    connectPfad: "/api/auth/linkedin", trennenPfad: "/api/auth/linkedin/trennen", statusKey: "linkedin",
     idLabel: "Client-ID", secretLabel: "Client-Secret",
     idPlatz: "LinkedIn Client-ID", secretPlatz: "Client-Secret",
     anleitung:

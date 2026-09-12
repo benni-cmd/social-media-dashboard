@@ -91,9 +91,21 @@ für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bis
 - Web-Suche (SearXNG lokal) für die Recherche-Rolle: eigener Schritt NACH dem Routing.
 
 ### T3 — Verbinden/Trennen
-- Server: Disconnect-Endpoints (Token/Env sauber löschen/entwerten) für Claude-Status + Google
-  (Kalender/Tasks, Drive) + Social-APIs.
-- UI: „Trennen"-Knopf je Abschnitt, sichtbar wenn `verbunden`; Status-Chip aktualisiert sich.
+
+**Design (gemessen 12.09.2026):** Tokens liegen in `data/tokens.json` als `{google, instagram,
+linkedin}` (gesetzt via `speichereToken`, server.js:143). „Trennen" spiegelt „Verbinden": nur die
+Dienste, die ein Verbinden haben, bekommen ein Trennen — Google (Kalender/Tasks), Instagram,
+LinkedIn (Token entfernen) und Claude (`claude logout`). Drive bleibt Status-only (kein Verbinden-
+Button, läuft über rclone) — kein Trennen ohne Verbinden.
+
+- **Server-Endpoints** (POST): `/api/auth/google/trennen` (Token weg + best-effort Google-revoke),
+  `/api/auth/instagram/trennen`, `/api/auth/linkedin/trennen` (Token weg), `/api/auth/claude/trennen`
+  (`claude logout`, best-effort). Neuer Helfer `entferneToken(plattform)` löscht den Schlüssel und
+  schreibt `tokens.json`.
+- **UI** (`ui.js` seite3 + Claude-Abschnitt): je Dienst ein „Trennen"-Knopf neben „Verbinden",
+  sichtbar nur wenn `verbunden`; nach Klick Status neu laden → Chip wechselt auf „bereit".
+- **Nicht test-auslösen**: `claude logout` würde Bens CLI-Login ziehen — Endpoint bauen, aber nur
+  Google/Instagram/LinkedIn-Trennen live proben (verbinden-abhängig), Claude nur codeseitig prüfen.
 
 ## Plan (Reihenfolge)
 
@@ -125,8 +137,13 @@ für das Routing**: der Client wählt je Rolle das Modell und schickt es wie bis
       Variable, JSON-Aufgabe) + Auto-Verkettung in detail.js nach der Recherche (nicht-blockierend,
       Rohfassung bleibt bei Fehler, in `k.rechercheRoh`). E2E verifiziert: Task akzeptiert, zu
       ollama/deepseek-r1:14b (Kontext-Rolle) geroutet, korrektes Schema (12.09.2026). **T2 komplett.**
-- [ ] T1-Rest Gruppierung/Zustand/A11y (nach T2, wegen aktiver Parallel-Session)
-- [ ] T3 Verbinden/Trennen
+- [x] T3 Verbinden/Trennen: server.js `entferneToken` + 4 Endpoints (google/instagram/linkedin
+      Token weg + Google-revoke best-effort; claude `auth logout`); Claude-Status via `claude auth
+      status` (echter Login). ui.js: `trenneDienst`-Helfer + Trennen-Knöpfe (Google/Instagram/
+      LinkedIn/Claude), sichtbar wenn verbunden. Bugfix: `.knopf` überschreibt `[hidden]` → Umschalten
+      über `style.display`. Verifiziert: Screenshots (Google/Instagram/Claude = Trennen) + No-op-Curl
+      linkedin (google/instagram/claude unangetastet). Drive bleibt Status-only (kein Verbinden). (12.09.2026)
+- [ ] T1-Rest Gruppierung/Zustand/A11y
 
 ## DoD
 

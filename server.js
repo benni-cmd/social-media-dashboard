@@ -147,6 +147,17 @@ async function speichereToken(plattform, daten) {
   await writeFile(TOKEN_FILE, JSON.stringify(t, null, 2), "utf8");
 }
 
+// v40: Trennen — den Token-Eintrag eines Dienstes entfernen und tokens.json neu schreiben.
+// Gibt zurueck, was vorher gespeichert war (fuer ein best-effort Revoke beim Anbieter).
+async function entferneToken(plattform) {
+  const t = await leseTokens();
+  const vorher = t[plattform];
+  delete t[plattform];
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(TOKEN_FILE, JSON.stringify(t, null, 2), "utf8");
+  return vorher || null;
+}
+
 // --- Redaktionsplan: Drive ist Wahrheit, data/plan.json nur Cache (v17d) -----
 //
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
@@ -1000,7 +1011,8 @@ async function handler(req, res) {
       let driveOk = false;
       try { driveOk = !!(await drive.erreichbar())?.ok; } catch { /* Drive gestoert = nicht verbunden */ }
       let claudeOk = false;
-      try { execSync("claude --version", { stdio: "ignore" }); claudeOk = true; } catch { /* CLI fehlt/nicht eingeloggt */ }
+      // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
+      try { claudeOk = !!JSON.parse(execSync("claude auth status", { encoding: "utf8" })).loggedIn; } catch { /* CLI fehlt oder nicht eingeloggt */ }
       sendJson(res, 200, {
         google: { verbunden: await gcal.verbunden(), clientKonfiguriert: !!process.env.GOOGLE_OAUTH_CLIENT_ID },
         drive: { verbunden: driveOk },
@@ -1009,6 +1021,38 @@ async function handler(req, res) {
         claude: { verbunden: claudeOk },
         tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
+      return;
+    }
+
+    // v40: Trennen — den Zugang eines Dienstes loesen. Spiegelt das jeweilige Verbinden.
+    if (pfad === "/api/auth/google/trennen" && req.method === "POST") {
+      const vorher = await entferneToken("google");
+      // best-effort Revoke beim Anbieter — verhindert nie das lokale Trennen.
+      const tok = vorher && (vorher.refresh_token || vorher.access_token);
+      if (tok) {
+        try { await fetch("https://oauth2.googleapis.com/revoke?token=" + encodeURIComponent(tok), { method: "POST" }); } catch { /* egal */ }
+      }
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (pfad === "/api/auth/instagram/trennen" && req.method === "POST") {
+      await entferneToken("instagram");
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (pfad === "/api/auth/linkedin/trennen" && req.method === "POST") {
+      await entferneToken("linkedin");
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (pfad === "/api/auth/claude/trennen" && req.method === "POST") {
+      // Loggt die lokale Claude-CLI aus (betrifft das Konto auf DIESEM Rechner).
+      try {
+        execSync("claude auth logout", { stdio: "ignore" });
+        sendJson(res, 200, { ok: true });
+      } catch (e) {
+        sendJson(res, 502, { error: "claude auth logout fehlgeschlagen: " + e.message });
+      }
       return;
     }
 
