@@ -143,7 +143,13 @@ Button, läuft über rclone) — kein Trennen ohne Verbinden.
       LinkedIn/Claude), sichtbar wenn verbunden. Bugfix: `.knopf` überschreibt `[hidden]` → Umschalten
       über `style.display`. Verifiziert: Screenshots (Google/Instagram/Claude = Trennen) + No-op-Curl
       linkedin (google/instagram/claude unangetastet). Drive bleibt Status-only (kein Verbinden). (12.09.2026)
-- [ ] T1-Rest Gruppierung/Zustand/A11y
+- [x] T1-Rest: Menü gruppiert (Daten | System, Divider), Icons je Eintrag (Ordner/Refresh/Zahnrad,
+      Board-Stil), A11y (role=menu/menuitem, Pfeiltasten, Home/End, Escape schließt + Fokus zurück
+      auf Knopf, ArrowDown öffnet aus dem Knopf). index.html + app.js + style.css. Verifiziert:
+      Screenshot (Menü offen, Icons/Divider, Fokus-Ring) + Live-Events (ArrowDown abgleichen→neuladen,
+      Escape schließt+fokussiert Knopf). (12.09.2026)
+- [ ] T1 „Mehr Aktionen aufnehmen": offen — welche seltenen Aktionen ins Menü sollen, nennt der Owner
+      (kein Feature geraten).
 
 ## DoD
 

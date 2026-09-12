@@ -197,24 +197,58 @@ el("einstellungen").addEventListener("click", () => {
 {
   const knopfEl = el("kopf-menu-knopf");
   const listeEl = el("kopf-menu-liste");
-  const schliesse = () => {
+  const items = () => Array.from(listeEl.querySelectorAll(".kopf-menu-item"));
+  const fokussiere = (i) => {
+    const es = items();
+    if (!es.length) return;
+    const n = (i + es.length) % es.length;
+    es[n].focus();
+  };
+  const oeffne = () => {
+    listeEl.hidden = false;
+    knopfEl.setAttribute("aria-expanded", "true");
+    fokussiere(0); // Tastatur landet direkt im ersten Eintrag
+  };
+  const schliesse = ({ fokusKnopf = false } = {}) => {
+    if (listeEl.hidden) return;
     listeEl.hidden = true;
     knopfEl.setAttribute("aria-expanded", "false");
+    if (fokusKnopf) knopfEl.focus();
   };
   knopfEl.addEventListener("click", (e) => {
     e.stopPropagation();
-    const offen = !listeEl.hidden;
-    listeEl.hidden = offen;
-    knopfEl.setAttribute("aria-expanded", String(!offen));
+    if (listeEl.hidden) oeffne();
+    else schliesse();
+  });
+  // Pfeil-runter oeffnet das Menue aus dem Knopf heraus (Standard-Menue-Verhalten).
+  knopfEl.addEventListener("keydown", (e) => {
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && listeEl.hidden) {
+      e.preventDefault();
+      oeffne();
+      if (e.key === "ArrowUp") fokussiere(-1);
+    }
   });
   listeEl.addEventListener("click", (e) => {
-    if (e.target.closest(".kopf-menu-item")) schliesse();
+    // Einstellungen oeffnet ein Modal -> schliessen; die Daten-Aktionen schliessen ebenso
+    // (ihr Fortschritt steht im Kopf-"Stand"). Fokus zurueck auf den Knopf.
+    if (e.target.closest(".kopf-menu-item")) schliesse({ fokusKnopf: false });
+  });
+  // Tastatur INNERHALB des Menues: Pfeile, Home/End, Escape/Tab schliessen.
+  listeEl.addEventListener("keydown", (e) => {
+    const es = items();
+    const i = es.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") { e.preventDefault(); fokussiere(i + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); fokussiere(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); fokussiere(0); }
+    else if (e.key === "End") { e.preventDefault(); fokussiere(-1); }
+    else if (e.key === "Escape") { e.preventDefault(); schliesse({ fokusKnopf: true }); }
+    else if (e.key === "Tab") { schliesse(); }
   });
   document.addEventListener("click", (e) => {
     if (!listeEl.hidden && !e.target.closest(".kopf-menu")) schliesse();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") schliesse();
+    if (e.key === "Escape" && !listeEl.hidden) schliesse({ fokusKnopf: true });
   });
 }
 

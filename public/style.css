@@ -267,10 +267,18 @@ body {
 .kopf-menu-liste[hidden] {
   display: none;
 }
+.kopf-menu-gruppe {
+  display: flex;
+  flex-direction: column;
+}
 .kopf-menu-item {
   font: inherit;
   font-size: 13px;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
   background: none;
   border: 0;
   color: var(--text);
@@ -278,8 +286,30 @@ body {
   border-radius: 6px;
   cursor: pointer;
 }
-.kopf-menu-item:hover {
+.kopf-menu-item .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-leise);
+}
+.kopf-menu-item:hover,
+.kopf-menu-item:focus-visible {
   background: var(--flaeche-hoch);
+}
+.kopf-menu-item:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: -2px;
+}
+.kopf-menu-item[aria-busy="true"] .icon {
+  animation: kopf-menu-dreht 1s linear infinite;
+}
+@keyframes kopf-menu-dreht {
+  to { transform: rotate(360deg); }
+}
+.kopf-menu-trenner {
+  height: 1px;
+  background: var(--linie-hell);
+  margin: 4px 6px;
 }
 
 /* --- Knoepfe --- */
