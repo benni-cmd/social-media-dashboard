@@ -1,5 +1,5 @@
 {
-  "version": 269,
+  "version": 286,
   "cards": [
     {
       "name": "ProjectOasis_EP01_DigitalerSandkasten",
@@ -2046,7 +2046,161 @@
       "driveName": "BienenundihreBlumenfreunde",
       "published": {},
       "metrics": {},
-      "kpiMessungen": {}
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Bienen sind unerlässliche Bestäuber, die für die Beständigkeit und Vielfalt der Landwirtschaft und der Umwelt entscheidend sind. Ohne sie würden viele Pflanzenarten nicht blühen und Früchte nicht entstehen, was eine drastische Auswirkung auf die landwirtschaftliche Produktion und Biodiversität hätte.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Die wichtigste Rolle der Bienen in der Bestäuerung natürlicher und angebauter Pflanzen. Sie erläutert, welchen Einfluss Bienen auf die Fruchttragfähigkeit und Diversität von Gemüse- und Nutzpflanzen haben."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Welche Arten von Pflanzen Bienen besonders stark anlocken und welche Blüten sie bevorzugen. Diese Variante geht tiefer in die spezifischen Bedürfnisse der Bienen ein, um eine reichhaltigere Umgebung zu schaffen."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Welche Auswirkungen der Verlust wichtiger Bienenart auf den Wachstum und Ertrag von Hecken und Kräutern hat. Hier geht es um die direkten Konsequenzen für landwirtschaftliche und gartenbauliche Anlagen, wenn Bienenarten schwinden."
+          }
+        ],
+        "frame": {
+          "problem": "Wegen der fortschreitenden Umweltzerstörung und Agrar-Technisierung schwinden wichtige Bestäuber-Bienenarten und führen zuSinken der Bestäubungsgüte und zur Reduzierung der Pflanzenvielfalt.",
+          "solution": "Du kannst Blumenteppiche von speziell bei Bienen beliebten Pflanzen anlegen und kleine Bienenbiotope in deinem Garten oder auf der Farm erschaffen, um die Bestäubungsfrüchte und lokale Biodiversität zu verbessern."
+        },
+        "keywords": [
+          "Bienenbestäubung",
+          "Biotop",
+          "Landwirtschaft",
+          "Biodiversität",
+          "Bestäuber"
+        ]
+      }
+    },
+    {
+      "id": "cmtu2lu6fzkv1",
+      "schema": 2,
+      "column": "skript",
+      "title": "Waldvierecke in deinem Garten",
+      "notes": "Unterstuetzung der Bio-Diversitaet in kleinen Größenordnungen",
+      "serie": "",
+      "episode": "",
+      "contenttyp": "story",
+      "kategorie": "spendenaufruf",
+      "goal": "reach_new",
+      "platforms": [
+        "instagram"
+      ],
+      "owner": "",
+      "hook": {
+        "text": "Natürliche Vielfalt im Garten",
+        "visual": "Ein absteigender Rasen streift einen kleinen Holzblock mit diverser Pflanzen- und Tiervielfalt im Dschungelartigen Zustand"
+      },
+      "cta": {
+        "text": "",
+        "directness": "indirekt"
+      },
+      "frame": {
+        "problem": "Mangelnde Bio-Diversität in Gärten führt zu einer Reduzierung von natürlichen Schutzorganismen und erhöht den Anwachs von Schadorganismen",
+        "solution": "Einführung von Waldvierecken zur Förderung der biologischen Vielfalt im Garten"
+      },
+      "caption": {
+        "lead": "",
+        "body": "",
+        "keywords": [
+          "Bio-Diversität im Garten",
+          "Waldvierecke",
+          "natürliche Insektenkontrolle",
+          "Bodenwasserspeicher"
+        ],
+        "hashtags": {}
+      },
+      "video": {
+        "seconds": 0,
+        "hasCaptions": false,
+        "watermarkFree": false,
+        "speakerOnCamera": false,
+        "directGaze": false
+      },
+      "dates": {
+        "schnitt": "2026-09-26",
+        "freigabe": "2026-09-29",
+        "upload": "2026-10-02"
+      },
+      "uploadTime": "19:00",
+      "floatUpload": false,
+      "drehterminId": null,
+      "checks": {},
+      "ai": {
+        "skript": "[CHUNK 1]  \nNatürliche Vielfalt im Garten  \n\n[CHUNK 2]  \nHallo Leute, habt ihr in euren Gärten schon mal überlegt, wie ihr mehr natürliche Vielfalt schaffen könnt?  \n\n[CHUNK 3]  \nStellt euch vor: Wenn ihr kleine Waldstücke in euren Gärten anlegen, könnt ihr zahlreiche Käfer, Insekten und Vögel fördern.  \n\n[CHUNK 4]  \nDiese kleinen Ökosysteme helfen nicht nur, Schadorganismen im Gleichgewicht zu halten, sondern bieten auch wichtigen Nährboden für Bodenkäfer und Ameisen.  \n\n[CHUNK 5]  \nUnd das Beste daran? Das Schaffen von Waldvierecken ist gar nicht so kompliziert. Lasst uns anfangen, einfach an ein paar Stellen Bäumchen zu pflanzen oder abgeholzte Ecken mit Pflanzen zu bestücken.  \n\n[CHUNK 6]  \nWas haltet ihr davon? Hat jemand schon Erfahrungen damit? Vielleicht könnt ihr auch damit experimentieren und mitspielen.  \n\n[CHUNK 7]  \nWenn ihr auch mehr darüber erfahren wollt, lasst uns wissen, was euch daran am meisten gefällt!"
+      },
+      "driveName": "WaldviereckeindeinemGarten",
+      "published": {},
+      "metrics": {},
+      "kpiMessungen": {},
+      "recherche": {
+        "zusammenfassung": "Waldvierecke verbessern die Bio-Diversität in kleinem Maßstab. Sie bieten Habitats für eine Vielzahl von Pflanzen und Tieren, verbessern die Bodenqualität und fördern das Regenwassermanagement im Garten.",
+        "fokus": [
+          {
+            "titel": "Hauptfokus",
+            "text": "Erhöhung der Artenvielfalt im Garten durch Waldvierecke. Kleine, naturnahe Ökosysteme im Hausgarten fördern die biologische Vielfalt."
+          },
+          {
+            "titel": "Alternative A",
+            "text": "Verbesserung des Bodenwasserspeichers durch Waldvierecke. Die Bäume und Pflanzen bilden eine natürliche Barriere, die Niederschläge in den Boden leitet und als Wasserspeicher fungiert."
+          },
+          {
+            "titel": "Alternative B",
+            "text": "Reduzierung von Insektenfeinden im Garten durch Waldvierecke. Viele Insektenfeinde finden bei den vielfältigen Pflanzen und Bäumen einen Zufluchtsort, was eine natürliche Kontrolle von Schadorganismen ermöglicht."
+          }
+        ],
+        "frame": {
+          "problem": "Mangelnde Bio-Diversität in Gärten führt zu einer Reduzierung von natürlichen Schutzorganismen und erhöht den Anwachs von Schadorganismen",
+          "solution": "Einführung von Waldvierecken zur Förderung der biologischen Vielfalt im Garten"
+        },
+        "keywords": [
+          "Bio-Diversität im Garten",
+          "Waldvierecke",
+          "natürliche Insektenkontrolle",
+          "Bodenwasserspeicher"
+        ]
+      },
+      "chosenFokus": 0,
+      "hooksVerbal": {
+        "hooks": [
+          {
+            "label": "Haupt-Hook",
+            "verbal": "Baue deinen Mini-Wald"
+          },
+          {
+            "label": "Alternative 1",
+            "verbal": "Natürliche Vielfalt im Garten"
+          },
+          {
+            "label": "Alternative 2",
+            "verbal": "Waldvierecke planen jetzt"
+          }
+        ]
+      },
+      "chosenVerbal": 1,
+      "hooksVisuell": {
+        "hooks": [
+          {
+            "label": "Haupt-Bild",
+            "visuell": "Ein kleines Waldviereck inmitten von Gemüebergs, mit Moos, Pilzen und verschiedenen Insekten darin"
+          },
+          {
+            "label": "Alternative 1",
+            "visuell": "Ein paar kleine Bäumchen um einen Komposthaufen angeordnet, dessen Umgebung mit Pilzen und Insektenwaben geschmückt ist"
+          },
+          {
+            "label": "Alternative 2",
+            "visuell": "Ein absteigender Rasen streift einen kleinen Holzblock mit diverser Pflanzen- und Tiervielfalt im Dschungelartigen Zustand"
+          }
+        ]
+      },
+      "chosenVisuell": 2,
+      "skriptFinal": "[CHUNK 1]  \nNatürliche Vielfalt im Garten  \n\n[CHUNK 2]  \nHallo Leute, habt ihr in euren Gärten schon mal überlegt, wie ihr mehr natürliche Vielfalt schaffen könnt?  \n\n[CHUNK 3]  \nStellt euch vor: Wenn ihr kleine Waldstücke in euren Gärten anlegen, könnt ihr zahlreiche Käfer, Insekten und Vögel fördern.  \n\n[CHUNK 4]  \nDiese kleinen Ökosysteme helfen nicht nur, Schadorganismen im Gleichgewicht zu halten, sondern bieten auch wichtigen Nährboden für Bodenkäfer und Ameisen.  \n\n[CHUNK 5]  \nUnd das Beste daran? Das Schaffen von Waldvierecken ist gar nicht so kompliziert. Lasst uns anfangen, einfach an ein paar Stellen Bäumchen zu pflanzen oder abgeholzte Ecken mit Pflanzen zu bestücken.  \n\n[CHUNK 6]  \nWas haltet ihr davon? Hat jemand schon Erfahrungen damit? Vielleicht könnt ihr auch damit experimentieren und mitspielen.  \n\n[CHUNK 7]  \nWenn ihr auch mehr darüber erfahren wollt, lasst uns wissen, was euch daran am meisten gefällt!",
+      "skriptGespeichert": true
     }
   ],
   "drehtermine": [
@@ -2065,6 +2219,30 @@
       "gcalEventId": "9j47me2tbhsc86lh4nmnnhvpqo",
       "auto": true,
       "gtaskId": "VTZ2R3RVelVQYTJTdlFXcQ"
+    },
+    {
+      "id": "cmtu2tdn0xdl4",
+      "datum": "2026-09-26",
+      "zeit": "09:00",
+      "ort": "",
+      "titel": "",
+      "notiz": "",
+      "karteIds": [],
+      "gcalEventId": "5p4jmeh0rqg4ddabrphu0f9ej4",
+      "auto": false,
+      "gtaskId": "cXltRmJ5eDJpM1htNXZiQg"
+    },
+    {
+      "id": "cmtu2va9cn4p9",
+      "datum": "2026-10-01",
+      "zeit": "15:31",
+      "ort": "",
+      "titel": "",
+      "notiz": "",
+      "karteIds": [],
+      "gcalEventId": "vo4vf76s6o1gvanqe3m386fm74",
+      "auto": false,
+      "gtaskId": "dHNLaHdxcDNPYzIzVVk0OQ"
     }
   ]
 }

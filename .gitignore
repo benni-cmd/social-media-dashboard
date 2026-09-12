@@ -34,6 +34,11 @@ data/.gdrive-struktur.json
 # Spalten-Cache (v17b): Drive ist Wahrheit, data/spalten.json regeneriert lokal — nicht committen
 data/spalten.json
 
+# Board-Cache (v41): ab v17 ist board.json nur der schnelle Cache, die Wahrheit liegt in Drive
+# ((AI only)/projekt.json je Karte). Regeneriert lokal beim Abgleich — Daten erst da, wenn Drive
+# verbunden ist. Nicht committen.
+data/board.json
+
 # Selbstsigniertes HTTPS-Zertifikat: wird beim Start erzeugt, rechnerlokal
 data/localhost.key
 data/localhost.crt
