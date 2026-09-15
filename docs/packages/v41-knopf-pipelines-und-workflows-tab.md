@@ -26,6 +26,21 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
   laufen nacheinander, jeder auf dem Modell seiner Rolle, Ausgabe → Eingabe des nächsten
   (Platzhalter `{{vorschritt}}`). Der System-Vorspann bleibt unverändert.
 
+## Entscheidungen (Owner, 15.09.2026)
+
+- **F1 → 3-Schritt-Kette als Default UND Editor bauen.** Default `recherche` = 3 Schritte:
+  (1) Userkommunikation liest Auftrag/Kontext, (2) Recherche-Rolle recherchiert Fakten (Web-Suche),
+  (3) Userkommunikation formuliert die JSON-Antwort. Andere Knöpfe: 1-Schritt-Default (ihre Rolle +
+  Vorlage). Die harte v40-Verkettung recherche→kontextabgleich entfällt (durch die Schritte ersetzt).
+- **F2 → Web-Suche fest an die Recherche-Rolle.** Kein Schritt-Feld `websuche`: ein Schritt mit
+  `rolle:"recherche"` bekommt IMMER die Web-Treffer vorangestellt. Datenmodell vereinfacht sich zu
+  `{rolle, prompt}`; im Editor genügt der Hinweis „Recherche-Schritt sucht automatisch im Web".
+- **F3 → Tab weg + Engine sauber zurückbauen.** Ben hat keine eigenen Workflows angelegt. Entfernen:
+  Workflows-Tab, `public/workflowengine.js`, `lib/ownworkflowstore.js`, `lib/workflowblocks.js`,
+  `public/workflowbuilder.css`, `feuere`-Aufrufe/Export, `/api/workflows/eigene`-Endpunkte,
+  `S.eigeneWorkflows`. **Bleibt (wie davor):** die eingebauten Automationen über `an(id)`/`wfIstAn`,
+  `lib/workflowstore.js` + `lib/workflows.js`, `/api/workflows` GET und der `S.workflows`-Start-Load.
+
 ## Bestandsaufnahme (gemessen 15.09.2026)
 
 - **Prompt-Store** `lib/promptstore.js`: `data/prompts.json` = `{system, aufgaben:{task:"text"}}`;
@@ -145,6 +160,19 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
 4. **B5 UI-Editor** (Schritt-Liste, Rollen-Dropdown, Websuche, +/−/↑↓, Speichern) → Screenshot-Abnahme
    gegen `docs/ui-standard.md` → Commit.
 5. Completeness-Audit + Fulfillment (Bens 3-Schritt-Beispiel real durchspielen) → Abschluss.
+
+## Stand
+
+- [x] **Teil A — Workflows-Tab + Engine entfernt** (15.09.2026). ui.js: Nav/Seite6/Switching/Builder
+      (~647 Zeilen) raus; store.js/board.js/detail.js: `feuere`-Import + 4 Aufrufe raus; server.js:
+      `eigeneWorkflows`-Import/Pfad + `/api/workflows/eigene` PUT/DELETE + `eigene`-Feld raus; gelöscht:
+      `public/workflowengine.js`, `lib/ownworkflowstore.js`, `lib/workflowblocks.js`,
+      `public/workflowbuilder.css`. **Behalten:** `an(id)`, `workflowstore`/`workflows.js`,
+      `/api/workflows` GET+PUT, `S.workflows`-Load. Verifiziert: `node --check` (5 Dateien) grün,
+      Reste-grep leer; Laufzeit: 9 Automationen geladen, `an('auto-drehtermin'/'gcal-autosync'/
+      'drive-ordner-anlegen')`=true (wie davor), `feuere`=undefined; Screenshot: Settings-Nav ohne
+      „Workflows", „System Prompts" lädt weiter.
+- [ ] Teil B — Knopf-Pipelines (Datenmodell → Server → Client → Editor)
 
 ## DoD
 

@@ -6,7 +6,6 @@ import {
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
-import { feuere } from "./workflowengine.js";
 
 export const S = {
   version: 1,
@@ -23,7 +22,6 @@ export const S = {
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN },
   workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
-  eigeneWorkflows: [], // selbstgebaute Workflows (v27); die Engine fragt genau diese Liste
 };
 
 // --- Workflows (v26) ------------------------------------------------------
@@ -42,7 +40,6 @@ function uebernimm(d) {
       params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
     };
   }
-  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
 }
 
 export async function ladeWorkflows() {
@@ -55,28 +52,6 @@ export async function ladeWorkflows() {
   }
 }
 
-// --- Selbstgebaute Workflows (v27) ----------------------------------------
-//
-// `feuere` ist der einzige Weg, auf dem ein eigener Workflow ueberhaupt laeuft. Jede Fundstelle
-// unten im Board ruft ihn mit ihrem Ereignis — genau wie die eingebauten Neun `an(id)` rufen.
-
-export { feuere };
-
-export async function setzeEigenenWorkflow(workflow) {
-  const d = await hole("/api/workflows/eigene", {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ workflow }),
-  });
-  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
-  return d.eigene || [];
-}
-
-export async function loescheEigenenWorkflow(id) {
-  const d = await hole(`/api/workflows/eigene?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-  if (Array.isArray(d.eigene)) S.eigeneWorkflows = d.eigene;
-  return d.eigene || [];
-}
 
 export async function setzeWorkflow(id, { an: schalter, params } = {}) {
   const d = await hole("/api/workflows", {
@@ -229,8 +204,6 @@ export function neueKarte(spalte) {
   const k = leereKarte(spalte);
   S.cards.push(k);
   speichere();
-  // Ausloeser "karte-angelegt" fuer die selbstgebauten Workflows (v27).
-  feuere("karte-angelegt", { karte: k });
   return k;
 }
 

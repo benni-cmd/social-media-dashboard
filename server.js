@@ -33,7 +33,6 @@ import * as prompts from "./lib/promptstore.js";
 import * as workflows from "./lib/workflowstore.js";
 import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
-import * as eigeneWorkflows from "./lib/ownworkflowstore.js";
 import * as websuche from "./lib/websuche.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,7 +46,6 @@ const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
 const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
 const KONTEXT_FILE = join(DATA_DIR, "kontext.json");
-const EIGENE_WORKFLOWS_FILE = join(DATA_DIR, "own-workflows.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
 
@@ -55,7 +53,6 @@ const LIB_DIR = join(__dirname, "lib");
 prompts.setzePfad(PROMPTS_FILE);
 workflows.setzePfad(WORKFLOWS_FILE);
 unternehmen.setzePfad(KONTEXT_FILE); // v33: Unternehmens- und Projektkontext
-eigeneWorkflows.setzePfad(EIGENE_WORKFLOWS_FILE); // v27: die selbstgebauten Workflows
 
 // --- .env laden (ohne dotenv-Paket) --------------------------------------
 async function ladeEnv() {
@@ -603,13 +600,9 @@ async function handler(req, res) {
     // Alle Automationen des Boards: einsehbar, abschaltbar, mit Parametern.
 
     if (pfad === "/api/workflows" && req.method === "GET") {
-      // `workflows` = die eingebauten Neun (unveraendert seit v26), `eigene` = die selbstgebauten
-      // (v27). Der Baustein-Katalog wandert NICHT durch die API — der Browser importiert
-      // /lib/workflowblocks.js direkt, damit es genau eine Wahrheit gibt.
-      sendJson(res, 200, {
-        workflows: await workflows.uebersicht(),
-        eigene: await eigeneWorkflows.uebersicht(),
-      });
+      // Die eingebauten Automationen (unveraendert seit v26). Der Browser liest daraus den
+      // an/aus-Stand fuer `an(id)` — den selbstgebauten Builder gibt es seit v41 nicht mehr.
+      sendJson(res, 200, { workflows: await workflows.uebersicht() });
       return;
     }
 
@@ -617,27 +610,6 @@ async function handler(req, res) {
       const { id, an, params } = JSON.parse(await readBody(req));
       try {
         sendJson(res, 200, { workflows: await workflows.setze(id, { an, params }) });
-      } catch (e) {
-        sendJson(res, 400, { error: e.message });
-      }
-      return;
-    }
-
-    // Selbstgebaute Workflows (v27): anlegen/aendern ueber PUT, entfernen ueber DELETE.
-    if (pfad === "/api/workflows/eigene" && req.method === "PUT") {
-      const { workflow } = JSON.parse(await readBody(req));
-      try {
-        sendJson(res, 200, { eigene: await eigeneWorkflows.setze(workflow) });
-      } catch (e) {
-        sendJson(res, 400, { error: e.message });
-      }
-      return;
-    }
-
-    if (pfad === "/api/workflows/eigene" && req.method === "DELETE") {
-      const id = url.searchParams.get("id");
-      try {
-        sendJson(res, 200, { eigene: await eigeneWorkflows.loesche(id) });
       } catch (e) {
         sendJson(res, 400, { error: e.message });
       }

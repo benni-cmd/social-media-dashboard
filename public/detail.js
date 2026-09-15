@@ -63,7 +63,6 @@ import {
   an,
   stellschraube,
   terminplan,
-  feuere,
   schwebendeNeuBerechnen,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
@@ -528,7 +527,6 @@ function blockDrehtermin(k) {
     const zuordnen = async (terminId) => {
       const r = karteZuTermin(k.id, terminId);
       if (r && r.warnung) melde("hinweis", r.warnung);
-      if (r && r.ok) feuere("drehtermin-zugeordnet", { karte: k, terminId });
       // Workflow "drehtermin-zuordnen-videodreh" (v26)
       if (r && r.ok && an("drehtermin-zuordnen-videodreh") && phaseIndex(k.column) < phaseIndex("videodreh"))
         await schiebe(k, "videodreh");
@@ -1231,7 +1229,6 @@ function skriptLoop(k, box) {
         await nachDrive(k, DATEINAMEN.skript, skript.value, e.currentTarget, box);
         setzeTief(k, "skriptGespeichert", true);
         await speichere();
-        feuere("skript-gespeichert", { karte: k });
         // Workflow "skript-gespeichert-weiter" (v26): aus bleibt die Karte stehen.
         if (!an("skript-gespeichert-weiter")) {
           meldung("Skript gespeichert. Die Karte bleibt stehen (Workflow ist aus).", "erfolg");
@@ -1355,7 +1352,6 @@ function videoUploadZone(k) {
       const weg = fortschritt(zone, `Lade „${datei.name}" nach Drive — das kann bei grossen Dateien dauern …`);
       try {
         const r = await videoHochladen(k, datei);
-        feuere("video-hochgeladen", { karte: k, dateiname: datei.name });
         // Workflow "upload-fertig-weiter" (v26): aus bleibt die Karte stehen, egal wie die Tore stehen.
         if (!an("upload-fertig-weiter")) {
           meldung(r.satz || "Video hochgeladen.", "erfolg");
