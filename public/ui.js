@@ -1044,8 +1044,9 @@ export function einstellungenModal(onThemeChange) {
   const hint5 = document.createElement("p");
   hint5.className = "einst-provider-sub";
   hint5.textContent =
-    "Der Vorspann geht in jeden Aufruf, darunter steht je Knopf der Prompt, den er ausloest. " +
-    "Text in {{doppelten Klammern}} setzt das Board beim Aufruf ein — die Legende darunter sagt, was.";
+    "Der Vorspann geht in jeden Userkommunikations-Schritt. Darunter ist jeder Knopf eine Kette aus " +
+    "Schritten — je Schritt eine Rolle (Modell) und ein Prompt; die Schritte laufen nacheinander. " +
+    "Text in {{doppelten Klammern}} setzt das Board beim Aufruf ein — die Legende sagt, was.";
   seite5.appendChild(hint5);
   const promptListe = document.createElement("div");
   promptListe.className = "einst-prompt-liste";
