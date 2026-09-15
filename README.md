@@ -19,9 +19,15 @@ Plattform, genau ein Aufruf zum Handeln, keine Bitte um Likes. Herkunft jeder Re
 [`docs/best-practices.md`](docs/best-practices.md). Was sperrt, sperrt sichtbar und mit
 Begruendung.
 
-**KI ohne Token-Kosten.** Recherche, Skript, Regieplan, Captions je Plattform, Ideen-Nachschub
-und Redaktionsplan laufen ueber die lokale **Claude-Code-CLI** (`claude -p`) — also ueber das
-Abo, nicht ueber die kostenpflichtige API.
+**KI in drei Rollen.** Die KI-Aufgaben (Recherche, Skript, Regieplan, Captions je Plattform,
+Ideen-Nachschub, Redaktionsplan) sind auf drei getrennt konfigurierbare Rollen verteilt —
+**Userkommunikation**, **Recherche** und **Kontextabgleich** —, jede mit eigenem Modell: lokal
+ueber **Ollama** (kostenlos, Default) oder ueber die **Claude-Code-CLI** (`claude -p`, dein Abo
+statt der kostenpflichtigen API). Die **Recherche-Rolle sucht echt im Web** (DuckDuckGo,
+schluessellos; Tavily optional per Key).
+
+**Anbindungen.** Google (Kalender/Tasks, Drive), Instagram, LinkedIn und Claude lassen sich in
+den Einstellungen **verbinden — und ebenso wieder trennen**.
 
 **Auswertung.** Instagram- und LinkedIn-Zahlen, verglichen gegen den **eigenen gleitenden
 Median** der letzten Beitraege. Branchen-Benchmarks aus Blogs sind bewusst nicht verdrahtet —
@@ -61,8 +67,10 @@ npm start          # oder: node server.js
 Voraussetzungen: **Node ab 20** und **`openssl` im PATH** — beim ersten Start erzeugt der Server
 daraus sein selbstsigniertes Zertifikat (`data/localhost.key`/`.crt`). Bei „Git fuer Windows" ist
 `openssl` dabei; fehlt es im `cmd`-PATH, bricht der Start ab. Google Drive (`rclone`) und die
-Auswertungs-Zugaenge (`.env`) sind optional — ohne sie startet das Board mit dem mitgelieferten
-Karten-Stand (`data/board.json`) und meldet Drive-Aktionen als „geht gerade nicht".
+Auswertungs-Zugaenge (`.env`) sind optional — ohne verbundenes Drive startet das Board **leer**:
+die Karten-Daten liegen in Google Drive (die Wahrheit) und werden beim ersten Abgleich geholt.
+`data/board.json` ist nur der lokale Cache und wird **nicht** mehr im Repo mitgeliefert; bis zum
+ersten Abgleich meldet das Board Drive-Aktionen als „geht gerade nicht".
 
 ## Aufbau
 
@@ -71,11 +79,12 @@ Karten-Stand (`data/board.json`) und meldet Drive-Aktionen als „geht gerade ni
 | `lib/pipeline.js` | Die eine Quelle: Phasen, Ordner, Termine, Karten-Schema, Qualitaetstore. Laeuft im Server UND im Browser. |
 | `lib/drive.js` | rclone-Anbindung. Trennt "gibt es nicht" von "geht gerade nicht". |
 | `lib/projects.js` | Projektordner anlegen, verschieben, lesen — und der Abgleich Board gegen Drive. |
-| `lib/ai.js` | Marken- und Praxis-Regeln, Prompts, Claude-CLI. |
+| `lib/ai.js` | Marken- und Praxis-Regeln, Prompts, KI-Aufrufe (Claude-CLI + Ollama, KI-Rollen). |
+| `lib/websuche.js` | Web-Suche fuer die Recherche-Rolle (DuckDuckGo schluessellos, Tavily optional). |
 | `lib/social.js` | Instagram- und LinkedIn-Zahlen. |
 | `server.js` | Nur Wegweisung. |
 | `public/` | Oberflaeche: `board` · `kalender` · `auswertung` · `detail` · `nachschub`, Bausteine in `ui.js`. |
-| `data/board.json` | Karten-Index mit Versionsnummer. |
+| `data/board.json` | Lokaler Karten-Cache mit Versionsnummer (nicht im Repo; Drive ist die Wahrheit). |
 | `docs/best-practices.md` | Belegbasis jeder eingebauten Regel, mit Quelle und Belegstaerke. |
 | `docs/drive-convention.md` | Der Drive-Vertrag. |
 | `docs/packages/` | Arbeitspakete (Problem · Intent · Goal · Plan · Stand · DoD). |
