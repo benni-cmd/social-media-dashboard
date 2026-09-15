@@ -530,6 +530,47 @@ body {
   border-color: var(--akzent);
 }
 
+/* --- Drehtermin-Teilnehmer (v44) --- */
+.dreh-teilnehmer {
+  margin-top: 12px;
+  border-top: 1px solid var(--linie);
+  padding-top: 10px;
+}
+.dreh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.dreh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 9px;
+  border: 1px solid var(--linie);
+  border-radius: 14px;
+  background: var(--flaeche-hoch);
+  font-size: 12px;
+}
+.dreh-chip-x {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-leise);
+  padding: 0 4px;
+}
+.dreh-chip-x:hover {
+  color: var(--befund);
+}
+.dreh-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 /* --- Board --- */
 
 .board {

@@ -13,6 +13,7 @@ export const S = {
   spalten: [], // Spalten aus Drive (v17b); leer => board.js faellt auf PHASEN zurueck
   drehtermine: [], // Batch-Drehtermine (v16)
   googleVerbunden: false, // gecachter Google-Verbindungsstand fuer den Auto-Sync (v16d-2)
+  googleKonto: null, // Mail des verbundenen Google-Kontos, lazy geladen (v44)
   aktiv: null, // id der geoeffneten Karte
   ansicht: "board",
   monat: new Date(), // fuer die Kalenderansicht
@@ -20,7 +21,7 @@ export const S = {
   driveScanLaeuft: new Set(), // Karten-ids, deren Drive-Scan gerade laeuft (v32 E2/B: Sanduhr auf der Kachel)
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
-  defaults: { plattformen: STANDARD_PLATTFORMEN },
+  defaults: { plattformen: STANDARD_PLATTFORMEN, personen: [] }, // personen: Team-Mailliste (v44)
   workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
 };
 
@@ -564,7 +565,7 @@ export function drehterminAnlegen(datum, zeit) {
   S.drehtermine.push(t);
   speichere();
   zeichne();
-  autoSync(t.id); // sofort in Kalender + Tasks
+  autoSync(t.id, "all"); // sofort in Kalender + Tasks (Erst-Einladung mailt, falls Teilnehmer)
   return t;
 }
 
@@ -646,7 +647,7 @@ export function gcalVerbinden() {
 }
 
 // Legt/aktualisiert Kalender-Event + Task fuer einen Drehtermin und merkt sich die IDs.
-export async function gcalSync(terminId) {
+export async function gcalSync(terminId, { mailen = "none" } = {}) {
   const t = drehtermin(terminId);
   if (!t) return null;
   // Volle Karten mitschicken: der Server loest daraus je Projekt den Drive-Ordner-Link auf.
@@ -655,10 +656,11 @@ export async function gcalSync(terminId) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      termin: { datum: t.datum, zeit: t.zeit, ort: t.ort, titel: t.titel },
+      termin: { datum: t.datum, zeit: t.zeit, ort: t.ort, titel: t.titel, teilnehmer: t.teilnehmer || [] },
       karten,
       eventId: t.gcalEventId || "",
       taskId: t.gtaskId || "",
+      mailen, // "all" = Google mailt (Einladung/neuer Teilnehmer), "none" = still (Karten/Detail)
     }),
   });
   t.gcalEventId = r.eventId || t.gcalEventId;
@@ -672,11 +674,11 @@ export async function gcalSync(terminId) {
 // serialisiert, damit zwei schnelle Aenderungen nicht zwei Events anlegen. Ein fehlender
 // Zugang oder ein API-Fehler darf die lokale Aktion NIE blockieren.
 const syncInFlight = new Map();
-export function autoSync(terminId) {
+export function autoSync(terminId, mailen = "none") {
   if (!an("gcal-autosync")) return; // Workflow "gcal-autosync" (v26)
   if (!S.googleVerbunden || !terminId) return;
   const prev = syncInFlight.get(terminId) || Promise.resolve();
-  const next = prev.catch(() => {}).then(() => gcalSync(terminId)).catch(() => {})
+  const next = prev.catch(() => {}).then(() => gcalSync(terminId, { mailen })).catch(() => {})
     .finally(() => { if (syncInFlight.get(terminId) === next) syncInFlight.delete(terminId); });
   syncInFlight.set(terminId, next);
 }
@@ -692,6 +694,54 @@ export async function gcalLoeschen(t) {
       body: JSON.stringify({ eventId: t.gcalEventId || "", taskId: t.gtaskId || "" }),
     });
   } catch { /* Auto-Sync darf nie blockieren */ }
+}
+
+// --- Drehtermin-Teilnehmer (v44) ------------------------------------------
+
+// Mail des verbundenen Kontos, lazy geladen + gecacht (Organisator-Zeile im UI).
+export async function kontoMail() {
+  if (S.googleKonto != null) return S.googleKonto;
+  try { S.googleKonto = (await hole("/api/gcal/konto")).email || ""; } catch { S.googleKonto = ""; }
+  return S.googleKonto;
+}
+
+function normMail(m) { return String(m || "").trim().toLowerCase(); }
+
+// Teilnehmer hinzufuegen/entfernen -> Aenderung an der Teilnehmerliste mailt (all).
+export function teilnehmerHinzufuegen(terminId, mail) {
+  const t = drehtermin(terminId);
+  mail = normMail(mail);
+  if (!t || !mail) return false;
+  if (!Array.isArray(t.teilnehmer)) t.teilnehmer = [];
+  if (t.teilnehmer.includes(mail)) return false;
+  t.teilnehmer.push(mail);
+  speichere();
+  zeichne();
+  autoSync(terminId, "all"); // neuer Teilnehmer -> Google verschickt die Einladung
+  return true;
+}
+export function teilnehmerEntfernen(terminId, mail) {
+  const t = drehtermin(terminId);
+  if (!t) return;
+  t.teilnehmer = (t.teilnehmer || []).filter((m) => m !== normMail(mail));
+  speichere();
+  zeichne();
+  autoSync(terminId, "all"); // Absage an den Entfernten
+}
+
+// Personen-Liste (Team) lebt in den Defaults.
+export function personen() {
+  return (S.defaults && Array.isArray(S.defaults.personen)) ? S.defaults.personen : [];
+}
+export async function personMerken(name, email) {
+  email = normMail(email);
+  if (!email) return;
+  const liste = personen().filter((p) => normMail(p.email) !== email);
+  liste.push({ name: String(name || "").trim(), email });
+  await speichereDefaults({ personen: liste });
+}
+export async function personLoeschen(email) {
+  await speichereDefaults({ personen: personen().filter((p) => normMail(p.email) !== normMail(email)) });
 }
 
 // --- Verbindungs-Center (v24) ---------------------------------------------
@@ -715,6 +765,7 @@ export async function ladeDefaults() {
   try {
     const d = await hole("/api/defaults");
     if (d.plattformen && Array.isArray(d.plattformen)) S.defaults.plattformen = d.plattformen;
+    if (Array.isArray(d.personen)) S.defaults.personen = d.personen;
   } catch { /* Defaults sind Beiwerk */ }
 }
 
@@ -726,6 +777,7 @@ export async function speichereDefaults(daten) {
   });
   if (ergebnis.defaults) {
     if (ergebnis.defaults.plattformen) S.defaults.plattformen = ergebnis.defaults.plattformen;
+    if (Array.isArray(ergebnis.defaults.personen)) S.defaults.personen = ergebnis.defaults.personen;
   }
   return ergebnis;
 }

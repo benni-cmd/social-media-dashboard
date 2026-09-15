@@ -74,7 +74,21 @@ Bau die aktiven Sessions per tell-session warnen und das Fenster kurz halten.
       fix; leereDrehtermin ohne teilnehmer; detail()/modalDrehtermin vorhanden; `/api/defaults` da;
       Auto-Sync via Workflow-Flag `gcal-autosync` (v26).
 - [x] Weichen mit Owner (15.09.2026): Personen-Liste + frei; Default = Konto-Mail; sanfte Updates.
-- [ ] Bau (Schritte 1–5) + Verify.
+- [x] **Gebaut (15.09.2026):** pipeline (`teilnehmer:[]`); gcal (`sendUpdates`-Param an
+      eventAnlegen/eventUpdaten, `kontoMail()`); server (sync liest `teilnehmer`+`mailen`,
+      `GET /api/gcal/konto`); store (`gcalSync(mailen)`, `teilnehmerHinzufuegen/Entfernen`,
+      `personen/personMerken/personLoeschen`, `kontoMail`-Cache, Defaults um `personen`,
+      Mutations-`mailen`: anlegen=all, Karten/Detail=none, Teilnehmer +/- = all, loeschen=Absage);
+      drehtermine.js (Teilnehmer-Sektion in `detail`, Anlegen oeffnet Detail sofort); style.css (Chips).
+- [x] **UI verifiziert (15.09.2026):** CDP-Screenshot Detail — „Teilnehmer einladen" mit
+      Organisator-Zeile, Chips, Mail-Eingabe + Einladen + merken; graceful ohne Google-Konto.
+      `node --check` aller Dateien gruen.
+- [ ] **BLOCKER Live-Test:** Google-Refresh-Token ist abgelaufen ("Token has been expired or
+      revoked") — OAuth-Consent-Screen steht auf **Testing** (Refresh-Token laufen nach 7 Tagen ab,
+      verbunden 03.09.). Owner: neu verbinden UND OAuth-App auf **Production** veroeffentlichen
+      (stoppt den 7-Tage-Ablauf). Erst danach Selbst-Einladungs-Roundtrip.
+- [ ] Nachtrag `status`: meldet „verbunden" nur anhand vorhandenem Refresh-Token, nicht ob er gilt
+      (irrefuehrend) — spaeter echten Ping erwaegen.
 
 ## DoD
 - [ ] Teilnehmer im Detail UND beim Anlegen per Mail/Personen-Liste setzbar; Konto-Mail als Default sichtbar.

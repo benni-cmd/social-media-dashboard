@@ -1062,11 +1062,12 @@ async function handler(req, res) {
     // Routing/Teilnehmer/Deadlines kommen in v16d-2. Bestehende IDs werden geupdatet.
     if (pfad === "/api/gcal/sync" && req.method === "POST") {
       try {
-        const { termin, karten, eventId, taskId, calId } = JSON.parse(await readBody(req));
+        const { termin, karten, eventId, taskId, calId, mailen } = JSON.parse(await readBody(req));
         if (!termin || !termin.datum) {
           sendJson(res, 400, { error: "termin.datum fehlt" });
           return;
         }
+        const sendUpdates = mailen === "none" ? "none" : "all"; // still (Karten/Detail) vs. mailen
         // Je Karte eine Zeile; dahinter der Google-Drive-Ordner-Link (per Datei-ID, ueberlebt
         // den Phasen-Umzug). drive.link liefert bei fehlendem Pfad "" statt zu werfen.
         const zeilen = [];
@@ -1080,17 +1081,23 @@ async function handler(req, res) {
         const anzahl = (karten || []).length;
         const titel = `Dreh: ${termin.ort || termin.titel || "Drehtermin"}${anzahl ? ` (${anzahl})` : ""}`;
         const beschreibung = liste ? `Inhalte:\n${liste}` : "Noch keine Karten zugeordnet.";
-        const felder = { titel, beschreibung, datum: termin.datum, zeit: termin.zeit || "", teilnehmer: [] };
+        const felder = { titel, beschreibung, datum: termin.datum, zeit: termin.zeit || "", teilnehmer: termin.teilnehmer || [] };
         let neuEventId = eventId;
         let neuTaskId = taskId;
-        if (eventId) await gcal.eventUpdaten(calId, eventId, felder);
-        else neuEventId = await gcal.eventAnlegen(calId, felder);
+        if (eventId) await gcal.eventUpdaten(calId, eventId, felder, sendUpdates);
+        else neuEventId = await gcal.eventAnlegen(calId, felder, sendUpdates);
         if (taskId) await gcal.taskUpdaten(taskId, { titel, notiz: beschreibung, faellig: termin.datum });
         else neuTaskId = await gcal.taskAnlegen({ titel, notiz: beschreibung, faellig: termin.datum });
         sendJson(res, 200, { eventId: neuEventId, taskId: neuTaskId });
       } catch (e) {
         sendJson(res, 502, { error: e.message });
       }
+      return;
+    }
+
+    // Mail des verbundenen Google-Kontos (fuer die Organisator-Zeile im Teilnehmer-UI, v44).
+    if (pfad === "/api/gcal/konto" && req.method === "GET") {
+      sendJson(res, 200, { email: await gcal.kontoMail() });
       return;
     }
 

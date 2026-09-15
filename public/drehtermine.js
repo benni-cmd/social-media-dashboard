@@ -16,6 +16,11 @@ import {
   gcalStatus,
   gcalVerbinden,
   gcalSync,
+  teilnehmerHinzufuegen,
+  teilnehmerEntfernen,
+  personen,
+  personMerken,
+  kontoMail,
 } from "./store.js";
 import { knopf, icon, escape, eingabe, feld, bestaetigen, meldung } from "./ui.js";
 import { deutschesDatum, tageBis, isoDatum } from "/lib/pipeline.js";
@@ -79,6 +84,7 @@ export function zeichneDrehleiste() {
       modalDrehtermin((werte) => {
         const t = drehterminAnlegen(werte.datum, werte.zeit);
         if (werte.ort || werte.titel) drehterminAendern(t.id, { ort: werte.ort, titel: werte.titel });
+        detail(t.id); // gleich oeffnen, damit man sofort Teilnehmer einladen kann (v44)
       }),
   });
   neu.classList.add("drehleiste-neu");
@@ -171,6 +177,96 @@ function modalDrehtermin(onSave, vorgabe = {}) {
 
 // --- Termin-Detail: zugeordnete Karten zeigen, loesen, Termin bearbeiten/loeschen ----
 
+// Teilnehmer-Sektion (v44): Organisator-Zeile, Chips mit Entfernen, Mail-Eingabe + Team-Quick-Picks.
+// refresh() zeichnet die Detailansicht neu, damit Chips/Picks aktuell sind.
+function teilnehmerSektion(t, refresh) {
+  const wrap = document.createElement("div");
+  wrap.className = "dreh-teilnehmer";
+
+  const label = document.createElement("div");
+  label.className = "feld-label";
+  label.textContent = "Teilnehmer einladen";
+  wrap.appendChild(label);
+
+  const org = document.createElement("p");
+  org.className = "feld-hinweis";
+  org.textContent = "Kalender: wird geladen …";
+  kontoMail()
+    .then((m) => { org.textContent = m ? `Kalender von: ${m}` : "Kein Google-Konto verbunden — unter Einstellungen verbinden."; })
+    .catch(() => { org.textContent = ""; });
+  wrap.appendChild(org);
+
+  const chips = document.createElement("div");
+  chips.className = "dreh-chips";
+  const teil = t.teilnehmer || [];
+  if (!teil.length) {
+    const leer = document.createElement("span");
+    leer.className = "feld-hinweis";
+    leer.textContent = "Noch niemand eingeladen.";
+    chips.appendChild(leer);
+  } else {
+    for (const m of teil) {
+      const chip = document.createElement("span");
+      chip.className = "dreh-chip";
+      chip.textContent = m;
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "dreh-chip-x";
+      x.textContent = "×";
+      x.title = "Entfernen — Google schickt der Person eine Absage";
+      x.addEventListener("click", () => { teilnehmerEntfernen(t.id, m); refresh(); });
+      chip.appendChild(x);
+      chips.appendChild(chip);
+    }
+  }
+  wrap.appendChild(chips);
+
+  const zeile = document.createElement("div");
+  zeile.className = "einst-ping-zeile";
+  const feldMail = eingabe("", { typ: "email", platzhalter: "name@mail.de" });
+  feldMail.style.flex = "1 1 auto";
+  const gueltig = (m) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m);
+  const einladen = () => {
+    const m = (feldMail.value || "").trim();
+    if (!gueltig(m)) { meldung("Bitte eine gueltige Mailadresse eingeben.", "fehler"); return; }
+    if (teilnehmerHinzufuegen(t.id, m)) refresh();
+  };
+  feldMail.addEventListener("keydown", (e) => { if (e.key === "Enter") einladen(); });
+  const add = knopf("Einladen", { art: "haupt", klick: einladen });
+  const merken = knopf("+ merken", {
+    titel: "Diese Mail in die Team-Liste aufnehmen",
+    klick: async () => {
+      const m = (feldMail.value || "").trim();
+      if (!gueltig(m)) { meldung("Bitte eine gueltige Mailadresse eingeben.", "fehler"); return; }
+      await personMerken("", m);
+      meldung("Zur Personen-Liste hinzugefuegt.", "erfolg");
+      refresh();
+    },
+  });
+  merken.classList.add("knopf-inline");
+  zeile.appendChild(feldMail);
+  zeile.appendChild(add);
+  zeile.appendChild(merken);
+  wrap.appendChild(zeile);
+
+  const picks = personen().filter((p) => p.email && !teil.includes(String(p.email).toLowerCase()));
+  if (picks.length) {
+    const pl = document.createElement("div");
+    pl.className = "dreh-picks";
+    for (const p of picks) {
+      const b = knopf(p.name || p.email, {
+        zeichen: "plus",
+        titel: p.email,
+        klick: () => { if (teilnehmerHinzufuegen(t.id, p.email)) refresh(); },
+      });
+      b.classList.add("knopf-inline");
+      pl.appendChild(b);
+    }
+    wrap.appendChild(pl);
+  }
+  return wrap;
+}
+
 function detail(id) {
   const t = drehtermin(id);
   if (!t) return;
@@ -220,6 +316,9 @@ function detail(id) {
     }
   }
   box.appendChild(liste);
+
+  // Teilnehmer einladen (v44) — Aenderungen aktualisieren das Event neu geoeffnet.
+  box.appendChild(teilnehmerSektion(t, () => { zu(); detail(t.id); }));
 
   const reihe = document.createElement("div");
   reihe.className = "modal-knoepfe";
