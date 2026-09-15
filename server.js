@@ -155,6 +155,86 @@ async function entferneToken(plattform) {
   return vorher || null;
 }
 
+// v41: Rollen->Modell-Zuordnung aus dem Request-Body. Der Client schickt `rollenModelle`
+// {userkomm,recherche,kontext}; faellt das (alter Client) weg, nutzen alle Rollen das eine
+// gesendete Modell — so bleibt der Aufruf rueckwaertskompatibel.
+function rollenAusBody(body) {
+  if (body.rollenModelle && typeof body.rollenModelle === "object") return body.rollenModelle;
+  const eine = {
+    provider: body.provider || "ollama",
+    ollamaModel: body.ollamaModel || "llama3.2",
+    claudeModell: body.claudeModell || ki.CLAUDE_MODELL_STANDARD,
+  };
+  return { userkomm: eine, recherche: eine, kontext: eine };
+}
+
+const ROLLE_NAME = { userkomm: "Userkommunikation", recherche: "Recherche", kontext: "Kontextabgleich" };
+
+// v41: Fuehrt die Schritt-Pipeline eines Knopfes aus. Jeder Schritt laeuft auf dem Modell seiner
+// Rolle (rollenModelle), seine Ausgabe geht als {{vorschritt}} in den naechsten. Recherche-Schritte
+// bekommen eine Web-Suche vorangestellt (Query = die vom Vorschritt formulierten Suchanfragen, sonst
+// das Kartenthema). Der System-Vorspann geht NUR in userkomm-Schritte (Owner 15.09.2026). Nur der
+// LETZTE Schritt streamt live; sein Text ist das Ergebnis. onStatus/onDelta sind optional.
+async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, onDelta = () => {} }) {
+  const c = card || {};
+  const schritte = await prompts.pipeline(task);
+  if (!schritte.length) throw new Error(`Kein Prompt fuer die Aufgabe ${task}.`);
+  const firmenKontext = await unternehmen
+    .sammle({ serie: c.serie ? pipeline.slug(c.serie) : "" })
+    .catch(() => ({ firmenkontext: "", projektkontext: "" }));
+  const systemVorspann = await prompts.systemPrompt(firmenKontext);
+  const rollen = rollenModelle || {};
+  const fallback = { provider: "ollama", ollamaModel: "llama3.2", claudeModell: ki.CLAUDE_MODELL_STANDARD };
+
+  let vorschritt = "";
+  for (let i = 0; i < schritte.length; i++) {
+    const s = schritte[i];
+    const rolle = s.rolle || "userkomm";
+    const konf = rollen[rolle] || rollen.userkomm || fallback;
+    const rolleName = ROLLE_NAME[rolle] || rolle;
+    const modellName = konf.provider === "claude" ? "Claude" : `${konf.ollamaModel} (lokal)`;
+    const marke = `Schritt ${i + 1}/${schritte.length} · ${rolleName}`;
+
+    // Web-Suche: nur fuer Recherche-Schritte. Query = die Zeilen des Vorschritts (bis 3, Nummerierung
+    // entfernt), sonst das Kartenthema (Titel + Reihe).
+    let webBlock = "";
+    if (rolle === "recherche") {
+      onStatus(`${marke} · sucht im Web …`);
+      const queries = vorschritt
+        ? vorschritt.split("\n").map((z) => z.replace(/^\s*(\d+[.)]|[-*•])\s*/, "").trim()).filter(Boolean).slice(0, 3)
+        : [[c.title, c.serie].filter(Boolean).join(" ").trim()].filter(Boolean);
+      const { treffer, quelle } = await websuche.sucheWebViele(queries).catch(() => ({ treffer: [], quelle: "fehler" }));
+      webBlock = websuche.alsPromptBlock(treffer);
+      onStatus(`${marke} · ${treffer.length ? `${treffer.length} Web-Treffer (${quelle})` : "keine Web-Treffer"} · ${modellName}`);
+    } else {
+      onStatus(`${marke} · ${modellName}`);
+    }
+
+    const stepPrompt = ki.baueSchritt(s.prompt, c, {
+      firmenkontext: firmenKontext.firmenkontext || "",
+      projektkontext: firmenKontext.projektkontext || "",
+      vorschritt,
+    });
+    const userMsg = webBlock + "\n\n---\n\n" + stepPrompt;
+    const system = rolle === "userkomm" ? systemVorspann : "";
+    const letzter = i === schritte.length - 1;
+
+    let text;
+    if (konf.provider === "ollama") {
+      text = letzter
+        ? await ki.runOllamaStream(system, userMsg, konf.ollamaModel, (d) => d && onDelta(d))
+        : await ki.runOllama(system, userMsg, konf.ollamaModel);
+    } else {
+      const prompt = system ? system + userMsg : userMsg;
+      text = letzter
+        ? await ki.runClaudeStream(prompt, (d, st) => { if (d) onDelta(d); if (st) onStatus(st); }, { modell: konf.claudeModell })
+        : await ki.runClaude(prompt, { modell: konf.claudeModell });
+    }
+    vorschritt = text || "";
+  }
+  return vorschritt;
+}
+
 // --- Redaktionsplan: Drive ist Wahrheit, data/plan.json nur Cache (v17d) -----
 //
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
@@ -414,56 +494,27 @@ async function handler(req, res) {
     // ---- KI --------------------------------------------------------------
 
     if (pfad === "/api/ai" && req.method === "POST") {
-      const {
-        task,
-        card,
-        provider = "ollama",
-        ollamaModel = "llama3.2",
-        claudeModell = ki.CLAUDE_MODELL_STANDARD,
-      } = JSON.parse(await readBody(req));
+      const body = JSON.parse(await readBody(req));
+      const { task, card } = body;
       if (!ki.PROMPTS[task]) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
       }
       try {
-        // v26: Prompt und Vorspann kommen aus der Ablage — Bens Fassung, sonst die Vorlage.
-        // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
-        // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
-        const firmenKontext = await unternehmen
-          .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
-          .catch(() => ({ firmenkontext: "", projektkontext: "" }));
-        const system = await prompts.systemPrompt(firmenKontext);
-        let userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
-        // v40: Die Recherche-Rolle sucht erst im Web und gibt dem Modell frische Treffer als
-        // Faktenbasis. Fehler oder leer -> Recherche laeuft wie bisher aus dem Modellwissen.
-        if (task === "recherche") {
-          const frage = [card && card.title, card && card.serie].filter(Boolean).join(" ").trim();
-          const { treffer } = await websuche.sucheWeb(frage).catch(() => ({ treffer: [] }));
-          userMsg += websuche.alsPromptBlock(treffer);
-        }
-        let text;
-        if (provider === "ollama") {
-          text = await ki.runOllama(system, userMsg, ollamaModel);
-        } else {
-          text = await ki.runClaude(system + userMsg, { modell: claudeModell });
-        }
+        // v41: Die Aufgabe laeuft als Schritt-Pipeline (jeder Schritt auf dem Modell seiner Rolle).
+        const text = await laufePipeline({ task, card, rollenModelle: rollenAusBody(body) });
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         sendJson(res, 200, { text, data });
       } catch (e) {
-        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e, provider) });
+        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e) });
       }
       return;
     }
 
-    // Gleiche Aufgabe, aber der Text kommt live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"}.
+    // Gleiche Aufgabe, aber live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"} — Status je Schritt.
     if (pfad === "/api/ai/stream" && req.method === "POST") {
-      const {
-        task,
-        card,
-        provider = "ollama",
-        ollamaModel = "llama3.2",
-        claudeModell = ki.CLAUDE_MODELL_STANDARD,
-      } = JSON.parse(await readBody(req));
+      const body = JSON.parse(await readBody(req));
+      const { task, card } = body;
       if (!ki.PROMPTS[task]) {
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
@@ -475,40 +526,17 @@ async function handler(req, res) {
       });
       const schreib = (o) => res.write(JSON.stringify(o) + "\n");
       try {
-       // v33: Firmen- und Projektkontext aus den Einstellungen. Ein Fehler beim Lesen darf
-        // den KI-Aufruf nie verhindern — Kontext ist Beiwerk, kein Tor.
-        const firmenKontext = await unternehmen
-          .sammle({ serie: card && card.serie ? pipeline.slug(card.serie) : "" })
-          .catch(() => ({ firmenkontext: "", projektkontext: "" }));
-        const system = await prompts.systemPrompt(firmenKontext);
-        let userMsg = "\n\n---\n\n" + (await prompts.aufgabePrompt(task, card || {}, firmenKontext));
-        // v40: Recherche-Rolle sucht erst im Web (Status sichtbar), dann verdichtet das Modell.
-        if (task === "recherche") {
-          schreib({ t: "status", text: "Sucht im Internet …" });
-          const frage = [card && card.title, card && card.serie].filter(Boolean).join(" ").trim();
-          const { treffer, quelle } = await websuche.sucheWeb(frage).catch(() => ({ treffer: [], quelle: "fehler" }));
-          userMsg += websuche.alsPromptBlock(treffer);
-          schreib({ t: "status", text: treffer && treffer.length ? `${treffer.length} Web-Treffer (${quelle})` : "Keine Web-Treffer — nutze Modellwissen" });
-        }
-        let text;
-        if (provider === "ollama") {
-          text = await ki.runOllamaStream(system, userMsg, ollamaModel, (delta) => {
-            if (delta) schreib({ t: "delta", text: delta });
-          });
-        } else {
-          text = await ki.runClaudeStream(
-            system + userMsg,
-            (delta, status) => {
-              if (delta) schreib({ t: "delta", text: delta });
-              if (status) schreib({ t: "status", text: status });
-            },
-            { modell: claudeModell }
-          );
-        }
+        const text = await laufePipeline({
+          task,
+          card,
+          rollenModelle: rollenAusBody(body),
+          onStatus: (t) => schreib({ t: "status", text: t }),
+          onDelta: (d) => schreib({ t: "delta", text: d }),
+        });
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         schreib({ t: "done", text, data });
       } catch (e) {
-        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e, provider) });
+        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e) });
       }
       res.end();
       return;

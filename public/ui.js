@@ -1089,11 +1089,8 @@ export function einstellungenModal(onThemeChange) {
       btn.classList.add("aktiv");
       seiten[i].classList.add("aktiv");
       // v29: Das Fenster hat fuer jeden Tab dieselbe Groesse (public/einstellungen.css).
-      // Frueher wurde hier auf „breit" umgeschaltet — das liess das Fenster bei jedem Klick
-      // springen und half den vier schmalen Tabs nicht, die dadurch abgeschnitten waren.
-      // Verbindungen-Tab: Modelle sofort laden wenn Ollama bereits gesetzt
-      // Verbindungen-Tab: das Board sucht die Ollama-Modelle immer selbst (v26).
-      if (i === 1) ladeModelle();
+      // v41: Die Ollama-Modelle laedt jeder Rollen-Block selbst (baueRollenKonfig) — kein
+      // modal-weites ladeModelle mehr.
       // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
       if (i === 2 || i === 3) ladeVerbStatus();
       if (i === 4 && !kontextGeladen) {
@@ -1103,10 +1100,6 @@ export function einstellungenModal(onThemeChange) {
       if (i === 5 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
     });
   });
-
-  // Das Board sucht die installierten Modelle immer selbst — der Nutzer soll nicht erst
-  // einen Knopf finden muessen (v26, Owner-Auftrag 04.09.2026).
-  setTimeout(() => ladeModelle(), 50);
 
   box.appendChild(links);
   box.appendChild(rechts);

@@ -179,8 +179,20 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
       `lib/promptstore.js`: `pipeline(task)` liest String-Override (Migration→1 Schritt) / `{schritte}`
       / Default. Node-Probe grün (recherche=3, skript=1, Migration, Override). Nichts an der Laufzeit
       geändert — alter Ein-Prompt-Pfad läuft weiter bis Phase 2.
-- [ ] Teil B / Phase 2 — Server-Ausführung (Schritt-Schleife, Threading, Web-Suche an Recherche-Rolle,
-      Vorspann nur userkomm, JSON nur letzter Schritt) + Client sendet Rollen-Modelle; v40-Spezialfälle raus
+- [x] **Teil B / Phase 2 — Server-Ausführung + Client + v40-Sonderfälle raus** (15.09.2026).
+      Entscheidung Query-Quelle (Owner): der userkomm-Schritt formuliert 1–3 Web-Suchanfragen aus
+      Karte+Brand; der Recherche-Schritt sucht mit dem Vorschritt-Output (Fallback Kartenthema),
+      generalisiert je Recherche-Schritt. `server.js`: `laufePipeline` (Schritt-Schleife, Threading
+      via {{vorschritt}}, Web-Suche `sucheWebViele` an Recherche-Schritten, System-Vorspann NUR
+      userkomm, JSON nur letzter Schritt, Status je Schritt) + `rollenAusBody` (rückwärtskompatibel);
+      beide `/api/ai`-Handler nutzen sie. `lib/ai.js`: `baueSchritt`, Schritt-1-Prompt = Suchanfragen;
+      `kontextabgleich`-Task + JSON_AUFGABEN-Eintrag entfernt. `lib/websuche.js`: `sucheWebViele`.
+      `store.js`: `kiKonfig` sendet `rollenModelle` (3 Rollen); `detail.js`: kontextabgleich-Auto-Kette
+      raus. Bonus-Fix: tote `ladeModelle`-Aufrufe (v40-Altlast) entfernt.
+      **Verifiziert (E2E):** echter Config-Lauf (userkomm=Claude, recherche/kontext=deepseek-r1:14b) →
+      Schritt 1 Claude → Schritt 2 deepseek (8 Web-Treffer) → Schritt 3 Claude → `done` mit gültigem
+      JSON (zusammenfassung/fokus=3/frame/keywords=6, markenkonform). Client baut rollenModelle korrekt
+      (userkomm=claude/haiku, recherche/kontext=ollama/deepseek-r1:14b); laufender Modul-Code fix.
 - [ ] Teil B / Phase 3 — Editor-UI (Schritt-Liste, Rollen-Dropdown, +/−/↑↓), PUT `/api/prompts {schritte}`
 
 ## DoD

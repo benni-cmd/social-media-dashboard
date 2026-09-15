@@ -1813,28 +1813,9 @@ async function rufeKi(task, k, knopfEl, box) {
       if (e.delta) panel.delta(e.delta);
       if (e.status) panel.status(e.status);
     });
-    if (task === "recherche") {
-      setzeTief(k, "recherche", antwort.data || { raw: antwort.text || "" });
-      // v40: Kontextabgleich als zweiter Pass ueber die eigene (lokale) Kontext-Rolle — passt die
-      // Roh-Recherche an Firmen-/Projektkontext an. Nicht-blockierend: schlaegt er fehl, bleibt die
-      // Rohfassung stehen. Nur wenn echte, strukturierte Recherche vorliegt.
-      if (antwort.data && antwort.data.zusammenfassung) {
-        k.rechercheRoh = antwort.data;
-        try {
-          panel.modell(rollenEtikett("kontextabgleich")); // Badge auf die Kontext-Rolle umstellen
-          panel.status("Kontextabgleich — passt an Firmen-/Projektkontext an …");
-          const ab = await kiStream(
-            "kontextabgleich",
-            { ...kiNutzlast(k), recherche: antwort.data },
-            (e) => {
-              if (e.delta) panel.delta(e.delta);
-              if (e.status) panel.status(e.status);
-            }
-          );
-          if (ab && ab.data && ab.data.zusammenfassung) setzeTief(k, "recherche", ab.data);
-        } catch { /* Abgleich ist optional — die Rohfassung bleibt stehen */ }
-      }
-    }
+    // v41: Der Kontextabgleich steckt jetzt IN der Recherche-Pipeline (Schritt 3) — keine separate
+    // Zweitrunde mehr; wir speichern einfach das Ergebnis des letzten Schritts.
+    if (task === "recherche") setzeTief(k, "recherche", antwort.data || { raw: antwort.text || "" });
     else if (task === "hooks_verbal") setzeTief(k, "hooksVerbal", antwort.data || { raw: antwort.text || "" });
     else if (task === "hooks_visuell") setzeTief(k, "hooksVisuell", antwort.data || { raw: antwort.text || "" });
     else if (task === "caption") setzeTief(k, "captionVorschlag", antwort.data || { raw: antwort.text || "" });

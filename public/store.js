@@ -373,10 +373,10 @@ export const ROLLEN_DEFAULT = {
   kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
 };
 
-// Welche Aufgabe welche Rolle nutzt. Alles Nicht-Gelistete faellt auf userkomm zurueck.
+// Welche Aufgabe (fuer das Denk-Panel-Etikett) primaer welche Rolle nutzt. Seit v41 bestimmt die
+// Rolle jeder Schritt selbst; diese Zuordnung dient nur noch der Anzeige. Nicht-Gelistetes = userkomm.
 export const TASK_ROLLE = {
   recherche: "recherche",
-  kontextabgleich: "kontext",
 };
 
 export function rolleFuerTask(task) {
@@ -407,18 +407,23 @@ export function rollenEtikett(task) {
   return `${name} · ${modell}`;
 }
 
-// Body-Felder fuer den KI-Aufruf: die Rolle des Tasks bestimmt Provider + Modell. Der Server
-// (server.js:397/433) liest provider/ollamaModel/claudeModell unveraendert aus dem Body.
-function kiKonfig(task) {
-  const { provider, ollamaModel, claudeModell } = rolleKonfig(rolleFuerTask(task));
-  return { provider, ollamaModel, claudeModell };
+// v41: Der Client schickt die Modell-Wahl ALLER drei Rollen mit; der Server waehlt je Pipeline-
+// Schritt das Modell der jeweiligen Rolle (server.js laufePipeline).
+function kiKonfig() {
+  return {
+    rollenModelle: {
+      userkomm: rolleKonfig("userkomm"),
+      recherche: rolleKonfig("recherche"),
+      kontext: rolleKonfig("kontext"),
+    },
+  };
 }
 
 export async function ki(task, nutzlast) {
   return hole("/api/ai", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig(task) }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
   });
 }
 
@@ -428,7 +433,7 @@ export async function kiStream(task, nutzlast, onEreignis) {
   const res = await fetch("/api/ai/stream", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig(task) }),
+    body: JSON.stringify({ task, card: nutzlast, ...kiKonfig() }),
   });
   if (!res.ok || !res.body) {
     let d = {};
