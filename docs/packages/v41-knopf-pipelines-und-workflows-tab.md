@@ -172,7 +172,16 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
       Reste-grep leer; Laufzeit: 9 Automationen geladen, `an('auto-drehtermin'/'gcal-autosync'/
       'drive-ordner-anlegen')`=true (wie davor), `feuere`=undefined; Screenshot: Settings-Nav ohne
       „Workflows", „System Prompts" lädt weiter.
-- [ ] Teil B — Knopf-Pipelines (Datenmodell → Server → Client → Editor)
+- [x] **Teil B / Phase 1 — Datenmodell + `pipeline(task)` + Migration** (15.09.2026, additiv).
+      Entscheidungen: 3-Schritt-Recherche-Default wie entworfen; System-Vorspann NUR in
+      userkomm-Schritte. `lib/ai.js`: `standardRolle`, `standardPipeline` (recherche = 3er-Kette
+      userkomm→recherche→userkomm, sonst 1 Schritt userkomm), `RECHERCHE_PIPELINE` (die 3 Prompts).
+      `lib/promptstore.js`: `pipeline(task)` liest String-Override (Migration→1 Schritt) / `{schritte}`
+      / Default. Node-Probe grün (recherche=3, skript=1, Migration, Override). Nichts an der Laufzeit
+      geändert — alter Ein-Prompt-Pfad läuft weiter bis Phase 2.
+- [ ] Teil B / Phase 2 — Server-Ausführung (Schritt-Schleife, Threading, Web-Suche an Recherche-Rolle,
+      Vorspann nur userkomm, JSON nur letzter Schritt) + Client sendet Rollen-Modelle; v40-Spezialfälle raus
+- [ ] Teil B / Phase 3 — Editor-UI (Schritt-Liste, Rollen-Dropdown, +/−/↑↓), PUT `/api/prompts {schritte}`
 
 ## DoD
 
