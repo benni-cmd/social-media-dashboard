@@ -1123,64 +1123,65 @@ export function einstellungenModal(onThemeChange) {
 // und Zuruecksetzen. Leerer Text heisst „wieder die Vorlage" — deshalb loescht Zuruecksetzen
 // den Eintrag, statt den Standard hineinzukopieren.
 
-function promptBlock(eintrag, offen) {
+// --- Tab „System Prompts" (v41): System-Vorspann + je Knopf ein Schritt-Editor ---------------
+
+// kleine Helfer
+function chipKnopf(text) {
+  const b = document.createElement("button");
+  b.className = "chip";
+  b.textContent = text;
+  return b;
+}
+function platzhalterLegende(platzhalter) {
+  const legende = document.createElement("div");
+  legende.className = "einst-prompt-legende";
+  const schluessel = Object.keys(platzhalter || {});
+  if (!schluessel.length) return legende;
+  legende.innerHTML =
+    `<div class="einst-label">Platzhalter</div>` +
+    schluessel
+      .map(
+        (k) =>
+          `<div class="einst-prompt-platzhalter"><code>{{${escape(k)}}}</code>` +
+          `<span>${escape(platzhalter[k])}</span></div>`
+      )
+      .join("");
+  return legende;
+}
+
+// System-Vorspann: EIN Textfeld, unveraendert. Geht in jeden Userkommunikations-Schritt.
+function systemBlock(eintrag) {
   const box = document.createElement("details");
   box.className = "einst-prompt";
-  box.open = !!offen;
-
+  box.open = true;
   const kopf = document.createElement("summary");
   kopf.className = "einst-prompt-kopf";
-  const titel = eintrag.knopf ? `Knopf „${eintrag.knopf}"` : eintrag.name;
   kopf.innerHTML =
-    `<span class="einst-prompt-titel">${escape(titel)}</span>` +
-    `<span class="einst-prompt-ort">${escape(eintrag.ort || "")}</span>` +
+    `<span class="einst-prompt-titel">${escape(eintrag.name)}</span>` +
     `<span class="einst-prompt-marke"></span>`;
   box.appendChild(kopf);
   const marke = kopf.querySelector(".einst-prompt-marke");
-
   if (eintrag.hinweis) {
     const h = document.createElement("p");
     h.className = "einst-provider-sub";
     h.textContent = eintrag.hinweis;
     box.appendChild(h);
   }
-
   const feld = document.createElement("textarea");
   feld.className = "einst-prompt-feld";
-  feld.rows = 14;
+  feld.rows = 12;
   feld.spellcheck = false;
   feld.value = eintrag.eigen || eintrag.vorlage;
   box.appendChild(feld);
-
-  const schluessel = Object.keys(eintrag.platzhalter || {});
-  if (schluessel.length) {
-    const legende = document.createElement("div");
-    legende.className = "einst-prompt-legende";
-    legende.innerHTML =
-      `<div class="einst-label">Platzhalter</div>` +
-      schluessel
-        .map(
-          (k) =>
-            `<div class="einst-prompt-platzhalter"><code>{{${escape(k)}}}</code>` +
-            `<span>${escape(eintrag.platzhalter[k])}</span></div>`
-        )
-        .join("");
-    box.appendChild(legende);
-  }
+  box.appendChild(platzhalterLegende(eintrag.platzhalter));
 
   const zeile = document.createElement("div");
   zeile.className = "einst-ping-zeile";
-  const speichern = document.createElement("button");
-  speichern.className = "chip";
-  speichern.textContent = "Speichern";
-  const zuruecksetzen = document.createElement("button");
-  zuruecksetzen.className = "chip";
-  zuruecksetzen.textContent = "Auf Standard zuruecksetzen";
+  const speichern = chipKnopf("Speichern");
+  const zuruecksetzen = chipKnopf("Auf Standard zuruecksetzen");
   const status = document.createElement("div");
   status.className = "einst-ping-status";
-  zeile.appendChild(speichern);
-  zeile.appendChild(zuruecksetzen);
-  zeile.appendChild(status);
+  zeile.append(speichern, zuruecksetzen, status);
   box.appendChild(zeile);
 
   const zeigeStand = () => {
@@ -1200,7 +1201,7 @@ function promptBlock(eintrag, offen) {
       const res = await fetch("/api/prompts", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: eintrag.id, text }),
+        body: JSON.stringify({ id: "system", text }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       eintrag.eigen = text;
@@ -1213,9 +1214,172 @@ function promptBlock(eintrag, offen) {
       zeigeStand();
     }
   }
-
   speichern.addEventListener("click", () => schicke(feld.value === eintrag.vorlage ? "" : feld.value));
   zuruecksetzen.addEventListener("click", () => schicke(""));
+  return box;
+}
+
+// Ein KI-Knopf als Schritt-Editor: Liste aus Schritten {rolle, prompt}, jede Rolle waehlbar,
+// Schritte hinzufuegen/entfernen/ordnen. Recherche-Schritte suchen automatisch im Web.
+function aufgabeBlock(eintrag, rollen) {
+  const box = document.createElement("details");
+  box.className = "einst-prompt";
+  const kopf = document.createElement("summary");
+  kopf.className = "einst-prompt-kopf";
+  const titel = eintrag.knopf ? `Knopf „${eintrag.knopf}"` : eintrag.name;
+  kopf.innerHTML =
+    `<span class="einst-prompt-titel">${escape(titel)}</span>` +
+    `<span class="einst-prompt-ort">${escape(eintrag.ort || "")}</span>` +
+    `<span class="einst-prompt-marke"></span>`;
+  box.appendChild(kopf);
+  const marke = kopf.querySelector(".einst-prompt-marke");
+
+  const hinweis = document.createElement("p");
+  hinweis.className = "einst-provider-sub";
+  hinweis.textContent =
+    "Die Schritte laufen nacheinander, jeder auf dem Modell seiner Rolle. Die Ausgabe eines Schritts " +
+    "steht im naechsten als {{vorschritt}}. Der letzte Schritt ist das Ergebnis des Knopfes.";
+  box.appendChild(hinweis);
+
+  // Arbeitskopie der Schritte.
+  let schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt }));
+
+  const liste = document.createElement("div");
+  liste.className = "einst-schritt-liste";
+  box.appendChild(liste);
+
+  const plus = chipKnopf("+ Schritt");
+  plus.classList.add("einst-schritt-plus");
+  box.appendChild(plus);
+  box.appendChild(platzhalterLegende(eintrag.platzhalter));
+
+  const zeile = document.createElement("div");
+  zeile.className = "einst-ping-zeile";
+  const speichern = chipKnopf("Speichern");
+  const zuruecksetzen = chipKnopf("Auf Standard zuruecksetzen");
+  const status = document.createElement("div");
+  status.className = "einst-ping-status";
+  zeile.append(speichern, zuruecksetzen, status);
+  box.appendChild(zeile);
+
+  const gleichStandard = () => {
+    const st = eintrag.standard || [];
+    return (
+      schritte.length === st.length &&
+      schritte.every((s, i) => s.rolle === st[i].rolle && s.prompt === st[i].prompt)
+    );
+  };
+  const zeigeStand = () => {
+    const geaendert = !gleichStandard();
+    marke.textContent = geaendert ? "geaendert" : "Standard";
+    marke.classList.toggle("aktiv", geaendert);
+    zuruecksetzen.disabled = !geaendert;
+  };
+
+  function schrittZeile(s, i) {
+    const wrap = document.createElement("div");
+    wrap.className = "einst-schritt";
+    const kopfZ = document.createElement("div");
+    kopfZ.className = "einst-schritt-kopf";
+    const nr = document.createElement("span");
+    nr.className = "einst-schritt-nr";
+    nr.textContent = `Schritt ${i + 1}`;
+    const sel = document.createElement("select");
+    sel.className = "einst-modell-select einst-schritt-rolle";
+    for (const r of rollen) {
+      const o = document.createElement("option");
+      o.value = r.id;
+      o.textContent = r.name;
+      if (r.id === s.rolle) o.selected = true;
+      sel.appendChild(o);
+    }
+    const web = document.createElement("span");
+    web.className = "einst-schritt-web";
+    web.textContent = "sucht automatisch im Web";
+    web.hidden = s.rolle !== "recherche";
+    sel.addEventListener("change", () => {
+      s.rolle = sel.value;
+      web.hidden = s.rolle !== "recherche";
+      zeigeStand();
+    });
+    const knoepfe = document.createElement("span");
+    knoepfe.className = "einst-schritt-knoepfe";
+    const hoch = chipKnopf("↑");
+    hoch.disabled = i === 0;
+    const runter = chipKnopf("↓");
+    runter.disabled = i === schritte.length - 1;
+    const weg = chipKnopf("✕");
+    hoch.addEventListener("click", () => {
+      [schritte[i - 1], schritte[i]] = [schritte[i], schritte[i - 1]];
+      zeichneSchritte();
+    });
+    runter.addEventListener("click", () => {
+      [schritte[i + 1], schritte[i]] = [schritte[i], schritte[i + 1]];
+      zeichneSchritte();
+    });
+    weg.addEventListener("click", () => {
+      schritte.splice(i, 1);
+      zeichneSchritte();
+    });
+    knoepfe.append(hoch, runter, weg);
+    kopfZ.append(nr, sel, web, knoepfe);
+    wrap.appendChild(kopfZ);
+    const feld = document.createElement("textarea");
+    feld.className = "einst-prompt-feld";
+    feld.rows = 6;
+    feld.spellcheck = false;
+    feld.value = s.prompt;
+    feld.addEventListener("input", () => {
+      s.prompt = feld.value;
+      zeigeStand();
+    });
+    wrap.appendChild(feld);
+    return wrap;
+  }
+
+  function zeichneSchritte() {
+    liste.innerHTML = "";
+    schritte.forEach((s, i) => liste.appendChild(schrittZeile(s, i)));
+    zeigeStand();
+  }
+
+  plus.addEventListener("click", () => {
+    schritte.push({ rolle: "userkomm", prompt: "" });
+    zeichneSchritte();
+  });
+
+  async function schicke(nutz) {
+    speichern.disabled = true;
+    zuruecksetzen.disabled = true;
+    status.textContent = "Speichere …";
+    try {
+      const res = await fetch("/api/prompts", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: eintrag.id, schritte: nutz }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+      const neu = (d.aufgaben || []).find((a) => a.id === eintrag.id);
+      if (neu) {
+        eintrag.schritte = neu.schritte;
+        eintrag.standard = neu.standard;
+        eintrag.eigen = neu.eigen;
+      }
+      schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt }));
+      zeichneSchritte();
+      status.textContent = nutz.length ? "✅ Gespeichert — gilt ab dem naechsten Aufruf." : "✅ Zurueck auf den Standard.";
+    } catch {
+      status.textContent = "❌ Speichern fehlgeschlagen — laeuft der Server?";
+    } finally {
+      speichern.disabled = false;
+      zeigeStand();
+    }
+  }
+  speichern.addEventListener("click", () => schicke(schritte));
+  zuruecksetzen.addEventListener("click", () => schicke([]));
+
+  zeichneSchritte();
   return box;
 }
 
@@ -1231,9 +1395,8 @@ async function zeichnePrompts(ziel) {
     return;
   }
   ziel.innerHTML = "";
-
-  ziel.appendChild(promptBlock(d.system, true));
-
+  ziel.appendChild(systemBlock(d.system));
+  const rollen = d.rollen || [];
   const mitKnopf = (d.aufgaben || []).filter((a) => a.knopf);
   const ohneKnopf = (d.aufgaben || []).filter((a) => !a.knopf);
 
@@ -1241,7 +1404,7 @@ async function zeichnePrompts(ziel) {
   t1.className = "einst-label";
   t1.textContent = `Knoepfe mit KI-Funktion (${mitKnopf.length})`;
   ziel.appendChild(t1);
-  for (const a of mitKnopf) ziel.appendChild(promptBlock(a, false));
+  for (const a of mitKnopf) ziel.appendChild(aufgabeBlock(a, rollen));
 
   if (ohneKnopf.length) {
     const t2 = document.createElement("div");
@@ -1252,7 +1415,7 @@ async function zeichnePrompts(ziel) {
     h.className = "einst-provider-sub";
     h.textContent = "Diese Prompts sind fertig, es gibt im UI aber noch keinen Knopf dafuer.";
     ziel.appendChild(h);
-    for (const a of ohneKnopf) ziel.appendChild(promptBlock(a, false));
+    for (const a of ohneKnopf) ziel.appendChild(aufgabeBlock(a, rollen));
   }
 }
 

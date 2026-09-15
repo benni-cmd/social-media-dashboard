@@ -614,9 +614,11 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/prompts" && req.method === "PUT") {
-      const { id, text } = JSON.parse(await readBody(req));
+      const { id, text, schritte } = JSON.parse(await readBody(req));
+      // System = Text; Aufgabe = Schritt-Liste (v41). Faellt schritte weg, gilt text (alt/Migration).
+      const wert = id === "system" ? text : schritte !== undefined ? schritte : text;
       try {
-        await prompts.setze(id, text);
+        await prompts.setze(id, wert);
         sendJson(res, 200, await prompts.uebersicht());
       } catch (e) {
         sendJson(res, 400, { error: e.message });

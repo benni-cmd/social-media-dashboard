@@ -2390,6 +2390,51 @@ body {
   line-height: 1.55;
   resize: vertical;
 }
+/* v41: Schritt-Editor je KI-Knopf */
+.einst-schritt-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.einst-schritt {
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 8px 10px;
+}
+.einst-schritt-kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.einst-schritt-nr {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-leise);
+}
+.einst-schritt-rolle {
+  width: auto;
+  max-width: 200px;
+  margin: 0;
+}
+.einst-schritt-web {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--akzent);
+}
+.einst-schritt-knoepfe {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.einst-schritt-knoepfe .chip {
+  padding: 2px 9px;
+}
+.einst-schritt-plus {
+  margin-top: 8px;
+}
 .einst-prompt-legende { margin: 10px 0; }
 .einst-prompt-platzhalter {
   display: flex;

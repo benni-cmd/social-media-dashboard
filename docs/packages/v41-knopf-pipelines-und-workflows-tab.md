@@ -193,7 +193,16 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
       Schritt 1 Claude → Schritt 2 deepseek (8 Web-Treffer) → Schritt 3 Claude → `done` mit gültigem
       JSON (zusammenfassung/fokus=3/frame/keywords=6, markenkonform). Client baut rollenModelle korrekt
       (userkomm=claude/haiku, recherche/kontext=ollama/deepseek-r1:14b); laufender Modul-Code fix.
-- [ ] Teil B / Phase 3 — Editor-UI (Schritt-Liste, Rollen-Dropdown, +/−/↑↓), PUT `/api/prompts {schritte}`
+- [x] **Teil B / Phase 3 — Editor-UI + Server-Vertrag** (15.09.2026). `lib/promptstore.js`:
+      `effektiveSchritte`, `uebersicht()` liefert je Knopf `schritte`+`standard`+`eigen`+`rollen`+
+      Platzhalter (inkl. {{vorschritt}}/{{nurJson}}), `setze(id, wert)` nimmt Schritt-Liste (leer →
+      Default) bzw. System-Text. `server.js`: `PUT /api/prompts` nimmt `schritte`. `ui.js`: „System
+      Prompts"-Tab = `systemBlock` (Vorspann unverändert) + `aufgabeBlock` (Schritt-Liste mit Rollen-
+      Dropdown, „sucht automatisch im Web" bei Recherche, +Schritt/↑↓/✕, Speichern/Zurücksetzen).
+      `style.css`: Schritt-Editor-Regeln. Verifiziert: Screenshot (Recherche = 3 Schritte, Rollen
+      korrekt), read_page (Schritt 1 userkomm / 2 recherche+web / 3 userkomm, +Schritt), Save-Round-
+      Trip (skript: 2 Schritte gespeichert `eigen:true` → Reset `eigen:false` zurück auf Default).
+      **v41 baulich komplett** (Teil A + Teil B Phase 1–3).
 
 ## DoD
 
