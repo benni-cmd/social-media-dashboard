@@ -10,7 +10,7 @@ import {
   contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots, fruehesterUpload,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
-import { S, kiStream, rollenEtikett, speichere, zeichne, melde, setStand, driveAnlegen, terminplan, schwebendeNeuBerechnen } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan, schwebendeNeuBerechnen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -106,7 +106,7 @@ export async function holeIdee() {
       // statischen „… recherchiert" das sich anfuehlt, als passiere nichts. denkPanel bringt die
       // Sanduhr im Kopf und streamt die Deltas in ein konsolenartiges Fenster.
       box.innerHTML = "";
-      const panel = denkPanel(box, "Die KI recherchiert eine Idee …", rollenEtikett("ideen"));
+      const panel = denkPanel(box, "Die KI recherchiert eine Idee …");
       const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
         .map((s) => `${s.name}: ${s.anzahl}`)
         .join(", ");
@@ -318,7 +318,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
 // holePlan ist ersetzt durch zeigeRedaktionsplan aus redaktionsplan.js.
 
 async function holePlan(anker) {
-  const panel = denkPanel(anker, "Die KI baut einen Redaktionsplan fuer die naechsten Wochen …", rollenEtikett("plan"));
+  const panel = denkPanel(anker, "Die KI baut einen Redaktionsplan fuer die naechsten Wochen …");
   try {
     const geplant = S.cards
       .filter((c) => (c.dates || {}).upload)

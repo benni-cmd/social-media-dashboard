@@ -46,7 +46,6 @@ import {
   driveSpeichern,
   ki,
   kiStream,
-  rollenEtikett,
   melde,
   setStand,
   speichereDefaults,
@@ -1807,7 +1806,7 @@ function schalterFeld(k, box, merke, paare) {
 async function rufeKi(task, k, knopfEl, box) {
   const alle = box.querySelectorAll(".knopf");
   alle.forEach((b) => (b.disabled = true));
-  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`, rollenEtikett(task));
+  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`);
   try {
     const antwort = await kiStream(task, kiNutzlast(k), (e) => {
       if (e.delta) panel.delta(e.delta);

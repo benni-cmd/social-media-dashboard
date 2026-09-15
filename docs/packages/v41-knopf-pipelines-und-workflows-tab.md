@@ -203,6 +203,11 @@ verschwindet, ohne dass eine der laufenden Automationen kaputtgeht.
       korrekt), read_page (Schritt 1 userkomm / 2 recherche+web / 3 userkomm, +Schritt), Save-Round-
       Trip (skript: 2 Schritte gespeichert `eigen:true` → Reset `eigen:false` zurück auf Default).
       **v41 baulich komplett** (Teil A + Teil B Phase 1–3).
+- [x] Audit-Nachlese (15.09.2026): toter `aufgabePrompt` + Import raus, System-Prompts-Hinweis
+      aktualisiert, verwaiste `data/own-workflows.json` entfernt. Modell-Pill (v40 T4) auf Owner-
+      Entscheidung **entfernt** — bei mehrschrittigen Knöpfen war sie ungenau; der Panel-Titel zeigt
+      je Schritt Rolle+Modell. Damit auch `rollenEtikett`/`rolleFuerTask`/`TASK_ROLLE` + `.denk-modell`
+      zurückgebaut; App lädt fehlerfrei.
 
 ## DoD
 

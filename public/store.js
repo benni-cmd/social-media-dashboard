@@ -373,16 +373,6 @@ export const ROLLEN_DEFAULT = {
   kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
 };
 
-// Welche Aufgabe (fuer das Denk-Panel-Etikett) primaer welche Rolle nutzt. Seit v41 bestimmt die
-// Rolle jeder Schritt selbst; diese Zuordnung dient nur noch der Anzeige. Nicht-Gelistetes = userkomm.
-export const TASK_ROLLE = {
-  recherche: "recherche",
-};
-
-export function rolleFuerTask(task) {
-  return TASK_ROLLE[task] || "userkomm";
-}
-
 export function rolleKonfig(rolle) {
   const def = ROLLEN_DEFAULT[rolle] || ROLLEN_DEFAULT.userkomm;
   try {
@@ -397,15 +387,6 @@ export function setzeRolleKonfig(rolle, teil) {
   } catch {}
 }
 
-// v40 (T4): kurzes, menschenlesbares Etikett „⟨Rolle⟩ · ⟨Modell⟩" fuer eine Aufgabe — damit beim
-// Arbeiten sichtbar ist, WELCHES Modell laeuft (Nutzer-Texte ueber Claude, interne Schritte lokal).
-export function rollenEtikett(task) {
-  const rolle = rolleFuerTask(task);
-  const k = rolleKonfig(rolle);
-  const name = (ROLLEN_META[rolle] || {}).name || rolle;
-  const modell = k.provider === "claude" ? "Claude" : `${k.ollamaModel} (lokal)`;
-  return `${name} · ${modell}`;
-}
 
 // v41: Der Client schickt die Modell-Wahl ALLER drei Rollen mit; der Server waehlt je Pipeline-
 // Schritt das Modell der jeweiligen Rolle (server.js laufePipeline).
