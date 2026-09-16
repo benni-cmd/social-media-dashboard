@@ -40,18 +40,17 @@ Ableitung je Post:
 
 ---
 
-## Offene Entscheidungen (ändern den Bau — vom Owner zu klären)
+## Entscheidungen (getroffen, Owner 16.09.2026)
 
-1. **Zellenwert Aufrufe/Interaktionen: Durchschnitt oder Summe?** Empfehlung: **Ø je Post**
-   (die Anzahl steht ja separat) — der „Gesamtdurchschnitt je Wochentag" spricht auch für Ø.
-2. **Plattformen: zusammen oder getrennt?** Empfehlung: **zusammengefasst** (IG+LI), mit
-   Hinweis dass LI-Aufrufe erst mit API-Freigabe/Drive vollständig sind. Alternative: Umschalter.
-3. **„Art" = `contenttyp`** (Reel/Slider/Beitrag/Story/Highlight/Langformat) — feiner als das
-   reine Format (Reel/Carousel/Bildpost). Empfehlung: contenttyp. (Nur bestätigen.)
-4. **Interaktionen-Definition** = `total_interactions` (IG) bzw. Likes+Kommentare+Shares+Klicks
-   (LI), konsistent zum Plattform-Vergleich. (Nur bestätigen.)
-5. **Platzierung/Form:** eigener Abschnitt „Wochentag-Muster"; 7 Spalten → auf Handy quer
-   scrollbar. Sichtbar oder als einklappbare Gruppe? Empfehlung: einklappbare Gruppe.
+1. **Zellenwert = Ø je Post** (Durchschnitt), Anzahl separat daneben. Gesamtzeile je
+   Wochentag = Ø über alle Posts des Tages.
+2. **Plattformen zusammengefasst** (IG+LI addiert). Hinweis im Widget: LI-Aufrufe erst mit
+   API-Freigabe/Drive vollständig — bis dahin zählen dort v. a. IG-Aufrufe.
+3. **„Art" = `contenttyp`** (Reel/Slider/Beitrag/Story/Highlight/Langformat), Klarname via
+   `contenttypName`.
+4. **Interaktionen** = `total_interactions` (IG) bzw. Likes+Kommentare+Shares+Klicks (LI) —
+   konsistent zum Plattform-Vergleich (v20).
+5. **Form:** einklappbare Gruppe „Wochentag-Muster"; 7 Spalten, auf Handy quer scrollbar.
 
 ---
 
@@ -70,9 +69,9 @@ Ableitung je Post:
 
 ## Stand
 
-16.09.2026 — Plan angelegt. Bestand geprüft: Daten vollständig vorhanden ohne neue Quelle
-(`S.cards.contenttyp`/`dates.upload`, `S.zahlen.medien`/`S.zahlenLi.posts`, `karteZuBeitrag`/
-`karteZuLinkedin`, `contenttypName`, `plattformName`). Wartet auf Owner-Abnahme der 5 Punkte oben.
+16.09.2026 — Plan angelegt, Bestand geprüft (Daten vollständig ohne neue Quelle). Essenz +
+Entscheidungen 1–5 mit Owner abgenommen (Ø je Post, Plattformen zusammengefasst, contenttyp,
+total_interactions, einklappbare Gruppe). **Bau-bereit** — wartet nur noch auf „los".
 
 ---
 
