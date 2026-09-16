@@ -1750,11 +1750,15 @@ function loeschenKnopf(k) {
     zeichen: "muell",
     klick: () => {
       bestaetigen(
-        `"${k.title}" loeschen? Der Drive-Ordner bleibt bestehen.`,
+        `"${k.title}" loeschen? Der Drive-Ordner wandert in den Papierkorb (wiederherstellbar).`,
         "Ja, loeschen",
-        () => {
-          loescheKarte(k.id);
-          meldung("Karte geloescht.", "erfolg");
+        async () => {
+          try {
+            await loescheKarte(k.id);
+            meldung(k.driveName ? "Karte geloescht — der Drive-Ordner liegt im Papierkorb." : "Karte geloescht.", "erfolg");
+          } catch (e) {
+            meldung(`Loeschen fehlgeschlagen, die Karte bleibt: ${e.message}`, "fehler");
+          }
         }
       );
     },

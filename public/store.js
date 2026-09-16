@@ -208,10 +208,22 @@ export function neueKarte(spalte) {
   return k;
 }
 
-export function loescheKarte(id) {
+// Karte loeschen (v46): ATOMAR. Hat die Karte einen Drive-Ordner (driveName), wandert der ERST
+// in den Papierkorb — sonst baut der Abgleich die Karte aus dem zurueckgelassenen Ordner wieder
+// auf (genau der Wiederkehr-Bug). Nur bei Erfolg wird die Karte aus dem Board genommen; schlaegt
+// das Trashen fehl, wirft der Aufruf und die Karte bleibt (keine Waise, kein Datenverlust).
+export async function loescheKarte(id) {
+  const k = karte(id);
+  if (k && k.driveName) {
+    await hole("/api/karte/loeschen", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(k),
+    });
+  }
   S.cards = S.cards.filter((c) => c.id !== id);
   if (S.aktiv === id) S.aktiv = null;
-  speichere();
+  await speichere();
   zeichne();
 }
 

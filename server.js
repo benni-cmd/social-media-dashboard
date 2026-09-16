@@ -685,6 +685,15 @@ async function handler(req, res) {
       return;
     }
 
+    // v46: Karte loeschen — Drive-Ordner in den Papierkorb, damit der Abgleich die Karte nicht
+    // aus dem zurueckgelassenen Ordner wieder aufbaut. Der Client nimmt die Karte NUR bei Erfolg
+    // aus dem Board.
+    if (pfad === "/api/karte/loeschen" && req.method === "POST") {
+      const card = JSON.parse(await readBody(req));
+      sendJson(res, 200, await projekte.loesche(card));
+      return;
+    }
+
     if (pfad === "/api/drive/move" && req.method === "POST") {
       const { card, ziel } = JSON.parse(await readBody(req));
       sendJson(res, 200, await projekte.verschiebe(card, ziel));
