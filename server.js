@@ -970,6 +970,7 @@ async function handler(req, res) {
           throw new Error("Kein Refresh-Token erhalten. In den Google-Kontoeinstellungen den Zugriff der App entfernen und erneut verbinden.");
         }
         await gcal.speichereAusCode(tok);
+        gcal.statusCacheLeeren(); // v45: frisch verbunden — Gueltigkeits-Cache verwerfen
         umleitung(res, "/?verbunden=google");
       } catch (e) {
         umleitung(res, `/?fehler=${encodeURIComponent(e.message)}`);
@@ -1025,7 +1026,7 @@ async function handler(req, res) {
       // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
       try { claudeOk = !!JSON.parse(execSync("claude auth status", { encoding: "utf8" })).loggedIn; } catch { /* CLI fehlt oder nicht eingeloggt */ }
       sendJson(res, 200, {
-        google: { verbunden: await gcal.verbunden(), clientKonfiguriert: !!process.env.GOOGLE_OAUTH_CLIENT_ID },
+        google: await gcal.statusGoogle(), // v45: echte Gueltigkeit + hinweis, kurz gecacht
         drive: { verbunden: driveOk },
         instagram: { verbunden: !!(tokens.instagram && tokens.instagram.accessToken), clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID },
         linkedin: { verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken), clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID },
@@ -1038,6 +1039,7 @@ async function handler(req, res) {
     // v40: Trennen — den Zugang eines Dienstes loesen. Spiegelt das jeweilige Verbinden.
     if (pfad === "/api/auth/google/trennen" && req.method === "POST") {
       const vorher = await entferneToken("google");
+      gcal.statusCacheLeeren(); // v45: getrennt — Chip sofort umschlagen lassen
       // best-effort Revoke beim Anbieter — verhindert nie das lokale Trennen.
       const tok = vorher && (vorher.refresh_token || vorher.access_token);
       if (tok) {

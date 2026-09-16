@@ -56,12 +56,30 @@ geben. `git status` vor dem Anfassen auf Fremd-Änderungen prüfen.
 
 ## Stand
 
-- [ ] gcal `gueltig()` (Auth-Fehler vs. Netzfehler getrennt)
-- [ ] 60-s-Cache + Cache-Reset beim Verbinden
-- [ ] server.js Status-Zeile umgestellt (+ hinweis)
-- [ ] ui.js Chip zeigt Hinweis + Verbinden-Angebot
-- [ ] Verify (node --check + Screenshot gültig + abgelaufen-Fall belegt)
+- [x] gcal `gueltig()` (Auth-Fehler vs. Netzfehler getrennt) — `lib/gcal.js:29–45`
+- [x] 60-s-Cache + Cache-Reset beim Verbinden/Trennen — `lib/gcal.js:47–66`, Reset `server.js:964,1032`
+- [x] server.js Status-Zeile umgestellt (+ hinweis) — `server.js:1019` → `gcal.statusGoogle()`
+- [x] ui.js Chip zeigt Hinweis + Verbinden-Angebot — `public/ui.js:784–795,842`
+- [x] Verify (node --check + Live-Beleg abgelaufen + Klassifizierer + Cache) — s. u.
 - [ ] Commit + Push
+
+### Verify-Belege (gemessen 16.09.2026, Server auf :4322 mit neuem Code)
+
+- `node --check` lib/gcal.js · server.js · public/ui.js → alle OK.
+- **Abgelaufen (echt):** `/api/verbindungen/status` →
+  `google:{verbunden:false,clientKonfiguriert:true,hinweis:"Token abgelaufen — neu verbinden"}`
+  (v44-Token real abgelaufen). UI: Chip „TOKEN ABGELAUFEN — NEU VERBINDEN" im Hinweis-Ton
+  (kein roter Alarm), „Verbinden" angeboten — CDP-Screenshot Externe Dienste, gegen
+  `docs/ui-standard.md` Regel 3 (Status als Wort, nicht Farbe allein) geprüft.
+- **Netz kippt NICHT auf abgemeldet:** Klassifizierer-Regex — `fetch failed`/`ENOTFOUND`
+  → kein Auth-Fehler → `unklar` → `verbunden:true`; `expired/revoked`/`Google API 401`
+  → Auth-Fehler → `verbunden:false`. Beide Richtungen belegt.
+- **Cache:** zwei Status-Polls hintereinander 14,5 s → 3,6 s; der ~11 s-Google-Refresh
+  fehlt im 2. Poll (die 3,6 s sind Drive-/Claude-Proben) → Google-Teil gecacht.
+- **Kein Regress:** Drive + Claude im selben Screenshot weiter grün „VERBUNDEN".
+- **Offen:** gültiger-Token-Fall (Plan 5b) nicht live gezeigt — es existiert aktuell kein
+  gültiges Konto; Logikpfad `gueltig:true → verbunden:true` steht, Beleg erst nach
+  Owner-Reconnect eines Testkontos.
 
 ## DoD
 
