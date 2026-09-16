@@ -515,7 +515,7 @@ export function einstellungenModal(onThemeChange) {
     const providerReihe = document.createElement("div");
     providerReihe.className = "einst-provider-reihe";
     const providerOptionen = [
-      { id: "ollama", label: "Lokal (Ollama · DeepSeek R1)", sub: "kostenlos · kein Token-Verbrauch · laeuft auf deinem Rechner" },
+      { id: "ollama", label: "Lokal (Ollama)", sub: "kostenlos · kein Token-Verbrauch · laeuft auf deinem Rechner · Modell unten waehlbar" },
       { id: "claude", label: "Claude (via CLI · dein Abo)", sub: "beste Qualitaet fuer Nutzer-Texte · braucht die eingeloggte Claude-CLI" },
     ];
     for (const opt of providerOptionen) {
@@ -567,11 +567,13 @@ export function einstellungenModal(onThemeChange) {
     const hilfe = document.createElement("details");
     hilfe.className = "einst-ollama-hilfe";
     hilfe.innerHTML =
-      `<summary class="einst-label">So installierst du Ollama und DeepSeek R1</summary>` +
+      `<summary class="einst-label">So installierst du Ollama und ein Modell</summary>` +
       `<p class="einst-provider-sub">Nacheinander im Terminal. Schritt 1 installiert Ollama, ` +
-      `Schritt 2 laedt DeepSeek R1 — das Modell fuer Recherche und Kontextabgleich.</p>` +
+      `Schritt 2 laedt ein Modell: <b>DeepSeek R1</b> passt fuer Recherche und Kontextabgleich, ` +
+      `<b>qwen2.5</b> fuer Nutzer-Texte. Danach oben das gewuenschte Modell waehlen.</p>` +
       `<pre class="einst-befehl">winget install Ollama.Ollama</pre>` +
-      `<pre class="einst-befehl">ollama pull deepseek-r1</pre>`;
+      `<pre class="einst-befehl">ollama pull deepseek-r1</pre>` +
+      `<pre class="einst-befehl">ollama pull qwen2.5:14b</pre>`;
 
     const modellWahl = document.createElement("select");
     modellWahl.className = "einst-modell-select";
@@ -781,7 +783,14 @@ export function einstellungenModal(onThemeChange) {
     c.style.marginLeft = "8px";
     return c;
   }
-  function setzeChip(c, verbunden, bereit) {
+  function setzeChip(c, verbunden, bereit, hinweisText) {
+    // v45: liegt ein Hinweis an (z. B. Token abgelaufen), ihn im Chip zeigen — Ton wie
+    // „bereit zum Verbinden" (chip-hinweis), kein roter Alarm.
+    if (!verbunden && hinweisText) {
+      c.textContent = hinweisText;
+      c.className = "chip chip-hinweis";
+      return;
+    }
     c.textContent = verbunden ? "verbunden" : bereit ? "bereit zum Verbinden" : "nicht konfiguriert";
     c.className = "chip " + (verbunden ? "chip-ok" : bereit ? "chip-hinweis" : "chip-fehlt");
   }
@@ -839,7 +848,7 @@ export function einstellungenModal(onThemeChange) {
 
     dienstRender.push((s) => {
       const g = s.google || {};
-      setzeChip(chip, g.verbunden, g.clientKonfiguriert);
+      setzeChip(chip, g.verbunden, g.clientKonfiguriert, g.hinweis);
       verbinden.disabled = !g.clientKonfiguriert;
       verbinden.style.display = g.verbunden ? "none" : "";
       trennen.style.display = g.verbunden ? "" : "none";
