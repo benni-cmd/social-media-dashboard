@@ -154,6 +154,9 @@ export function zeichneBoard(boardEl, lastEl) {
       `<span class="spalte-anzahl">${karten.length}</span></div>` +
       `<p class="spalte-satz">${escape(p.satz || "")}</p>`;
     kopf.querySelector(".spalte-name").addEventListener("dblclick", (e) => starteUmbenennen(e.currentTarget, p));
+    // v50: Die Phasen-Erklaerung (.spalte-satz) ist seit v29 fuer einheitliche Kopfhoehe
+    // ausgeblendet — als Header-Tooltip bleibt sie erreichbar, ohne die Hoehe zu brechen.
+    if (p.satz) kopf.title = p.satz;
     spalte.appendChild(kopf);
 
     const liste = document.createElement("div");

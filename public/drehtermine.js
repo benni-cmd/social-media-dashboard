@@ -116,7 +116,7 @@ function kachel(t) {
     `<span class="drehkachel-datum">${escape(deutschesDatum(t.datum))}${t.zeit ? " · " + escape(t.zeit) : ""}</span>` +
     `<span class="drehkachel-tage">(${escape(wannText(t.datum))})</span></span>` +
     `<span class="drehkachel-fuss">${escape(t.ort || t.titel || (t.auto ? "automatisch gesetzt" : "kein Ort"))}` +
-    ` · ${n} ${n === 1 ? "Karte" : "Karten"}</span>`;
+    ` · ${n === 0 ? "noch keine Karten" : n + " " + (n === 1 ? "Karte" : "Karten")}</span>`;
   b.addEventListener("click", () => detail(t.id));
   return b;
 }
