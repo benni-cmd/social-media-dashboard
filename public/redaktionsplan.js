@@ -41,8 +41,8 @@ const ZIEL_FARBE = {
   donations: "#8b5cf6",
 };
 
-let aktivesPanel = null;
-let currentPlan   = null;
+let aktivesOverlay = null;
+let currentPlan    = null; // ueberlebt Schliessen/Oeffnen — zweites Oeffnen zeigt sofort den Cache (v47)
 
 // ── Plan I/O ──────────────────────────────────────────────────────────────
 
@@ -104,35 +104,68 @@ function defaultPlan() {
 
 // ── Panel ─────────────────────────────────────────────────────────────────
 
-export async function zeigeRedaktionsplan(anker) {
-  if (aktivesPanel && aktivesPanel.parentElement === anker) {
-    aktivesPanel.remove(); aktivesPanel = null; return;
-  }
-  if (aktivesPanel) aktivesPanel.remove();
-  currentPlan = await ladePlan();
-  aktivesPanel = bauePanel(currentPlan, anker);
-  anker.insertBefore(aktivesPanel, anker.firstChild);
-}
+// Oeffnet den Redaktionsplan als Popup ueber dem Board (Muster .modal-overlay/.modal wie
+// drehtermine.js). Das Fenster erscheint SOFORT; der Inhalt haengt nicht an der Drive-Latenz
+// von /api/plan (bis ~35 s gemessen, v47). Erneuter Klick schliesst (Toggle).
+export async function zeigeRedaktionsplan() {
+  if (aktivesOverlay) { schliesseOverlay(); return; }
 
-function bauePanel(plan, _anker) {
-  const el = document.createElement("div");
-  el.className = "gruppe";
-  el.style.marginBottom = "12px";
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) schliesseOverlay(); });
 
-  const kopf = document.createElement("div");
-  kopf.className = "gruppe-kopf";
-  const titel = document.createElement("span");
-  titel.className = "gruppe-titel";
-  titel.textContent = "Redaktionsplan";
-  kopf.appendChild(titel);
-  const xBtn = knopf("×", { titel: "Schliessen", klick: () => { el.remove(); aktivesPanel = null; } });
-  xBtn.style.marginLeft = "auto";
-  kopf.appendChild(xBtn);
-  el.appendChild(kopf);
+  const box = document.createElement("div");
+  box.className = "modal modal-plan";
+
+  const frage = document.createElement("div");
+  frage.className = "modal-frage";
+  frage.textContent = "Redaktionsplan";
+  const xBtn = document.createElement("button");
+  xBtn.type = "button";
+  xBtn.className = "plan-schliessen";
+  xBtn.title = "Schliessen";
+  xBtn.textContent = "×";
+  xBtn.addEventListener("click", schliesseOverlay);
+  frage.appendChild(xBtn);
+  box.appendChild(frage);
 
   const koerper = document.createElement("div");
-  koerper.style.padding = "0 12px 16px";
+  koerper.className = "modal-plan-koerper";
+  box.appendChild(koerper);
 
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  aktivesOverlay = overlay;
+
+  const esc = (e) => { if (e.key === "Escape") schliesseOverlay(); };
+  document.addEventListener("keydown", esc);
+  overlay._esc = esc;
+
+  if (currentPlan) {
+    // Zweites Oeffnen: sofort aus dem Cache — kein Warten auf Drive.
+    baueInhalt(currentPlan, koerper);
+  } else {
+    const laedt = document.createElement("p");
+    laedt.className = "feld-hinweis";
+    laedt.style.padding = "16px 0";
+    laedt.textContent = "Redaktionsplan wird geladen …";
+    koerper.appendChild(laedt);
+    const plan = await ladePlan();
+    if (aktivesOverlay !== overlay) return; // zwischenzeitlich geschlossen
+    currentPlan = plan;
+    koerper.innerHTML = "";
+    baueInhalt(currentPlan, koerper);
+  }
+}
+
+function schliesseOverlay() {
+  if (!aktivesOverlay) return;
+  if (aktivesOverlay._esc) document.removeEventListener("keydown", aktivesOverlay._esc);
+  aktivesOverlay.remove();
+  aktivesOverlay = null;
+}
+
+function baueInhalt(plan, koerper) {
   let kalenderRendere = null;
   baueEinstellungen(plan, koerper, () => { if (kalenderRendere) kalenderRendere(); });
 
@@ -141,9 +174,6 @@ function bauePanel(plan, _anker) {
   koerper.appendChild(hr);
 
   kalenderRendere = baueKalender(koerper);
-
-  el.appendChild(koerper);
-  return el;
 }
 
 // ── Einstellungen ─────────────────────────────────────────────────────────
@@ -278,7 +308,7 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
 
   const speichernBtn = knopf("Einstellungen speichern", { art: "haupt" });
   speichernBtn.style.cssText += ";margin-top:12px;width:100%";
-  speichernBtn.addEventListener("click", async () => {
+  speichernBtn.addEventListener("click", () => {
     const zielSumme = Object.values(zielGetters).reduce((s, f) => s + f(), 0);
     if (zielSumme !== 100) {
       fehlerEl.textContent = `Zielgewichte ergeben ${zielSumme} % — muss genau 100 % sein.`;
@@ -286,28 +316,31 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       return;
     }
     fehlerEl.style.display = "none";
+
+    // Aus dem bereits geladenen Plan zusammensetzen — KEIN erneuter Drive-Read (v47). Frueher
+    // haengte die Vorschau bis ~35 s an `await ladePlan()`; deshalb aktualisierte sie sich erst
+    // nach Schliessen+Neuoeffnen. Jetzt: erst neu zeichnen, dann im Hintergrund nach Drive.
+    const neuerPlan = {
+      ...(currentPlan || {}),
+      plattformen: PLATTFORMEN.map((pl) => pl.id).filter((id) => plCheckboxen[id]?.checked),
+      typenmix: PLAN_TYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
+      kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
+        id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
+      })),
+      zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id]() })),
+      kampagnen: kampagnen.filter((k) => k.name.trim()),
+    };
+
+    // 1) Sofort: Vorschau mit den neuen Werten neu zeichnen.
+    currentPlan = neuerPlan;
+    nachSpeichern();
+    setStand("Redaktionsplan gespeichert.");
+
+    // 2) Im Hintergrund persistieren — die UI wartet nicht auf Drive.
     speichernBtn.disabled = true;
-    try {
-      const aktuell = await ladePlan();
-      const neuerPlan = {
-        ...aktuell,
-        plattformen: PLATTFORMEN.map((pl) => pl.id).filter((id) => plCheckboxen[id]?.checked),
-        typenmix: PLAN_TYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
-        kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
-          id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
-        })),
-        zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id]() })),
-        kampagnen: kampagnen.filter((k) => k.name.trim()),
-      };
-      await speicherePlan(neuerPlan);
-      currentPlan = neuerPlan;
-      nachSpeichern();
-      setStand("Redaktionsplan gespeichert.");
-    } catch (e) {
-      await melde("befund", e.message);
-    } finally {
-      speichernBtn.disabled = false;
-    }
+    speicherePlan(neuerPlan)
+      .catch((e) => melde("befund", e.message))
+      .finally(() => { speichernBtn.disabled = false; });
   });
   koerper.appendChild(speichernBtn);
 }

@@ -262,7 +262,7 @@ function zeichneWochenlast(el) {
   const planKnopf = knopf("Redaktionsplan", {
     zeichen: "kalender",
     titel: "Kadenz, Content-Mix, Kategorien und Upload-Slots konfigurieren.",
-    klick: () => zeigeRedaktionsplan(document.getElementById("nachschub")),
+    klick: () => zeigeRedaktionsplan(),
   });
   planKnopf.classList.add("knopf-symbol", "knopf-symbol-kalender");
   el.appendChild(planKnopf);
