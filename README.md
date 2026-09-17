@@ -1,4 +1,4 @@
-# Content-Maschine
+# WEE Social Media Suit
 
 Lokales Werkzeug fuer den Social-Media-Content der NGO World Eden Era. Es traegt den Weg von
 der Idee bis zum veroeffentlichten Video — und holt die Zahlen danach zurueck an die Karte,

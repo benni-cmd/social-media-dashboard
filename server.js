@@ -1,4 +1,4 @@
-// Lokaler Server der Content-Maschine.
+// Lokaler Server der WEE Social Media Suit.
 // Bewusst ohne Abhaengigkeiten: nur Node-Bordmittel.
 //
 // Diese Datei ist reine Wegweisung. Was die Sache selbst ausmacht, liegt in lib/:
@@ -1345,7 +1345,7 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 server.listen(PORT, async () => {
-  console.log(`Content-Maschine laeuft auf https://localhost:${PORT}`);
+  console.log(`WEE Social Media Suit laeuft auf https://localhost:${PORT}`);
   // Spalten-Resolver aus dem Cache setzen, damit Karten-Operationen schon vor dem ersten
   // Abgleich die (evtl. umbenannten) Drive-Ordner treffen. Fehlt der Cache, greifen die Defaults.
   try {
