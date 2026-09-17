@@ -175,8 +175,15 @@ const ROLLE_NAME = { userkomm: "Userkommunikation", recherche: "Recherche", kont
 // bekommen eine Web-Suche vorangestellt (Query = die vom Vorschritt formulierten Suchanfragen, sonst
 // das Kartenthema). Der System-Vorspann geht NUR in userkomm-Schritte (Owner 15.09.2026). Nur der
 // LETZTE Schritt streamt live; sein Text ist das Ergebnis. onStatus/onDelta sind optional.
-async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, onDelta = () => {} }) {
+// v51: onStufe(ereignis) meldet zusaetzlich die ECHTE Stufe als maschinenlesbares Objekt
+// {stufe, schritt, von, rolle, rolleName, modell, …} — `onStatus` bleibt daneben als
+// deutscher Satz erhalten, damit aeltere Anzeigen unveraendert weiterlaufen.
+async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, onDelta = () => {}, onStufe = () => {} }) {
   const c = card || {};
+  // v51: Der Vorlauf (Prompts lesen, Firmen-/Projektkontext sammeln) dauerte in der Messung
+  // vom 17.09.2026 allein 12,4 s, bevor ueberhaupt die erste Status-Zeile kam — bis dahin war
+  // die Anzeige leer. Deshalb hier die erste Stufe, noch vor jeder Datei- und Drive-Leserei.
+  onStufe({ stufe: "kontext", schritt: 0, von: 0 });
   const schritte = await prompts.pipeline(task);
   if (!schritte.length) throw new Error(`Kein Prompt fuer die Aufgabe ${task}.`);
   const firmenKontext = await unternehmen
@@ -186,6 +193,19 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   const rollen = rollenModelle || {};
   const fallback = { provider: "ollama", ollamaModel: "llama3.2", claudeModell: ki.CLAUDE_MODELL_STANDARD };
 
+  // v51: Waehrend ein kaltes Ollama-Modell laedt, kommt sekundenweise dieselbe Stufe mit
+  // wachsender Sekundenzahl. Ohne das steht die Anzeige bis zu einer halben Minute still und
+  // sieht aus wie ein Haenger (gemessen: 25,38 s Ladezeit fuer deepseek-r1:14b).
+  function stufenTicker(basis, stufe) {
+    const start = Date.now();
+    onStufe({ ...basis, stufe, sekunden: 0 });
+    const id = setInterval(() => {
+      onStufe({ ...basis, stufe, sekunden: Math.round((Date.now() - start) / 1000) });
+    }, 1000);
+    if (id.unref) id.unref();
+    return () => clearInterval(id);
+  }
+
   let vorschritt = "";
   for (let i = 0; i < schritte.length; i++) {
     const s = schritte[i];
@@ -194,18 +214,23 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
     const rolleName = ROLLE_NAME[rolle] || rolle;
     const modellName = konf.provider === "claude" ? "Claude" : `${konf.ollamaModel} (lokal)`;
     const marke = `Schritt ${i + 1}/${schritte.length} · ${rolleName}`;
+    // v51: dieselben Angaben, die `marke` zu einem String verklebt, zusaetzlich als Felder.
+    const basis = { schritt: i + 1, von: schritte.length, rolle, rolleName, modell: modellName };
 
     // Web-Suche: nur fuer Recherche-Schritte. Query = die Zeilen des Vorschritts (bis 3, Nummerierung
     // entfernt), sonst das Kartenthema (Titel + Reihe).
     let webBlock = "";
     if (rolle === "recherche") {
       onStatus(`${marke} · sucht im Web …`);
+      onStufe({ ...basis, stufe: "web-suche" });
       const queries = vorschritt
         ? vorschritt.split("\n").map((z) => z.replace(/^\s*(\d+[.)]|[-*•])\s*/, "").trim()).filter(Boolean).slice(0, 3)
         : [[c.title, c.serie].filter(Boolean).join(" ").trim()].filter(Boolean);
       const { treffer, quelle } = await websuche.sucheWebViele(queries).catch(() => ({ treffer: [], quelle: "fehler" }));
       webBlock = websuche.alsPromptBlock(treffer);
       onStatus(`${marke} · ${treffer.length ? `${treffer.length} Web-Treffer (${quelle})` : "keine Web-Treffer"} · ${modellName}`);
+      // Die Trefferzahl gab es bisher nur im Satz; als Feld kann die Anzeige sie selbst setzen.
+      onStufe({ ...basis, stufe: "web-treffer", treffer: treffer.length, quelle });
     } else {
       onStatus(`${marke} · ${modellName}`);
     }
@@ -221,17 +246,50 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
 
     let text;
     if (konf.provider === "ollama") {
-      text = letzter
-        ? await ki.runOllamaStream(system, userMsg, konf.ollamaModel, (d) => d && onDelta(d))
-        : await ki.runOllama(system, userMsg, konf.ollamaModel);
+      // v51: Ob das Modell kalt ist, muss VOR dem Aufruf geklaert werden — die OpenAI-Schicht,
+      // ueber die lib/ai.js generiert, liefert hinterher kein `load_duration` mit.
+      const stand = await ki.modellStand(konf.ollamaModel);
+      let tickerAus = () => {};
+      let generiertGemeldet = false;
+      const meldeGeneriert = () => {
+        tickerAus();
+        tickerAus = () => {};
+        if (generiertGemeldet) return;
+        generiertGemeldet = true;
+        onStufe({ ...basis, stufe: "generiert" });
+      };
+      if (!stand.ollamaLaeuft) onStufe({ ...basis, stufe: "ollama-start" });
+      else if (!stand.geladen) tickerAus = stufenTicker(basis, "modell-laedt");
+      else meldeGeneriert();
+      try {
+        text = letzter
+          ? await ki.runOllamaStream(system, userMsg, konf.ollamaModel, (d) => d && onDelta(d), {
+              onErsterToken: meldeGeneriert,
+            })
+          : await ki.runOllama(system, userMsg, konf.ollamaModel);
+      } catch (e) {
+        // Damit der Hinweistext zum Anbieter passt (bis v51 bekam ein Ollama-Fehler den
+        // Claude-Hinweis, weil hinweisZuFehler ohne zweites Argument aufgerufen wurde).
+        e.provider = "ollama";
+        throw e;
+      } finally {
+        tickerAus();
+      }
     } else {
       const prompt = system ? system + userMsg : userMsg;
-      text = letzter
-        ? await ki.runClaudeStream(prompt, (d, st) => { if (d) onDelta(d); if (st) onStatus(st); }, { modell: konf.claudeModell })
-        : await ki.runClaude(prompt, { modell: konf.claudeModell });
+      onStufe({ ...basis, stufe: "generiert" });
+      try {
+        text = letzter
+          ? await ki.runClaudeStream(prompt, (d, st) => { if (d) onDelta(d); if (st) onStatus(st); }, { modell: konf.claudeModell })
+          : await ki.runClaude(prompt, { modell: konf.claudeModell });
+      } catch (e) {
+        e.provider = "claude";
+        throw e;
+      }
     }
     vorschritt = text || "";
   }
+  onStufe({ stufe: "fertig", schritt: schritte.length, von: schritte.length });
   return vorschritt;
 }
 
@@ -506,12 +564,16 @@ async function handler(req, res) {
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         sendJson(res, 200, { text, data });
       } catch (e) {
-        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e) });
+        sendJson(res, 502, { error: e.message, hint: ki.hinweisZuFehler(e, e.provider) });
       }
       return;
     }
 
-    // Gleiche Aufgabe, aber live: NDJSON-Zeilen {t:"delta"|"status"|"done"|"error"} — Status je Schritt.
+    // Gleiche Aufgabe, aber live: NDJSON-Zeilen {t:"delta"|"status"|"stufe"|"done"|"error"}.
+    // `status` ist der deutsche Satz je Schritt, `stufe` (v51) dasselbe maschinenlesbar:
+    // {stufe:"ollama-start"|"modell-laedt"|"generiert"|"web-suche"|"web-treffer"|"fertig",
+    //  schritt, von, rolle, rolleName, modell, sekunden?, treffer?}. Aeltere Clients
+    // verschlucken unbekannte Typen still (store.js), der Zusatz ist also rueckwaertskompatibel.
     if (pfad === "/api/ai/stream" && req.method === "POST") {
       const body = JSON.parse(await readBody(req));
       const { task, card } = body;
@@ -524,7 +586,12 @@ async function handler(req, res) {
         "cache-control": "no-cache",
         "x-accel-buffering": "no",
       });
-      const schreib = (o) => res.write(JSON.stringify(o) + "\n");
+      // Der Sekunden-Ticker der Ladephase schreibt auch dann noch, wenn der Browser die
+      // Verbindung schon gekappt hat — deshalb vor jedem Schreiben pruefen.
+      const schreib = (o) => {
+        if (res.writableEnded || res.destroyed) return;
+        res.write(JSON.stringify(o) + "\n");
+      };
       try {
         const text = await laufePipeline({
           task,
@@ -532,11 +599,13 @@ async function handler(req, res) {
           rollenModelle: rollenAusBody(body),
           onStatus: (t) => schreib({ t: "status", text: t }),
           onDelta: (d) => schreib({ t: "delta", text: d }),
+          onStufe: (o) => schreib({ t: "stufe", ...o }),
         });
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         schreib({ t: "done", text, data });
       } catch (e) {
-        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e) });
+        schreib({ t: "stufe", stufe: "fehler" });
+        schreib({ t: "error", error: e.message, hint: ki.hinweisZuFehler(e, e.provider) });
       }
       res.end();
       return;

@@ -193,9 +193,9 @@ Projektordner anlegen `detail.js:1556` · Video-Upload `detail.js:1344` · Rohma
 1. [x] **Audit** — alle Ausloeser vollstaendig belegt (Abschnitte A–F oben).
 2. [ ] **Terminal-Komponente** — `denkPanel` zum Phasen-Terminal erweitern: Stufen-Zeilen,
        aufklappbares Volllog, Auto-Verschwinden, Anbindung ans Laufregister. EINE Komponente.
-3. [ ] **Backend-Stufen** — `/api/ai/stream` + `lib/ai.js` senden `{t:"stufe"}`-Ereignisse
-       (ollama-start · modell-laedt · generiert · web-suche · fertig · fehler), Kaltstart per
-       `/api/ps`; nebenbei den `hinweisZuFehler`-Provider-Bug schliessen.
+3. [x] **Backend-Stufen** — `/api/ai/stream` + `lib/ai.js` senden `{t:"stufe"}`-Ereignisse
+       (kontext · ollama-start · modell-laedt · generiert · web-suche · web-treffer · fertig ·
+       fehler), Kaltstart per `/api/ps`; `hinweisZuFehler`-Provider-Bug geschlossen.
 4. [ ] **Verdrahtung je Ausloeser** — A1–A10 bekommen Terminal + Knopf-Inline-Zustand;
        A3/A5/A8 (KI ohne Knopfdruck) zusaetzlich eine Ankuendigung.
 5. [ ] **Drive/Laden** — dieselbe Komponente fuer E1–E5 (stumme Stellen zuerst).
@@ -213,7 +213,48 @@ die das Paket sichtbar machen muss.
 Koordination: Session „Social Media Dashboard Layout" laeuft parallel im selben Repo und wurde
 ueber die geplanten Datei-Beruehrungen informiert. `git status` zeigt fremde Aenderungen nur in
 `data/prompts.json` (nicht anfassen) und `docs/packages/v29-ampel-schwellen-und-kopf-punkte.md`
-(fremder Stand, nicht anfassen).
+(fremder Stand, nicht anfassen). Ihr v52 (`c44104c`, `5d340ae`) ist committet und gezogen — es
+aendert `melde()` und `verdrahteKopf()` in `store.js` und bringt `hinweisToast()` in `ui.js`;
+Teilpaket 2 baut darauf auf, nicht dagegen.
+
+### Teilpaket 3 umgesetzt + verifiziert (17.09.2026)
+
+`server.js` — `laufePipeline()` bekommt `onStufe`; die Angaben, die bisher nur zum String `marke`
+verklebt wurden, gehen zusaetzlich als Felder raus (`schritt`, `von`, `rolle`, `rolleName`,
+`modell`). Neuer NDJSON-Typ `{t:"stufe", …}` in `/api/ai/stream`. Ein Sekunden-Ticker
+(`stufenTicker`) meldet waehrend des Modell-Ladens jede Sekunde erneut, damit die Anzeige laeuft
+statt still zu stehen. `schreib()` prueft jetzt `res.writableEnded/destroyed` — sonst schriebe der
+Ticker in eine abgebrochene Verbindung. `lib/ai.js` — neu `modellStand(model)` (fragt `/api/ps`,
+Muster aus `server.js:1324`) und `onErsterToken` in `runOllamaStream`, das genau beim ersten Token
+feuert: der exakte Uebergang „laedt" → „generiert". Beide Routen reichen `e.provider` an
+`hinweisZuFehler` durch (Bug aus Abschnitt C geschlossen).
+
+**Live-Beleg, Kaltstart** (eigener Testserver `PORT=4399`, alle Modelle vorher per
+`keep_alive:0` entladen — `curl /api/ps` gab `{"models":[]}`; dann
+`curl -sk --no-buffer -X POST https://localhost:4399/api/ai/stream` mit Aufgabe `skript` auf
+`deepseek-r1:14b`), 356 Zeilen mitgeschnitten:
+
+```
+[73ms]    stufe=kontext
+[1248ms]  status "Schritt 1/1 · Userkommunikation · deepseek-r1:14b (lokal)"
+[1270ms]  stufe=modell-laedt sekunden=0   (Schritt 1/1)
+   … 48 weitere modell-laedt-Zeilen, je eine pro Sekunde …
+[50808ms] stufe=modell-laedt sekunden=50  (Schritt 1/1)
+[51219ms] stufe=generiert    (Schritt 1/1)
+[88909ms] stufe=fertig       (Schritt 1/1)
+[88934ms] done — 929 Zeichen Text
+```
+
+**50 Sekunden Modell-Laden, die bis v51 komplett stumm waren, sind jetzt sekundenweise belegt.**
+Nebenbefund aus derselben Messung: im ersten Durchgang vergingen 12,4 s zwischen Anfrage und
+erster Status-Zeile (Prompts lesen + `unternehmen.sammle()`, das ueber Drive gehen kann) — dafuer
+gibt es jetzt die Stufe `kontext`, die nach 73 ms steht. `node --check server.js`,
+`node --check lib/ai.js` sauber.
+
+**Bewusste Ungenauigkeit:** bei den NICHT-letzten Schritten einer Kette (die laufen ueber
+`runOllama` ohne Stream) gibt es kein „erstes Token" — dort laeuft der Ticker bis zum Ende des
+Schritts durch. Ehrlicher waere ein Wechsel auf den nativen `/api/chat` mit `load_duration`;
+das baut aber das Response-Parsing um (`lib/ai.js:788/832`) und bleibt Folgeschritt.
 
 ## Definition of Done
 
