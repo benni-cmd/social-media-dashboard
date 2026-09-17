@@ -200,7 +200,8 @@ Projektordner anlegen `detail.js:1556` · Video-Upload `detail.js:1344` · Rohma
        ueber die zwei Einstiege `rufeKi` (A1–A7) und das Ideen-Modal (A8–A10).
 5. [x] **Drive/Laden** — dieselben Bausteine fuer die fuenf stummen Stellen E1–E5.
 6. [x] **Verify** — `node --check` auf jede geaenderte Datei, echte Browser-Screenshots
-       gegen `docs/ui-standard.md`, Live-Beleg des Ollama-Kaltstarts.
+       gegen `docs/ui-standard.md`, Live-Beleg des Ollama-Kaltstarts — mit den unter
+       „Offen" namentlich genannten Ausnahmen.
 
 ## Stand
 
@@ -339,9 +340,39 @@ Geprueft gegen: vollstaendiges Ausloeser-Inventar (jeder Eintrag mit Datei:Zeile
 Live-Beleg Ollama-Kaltstart im Board (kaltes Modell, Stufe „Modell laedt" sichtbar) ·
 `docs/ui-standard.md` Regeln 3 und 5.
 
+### Vollstaendigkeits-Audit (Skill `completeness`, 17.09.2026)
+
+Geprueft gegen den Owner-Auftrag vom 17.09.2026, Anspruch fuer Anspruch. Zwei Zusagen sind
+NICHT voll eingeloest, beide unten unter „Offen" benannt statt stillschweigend erledigt:
+
+1. **„Drive-Operationen ebenso mit Fortschritt"** — eingeloest ist die Sichtbarkeit im
+   Browser (laeuft / laeuft nicht), NICHT der Fortschritt aus dem Server. Drive-Aufrufe
+   antworten weiterhin erst am Ende; es gibt keinen Stufen-Strom fuer Reconcile, Scan,
+   Upload oder Papierkorb. Das waere ein zweiter Streaming-Weg neben `/api/ai/stream`.
+2. **Knopf-Inline-Zustand** — an allen KI-Knoepfen und den beiden Download-Knoepfen, NICHT
+   an „Redaktionsplan" (E3), „Drive erneut lesen" und „Naechstes freies Datum" (E4); dort
+   traegt die Sanduhr am Ziel die Anzeige allein.
+
+**Bewusste Achsen-Trennung** (Gegenprobe G2): das aufklappbare Terminal ist fuer Laeufe mit
+mehreren Stufen gebaut (KI, Downloads). Eine einzelne Wartestelle ohne Stufen bekommt die
+Sanduhr, nicht ein Terminal mit einer Zeile — sonst waere es zusaetzliche Bedien-Komplexitaet,
+die der Auftrag ausdruecklich ausschliesst. „Gleiches Feedback-Prinzip" heisst dasselbe
+Vokabular, nicht dasselbe Kaestchen an jeder Stelle.
+
+**Folgepflicht** (Gegenprobe G3): `STUFEN_SATZ` in `public/ui.js` muss mitwachsen, wenn der
+Server eine neue Stufe schickt — eine unbekannte Stufe wird still uebersprungen
+(`if (!satzBau) return;`). Das faellt sicher aus (keine kaputte Anzeige), aber still.
+
 Offen:
 - E5 (Karte loeschen) ist nur code-seitig belegt, nicht optisch — dafuer muesste eine echte
   Karte geloescht werden.
+- **Drive-Operationen senden keinen echten Fortschritt aus dem Server** (siehe Audit-Punkt 1
+  oben) — nur „laeuft" im Browser.
+- Zwei gleichzeitige schwebende Terminals am selben Anker wuerden sich ueberdecken; heute
+  verhindert das nur das Sperren der Knoepfe waehrend eines Laufs.
+- Bricht der Nutzer mitten im Lauf ab (Modal schliessen, Karte wechseln), laeuft der
+  Server-Aufruf zu Ende; der Stream-Handler schreibt dann nur nicht mehr in die tote
+  Verbindung. Ein echter Abbruch braeuchte ein `AbortSignal` bis in `lib/ai.js`.
 - Das schwebende Terminal an einem Detailspalten-KI-Knopf ist optisch mit eingespeisten
   Stufen abgenommen, nicht mit einem echten Kaltstart-Durchlauf (dafuer braeuchte es eine
   Karte ohne Recherche, also eine Aenderung am echten Board-Stand).
