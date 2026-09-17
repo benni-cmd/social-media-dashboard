@@ -203,6 +203,40 @@ Projektordner anlegen `detail.js:1556` · Video-Upload `detail.js:1344` · Rohma
        gegen `docs/ui-standard.md`, Live-Beleg des Ollama-Kaltstarts — mit den unter
        „Offen" namentlich genannten Ausnahmen.
 
+## Teilpaket 7 — Rest nach Owner-Entscheidung (17.09.2026)
+
+Owner hat die offene Entscheidung beantwortet: **Variante (b)** — nur der Drive-Abgleich
+bekommt echten Fortschritt aus dem Server, nicht jeder Drive-Weg. Dazu die beiden
+Abnahmen, die den echten Board-Stand anfassen, ausdruecklich freigegeben.
+
+**Problem:** Der Drive-Abgleich laeuft 10–70 s und sagt seit Teilpaket 5 zwar „ich laufe",
+aber nicht, WO er steht. Zwei Abnahmen aus v51 fehlen: Karte loeschen (E5) und ein echter
+Kaltstart-Durchlauf am Detailspalten-Knopf.
+
+**Intent:** Auch die laengste Nicht-KI-Wartestelle soll erzaehlen, was gerade passiert —
+mit demselben Vokabular wie die KI, ohne zweites Bedienkonzept.
+
+**Goal:** `POST /api/drive/reconcile/stream` sendet dieselben `{t:"stufe"}`-Zeilen wie der
+KI-Stream (Spalten-Abgleich · Ordner je Phase mit Zaehler · Karten-Abgleich · fertig); das
+Google+Drive-Badge zeigt die jeweils aktuelle Stufe statt nur der Sanduhr. E5 und der
+Kaltstart-Durchlauf sind per echtem Lauf im Browser belegt.
+
+### Plan
+
+1. [ ] `lib/projects.js` — `abgleich(cards, {onStufe})`: eine Stufe je Phasen-Listing
+       (`for (const p of PHASEN)`, `lib/projects.js:282` — die acht seriellen Aufrufe sind
+       laut v25-Messung der Flaschenhals) und eine je Karte, die wirklich gelesen wird.
+2. [ ] `server.js` — Routen-Rumpf in eine Funktion ziehen, damit `/api/drive/reconcile`
+       (unveraendert, JSON) und `/api/drive/reconcile/stream` (NDJSON) EINEN Weg teilen.
+3. [ ] `public/store.js` — `driveAbgleich()` nimmt den Stream-Weg und legt die Stufe in
+       `S.abgleichStufe`; neue Mini-Anmeldung `beiAbgleichStufe(f)`, damit nur das Badge
+       neu zeichnet und nicht das ganze Board (ein `zeichne()` je Sekunde waere zu teuer).
+4. [ ] `public/app.js` — Badge zeigt `S.abgleichStufe`; der Kopf-Menue-Abgleich ebenso.
+       Beide Ausloeser teilen sich das laufende Promise (v32 C3), also gilt es fuer beide.
+5. [ ] Verify — `node --check`, Screenshot des Badges mit laufender Stufe, plus die zwei
+       offenen Abnahmen: Testkarte anlegen → Kaltstart am Detailspalten-Knopf (schwebendes
+       Terminal im echten Lauf) → dieselbe Karte loeschen (E5).
+
 ## Stand
 
 **17.09.2026** — Paket angelegt, Audit abgeschlossen, **kein Code geaendert**.
