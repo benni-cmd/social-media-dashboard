@@ -261,6 +261,17 @@ export function denkPanel(container, titel = "Die KI arbeitet …") {
         zeile(schluessel, laeuftHtml(satz));
       }
     },
+    // Fuer Laeufe ohne Stufen-Ereignisse (Drive, Laden, Upload): eine laufende Zeile mit
+    // eigenem Wortlaut. `schluessel` haelt die Zeile fest, damit ein Zaehler sie aktualisiert,
+    // statt jedes Mal eine neue anzuhaengen.
+    arbeit(schluessel, satz) {
+      zeile(schluessel, laeuftHtml(satz));
+    },
+    // Sachlicher Hinweis, der kein Fehler ist — Statuswort „hinweis", nicht „befund".
+    hinweis(satz) {
+      endeMarkieren();
+      zeile("hinweis", statusChip("hinweis") + `<span>${escape(satz)}</span>`);
+    },
     fehler(satz) {
       endeMarkieren();
       zeile("fehler", statusChip("befund") + `<span>${escape(satz || "Der Lauf ist nicht durchgelaufen.")}</span>`);

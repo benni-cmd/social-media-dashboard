@@ -61,6 +61,14 @@ let driveOk = null;
 let syncOk = null;
 function zeichneBadge() {
   if (!badgeEl) return;
+  // v51: Der Hintergrund-Abgleich lief bisher voellig stumm (gemessen 10-70 s, waehrenddessen
+  // springen Karten scheinbar grundlos um). Solange er laeuft, sagt das Badge es.
+  if (abgleichLaeuft()) {
+    badgeEl.innerHTML = "";
+    badgeEl.appendChild(sanduhr("Gleicht gerade mit Drive ab …"));
+    badgeEl.title = "Gleicht gerade mit Drive ab — Karten koennen sich dabei aktualisieren.";
+    return;
+  }
   if (googleOk === null || driveOk === null) {
     badgeEl.innerHTML = statusChip("unlesbar") + `<span>Google/Drive: wird geprueft …</span>`;
     return;
@@ -432,7 +440,11 @@ try {
   // `driveAbgleich` teilt einen laufenden Abgleich, ein Fehler bleibt still (Board fuehrt).
   function hintergrundAbgleich() {
     if (abgleichLaeuft()) return;
-    driveAbgleich().then(
+    // Erst starten (das setzt die Laeuft-Marke synchron), dann zeichnen — sonst sieht das
+    // Badge den laufenden Abgleich nie.
+    const lauf = driveAbgleich();
+    zeichneBadge();
+    lauf.then(
       () => { driveOk = true; syncOk = true; zeichneBadge(); },
       () => { syncOk = false; zeichneBadge(); }
     );

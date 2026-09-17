@@ -205,6 +205,10 @@ export function neueKarte(spalte) {
 export async function loescheKarte(id) {
   const k = karte(id);
   if (k && k.driveName) {
+    // v51: Der Weg in den Papierkorb sucht den Ordner (bis 7 Drive-Aufrufe) und verschiebt ihn
+    // (Timeout 180 s) — bis v51 stand die Oberflaeche dabei stumm. Das Statuswort im Kopf sagt
+    // jetzt, dass gearbeitet wird; `speichere()` weiter unten ueberschreibt es danach ohnehin.
+    setStand("Verschiebe den Drive-Ordner in den Papierkorb …");
     await hole("/api/karte/loeschen", {
       method: "POST",
       headers: { "content-type": "application/json" },

@@ -11,7 +11,7 @@ import {
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
 import { melde, setStand } from "./store.js";
-import { escape, knopf } from "./ui.js";
+import { escape, knopf, sanduhr } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
 const PLAN_TYP_NAME = {
@@ -145,10 +145,12 @@ export async function zeigeRedaktionsplan() {
     // Zweites Oeffnen: sofort aus dem Cache — kein Warten auf Drive.
     baueInhalt(currentPlan, koerper);
   } else {
+    // v51: Das war statischer Text an der laengsten Wartestelle der App (`/api/plan` live mit
+    // 34,8 s gemessen, v47) — die Sanduhr ist der eine Marker fuer „warte, da kommt noch was".
     const laedt = document.createElement("p");
     laedt.className = "feld-hinweis";
     laedt.style.padding = "16px 0";
-    laedt.textContent = "Redaktionsplan wird geladen …";
+    laedt.appendChild(sanduhr("Redaktionsplan wird aus Drive gelesen — das dauert einen Moment …"));
     koerper.appendChild(laedt);
     const plan = await ladePlan();
     if (aktivesOverlay !== overlay) return; // zwischenzeitlich geschlossen

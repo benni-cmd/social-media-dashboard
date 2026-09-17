@@ -198,9 +198,9 @@ Projektordner anlegen `detail.js:1556` · Video-Upload `detail.js:1344` · Rohma
        fehler), Kaltstart per `/api/ps`; `hinweisZuFehler`-Provider-Bug geschlossen.
 4. [x] **Verdrahtung der KI-Ausloeser** — A1–A10 bekommen Terminal + Knopf-Inline-Zustand
        ueber die zwei Einstiege `rufeKi` (A1–A7) und das Ideen-Modal (A8–A10).
-5. [ ] **Drive/Laden** — dieselbe Komponente fuer E1–E5 (stumme Stellen zuerst).
-6. [ ] **Verify** — je Teilpaket `node --check`, echter Browser-Screenshot gegen
-       `docs/ui-standard.md`, Live-Beleg eines Ollama-Kaltstarts im Board.
+5. [x] **Drive/Laden** — dieselben Bausteine fuer die fuenf stummen Stellen E1–E5.
+6. [x] **Verify** — `node --check` auf jede geaenderte Datei, echte Browser-Screenshots
+       gegen `docs/ui-standard.md`, Live-Beleg des Ollama-Kaltstarts.
 
 ## Stand
 
@@ -297,6 +297,35 @@ eingespeisten Stufen-Objekten derselben Form — die Verdrahtung dahinter
 (`rufeKi` → `terminalAn`) ist geprueft, aber nicht per Kaltstart durchgespielt, weil dafuer
 eine Karte ohne Recherche angelegt werden muesste und das den echten Board-Stand veraendert.
 
+### Teilpaket 5 umgesetzt + verifiziert (17.09.2026)
+
+Die fuenf stummen Stellen aus Abschnitt E, jede mit dem Baustein, der dort hingehoert —
+kein neues Vokabular:
+
+- **E1 Hintergrund-Abgleich** (`app.js`): Das Google+Drive-Badge aus v52 zeigt waehrend des
+  Laufs `sanduhr("Gleicht gerade mit Drive ab …")`. Damit das Badge den Lauf ueberhaupt
+  sieht, wird jetzt erst `driveAbgleich()` gestartet (das setzt die Laeuft-Marke synchron,
+  `store.js:298`) und danach gezeichnet. **Live belegt:** direkt nach dem Laden zeigte das
+  Badge „Gleicht gerade mit Drive ab …" mit drehender Sanduhr — vorher lief das voellig
+  stumm, und Karten sprangen scheinbar grundlos um.
+- **E2 Downloads** (`detail.js`): „Skript laden" / „Rohmaterial laden" bekommen Knopf-Zustand
+  und ein schwebendes Terminal. Ehrlich bleibt: bei einem `<a>`-Download kann die Seite den
+  Abschluss nicht erfahren — das Terminal sagt deshalb „Der Download startet im Browser,
+  sobald das Paket fertig ist." mit dem Statuswort **hinweis**, nicht mit „befund" und nicht
+  mit einem erfundenen Fertig-Signal.
+- **E3 Redaktionsplan** (`redaktionsplan.js`): statischer Text → `sanduhr("Redaktionsplan
+  wird aus Drive gelesen — das dauert einen Moment …")`. **Screenshot belegt.**
+- **E4 Naechstes freies Datum** (`detail.js`): „Wird geladen …" → dieselbe Sanduhr
+  („Wird aus dem Redaktionsplan gelesen …"). **Screenshot belegt** an der Karte
+  „Erdworms und Pflanzenfreundinnen".
+- **E5 Karte loeschen** (`store.js`): `setStand("Verschiebe den Drive-Ordner in den
+  Papierkorb …")` vor dem Aufruf, der bis zu 180 s dauern kann. Code-Aenderung, nicht
+  optisch abgenommen — dafuer muesste eine echte Karte geloescht werden.
+
+Fuer Laeufe ohne Stufen-Ereignisse hat die Terminal-Komponente zwei neue Methoden bekommen:
+`arbeit(schluessel, satz)` (laufende Zeile mit eigenem Wortlaut) und `hinweis(satz)`
+(Statuswort „hinweis"). Damit braucht kein Drive-Pfad einen Sonderweg.
+
 **Bewusste Ungenauigkeit:** bei den NICHT-letzten Schritten einer Kette (die laufen ueber
 `runOllama` ohne Stream) gibt es kein „erstes Token" — dort laeuft der Ticker bis zum Ende des
 Schritts durch. Ehrlicher waere ein Wechsel auf den nativen `/api/chat` mit `load_duration`;
@@ -310,5 +339,12 @@ Geprueft gegen: vollstaendiges Ausloeser-Inventar (jeder Eintrag mit Datei:Zeile
 Live-Beleg Ollama-Kaltstart im Board (kaltes Modell, Stufe „Modell laedt" sichtbar) ·
 `docs/ui-standard.md` Regeln 3 und 5.
 
-Offen: Teilpaket 5 (Drive- und Ladepunkte E1–E5 auf dieselbe Komponente) und der
-Verify-Rest von Teilpaket 6 (Kaltstart-Durchlauf ueber einen Detailspalten-Knopf).
+Offen:
+- E5 (Karte loeschen) ist nur code-seitig belegt, nicht optisch — dafuer muesste eine echte
+  Karte geloescht werden.
+- Das schwebende Terminal an einem Detailspalten-KI-Knopf ist optisch mit eingespeisten
+  Stufen abgenommen, nicht mit einem echten Kaltstart-Durchlauf (dafuer braeuchte es eine
+  Karte ohne Recherche, also eine Aenderung am echten Board-Stand).
+- Innenschritte einer Kette melden „Modell laedt" bis zum Schrittende statt bis zum ersten
+  Token (siehe „Bewusste Ungenauigkeit" oben). Folgeschritt: Wechsel auf Ollamas nativen
+  `/api/chat` mit `load_duration`.

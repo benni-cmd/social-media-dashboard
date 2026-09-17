@@ -621,7 +621,13 @@ function blockTermineIdee(k, merke) {
     // Obere Kachel: nächstes freies Datum aus Redaktionsplan (async befüllt).
     const slotKachel = document.createElement("div");
     slotKachel.className = "termin-kachel termin-kachel-slot";
-    slotKachel.innerHTML = `<span class="termin-kachel-label">Naechstes freies Datum</span><span class="termin-kachel-datum">Wird geladen …</span>`;
+    // v51: derselbe `/api/plan`-Weg wie im Redaktionsplan (bis 35 s) — deshalb dieselbe Sanduhr
+    // statt eines stillen „Wird geladen …".
+    slotKachel.innerHTML = `<span class="termin-kachel-label">Naechstes freies Datum</span>`;
+    const slotDatum = document.createElement("span");
+    slotDatum.className = "termin-kachel-datum";
+    slotDatum.appendChild(sanduhr("Wird aus dem Redaktionsplan gelesen …"));
+    slotKachel.appendChild(slotDatum);
     slotKachel.style.cursor = "wait";
     kacheln.appendChild(slotKachel);
 
@@ -1607,13 +1613,25 @@ function blockDrive(k, stand) {
       const runter = (was, label, anzahl) => {
         const b = knopf(`${label} (${anzahl})`, {
           zeichen: "ordner",
-          klick: () => {
+          klick: (e) => {
             const a = document.createElement("a");
             a.href = downloadUrl(k, was);
             a.rel = "noopener";
             document.body.appendChild(a);
             a.click();
             a.remove();
+            // v51: Bisher passierte hier sichtbar gar nichts — der Server holt die Dateien
+            // erst aus Drive und packt sie (Timeout 900 s), der Browser-Balken erscheint also
+            // deutlich spaeter. Ehrlich gesagt, was laeuft: den Abschluss kann die Seite bei
+            // einem <a>-Download nicht erfahren, deshalb sagt das Terminal genau das.
+            const t = terminalAn(e.currentTarget, `${label} — Drive packt die Dateien …`);
+            t.arbeit("drive", "Holt die Dateien aus Drive und packt sie …");
+            const zustand = knopfLaeuft(e.currentTarget, "holt aus Drive …");
+            setTimeout(() => {
+              t.hinweis("Der Download startet im Browser, sobald das Paket fertig ist.");
+              t.fertig({ verzoegerung: 6000 });
+              zustand.zurueck();
+            }, 2500);
           },
         });
         if (!anzahl) {
