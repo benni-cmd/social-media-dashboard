@@ -32,8 +32,9 @@ import {
   projektName,
   deutschesDatum,
   POSTZEITEN,
+  naechsteFreieSlots,
 } from "/lib/pipeline.js";
-import { fensterFuerTyp } from "/lib/scheduler.js";
+import { fensterFuerTyp, slotsForMonth } from "/lib/scheduler.js";
 import {
   S,
   karte,
@@ -50,7 +51,6 @@ import {
   setStand,
   speichereDefaults,
   ladePlan,
-  slotBelegen,
   drehtermin,
   drehterminAnlegen,
   drehterminAendern,
@@ -633,10 +633,26 @@ function blockTermineIdee(k, merke) {
 
     ladePlan().then((plan) => {
       const heute = isoDatum(new Date());
-      const offen = (plan.slots || [])
-        .filter((s) => !s.karteId && s.datum >= heute)
-        .sort((a, b) => a.datum.localeCompare(b.datum));
-      const naechster = offen[0];
+      const jetzt = new Date();
+      // plan.slots ist absichtlich leer — die Slots werden aus der Config gerechnet (wie
+      // store.js/redaktionsplan.js), Vorausblick 12 Monate statt der alten 2. (v52)
+      const roh = [];
+      for (let delta = 0; delta < 12; delta++) {
+        const year = jetzt.getFullYear() + Math.floor((jetzt.getMonth() + delta) / 12);
+        const month = (jetzt.getMonth() + delta) % 12;
+        roh.push(...slotsForMonth(plan, year, month));
+      }
+      // Belegt = Upload-Datum jeder nicht-verworfenen ANDEREN Karte (datum|uhrzeit). Ein
+      // client-seitiger Slot hat keine id; die Belegung entsteht ueber das Karten-Datum (v52).
+      const belegt = new Set(
+        S.cards
+          .filter((c) => c.column !== "verworfen" && c.id !== k.id && (c.dates || {}).upload)
+          .map((c) => c.dates.upload + "|" + (c.uploadTime || ""))
+      );
+      const frei = roh
+        .filter((s) => s.datum >= heute)
+        .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit || "").localeCompare(b.uhrzeit || ""));
+      const naechster = naechsteFreieSlots(frei, belegt, 1)[0];
       if (naechster) {
         slotKachel.querySelector(".termin-kachel-datum").textContent = deutschesDatum(naechster.datum);
         slotKachel.style.cursor = "pointer";
@@ -644,16 +660,13 @@ function blockTermineIdee(k, merke) {
           merke("dates", einfacherPlan(naechster.datum), false);
           if (naechster.uhrzeit) merke("uploadTime", naechster.uhrzeit, false);
           await speichere();
-          slotBelegen(naechster.id, k.id).catch(() => {
-            meldung("Slot konnte nicht belegt werden.", "fehler");
-          });
-          await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
+          await schwebendeNeuBerechnen(); // Karte belegt den Termin ueber ihr Upload-Datum (v30/v52)
           zeichne();
           meldung(`Upload am ${deutschesDatum(naechster.datum)} geplant.`, "erfolg");
         });
       } else {
-        slotKachel.querySelector(".termin-kachel-label").textContent = "Kein freier Slot";
-        slotKachel.querySelector(".termin-kachel-datum").textContent = "Erstelle Slots im Redaktionsplan.";
+        slotKachel.querySelector(".termin-kachel-label").textContent = "Kein freier Termin";
+        slotKachel.querySelector(".termin-kachel-datum").textContent = "Im naechsten Jahr ist alles belegt.";
         slotKachel.style.cursor = "default";
         slotKachel.classList.add("termin-kachel-leer");
       }
