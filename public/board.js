@@ -16,7 +16,7 @@ import {
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
-import { statusChip, escape, knopf, leer, icon } from "./ui.js";
+import { statusChip, escape, knopf, leer, icon, knopfLaeuft } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
@@ -210,13 +210,14 @@ export function zeichneBoard(boardEl, lastEl) {
         titel: "Eine Idee fuer den naechsten freien Upload-Slot recherchieren.",
         klick: async () => {
           neuKnopf.disabled = true;
-          ideenKnopf.disabled = true;
+          // v51: Der Knopf sagt selbst, dass es losgeht — bis das Modal steht, vergeht Zeit.
+          const zustand = knopfLaeuft(ideenKnopf, "startet …");
           try {
             const id = await holeIdee(fuss);
             if (id) oeffne(id);
           } finally {
             neuKnopf.disabled = false;
-            ideenKnopf.disabled = false;
+            zustand.zurueck();
           }
         },
       });

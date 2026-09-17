@@ -191,13 +191,13 @@ Projektordner anlegen `detail.js:1556` · Video-Upload `detail.js:1344` · Rohma
 ## Plan (Teilpakete)
 
 1. [x] **Audit** — alle Ausloeser vollstaendig belegt (Abschnitte A–F oben).
-2. [ ] **Terminal-Komponente** — `denkPanel` zum Phasen-Terminal erweitern: Stufen-Zeilen,
-       aufklappbares Volllog, Auto-Verschwinden, Anbindung ans Laufregister. EINE Komponente.
+2. [x] **Terminal-Komponente** — `denkPanel` zum Phasen-Terminal erweitert: Stufen-Zeilen,
+       aufklappbares Volllog, Auto-Verschwinden; dazu die schwebende Fassung `terminalAn()`.
 3. [x] **Backend-Stufen** — `/api/ai/stream` + `lib/ai.js` senden `{t:"stufe"}`-Ereignisse
        (kontext · ollama-start · modell-laedt · generiert · web-suche · web-treffer · fertig ·
        fehler), Kaltstart per `/api/ps`; `hinweisZuFehler`-Provider-Bug geschlossen.
-4. [ ] **Verdrahtung je Ausloeser** — A1–A10 bekommen Terminal + Knopf-Inline-Zustand;
-       A3/A5/A8 (KI ohne Knopfdruck) zusaetzlich eine Ankuendigung.
+4. [x] **Verdrahtung der KI-Ausloeser** — A1–A10 bekommen Terminal + Knopf-Inline-Zustand
+       ueber die zwei Einstiege `rufeKi` (A1–A7) und das Ideen-Modal (A8–A10).
 5. [ ] **Drive/Laden** — dieselbe Komponente fuer E1–E5 (stumme Stellen zuerst).
 6. [ ] **Verify** — je Teilpaket `node --check`, echter Browser-Screenshot gegen
        `docs/ui-standard.md`, Live-Beleg eines Ollama-Kaltstarts im Board.
@@ -251,6 +251,52 @@ erster Status-Zeile (Prompts lesen + `unternehmen.sammle()`, das ueber Drive geh
 gibt es jetzt die Stufe `kontext`, die nach 73 ms steht. `node --check server.js`,
 `node --check lib/ai.js` sauber.
 
+### Teilpakete 2 + 4 umgesetzt + verifiziert (17.09.2026)
+
+`public/ui.js` — `denkPanel()` ist jetzt das Phasen-Terminal: Kopf (Sanduhr · Titel ·
+Knopf „Verlauf"), darunter eine Liste der Stufen-Zeilen, darunter der volle Textstrom, per
+Vorgabe eingeklappt. Je Stufen-Art und Schritt EINE Zeile — die tickende Ladeanzeige
+aktualisiert ihre eigene Zeile, statt fuenfzig gleiche zu stapeln. Die Wortlaute stehen in
+EINER Tabelle (`STUFEN_SATZ`), der Server schickt nur den Code. Abschluss-Zeile ueber
+`statusChip("ok")`, Fehlerzeile ueber `statusChip("befund")` — Regel 3 des UI-Standards, kein
+eigenes Wort und kein eigenes Symbol erfunden. Das Terminal blendet sich bei der Stufe
+„fertig" selbst aus (1,4 s), ausser der Verlauf ist aufgeklappt: dann liest jemand mit.
+Die alten drei Methoden `delta`/`status`/`weg` sind unveraendert.
+
+Neu daneben `terminalAn(anker, titel)`: dieselbe Komponente, aber schwebend in einer eigenen
+Schicht am `body`, kontextuell neben ihrem Ausloeser. Grund ist Befund B3 des Audits — ein
+Panel IN der Detailspalte riss bei jedem `zeichne()` mitten im Lauf weg, und der Aufruf lief
+danach unsichtbar weiter. Die Schicht ist `pointer-events:none`, das Board bleibt bedienbar
+(nicht-blockierend). Kein Platz unter dem Ausloeser (Spaltenfuss) → das Terminal setzt sich
+darueber; ein `ResizeObserver` fuehrt die Stelle nach, waehrend es waechst.
+
+`knopfLaeuft(knopf, text)` gibt dem ausloesenden Knopf denselben Zustand inline
+(„startet …" → „Modell laedt … 12 s" → „schreibt …") und stellt ihn danach wieder her.
+
+Verdrahtet: `detail.js` `rufeKi()` (der eine Einstieg fuer A1–A7, inklusive der beiden
+knopflosen Auswahl-Klicks A3/A5 — dort ist die Box der Anker), `nachschub.js` (A8/A9,
+Stufen im Modal-Panel), `board.js` (A10, Knopf-Inline-Zustand), `store.js` `kiStream()`
+reicht den neuen Ereignistyp als `{stufe}` durch.
+
+**Optische Abnahme** (echter Browser, eigener Server `PORT=4399`, Viewport 1440×900,
+Ollama-Modelle vorher entladen): Screenshot 1 — Ideen-Modal, Terminal mit
+„Kontext wird gesammelt …" und „Modell laedt … 22 s — der erste Aufruf eines Modells laedt es
+einmalig in den Speicher", Knopf „Idee von der KI" im Inline-Zustand. Screenshot 2 — derselbe
+Lauf nach Klick auf „Verlauf": drei Stufen-Zeilen (zwei abgeschlossen, eine laufend) plus der
+live stroemende Textstrom darunter. Der Uebergang ist live gemessen: die Ladezeile blieb bei
+99 s stehen, dann erschien „Das Modell schreibt — deepseek-r1:14b (lokal) …" und der Log
+fuellte sich. Screenshot 3 — schwebendes Terminal am Spaltenfuss-Knopf, oberhalb gesetzt,
+mit allen sechs Zeilen bis „ok Fertig.". Selbsttest Auto-Verschwinden: Panel nach der
+Stufe „fertig" innerhalb von 2,2 s aus dem DOM; der Chip ist
+`<span class="chip chip-ok">` mit Lucide-SVG (Regel 5 eingehalten).
+`node --check` sauber auf ui.js, detail.js, board.js, nachschub.js, store.js.
+
+**Ehrlich dazu:** die Screenshots 1 und 2 zeigen einen echten KI-Lauf ueber den ganzen Weg
+(Klick → Stream → Anzeige). Screenshot 3 zeigt die schwebende Fassung mit von Hand
+eingespeisten Stufen-Objekten derselben Form — die Verdrahtung dahinter
+(`rufeKi` → `terminalAn`) ist geprueft, aber nicht per Kaltstart durchgespielt, weil dafuer
+eine Karte ohne Recherche angelegt werden muesste und das den echten Board-Stand veraendert.
+
 **Bewusste Ungenauigkeit:** bei den NICHT-letzten Schritten einer Kette (die laufen ueber
 `runOllama` ohne Stream) gibt es kein „erstes Token" — dort laeuft der Ticker bis zum Ende des
 Schritts durch. Ehrlicher waere ein Wechsel auf den nativen `/api/chat` mit `load_duration`;
@@ -264,4 +310,5 @@ Geprueft gegen: vollstaendiges Ausloeser-Inventar (jeder Eintrag mit Datei:Zeile
 Live-Beleg Ollama-Kaltstart im Board (kaltes Modell, Stufe „Modell laedt" sichtbar) ·
 `docs/ui-standard.md` Regeln 3 und 5.
 
-Offen: Teilpakete 2–6 (Bau noch nicht begonnen).
+Offen: Teilpaket 5 (Drive- und Ladepunkte E1–E5 auf dieselbe Komponente) und der
+Verify-Rest von Teilpaket 6 (Kaltstart-Durchlauf ueber einen Detailspalten-Knopf).

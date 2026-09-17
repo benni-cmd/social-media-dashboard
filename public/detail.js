@@ -79,7 +79,8 @@ import {
   befundZeile,
   eigenschaft,
   fortschritt,
-  denkPanel,
+  terminalAn,
+  knopfLaeuft,
   sanduhr,
   modalKalender,
   infoTipp,
@@ -1810,11 +1811,22 @@ function schalterFeld(k, box, merke, paare) {
 async function rufeKi(task, k, knopfEl, box) {
   const alle = box.querySelectorAll(".knopf");
   alle.forEach((b) => (b.disabled = true));
-  const panel = denkPanel(box, `${KI_NAMEN[task] || task} — die KI schreibt …`);
+  // v51: Das Terminal schwebt neben dem Ausloeser statt in der Box zu liegen — die Box wird
+  // bei jeder Aenderung neu gezeichnet und riss das Panel bisher mitten im Lauf weg.
+  // Ohne Knopf (Auswahl-Klick, A3/A5 des Audits) ist die Box selbst der Anker.
+  const panel = terminalAn(knopfEl || box, `${KI_NAMEN[task] || task} — die KI schreibt …`);
+  const knopfZustand = knopfLaeuft(knopfEl, "startet …");
   try {
     const antwort = await kiStream(task, kiNutzlast(k), (e) => {
       if (e.delta) panel.delta(e.delta);
       if (e.status) panel.status(e.status);
+      if (e.stufe) {
+        panel.stufe(e.stufe);
+        // Derselbe Zustand noch einmal am Knopf, kurz: „laedt 12 s" / „schreibt".
+        if (e.stufe.stufe === "modell-laedt") knopfZustand.text(`Modell laedt … ${e.stufe.sekunden || 0} s`);
+        else if (e.stufe.stufe === "generiert") knopfZustand.text("schreibt …");
+        else if (e.stufe.stufe === "web-suche") knopfZustand.text("sucht im Web …");
+      }
     });
     // v41: Der Kontextabgleich steckt jetzt IN der Recherche-Pipeline (Schritt 3) — keine separate
     // Zweitrunde mehr; wir speichern einfach das Ergebnis des letzten Schritts.
@@ -1829,11 +1841,19 @@ async function rufeKi(task, k, knopfEl, box) {
     }
     await speichere();
     meldung("KI-Ergebnis gespeichert.", "erfolg");
-    zeichne(); // baut die Detailspalte neu auf — das Panel verschwindet mit ihr.
+    // Das Terminal blendet sich selbst aus (die „Fertig."-Zeile bleibt kurz lesbar) und
+    // ueberlebt das Neuzeichnen, weil es nicht in der Box haengt.
+    panel.fertig();
+    knopfZustand.zurueck();
+    zeichne();
   } catch (e) {
-    panel.weg();
+    const satz = (e.daten && e.daten.hint) || e.message;
+    panel.fehler(satz);
+    panel.fertig({ verzoegerung: 4000 });
+    knopfZustand.zurueck();
     alle.forEach((b) => (b.disabled = false));
-    await melde("befund", (e.daten && e.daten.hint) || e.message);
+    // Der Hinweis-Toast bleibt stehen, bis er weggeklickt wird (v52) — das Terminal darf gehen.
+    await melde("befund", satz);
   }
 }
 

@@ -444,6 +444,8 @@ export async function kiStream(task, nutzlast, onEreignis) {
       try { o = JSON.parse(zeile); } catch { continue; }
       if (o.t === "delta") onEreignis({ delta: o.text });
       else if (o.t === "status") onEreignis({ status: o.text });
+      // v51: echte Stufe des Laufs (kontext/modell-laedt/generiert/web-treffer/fertig/fehler)
+      else if (o.t === "stufe") onEreignis({ stufe: o });
       else if (o.t === "done") ergebnis = { text: o.text, data: o.data };
       else if (o.t === "error") fehler = o;
     }

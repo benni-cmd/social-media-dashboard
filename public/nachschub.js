@@ -127,6 +127,7 @@ export async function holeIdee() {
           (e) => {
             if (e.delta) panel.delta(e.delta);
             if (e.status) panel.status(e.status);
+            if (e.stufe) panel.stufe(e.stufe); // v51: echte Stufen statt nur Ueberschrift
           },
         );
         panel.weg();

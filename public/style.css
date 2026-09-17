@@ -1994,6 +1994,133 @@ body {
 .denk-text:empty {
   display: none;
 }
+.denk-text[hidden] {
+  display: none;
+}
+
+/* Stufen-Terminal (v51): die echten Phasen eines Laufs als Zeilen, damit man sieht, WAS
+   gerade passiert — nicht nur DASS etwas passiert. Der volle Textstrom liegt darunter und
+   wird ueber „Verlauf" aufgeklappt; ohne Aufklappen bleibt die Flaeche klein. */
+.denk-stufen {
+  list-style: none;
+  margin: 0;
+  padding: 8px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-still);
+}
+.denk-stufen:empty {
+  display: none;
+}
+.denk-stufe {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.denk-stufe .chip {
+  flex: 0 0 auto;
+}
+.denk-stufe-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  color: var(--akzent);
+  animation: sanduhr-dreht 1.8s linear infinite;
+}
+.denk-stufe-icon svg {
+  width: 100%;
+  height: 100%;
+}
+/* Erledigte Zeilen drehen nicht weiter — sonst sieht ein fertiger Lauf aus wie ein laufender. */
+.denk-stufe-vorbei .denk-stufe-icon {
+  animation: none;
+  color: var(--text-leise);
+}
+@media (prefers-reduced-motion: reduce) {
+  .denk-stufe-icon {
+    animation: none;
+  }
+}
+.denk-mehr {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund-klein);
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 10.5px;
+  color: var(--text-still);
+  cursor: pointer;
+}
+.denk-mehr:hover {
+  background: var(--flaeche-hoch);
+}
+.denk-mehr svg {
+  width: 11px;
+  height: 11px;
+  transition: transform 0.15s;
+}
+.denk-mehr[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+.denk-text:not([hidden]) {
+  border-top: 1px solid var(--linie);
+}
+.denk-fehler {
+  border-color: var(--befund);
+}
+/* Schicht fuer schwebende Terminals: liegt ueber dem Board, faengt aber keine Klicks —
+   nur die Terminals selbst sind bedienbar, das Board bleibt benutzbar (nicht-blockierend). */
+.terminal-schicht {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.denk-schwebend {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  pointer-events: auto;
+  background: var(--flaeche);
+  box-shadow: var(--schatten);
+  border-radius: var(--rund);
+}
+.denk-schwebend .denk-text {
+  max-height: 180px;
+}
+
+/* Nach dem Abschluss blendet sich das Terminal selbst aus. */
+.denk-faellt {
+  opacity: 0;
+  transition: opacity 0.9s ease-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  .denk-faellt {
+    transition: none;
+  }
+}
+/* Der ausloesende Knopf traegt denselben Zustand inline (v51) — man muss das Terminal nicht
+   erst suchen, um zu sehen, dass der Klick angekommen ist. */
+.knopf-laeuft {
+  opacity: 1;
+  cursor: progress;
+}
+.knopf-laeuft .denk-stufe-icon {
+  width: 13px;
+  height: 13px;
+  margin-top: 0;
+}
 
 /* Gefuehrter Loop: Schrittkopf, bereits getroffene Wahl, Zurueck */
 .schritt-kopf {

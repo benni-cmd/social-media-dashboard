@@ -155,29 +155,198 @@ export function knopf(text, { art = "still", zeichen = null, klick = null, titel
   return b;
 }
 
-// Live-Panel fuer KI-Laeufe: zeigt den Text, wie die KI ihn schreibt — Beleg, dass gearbeitet wird.
-// Rueckgabe: { delta(text), status(text), weg() }.
+// Die Stufen des Servers als deutsche Saetze (v51). Der Server schickt den Code, die Anzeige
+// besitzt den Wortlaut — so steht die Sprache an EINER Stelle. `o` ist das Stufen-Ereignis
+// aus /api/ai/stream: {stufe, schritt, von, rolle, rolleName, modell, sekunden, treffer, quelle}.
+const STUFEN_SATZ = {
+  kontext: () => "Kontext wird gesammelt …",
+  "ollama-start": () => "Ollama startet …",
+  "modell-laedt": (o) =>
+    `Modell laedt … ${o.sekunden || 0} s` +
+    // Nach ein paar Sekunden dazusagen, WARUM es dauert — gemessen 17.09.2026 braucht
+    // deepseek-r1:14b beim ersten Aufruf 25-50 s, und genau da denkt man „das haengt".
+    ((o.sekunden || 0) >= 8 ? " — der erste Aufruf eines Modells laedt es einmalig in den Speicher" : ""),
+  generiert: (o) => `Das Modell schreibt${o.modell ? " — " + o.modell : ""} …`,
+  "web-suche": () => "Sucht im Web …",
+  "web-treffer": (o) =>
+    o.treffer ? `${o.treffer} Web-Treffer${o.quelle ? " (" + o.quelle + ")" : ""}.` : "Keine Web-Treffer.",
+  fertig: () => "Fertig.",
+};
+
+// Live-Terminal fuer KI- und System-Laeufe (v32 D als Konsole, v51 um Stufen erweitert):
+// zeigt oben die echten Stufen als Zeilen, darunter aufklappbar den vollen Textstrom.
+// Rueckgabe: { delta(text), status(text), stufe(ereignis), fehler(satz), fertig(), weg() }.
+// `status`/`delta`/`weg` bleiben unveraendert — die drei alten Aufrufstellen laufen weiter.
 export function denkPanel(container, titel = "Die KI arbeitet …") {
   const el = document.createElement("div");
   el.className = "denk";
   el.innerHTML =
     `<div class="denk-kopf"><span class="denk-symbol knopf-symbol knopf-symbol-sanduhr">${icon("sanduhr")}</span>` +
-    `<span class="denk-titel">${escape(titel)}</span></div>` +
-    `<pre class="denk-text"></pre>`;
+    `<span class="denk-titel">${escape(titel)}</span>` +
+    `<button type="button" class="denk-mehr" aria-expanded="false" title="Vollen Verlauf zeigen">` +
+    `${icon("weiter")}<span>Verlauf</span></button></div>` +
+    `<ol class="denk-stufen"></ol>` +
+    `<pre class="denk-text" hidden></pre>`;
   container.appendChild(el);
   const textEl = el.querySelector(".denk-text");
   const titelEl = el.querySelector(".denk-titel");
+  const stufenEl = el.querySelector(".denk-stufen");
+  const mehrEl = el.querySelector(".denk-mehr");
+
+  let offen = false;
+  // Wer den Verlauf aufgeklappt hat, liest noch — dann raeumt sich das Terminal nicht
+  // unter den Augen weg, auch wenn der Lauf fertig ist.
+  mehrEl.addEventListener("click", () => {
+    offen = !offen;
+    textEl.hidden = !offen;
+    mehrEl.setAttribute("aria-expanded", String(offen));
+    mehrEl.title = offen ? "Vollen Verlauf verbergen" : "Vollen Verlauf zeigen";
+    if (offen) textEl.scrollTop = textEl.scrollHeight;
+  });
+
+  // Je Stufen-Art EINE Zeile: eine tickende Ladeanzeige aktualisiert ihre eigene Zeile,
+  // statt fuenfzig gleiche Zeilen zu stapeln.
+  const zeilen = new Map();
+  function zeile(schluessel, inhaltHtml) {
+    let li = zeilen.get(schluessel);
+    if (!li) {
+      li = document.createElement("li");
+      li.className = "denk-stufe";
+      zeilen.set(schluessel, li);
+      stufenEl.appendChild(li);
+    }
+    li.innerHTML = inhaltHtml;
+    return li;
+  }
+  const laeuftHtml = (satz) =>
+    `<span class="denk-stufe-icon">${icon("sanduhr")}</span><span>${escape(satz)}</span>`;
+
+  function endeMarkieren() {
+    // Die laufenden Zeilen drehen sonst weiter, obwohl nichts mehr laeuft.
+    for (const li of zeilen.values()) li.classList.add("denk-stufe-vorbei");
+  }
+
+  // Nach Abschluss raeumt sich das Terminal selbst weg — ausser der Verlauf ist aufgeklappt,
+  // dann liest jemand mit und es bleibt stehen. Haengt an der Komponente, nicht an der
+  // Aufrufstelle: so verschwindet JEDES Terminal von selbst, egal wer es verdrahtet hat.
+  function selbstAusblenden(verzoegerung = 1400) {
+    endeMarkieren();
+    if (offen) return;
+    el.classList.add("denk-faellt");
+    setTimeout(() => el.remove(), verzoegerung);
+  }
+
   return {
     el,
     delta(t) {
       textEl.textContent += t;
-      textEl.scrollTop = textEl.scrollHeight;
+      if (offen) textEl.scrollTop = textEl.scrollHeight;
     },
     status(s) {
       if (s) titelEl.textContent = s;
     },
+    stufe(o) {
+      if (!o || !o.stufe) return;
+      if (o.stufe === "fehler") return;
+      const satzBau = STUFEN_SATZ[o.stufe];
+      if (!satzBau) return;
+      const satz = satzBau(o);
+      // Schluessel je Schritt, damit eine dreistufige Kette drei Generier-Zeilen bekommt
+      // statt einer ueberschriebenen.
+      const schluessel = `${o.stufe}#${o.schritt || 0}`;
+      if (o.stufe === "fertig") {
+        zeile(schluessel, statusChip("ok") + `<span>${escape(satz)}</span>`);
+        selbstAusblenden();
+      } else {
+        zeile(schluessel, laeuftHtml(satz));
+      }
+    },
+    fehler(satz) {
+      endeMarkieren();
+      zeile("fehler", statusChip("befund") + `<span>${escape(satz || "Der Lauf ist nicht durchgelaufen.")}</span>`);
+      el.classList.add("denk-fehler");
+    },
+    // Fuer Laeufe ohne Stufen-Ereignisse (Drive, Laden): dasselbe Ausblenden von Hand.
+    fertig({ verzoegerung = 1400 } = {}) {
+      selbstAusblenden(verzoegerung);
+    },
     weg() {
       el.remove();
+    },
+  };
+}
+
+// Schwebende Fassung desselben Terminals (v51). Warum nicht einfach in die Box haengen:
+// die Detailspalte wird bei jeder Aenderung neu gezeichnet (`zeichne()`), und ein Panel IN der
+// Box verschwindet dann mitten im Lauf — der Aufruf lief danach unsichtbar weiter (Befund des
+// v51-Audits). Das schwebende Terminal liegt in einer eigenen Schicht am `body`, steht
+// kontextuell neben seinem Ausloeser und ueberlebt jeden Neuzeichen-Lauf.
+let _terminalSchicht = null;
+function _schicht() {
+  if (!_terminalSchicht || !document.body.contains(_terminalSchicht)) {
+    _terminalSchicht = document.createElement("div");
+    _terminalSchicht.className = "terminal-schicht";
+    document.body.appendChild(_terminalSchicht);
+  }
+  return _terminalSchicht;
+}
+
+export function terminalAn(anker, titel = "Die KI arbeitet …") {
+  const p = denkPanel(_schicht(), titel);
+  p.el.classList.add("denk-schwebend");
+  const stelle = () => {
+    if (!anker || !anker.isConnected) return; // Anker weggezeichnet: letzte Stelle behalten
+    const r = anker.getBoundingClientRect();
+    const breite = p.el.offsetWidth || 320;
+    const hoehe = p.el.offsetHeight || 140;
+    p.el.style.left = Math.max(12, Math.min(r.left, window.innerWidth - breite - 12)) + "px";
+    // Unter den Ausloeser — ausser es ist dort kein Platz mehr (Knopf am unteren Rand,
+    // z. B. der Spaltenfuss „Idee von der KI"), dann darueber.
+    let oben = r.bottom + 8;
+    if (oben + hoehe > window.innerHeight - 12) oben = Math.max(12, r.top - hoehe - 8);
+    p.el.style.top = oben + "px";
+  };
+  stelle();
+  window.addEventListener("scroll", stelle, true);
+  window.addEventListener("resize", stelle);
+  // Das Terminal waechst mit jeder Stufe; ohne Nachfuehren rutscht es sonst aus dem Bild,
+  // wenn es mangels Platz oberhalb des Ausloesers sitzt.
+  const beobachter = typeof ResizeObserver === "function" ? new ResizeObserver(stelle) : null;
+  if (beobachter) beobachter.observe(p.el);
+  // Das Terminal kann sich auch selbst wegblenden (Stufe „fertig"); die Zuhoerer muessen
+  // deshalb am VERSCHWINDEN haengen, nicht an einem bestimmten Aufruf.
+  let waechter = null;
+  const aufraeumen = () => {
+    window.removeEventListener("scroll", stelle, true);
+    window.removeEventListener("resize", stelle);
+    if (beobachter) beobachter.disconnect();
+    if (waechter) waechter.disconnect();
+  };
+  if (typeof MutationObserver === "function") {
+    waechter = new MutationObserver(() => {
+      if (!p.el.isConnected) aufraeumen();
+    });
+    waechter.observe(_schicht(), { childList: true });
+  }
+  return p;
+}
+
+// Inline-Zustand am ausloesenden Knopf (v51): der Knopf selbst sagt, dass es losgeht — man
+// muss nicht erst das Terminal suchen. Rueckgabe: { text(t), zurueck() }.
+export function knopfLaeuft(b, text = "startet …") {
+  if (!b) return { text() {}, zurueck() {} };
+  const vorher = b.innerHTML;
+  b.disabled = true;
+  b.classList.add("knopf-laeuft");
+  const setze = (t) =>
+    (b.innerHTML = `<span class="denk-stufe-icon">${icon("sanduhr")}</span><span>${escape(t)}</span>`);
+  setze(text);
+  return {
+    text: setze,
+    zurueck() {
+      b.innerHTML = vorher;
+      b.disabled = false;
+      b.classList.remove("knopf-laeuft");
     },
   };
 }
