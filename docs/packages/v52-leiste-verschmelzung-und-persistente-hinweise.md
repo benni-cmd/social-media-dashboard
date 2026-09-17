@@ -59,7 +59,7 @@ nicht durch Ueberschreiben oder Uebersehen verloren gehen.
 - [x] store.js: `melde()` auf Toast umgestellt
 - [x] app.js: Kopf-Verdrahtung, Abgleichen-Handler, Google/Drive-Badge
 - [x] Optische Abnahme im Browser (Screenshot, Scroll-Test, Popup-Test)
-- [ ] Commit + Push
+- [x] Commit + Push (c44104c)
 
 ## DoD
 
