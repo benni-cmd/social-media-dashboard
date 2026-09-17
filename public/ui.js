@@ -1461,6 +1461,22 @@ export function meldung(text, typ = "erfolg") {
   el.dataset.timer = String(setTimeout(() => _schliesseMeldung(el), 10000));
 }
 
+// Persistenter Hinweis-Toast (v52): wie meldung(), aber mit statusChip() (die sechs
+// Status-Woerter) statt nur gruen/rot, und OHNE Auto-Timeout — verschwindet erst durch
+// aktives Wegklicken. Fuer Hinweise/Fehlermeldungen, die vorher in der festen Kopf-Zeile
+// standen und dort leicht uebersehen wurden oder von der naechsten Meldung ueberschrieben.
+export function hinweisToast(status, satz) {
+  const st = _bekommStapel();
+  const el = document.createElement("div");
+  el.className = "meldung meldung-hinweis";
+  el.innerHTML =
+    statusChip(status) +
+    `<span class="meldung-text">${escape(satz)}</span>` +
+    `<button class="meldung-schliessen" aria-label="Schliessen">${icon("schliessen")}</button>`;
+  el.querySelector(".meldung-schliessen").addEventListener("click", () => _schliesseMeldung(el));
+  st.appendChild(el);
+}
+
 // Zeigt einen Bestaetigungs-Toast (ersetzt confirm()). Ruft onJa() bei Bestaetigung.
 export function bestaetigen(text, jaText, onJa) {
   const st = _bekommStapel();

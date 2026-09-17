@@ -215,6 +215,14 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.kopf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-still);
+  white-space: nowrap;
+}
 
 /* Ansichts-Umschalter */
 .ansichten {
@@ -391,16 +399,41 @@ body {
   display: none;
 }
 
-/* Wochen-Leiste ueber dem Board */
+/* Board-Ansicht: Leiste (Drehtermine+Redaktionsplan) bleibt stehen wie die Kopfzeile,
+   nur der Bereich darunter (Nachschub+Board) scrollt (v52). */
+#ansicht-board {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#ansicht-board[hidden] {
+  display: none;
+}
+.board-leiste {
+  display: flex;
+  align-items: stretch;
+  background: var(--flaeche);
+  border-bottom: 1px solid var(--linie);
+  flex: 0 0 auto;
+}
+.board-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wochenlast: rechter, kompakter Teil der Leiste (Redaktionsplan-Knopf ganz rechts) */
 .wochenlast {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 7px 20px;
-  background: var(--flaeche);
-  border-bottom: 1px solid var(--linie);
   font-size: 12.5px;
   color: var(--text-still);
+  flex: 0 0 auto;
+  border-left: 1px solid var(--linie);
 }
 .wochenlast-saeulen {
   margin-left: auto;
@@ -421,15 +454,15 @@ body {
   background: var(--saeule-ohne);
 }
 
-/* --- Drehtermin-Leiste (v16) --- */
+/* --- Drehtermin-Leiste (v16): linker, wachsender Teil der Board-Leiste (v52) --- */
 .drehleiste {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 20px;
-  background: var(--flaeche-hoch);
-  border-bottom: 1px solid var(--linie);
   overflow-x: auto;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .drehleiste-label {
   display: inline-flex;
@@ -498,7 +531,6 @@ body {
   max-width: 180px;
 }
 .drehleiste-neu {
-  margin-left: auto;
   flex: 0 0 auto;
 }
 .modal-dreh {
@@ -1289,30 +1321,6 @@ body {
 @keyframes laeuft {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
-}
-
-/* Meldung im Kopf */
-.meldung {
-  padding: 10px 20px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  border-bottom: 1px solid var(--linie);
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  background: var(--flaeche);
-}
-.meldung[hidden] {
-  display: none;
-}
-.meldung-schliessen {
-  margin-left: auto;
-  background: none;
-  border: 0;
-  color: var(--text-leise);
-  cursor: pointer;
-  display: flex;
-  padding: 2px;
 }
 
 /* Auswertungs-Kacheln (v23-2: .zahl/.zahlenreihe sind unbenutzt — auswertung.js baut die
@@ -2658,6 +2666,8 @@ body {
   border-color: transparent;
 }
 .meldung-bestaetigen { border-left-color: var(--hinweis); flex-direction: column; gap: 9px; }
+.meldung-hinweis { max-width: 420px; }
+.meldung-hinweis .chip { margin-top: 1px; }
 
 .meldung-erfolg > .icon,
 .meldung-fehler > .icon { color: rgba(255,255,255,0.85); flex-shrink: 0; margin-top: 1px; }

@@ -1,12 +1,12 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, driveStatus, gcalStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, statusChip, escape, einstellungenModal, meldung, sanduhr } from "./ui.js";
+import { fortschritt, statusChip, escape, einstellungenModal, meldung, hinweisToast, sanduhr } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
@@ -48,7 +48,36 @@ const knoepfe = {
   auswertung: el("zu-auswertung"),
 };
 
-verdrahteKopf(el("stand"), el("meldung"));
+verdrahteKopf(el("stand"));
+
+// --- Google/Drive-Badge im Kopf (v52) --------------------------------------
+//
+// Fasst zwei bisher getrennte Zustaende in einem Indikator zusammen: ist Google (Kalender+
+// Tasks) verbunden, ist Drive erreichbar, und war der letzte Hintergrund-Abgleich mit Drive
+// erfolgreich. Alle drei speisen sich aus ohnehin vorhandenen Aufrufen (kein neuer Endpunkt).
+const badgeEl = el("google-drive-badge");
+let googleOk = null;
+let driveOk = null;
+let syncOk = null;
+function zeichneBadge() {
+  if (!badgeEl) return;
+  if (googleOk === null || driveOk === null) {
+    badgeEl.innerHTML = statusChip("unlesbar") + `<span>Google/Drive: wird geprueft …</span>`;
+    return;
+  }
+  const luecken = [];
+  if (!googleOk) luecken.push("Google Kalender nicht verbunden");
+  if (!driveOk) luecken.push("Drive nicht erreichbar");
+  if (syncOk === false) luecken.push("letzter Live-Abgleich fehlgeschlagen");
+  const code = luecken.length ? "befund" : "ok";
+  const satz = luecken.length ? luecken.join(" · ") : "Google + Drive verbunden, live abgeglichen";
+  badgeEl.innerHTML = statusChip(code) + `<span>${escape(satz)}</span>`;
+  badgeEl.title = satz;
+}
+zeichneBadge();
+gcalStatus()
+  .then((s) => { googleOk = !!s.verbunden; zeichneBadge(); })
+  .catch(() => { googleOk = false; zeichneBadge(); });
 
 // --- Karte oeffnen --------------------------------------------------------
 
@@ -167,18 +196,14 @@ el("abgleichen").addEventListener("click", async (e) => {
   const weg = fortschritt(lastEl, "Lese alle Phasenordner in Drive und vergleiche sie mit dem Board …");
   try {
     const ergebnis = await driveAbgleich();
-    const meldungEl = el("meldung");
-    meldungEl.hidden = false;
-    meldungEl.innerHTML =
-      `<div style="display:flex;flex-direction:column;gap:6px;flex:1 1 auto">` +
-      ergebnis.befunde
-        .map((b) => `<div class="befund">${statusChip(b.status)}<span class="befund-satz">${escape(b.satz)}</span></div>`)
-        .join("") +
-      `</div>` +
-      `<button class="meldung-schliessen" aria-label="Meldung schliessen">×</button>`;
-    meldungEl.querySelector(".meldung-schliessen").addEventListener("click", () => (meldungEl.hidden = true));
+    for (const b of ergebnis.befunde) hinweisToast(b.status, b.satz);
+    driveOk = true;
+    syncOk = true;
+    zeichneBadge();
     setStand(ergebnis.geaendert ? "Board an Drive angeglichen." : "Board und Drive waren schon gleich.");
   } catch (fehler) {
+    syncOk = false;
+    zeichneBadge();
     await melde("befund", `Der Abgleich lief nicht durch: ${fehler.message}`);
   } finally {
     weg();
@@ -388,9 +413,13 @@ try {
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.
   driveStatus()
     .then((s) => {
+      driveOk = !!s.ok;
+      zeichneBadge();
       if (!s.ok) melde("unlesbar", s.satz);
     })
     .catch(() => {
+      driveOk = false;
+      zeichneBadge();
       meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler");
     });
 
@@ -403,7 +432,10 @@ try {
   // `driveAbgleich` teilt einen laufenden Abgleich, ein Fehler bleibt still (Board fuehrt).
   function hintergrundAbgleich() {
     if (abgleichLaeuft()) return;
-    driveAbgleich().catch(() => {});
+    driveAbgleich().then(
+      () => { driveOk = true; syncOk = true; zeichneBadge(); },
+      () => { syncOk = false; zeichneBadge(); }
+    );
   }
   hintergrundAbgleich();
   setInterval(() => {

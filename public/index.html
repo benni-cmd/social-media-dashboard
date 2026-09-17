@@ -23,6 +23,7 @@
       </button>
 
       <div class="kopf-rechts">
+        <span id="google-drive-badge" class="kopf-badge"></span>
         <span id="stand" class="kopf-stand">Bereit.</span>
         <div class="kopf-menu">
           <button class="knopf knopf-symbol" id="kopf-menu-knopf" title="Weitere Aktionen" aria-haspopup="true" aria-expanded="false">
@@ -57,14 +58,16 @@
       </div>
     </header>
 
-    <div class="meldung" id="meldung" hidden></div>
-
     <div class="hauptflaeche" id="hauptflaeche">
       <section class="ansicht" id="ansicht-board">
-        <div class="wochenlast" id="wochenlast"></div>
-        <div class="drehleiste" id="drehleiste"></div>
-        <div class="nachschub" id="nachschub"></div>
-        <div class="board" id="board"></div>
+        <div class="board-leiste" id="board-leiste">
+          <div class="drehleiste" id="drehleiste"></div>
+          <div class="wochenlast" id="wochenlast"></div>
+        </div>
+        <div class="board-scroll" id="board-scroll">
+          <div class="nachschub" id="nachschub"></div>
+          <div class="board" id="board"></div>
+        </div>
       </section>
 
       <section class="ansicht" id="ansicht-auswertung" hidden></section>

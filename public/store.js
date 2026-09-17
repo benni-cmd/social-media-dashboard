@@ -89,31 +89,21 @@ export const aktiveKarte = () => karte(S.aktiv);
 // --- Anzeige im Kopf ------------------------------------------------------
 
 let standEl;
-let meldungEl;
 
-export function verdrahteKopf(stand, meldung) {
+export function verdrahteKopf(stand) {
   standEl = stand;
-  meldungEl = meldung;
 }
 
 export function setStand(text) {
   if (standEl) standEl.textContent = text;
 }
 
-// Eine Meldung ist ein Satz mit Status — nie nur eine Farbe.
+// Eine Meldung ist ein Satz mit Status — nie nur eine Farbe. Erscheint als Popup-Notification
+// (v52), die stehen bleibt, bis sie aktiv weggeklickt wird — vorher stand sie in einer festen
+// Kopf-Zeile und ging beim naechsten Aufruf oder beim Wegscrollen unter.
 export async function melde(status, satz) {
-  if (!meldungEl) return;
-  const { statusChip, icon, escape } = await import("./ui.js");
-  meldungEl.hidden = false;
-  meldungEl.innerHTML =
-    statusChip(status) +
-    `<span class="befund-satz">${escape(satz)}</span>` +
-    `<button class="meldung-schliessen" aria-label="Meldung schliessen">${icon("schliessen")}</button>`;
-  meldungEl.querySelector(".meldung-schliessen").addEventListener("click", () => (meldungEl.hidden = true));
-}
-
-export function meldungWeg() {
-  if (meldungEl) meldungEl.hidden = true;
+  const { hinweisToast } = await import("./ui.js");
+  hinweisToast(status, satz);
 }
 
 // --- Server ---------------------------------------------------------------

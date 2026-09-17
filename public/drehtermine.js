@@ -57,6 +57,25 @@ export function zeichneDrehleiste() {
   if (!el) return;
   el.innerHTML = "";
 
+  // Google-Status still vorladen (v52): wird nicht mehr als Chip in dieser Zeile gezeigt
+  // (Indikator sitzt jetzt in der Kopfzeile), aber der Termin-Detail-Knopf „Zu Google Kalender +
+  // Tasks" braucht den Stand sofort, nicht erst beim ersten Klick.
+  if (googleVerbunden === null) ladeGoogleStatus();
+
+  // Neuen Drehtermin anlegen: ganz links in der verschmolzenen Leiste (v52, Owner-Vorgabe).
+  const neu = knopf("Drehtermin", {
+    zeichen: "plus",
+    titel: "Neuen Drehtermin mit Datum und Uhrzeit anlegen.",
+    klick: () =>
+      modalDrehtermin((werte) => {
+        const t = drehterminAnlegen(werte.datum, werte.zeit);
+        if (werte.ort || werte.titel) drehterminAendern(t.id, { ort: werte.ort, titel: werte.titel });
+        detail(t.id); // gleich oeffnen, damit man sofort Teilnehmer einladen kann (v44)
+      }),
+  });
+  neu.classList.add("drehleiste-neu");
+  el.appendChild(neu);
+
   const label = document.createElement("span");
   label.className = "drehleiste-label knopf-symbol knopf-symbol-kalender";
   label.title = "Drehtermine";
@@ -76,34 +95,6 @@ export function zeichneDrehleiste() {
     for (const t of kommend) spur.appendChild(kachel(t));
   }
   el.appendChild(spur);
-
-  const neu = knopf("Drehtermin", {
-    zeichen: "plus",
-    titel: "Neuen Drehtermin mit Datum und Uhrzeit anlegen.",
-    klick: () =>
-      modalDrehtermin((werte) => {
-        const t = drehterminAnlegen(werte.datum, werte.zeit);
-        if (werte.ort || werte.titel) drehterminAendern(t.id, { ort: werte.ort, titel: werte.titel });
-        detail(t.id); // gleich oeffnen, damit man sofort Teilnehmer einladen kann (v44)
-      }),
-  });
-  neu.classList.add("drehleiste-neu");
-  el.appendChild(neu);
-
-  // Google-Verbindung: Knopf, solange nicht verbunden; sonst ein dezentes Haekchen.
-  if (googleVerbunden === null) {
-    ladeGoogleStatus(() => { if (document.getElementById("drehleiste")) zeichneDrehleiste(); });
-  }
-  const g = document.createElement("span");
-  g.className = "drehleiste-google";
-  g.style.cssText = "margin-left:8px;display:inline-flex;align-items:center;gap:6px;color:var(--text-still);font-size:12px;white-space:nowrap";
-  if (googleVerbunden) {
-    g.innerHTML = icon("check") + "<span>Google verbunden</span>";
-    g.title = "Google Kalender + Tasks sind verbunden.";
-  } else {
-    g.appendChild(knopf("Mit Google verbinden", { klick: () => gcalVerbinden() }));
-  }
-  el.appendChild(g);
 }
 
 function kachel(t) {
