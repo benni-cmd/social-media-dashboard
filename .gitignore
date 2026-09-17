@@ -39,6 +39,10 @@ data/spalten.json
 # verbunden ist. Nicht committen.
 data/board.json
 
+# Redaktionsplan-Cache (v48): data/plan.json ist ab v17d nur der Cache, Drive ist Wahrheit
+# (System (AI only)/redaktionsplan.json). Fehlt der Cache, greift pipeline.defaultPlan(). Nicht committen.
+data/plan.json
+
 # Selbstsigniertes HTTPS-Zertifikat: wird beim Start erzeugt, rechnerlokal
 data/localhost.key
 data/localhost.crt
