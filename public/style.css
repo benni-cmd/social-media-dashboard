@@ -625,9 +625,17 @@ body {
   display: flex;
   flex-direction: column;
   max-height: 100%;
-  /* v53: bewusst KEIN overflow:hidden — bei einem Fenster, das noch nicht mal Kopf+Fuss Platz
-     gibt (unrealistisch klein, < ~300px Board-Hoehe), soll der Fuss lieber sichtbar ueber den
-     Rand hinausragen als unsichtbar und unklickbar hinter dem Rand verschwinden. */
+  /* v53 Nachlese (Owner 22.09.2026): overflow:hidden ist PFLICHT, nicht optional — ohne sie
+     zieht die automatische Flexbox-Mindestbreite den Inhalt der "idee"-Spalte (die breiten
+     Fuss-Knoepfe "Karte anlegen"/"Idee von der KI") als Breiten-Untergrenze heran, und genau
+     diese eine Spalte wird dann breiter als die festen 260px — beim vorherigen Owner-Test
+     sichtbar nachgemessen (305px statt 260px). overflow:hidden schaltet diese Mindestbreiten-
+     Vererbung ab; die Knoepfe selbst passen bei 260px einwandfrei rein (226px Innenbreite,
+     einzeilig, geprueft). Randfall: bei einem Board-Bereich < ~160px Hoehe (Kopf+Fuss+etwas
+     Liste passen dann rechnerisch nicht mehr) wird der Fuss wieder abgeschnitten statt
+     scrollbar — bewusst in Kauf genommen, da unrealistisch klein und die einheitliche Breite
+     hier Vorrang hat (Owner-Entscheidung). */
+  overflow: hidden;
 }
 .spalte-kopf {
   padding: 11px 13px 9px;

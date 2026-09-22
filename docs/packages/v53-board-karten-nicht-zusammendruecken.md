@@ -84,6 +84,25 @@ bleibt stehen; Board-weit bleibt der horizontale Scroll unveraendert (dort beste
   1944px > `.board.clientWidth` 1000px, Board scrollt horizontal wie vorgesehen.
 - Default-Fenstergroesse: normaler Board-Screenshot optisch geprueft, keine Regression.
 
+## Nachlese (22.09.2026, Owner-Fund nach dem ersten Commit)
+
+Owner-Screenshot nach `3e05bca`: Spalten sichtbar unterschiedlich breit ("Skript schreiben"
+305px statt 260px). Nachgemessen, nicht geraten — Ursache: NUR die "idee"-Spalte (einzige mit
+`.spalte-fuss`) war betroffen. Grund: ich hatte `.spalte` bewusst OHNE `overflow:hidden` gebaut
+(fuer den 1000×280-Stresstest), aber genau das schaltet Flexbox' automatische Mindestbreite frei
+— bei sichtbarem Overflow zieht der Browser den breitesten Nachfahren-Inhalt (hier: die
+`.knopf-breit`-Fuss-Knoepfe) als Breiten-Untergrenze der Spalte heran. Live geprueft: mit
+`overflow:hidden` sofort wieder exakt 260px ueberall, Knoepfe passen einwandfrei bei 226px
+Innenbreite (einzeilig, kein Textabschnitt). `.knopf-breit{min-width:0}` allein hatte KEINE
+Wirkung (Beleg: bleibt bei 305px) — bestaetigt, dass die Spalte selbst die Quelle war, nicht der
+Knopf. Fix: `overflow:hidden` auf `.spalte` zurueckgebracht.
+
+Tausch bewusst akzeptiert (einheitliche Breite hat laut Owner Vorrang): der 1000×280-Randfall
+aus der ersten Runde (Fuss wird bei < ~160px Board-Hoehe wieder unsichtbar statt per Scroll
+erreichbar) ist damit wieder da. Unrealistisch kleines Fenster, von Ben nie gemeldet — nur von
+mir selbst als Stresstest gebaut. Wenn das doch stoeren sollte: sag Bescheid, dann brauchts einen
+cleveren Mindesthoehen-Mechanismus statt overflow:visible.
+
 ## Stand
 
 - [x] Ursache im Browser nachgemessen (nicht geraten) — 22.09.2026
@@ -91,13 +110,15 @@ bleibt stehen; Board-weit bleibt der horizontale Scroll unveraendert (dort beste
 - [x] Owner-Antworten auf die vier Fragen
 - [x] Umsetzung
 - [x] Verify (Resize-Screenshots, drei Fenstergroessen + Default)
-- [ ] Commit + Push
+- [x] Nachlese: Spaltenbreite-Regression gefunden, nachgemessen, gefixt, erneut verifiziert
+- [x] Commit + Push
 
 ## DoD
 
 - [x] Karten behalten ihre natuerliche Groesse unabhaengig von Fensterhoehe/Kartenzahl in der Spalte.
 - [x] Jede Spalte scrollt vertikal einzeln, Spaltenkopf bleibt sichtbar.
 - [x] Horizontales Scrollen des Boards unveraendert (war nicht kaputt).
-- [x] `.spalte-fuss` bleibt erreichbar (sichtbar normal, per Scroll im Extremfall).
-- [x] Spaltenbreite fest 260px (Owner-Entscheidung).
+- [x] `.spalte-fuss` bleibt in normalen Fenstergroessen erreichbar (Randfall < ~160px Board-Hoehe
+      bewusst in Kauf genommen, siehe Nachlese).
+- [x] Spaltenbreite fest 260px, ausnahmslos alle Spalten (Owner-Nachlese-Fund behoben).
 - [x] Drehtermin-Kacheln + KPI-Kacheln ebenfalls abgesichert (Owner-Entscheidung).
