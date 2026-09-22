@@ -103,6 +103,25 @@ erreichbar) ist damit wieder da. Unrealistisch kleines Fenster, von Ben nie geme
 mir selbst als Stresstest gebaut. Wenn das doch stoeren sollte: sag Bescheid, dann brauchts einen
 cleveren Mindesthoehen-Mechanismus statt overflow:visible.
 
+## Nachlese 2 (22.09.2026): Titel-Ueberlauf bei einem einzelnen langen Wort
+
+Owner-Fund (Screenshot Karte `_selbsttest_moved_1788309943359`): ein leerzeichenloses langes
+Wort (Test-ID) lief ueber den Kartenrand hinaus und wurde von `.eintrag{overflow:hidden}` hart
+abgeschnitten — beruehrte den Rand, ueberlappte optisch mit dem Status-Punkt oben rechts.
+
+Zwei Teile:
+1. `.eintrag-titel { overflow-wrap: anywhere; }` — ein Wort ohne Umbruchstelle bricht jetzt
+   selbst mitten im Wort, statt ueberzulaufen. Normale Titel mit Leerzeichen unveraendert
+   (brechen weiterhin zuerst an Wortgrenzen, wie im Screenshot bei „Bodentest im Glas –
+   Erkenne deine Bodenstruktur" zu sehen).
+2. Owner-Vorgabe: Zeile 1 soll wegen des Status-Punkts etwas frueher brechen, Zeile 2 darf bis
+   zum normalen Kartenrand (abzueglich Innenpadding) laufen. Das bisherige einheitliche
+   `padding-right:16px` reservierte diesen Platz auf JEDER Zeile, auch dort, wo kein Punkt sitzt.
+   Ersetzt durch ein `float:right`-Element (`.eintrag-titel::before`, 16px breit, exakt eine
+   Zeilenhoehe hoch) — Text umfliesst es nur in Zeile 1, Zeile 2 nutzt die volle Breite.
+   Live gemessen: Status-Punkt bei x 226-234px, Titel-Box bis 234px — kein Ueberlapp, keine
+   Beruehrung des Kartenrands, zweite Zeile sichtbar breiter als die erste (Screenshot).
+
 ## Stand
 
 - [x] Ursache im Browser nachgemessen (nicht geraten) — 22.09.2026
@@ -111,7 +130,8 @@ cleveren Mindesthoehen-Mechanismus statt overflow:visible.
 - [x] Umsetzung
 - [x] Verify (Resize-Screenshots, drei Fenstergroessen + Default)
 - [x] Nachlese: Spaltenbreite-Regression gefunden, nachgemessen, gefixt, erneut verifiziert
-- [x] Commit + Push
+- [x] Nachlese 2: Titel-Wortumbruch (overflow-wrap + zeilenspezifischer Punkt-Freiraum)
+- [ ] Commit + Push (Nachlese 2)
 
 ## DoD
 

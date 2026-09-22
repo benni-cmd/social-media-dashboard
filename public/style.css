@@ -732,10 +732,24 @@ body {
   font-size: 13.5px;
   line-height: 1.35;
   margin-bottom: 7px;
-  padding-right: 16px;
   /* Owner 04.09.2026: Karten sollen einheitlich hoch sein, bemessen auf zwei Titelzeilen —
      reserviert den Platz immer, auch wenn der Titel kuerzer ist und nur eine Zeile braucht. */
   min-height: calc(1.35em * 2);
+  /* Owner 22.09.2026: ein einzelnes, leerzeichenloses Wort (z. B. eine Test-ID) lief bisher
+     ueber den Kartenrand hinaus und wurde von .eintrag{overflow:hidden} hart abgeschnitten,
+     statt umzubrechen. */
+  overflow-wrap: anywhere;
+}
+/* Reserviert den Platz fuer den Status-Punkt NUR in Zeile 1 (per Float, statt einem
+   Zeilen-uebergreifenden padding-right): Zeile 1 bricht etwas frueher wegen des Punkts,
+   Zeile 2 darf bis zum normalen Karten-Innenrand laufen — genau wie Owner 22.09.2026
+   beschrieben ("erste Zeile etwas frueher, zweite Zeile erst am Kartenrand abzueglich
+   innerem Padding"). */
+.eintrag-titel::before {
+  content: "";
+  float: right;
+  width: 16px;
+  height: 1.35em;
 }
 .eintrag-marken {
   display: flex;
