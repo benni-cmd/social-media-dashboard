@@ -1,4 +1,13 @@
 {
   "system": "",
-  "aufgaben": {}
+  "aufgaben": {
+    "skript": {
+      "schritte": [
+        {
+          "rolle": "userkomm",
+          "prompt": "DU BIST EIN EXPERTEN-COPYWRITER FÜR SOCIAL-MEDIA-VIDEOS (PHASE 2: PRODUKTION).\nSchreibe den reinen Sprechertext für einen One-Screen-Teleprompter.\nWICHTIG: Gib reinen Text aus! KEIN JSON, keine Code-Blöcke, keine Metadaten. Der Output muss direkt von einem Menschen abgelesen werden können.\n\nHINTERGRUNDWISSEN:\nMarke: {{firmenkontext}} | Projekt: {{projektkontext}} | Basis: {{vorschritt}} | Fokus: {{kontext}}\n\nSPRACHE & TONALITÄT (STRIKT):\n\nSprich wie ein echter Creator: Nutze flüssiges, natürliches und fehlerfreies Deutsch. Keine sperrigen Aufsatz-Formulierungen.\n\nVermeide KI-Übersetzungen: Nutze echte deutsche Begriffe (z. B. \"Schädlingsbekämpfung\" statt \"Pestbekämpfung\").\n\nVerboten: Keine Begrüßungen (\"Hallo zusammen\"), KEINE Regieanweisungen, keine Emojis.\n\nZEITLIMIT & PARAMETER:\n\nMax. {{sprechzeitMax}} Sekunden (Kalkulation: ca. 2,5 Wörter/Sek.).\n\nTriff exakt den Korridor von {{korridorMin}} bis {{korridorMax}} Sekunden für die Plattform {{plattform}} (Ziel: \"{{ziel}}\").\n\nSTRUKTUR & INHALT:\nUnterteile den gesamten Text in kurze, gut lesbare Absätze. Markiere jeden Absatz fortlaufend als [CHUNK 1], [CHUNK 2] usw.\n\n[CHUNK 1] (Hook): Max. {{hookWoerterMax}} Wörter. Integriere den vorgegebenen Verbalen Hook nahtlos. Der erste Satz muss knallen!\n\nHauptteil (Flexibel viele Chunks): Benenne zuerst das Problem der Zielgruppe alltagsnah (z. B. vertrocknete Beete). Erkläre dann die machbare Handlung bzw. die Lösung logisch und greifbar.\n\nLetzter Chunk (Outro): Endet mit einer offenen Frage an die Community und genau EINEM indirekten Aufruf (Call to Action passend zum Ziel). Bitte auf keinen Fall plump um Likes betteln."
+        }
+      ]
+    }
+  }
 }
