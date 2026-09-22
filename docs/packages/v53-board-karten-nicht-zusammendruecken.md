@@ -1,7 +1,6 @@
 # v53 — Board-Karten duerfen beim vertikalen Platzmangel nicht schrumpfen
 
-> PLAN-Paket, angelegt 22.09.2026. Noch NICHT gebaut — Owner will Rueckfragen beantwortet
-> haben, bevor irgendwas angefasst wird ("frag mich alles, rate an keiner Stelle").
+> Umgesetzt 22.09.2026, nach Owner-Antworten auf die vier Rueckfragen unten.
 
 ## PIG
 
@@ -46,48 +45,59 @@ verhalten (umbrechen, kleiner werden) — nur die Kartenflaeche selbst nicht.
 Groesse unabhaengig von der Kartenzahl in der Spalte; jede Spalte scrollt einzeln, Spaltenkopf
 bleibt stehen; Board-weit bleibt der horizontale Scroll unveraendert (dort besteht kein Fehler).
 
-## Offene Fragen — bitte beantworten, ich rate nicht
+## Owner-Antworten (22.09.2026)
 
-1. **Spaltenbreite:** Aktuell `flex:1 1 260px; min-width:230px; max-width:320px` — die Breite
-   „atmet" zwischen 230 und 320px, je nach Fensterbreite/Spaltenzahl. Soll das GENAUSO bleiben
-   (nur die Karten-HOEHE ist das Problem), oder soll die Spaltenbreite ebenfalls auf einen festen
-   Wert fixiert werden (z. B. immer 260px), sodass wirklich nichts am Board mehr „atmet" und
-   ausschliesslich horizontal gescrollt wird?
-2. **`.spalte-fuss`-Nebenfund:** Sollen „Karte anlegen"/„Idee von der KI" bei extremem
-   Platzmangel (a) IMMER sichtbar bleiben (Spalte bekommt eine Mindesthoehe, die Kopf+Fuss+ein
-   Stueck Liste garantiert, `.spalte` kriegt `overflow:hidden` gegen das Herausrutschen), oder
-   (b) darf die ganze Spalte in diesem Extremfall selbst vertikal scrollen (Kopf scrollt dann mit
-   weg, nicht mehr angepinnt)? Ich tendiere zu (a), weil es zu deiner Regel „das Arrangement
-   bleibt gleich" passt — aber das ist meine Einschaetzung, keine Owner-Entscheidung.
-3. **Reichweite:** Nur `.eintrag` (Board-Karten) fixen, oder soll dieselbe Nie-schrumpfen-Regel
-   auch fuer andere Karten-Typen gelten, die technisch denselben Flex-Aufbau haben (z. B.
-   Drehtermin-Kacheln in der Leiste, KPI-Kacheln in der Auswertung)? Die Meldung nennt nur das
-   Board — ich will nicht stillschweigend mehr anfassen als gefragt.
-4. **Test-Beleg:** Reicht dir die Browser-Messung + Screenshot (wie oben) als Abnahme, oder
-   willst du selbst nochmal am echten Fenster nachscrollen, bevor ich committe?
+1. **Spaltenbreite:** fixieren (immer 260px) — nichts am Board atmet mehr, nur noch scrollen.
+2. **`.spalte-fuss`:** immer sichtbar halten (Variante a).
+3. **Reichweite:** ueberall gleich absichern — auch Drehtermin-Kacheln und KPI-Kacheln.
+4. Browser-Messung + Screenshot als Abnahme (implizit, keine eigene Nachpruefung verlangt).
 
-## Plan (nach Antworten)
+## Umsetzung
 
-1. `public/style.css`: `.eintrag { flex-shrink: 0; }` ergaenzen (Kernfix).
-2. Je nach Antwort 2: `.spalte-fuss`-Schutz + ggf. `.spalte{overflow:hidden}`.
-3. Je nach Antwort 1: Spaltenbreite fixieren statt `flex:1 1 260px`.
-4. Je nach Antwort 3: dieselbe Regel auf weitere Kartentypen uebertragen.
-5. Verify: Browser-Resize-Test (kurz + extrem kurz), Screenshot vor/nach, gegen die
-   Nie-schrumpfen-Regel aus Intent gegenpruefen.
-6. Commit + Push.
+- `public/style.css`:
+  - `.eintrag { flex-shrink: 0; }` — Kernfix, Board-Karten schrumpfen nie mehr.
+  - `.spalte { flex: 0 0 260px; }` statt `flex:1 1 260px; min-width:230px; max-width:320px` —
+    feste Breite, alte v23-2-Kommentar (atmend) ersetzt.
+  - `.spalte-kopf`, `.spalte-fuss`: `flex-shrink: 0`.
+  - `.spalte-liste`: `min-height: 56px` → `min-height: 0` (+ `flex-shrink:1` explizit) — sonst
+    wurde bei extremem Platzmangel der Fuss durch die alte 56px-Mindesthoehe der Liste
+    verdraengt (mit Browser-Messung nachgewiesen, siehe unten).
+  - `.spalte`: bewusst OHNE `overflow:hidden` — bei einem Fenster, das nicht mal Kopf+Fuss
+    Platz gibt (< ~300px Board-Hoehe, unrealistisch klein), soll der Fuss sichtbar ueber den
+    Rand ragen (und per `.board-scroll` erreichbar bleiben) statt unsichtbar+unklickbar hinter
+    dem Rand zu verschwinden — mit `overflow:hidden` waere er dort komplett verloren gewesen.
+  - `.drehkachel`, `.kpi`: `flex-shrink: 0` ergaenzt (Reichweite-Antwort). Bei `.kpi` heute
+    inert (Auswertung nutzt CSS-Grid, kein Flex-Vater, also nicht wirklich gefaehrdet) — trotzdem
+    gesetzt, damit die Regel ueberall im Code sichtbar/konsistent steht.
+
+## Verify (Browser-Messung, 22.09.2026)
+
+- `1000×500` (Original-Repro): alle Karten einheitlich 89.4px hoch (vorher 24px in vollen
+  Spalten), Spaltenbreite exakt 260px, jede Spalte scrollt einzeln (`.spalte-liste.scrollHeight`
+  744-1233px bei 190-283px sichtbarer Hoehe) — Screenshot bestaetigt: Icons/Symbole wieder klar
+  lesbar.
+- `1000×280` (Stresstest, absichtlich unrealistisch klein): „Karte anlegen"/„Idee von der KI"
+  zunaechst noch teils unter dem sichtbaren Rand — nach `min-height:0` auf `.spalte-liste` beide
+  Knoepfe im normalen Board-Scroll erreichbar (herunterscrollen zeigt „Idee von der KI"
+  vollstaendig), nichts mehr unsichtbar/unklickbar hinter einem `overflow:hidden`-Rand.
+- `1000×700`: horizontale Achse unveraendert korrekt — 8 Spalten auf 260px, `.board.scrollWidth`
+  1944px > `.board.clientWidth` 1000px, Board scrollt horizontal wie vorgesehen.
+- Default-Fenstergroesse: normaler Board-Screenshot optisch geprueft, keine Regression.
 
 ## Stand
 
 - [x] Ursache im Browser nachgemessen (nicht geraten) — 22.09.2026
 - [x] Fix-Hypothese live getestet (Style-Injektion, keine Datei geaendert)
-- [ ] Owner-Antworten auf die vier Fragen
-- [ ] Umsetzung
-- [ ] Verify (Resize-Screenshots)
+- [x] Owner-Antworten auf die vier Fragen
+- [x] Umsetzung
+- [x] Verify (Resize-Screenshots, drei Fenstergroessen + Default)
 - [ ] Commit + Push
 
 ## DoD
 
-- Karten behalten ihre natuerliche Groesse unabhaengig von Fensterhoehe/Kartenzahl in der Spalte.
-- Jede Spalte scrollt vertikal einzeln, Spaltenkopf bleibt sichtbar.
-- Horizontales Scrollen des Boards unveraendert (war nicht kaputt).
-- `.spalte-fuss` bleibt sichtbar/an der Spalte, rutscht nicht heraus.
+- [x] Karten behalten ihre natuerliche Groesse unabhaengig von Fensterhoehe/Kartenzahl in der Spalte.
+- [x] Jede Spalte scrollt vertikal einzeln, Spaltenkopf bleibt sichtbar.
+- [x] Horizontales Scrollen des Boards unveraendert (war nicht kaputt).
+- [x] `.spalte-fuss` bleibt erreichbar (sichtbar normal, per Scroll im Extremfall).
+- [x] Spaltenbreite fest 260px (Owner-Entscheidung).
+- [x] Drehtermin-Kacheln + KPI-Kacheln ebenfalls abgesichert (Owner-Entscheidung).

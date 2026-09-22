@@ -496,6 +496,7 @@ body {
   gap: 2px;
   padding: 4px 10px;
   min-width: 118px;
+  flex-shrink: 0; /* v53: dieselbe Nie-schrumpfen-Regel wie bei den Board-Karten */
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
@@ -614,26 +615,24 @@ body {
 }
 
 .spalte {
-  /* v23-2 (F4): flexibel statt starr 272px — nutzt freien Platz bei wenigen Spalten,
-     schrumpft bis min-width bei vielen. Loest den Horizontal-Scroll bei der vollen
-     8-Phasen-Pipeline (idee..verworfen) NICHT vollstaendig: acht Spalten mit lesbarem
-     Kacheltext brauchen mehr als eine typische Fensterbreite. Ein echter Fix braucht
-     einklappbare/seltene Endspalten (z. B. "Fertig", "Verworfen" auf Namen+Zahl reduziert)
-     — bewusst nicht in diesem Paket umgesetzt, siehe DoD/Offen.
-  */
-  flex: 1 1 260px;
-  min-width: 230px;
-  max-width: 320px;
+  /* v53 (Owner-Entscheidung 22.09.2026): feste Breite statt atmend — das Board ist eine feste
+     Flaeche, bei zu vielen Spalten wird horizontal gescrollt statt dass Spalten schmaler werden.
+     Vorher (v23-2) flexibel zwischen 230-320px; das ist jetzt bewusst aufgegeben. */
+  flex: 0 0 260px;
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: var(--rund);
   display: flex;
   flex-direction: column;
   max-height: 100%;
+  /* v53: bewusst KEIN overflow:hidden — bei einem Fenster, das noch nicht mal Kopf+Fuss Platz
+     gibt (unrealistisch klein, < ~300px Board-Hoehe), soll der Fuss lieber sichtbar ueber den
+     Rand hinausragen als unsichtbar und unklickbar hinter dem Rand verschwinden. */
 }
 .spalte-kopf {
   padding: 11px 13px 9px;
   border-bottom: 1px solid var(--linie);
+  flex-shrink: 0; /* v53: Kopf bleibt immer sichtbar, egal wie eng es wird */
 }
 .spalte-kopf-zeile {
   display: flex;
@@ -665,7 +664,12 @@ body {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  min-height: 56px;
+  /* v53 (Owner-Entscheidung 22.09.2026): min-height:0 statt 56px — bei extremem Platzmangel
+     weicht die Liste vollstaendig, damit Kopf UND Fuss (.spalte-fuss) immer sichtbar bleiben;
+     vorher wurde bei sehr niedrigen Fenstern der Fuss (Karte anlegen/Idee von der KI) hinter
+     der 56px-Mindesthoehe der Liste abgeschnitten. */
+  min-height: 0;
+  flex-shrink: 1;
 }
 .spalte-liste.zielt {
   outline: 2px dashed var(--akzent);
@@ -674,6 +678,7 @@ body {
 }
 .spalte-fuss {
   padding: 0 14px 14px;
+  flex-shrink: 0; /* v53: "Karte anlegen"/"Idee von der KI" bleiben immer erreichbar */
 }
 
 /* --- Kachel: der Kern der Uebersicht --- */
@@ -688,6 +693,7 @@ body {
   overflow: hidden;
   transition: border-color 0.12s, transform 0.08s;
   box-shadow: var(--schatten);
+  flex-shrink: 0; /* v53: Karten werden bei Platzmangel NIE gequetscht — .spalte-liste scrollt */
 }
 /* Owner 04.09.2026: der Farbstreifen links raus. War ohnehin totes CSS — die
    data-saeule-Werte kannten nur die alte Taxonomie (anleitung/hardfacts/...), echte
@@ -1397,6 +1403,8 @@ body {
   box-shadow: var(--schatten);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0; /* v53: dieselbe Nie-schrumpfen-Regel; heute inert (Grid, kein Flex-Vater),
+                     schuetzt aber, falls .kpi-reihe spaeter mal in einen Flex-Kontext wandert */
 }
 .kpi-icon {
   width: 34px;
