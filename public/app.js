@@ -1,6 +1,6 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, driveStatus, gcalStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, abgleichStufe, beiAbgleichStufe, driveStatus, gcalStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
@@ -64,9 +64,12 @@ function zeichneBadge() {
   // v51: Der Hintergrund-Abgleich lief bisher voellig stumm (gemessen 10-70 s, waehrenddessen
   // springen Karten scheinbar grundlos um). Solange er laeuft, sagt das Badge es.
   if (abgleichLaeuft()) {
+    // v51 T7: nicht nur DASS der Abgleich laeuft, sondern wo er steht — der Server schickt
+    // die Stufe live mit (Spalten, Ordner 3/8, Karte 12/25).
+    const satz = abgleichStufe() || "Gleicht gerade mit Drive ab …";
     badgeEl.innerHTML = "";
-    badgeEl.appendChild(sanduhr("Gleicht gerade mit Drive ab …"));
-    badgeEl.title = "Gleicht gerade mit Drive ab — Karten koennen sich dabei aktualisieren.";
+    badgeEl.appendChild(sanduhr(satz));
+    badgeEl.title = `${satz} — Karten koennen sich dabei aktualisieren.`;
     return;
   }
   if (googleOk === null || driveOk === null) {
@@ -83,6 +86,8 @@ function zeichneBadge() {
   badgeEl.title = satz;
 }
 zeichneBadge();
+// Jede Stufen-Meldung zeichnet NUR das Badge neu — nicht das Board (v51 T7).
+beiAbgleichStufe(() => zeichneBadge());
 gcalStatus()
   .then((s) => { googleOk = !!s.verbunden; zeichneBadge(); })
   .catch(() => { googleOk = false; zeichneBadge(); });
@@ -202,6 +207,8 @@ el("abgleichen").addEventListener("click", async (e) => {
   e.currentTarget.disabled = true;
   standLaedt("Gleiche mit Drive ab …");
   const weg = fortschritt(lastEl, "Lese alle Phasenordner in Drive und vergleiche sie mit dem Board …");
+  // Dieselbe Stufe, die das Badge zeigt, laeuft hier im Balken mit (v51 T7).
+  const stufeAb = beiAbgleichStufe((satz) => { if (satz) weg.text(satz); });
   try {
     const ergebnis = await driveAbgleich();
     for (const b of ergebnis.befunde) hinweisToast(b.status, b.satz);
@@ -214,6 +221,7 @@ el("abgleichen").addEventListener("click", async (e) => {
     zeichneBadge();
     await melde("befund", `Der Abgleich lief nicht durch: ${fehler.message}`);
   } finally {
+    stufeAb();
     weg();
     e.currentTarget.disabled = false;
   }

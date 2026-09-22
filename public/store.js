@@ -19,6 +19,7 @@ export const S = {
   monat: new Date(), // fuer die Kalenderansicht
   driveStand: new Map(), // Karten-id -> Ergebnis von /api/drive/scan
   driveScanLaeuft: new Set(), // Karten-ids, deren Drive-Scan gerade laeuft (v32 E2/B: Sanduhr auf der Kachel)
+  abgleichStufe: "", // wo der laufende Drive-Abgleich steht, als Satz (v51 T7); leer = laeuft nicht
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN, personen: [] }, // personen: Team-Mailliste (v44)
@@ -298,11 +299,43 @@ let abgleichInFlight = null;
 export function abgleichLaeuft() {
   return !!abgleichInFlight;
 }
+// v51 T7: Wo der Abgleich gerade steht, als fertiger deutscher Satz. Eigene Mini-Anmeldung
+// statt `zeichne()` — der Lauf meldet mehrmals pro Sekunde, und ein voller Board-Neuaufbau
+// je Meldung waere um Groessenordnungen zu teuer.
+let abgleichStufeHoerer = [];
+// Rueckgabe meldet wieder ab — noetig fuer Hoerer, die an ein kurzlebiges Element haengen
+// (der Balken im Kopf-Menue), sonst schreibt bei jedem Klick ein Hoerer mehr ins Leere.
+export function beiAbgleichStufe(f) {
+  abgleichStufeHoerer.push(f);
+  return () => {
+    abgleichStufeHoerer = abgleichStufeHoerer.filter((h) => h !== f);
+  };
+}
+export function abgleichStufe() {
+  return S.abgleichStufe || "";
+}
+function setzeAbgleichStufe(satz) {
+  S.abgleichStufe = satz;
+  for (const f of abgleichStufeHoerer) {
+    try { f(satz); } catch {}
+  }
+}
+
+// Die Stufen des Abgleichs als Saetze — dieselbe Trennung wie beim KI-Stream: der Server
+// schickt den Code, die Anzeige besitzt den Wortlaut.
+function abgleichSatz(o) {
+  if (o.stufe === "drive-spalten") return "Gleicht die Spalten mit Drive ab …";
+  if (o.stufe === "drive-ordner") return `Liest Drive-Ordner ${o.schritt}/${o.von}: ${o.was} …`;
+  if (o.stufe === "drive-karte") return `Gleicht Karte ${o.schritt}/${o.von} ab: ${o.was} …`;
+  if (o.stufe === "fertig") return "";
+  return "";
+}
+
 export function driveAbgleich() {
   if (abgleichInFlight) return abgleichInFlight;
   abgleichInFlight = (async () => {
     try {
-      const ergebnis = await hole("/api/drive/reconcile", { method: "POST" });
+      const ergebnis = await abgleichStream();
       S.cards = (ergebnis.cards || []).map(migriere);
       if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
       S.version = ergebnis.version;
@@ -311,9 +344,41 @@ export function driveAbgleich() {
       return ergebnis;
     } finally {
       abgleichInFlight = null;
+      setzeAbgleichStufe("");
     }
   })();
   return abgleichInFlight;
+}
+
+// Liest den NDJSON-Strom von /api/drive/reconcile/stream. Gleiche Zeilen-Typen wie beim
+// KI-Stream, gleiche Nachsicht: unbekannte Typen werden still uebersprungen.
+async function abgleichStream() {
+  const res = await fetch("/api/drive/reconcile/stream", { method: "POST" });
+  if (!res.ok || !res.body) throw new Error(`Der Server antwortete mit ${res.status}.`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let puffer = "";
+  let ergebnis = null;
+  let fehler = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    puffer += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = puffer.indexOf("\n")) >= 0) {
+      const zeile = puffer.slice(0, nl).trim();
+      puffer = puffer.slice(nl + 1);
+      if (!zeile) continue;
+      let o;
+      try { o = JSON.parse(zeile); } catch { continue; }
+      if (o.t === "stufe") setzeAbgleichStufe(abgleichSatz(o));
+      else if (o.t === "done") ergebnis = o;
+      else if (o.t === "error") fehler = o;
+    }
+  }
+  if (fehler) throw new Error(fehler.error);
+  if (!ergebnis) throw new Error("Der Abgleich hat kein Ergebnis geliefert.");
+  return ergebnis;
 }
 
 // Spalte umbenennen (v17b): benennt den Drive-Ordner mit und aktualisiert die Spalten-Wahrheit.

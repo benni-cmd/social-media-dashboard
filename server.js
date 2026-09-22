@@ -293,6 +293,37 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   return vorschritt;
 }
 
+// Der Drive-Abgleich als EINE Funktion (v51 T7) — die JSON-Route und die Stream-Route teilen
+// sie sich, damit beide Wege nie auseinanderlaufen koennen. `onStufe` ist optional: ohne
+// Rueckruf verhaelt sie sich exakt wie der Abgleich vor v51.
+// Zuerst die Spalten (Drive fuehrt): Marker lesen, Hand-Umbenennungen erkennen, Seed
+// sicherstellen. Danach steht der dynamische Ordner-Resolver fuer den Karten-Abgleich.
+async function fuehreAbgleichAus(onStufe = () => {}) {
+  onStufe({ stufe: "drive-spalten" });
+  let spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
+  const spaltenBefunde = [];
+  try {
+    const driveConfig = await spaltenStore.leseVonDrive();
+    const gemischt = pipeline.mischeSpalten(driveConfig);
+    const r = await spaltenStore.reconcile(gemischt);
+    spalten = r.spalten;
+    spaltenBefunde.push(...r.befunde);
+    await spaltenCacheSchreiben(spaltenStore.alsConfig(spalten));
+  } catch (e) {
+    spaltenBefunde.push({ status: "befund", satz: `Spalten-Abgleich mit Drive fehlgeschlagen: ${e.message}` });
+  }
+  spaltenResolverSetzen(spalten);
+
+  const aktuell = await leseBoard();
+  const { cards, befunde, geaendert } = await projekte.abgleich(aktuell.cards, { onStufe });
+  let version = aktuell.version;
+  if (geaendert) {
+    version = aktuell.version + 1;
+    await schreibeBoard(cards, version);
+  }
+  return { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten };
+}
+
 // --- Redaktionsplan: Drive ist Wahrheit, data/plan.json nur Cache (v17d) -----
 //
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
@@ -869,30 +900,32 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/drive/reconcile" && req.method === "POST") {
-      // Zuerst Spalten abgleichen (Drive fuehrt): Marker lesen, Hand-Umbenennungen erkennen,
-      // Seed sicherstellen. Danach steht der dynamische Ordner-Resolver fuer den Karten-Abgleich.
-      let spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
-      const spaltenBefunde = [];
-      try {
-        const driveConfig = await spaltenStore.leseVonDrive();
-        const gemischt = pipeline.mischeSpalten(driveConfig);
-        const r = await spaltenStore.reconcile(gemischt);
-        spalten = r.spalten;
-        spaltenBefunde.push(...r.befunde);
-        await spaltenCacheSchreiben(spaltenStore.alsConfig(spalten));
-      } catch (e) {
-        spaltenBefunde.push({ status: "befund", satz: `Spalten-Abgleich mit Drive fehlgeschlagen: ${e.message}` });
-      }
-      spaltenResolverSetzen(spalten);
+      sendJson(res, 200, await fuehreAbgleichAus());
+      return;
+    }
 
-      const aktuell = await leseBoard();
-      const { cards, befunde, geaendert } = await projekte.abgleich(aktuell.cards);
-      let version = aktuell.version;
-      if (geaendert) {
-        version = aktuell.version + 1;
-        await schreibeBoard(cards, version);
+    // Derselbe Abgleich, aber live (v51 T7): NDJSON mit denselben Zeilen-Typen wie der
+    // KI-Stream — {t:"stufe"} waehrend des Laufs, am Ende {t:"done", ...ergebnis}. Der
+    // Abgleich braucht 10-70 s (v25 gemessen) und sagte bisher nur, DASS er laeuft.
+    if (pfad === "/api/drive/reconcile/stream" && req.method === "POST") {
+      res.writeHead(200, {
+        "content-type": "application/x-ndjson; charset=utf-8",
+        "cache-control": "no-cache",
+        "x-accel-buffering": "no",
+      });
+      const schreib = (o) => {
+        if (res.writableEnded || res.destroyed) return;
+        res.write(JSON.stringify(o) + "\n");
+      };
+      try {
+        const ergebnis = await fuehreAbgleichAus((o) => schreib({ t: "stufe", ...o }));
+        schreib({ t: "stufe", stufe: "fertig" });
+        schreib({ t: "done", ...ergebnis });
+      } catch (e) {
+        schreib({ t: "stufe", stufe: "fehler" });
+        schreib({ t: "error", error: e.message });
       }
-      sendJson(res, 200, { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten });
+      res.end();
       return;
     }
 

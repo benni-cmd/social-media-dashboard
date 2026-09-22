@@ -560,7 +560,15 @@ export function fortschritt(container, text) {
     `<span class="fortschritt-text">${escape(text || "Einen Moment …")}</span></span>` +
     `<span class="fortschritt-schiene"><span class="fortschritt-balken"></span></span>`;
   container.appendChild(box);
-  return () => box.remove();
+  // Rueckgabe ist die Entfern-Funktion wie bisher (`const weg = fortschritt(...); weg();`),
+  // traegt aber zusaetzlich `weg.text(satz)` — damit ein laufender Vorgang seine Zeile
+  // nachfuehren kann, statt bis zum Ende denselben Satz zu zeigen (v51 T7).
+  const weg = () => box.remove();
+  weg.text = (satz) => {
+    const el = box.querySelector(".fortschritt-text");
+    if (el && satz) el.textContent = satz;
+  };
+  return weg;
 }
 
 // Info-Tooltip: kleiner "i"-Kreis, Hover zeigt Erklaerung.
