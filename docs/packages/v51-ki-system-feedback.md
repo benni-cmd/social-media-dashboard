@@ -233,9 +233,52 @@ Kaltstart-Durchlauf sind per echtem Lauf im Browser belegt.
        neu zeichnet und nicht das ganze Board (ein `zeichne()` je Sekunde waere zu teuer).
 4. [ ] `public/app.js` — Badge zeigt `S.abgleichStufe`; der Kopf-Menue-Abgleich ebenso.
        Beide Ausloeser teilen sich das laufende Promise (v32 C3), also gilt es fuer beide.
-5. [ ] Verify — `node --check`, Screenshot des Badges mit laufender Stufe, plus die zwei
-       offenen Abnahmen: Testkarte anlegen → Kaltstart am Detailspalten-Knopf (schwebendes
-       Terminal im echten Lauf) → dieselbe Karte loeschen (E5).
+5. [x] Verify — `node --check`, Screenshot des Badges mit laufender Stufe, plus die
+       offenen Abnahmen (E5 siehe Einschraenkung unten).
+
+### Teilpaket 7 umgesetzt + verifiziert (22.09.2026)
+
+Gebaut wie geplant. `fortschritt()` hat zusaetzlich `.text(satz)` bekommen, ohne die
+bisherige Rueckgabe zu brechen (es bleibt die Entfern-Funktion, sie traegt jetzt nur eine
+Eigenschaft mehr) — damit fuehrt auch der Balken im Kopf-Menue die Stufe nach.
+`beiAbgleichStufe()` gibt eine Abmelde-Funktion zurueck, sonst haengte bei jedem Klick auf
+„Mit Drive abgleichen" ein Hoerer mehr an einem laengst entfernten Balken.
+
+**Live-Beleg Stufen-Strom** (`curl -sk --no-buffer -X POST https://localhost:4399/api/drive/reconcile/stream`,
+71,1 s Gesamtlaufzeit, 11 Zeilen):
+
+```
+{"t":"stufe","stufe":"drive-spalten"}
+{"t":"stufe","stufe":"drive-ordner","schritt":1,"von":8,"was":"Skript schreiben"}
+… Schritte 2-7 …
+{"t":"stufe","stufe":"drive-ordner","schritt":8,"von":8,"was":"Verworfen"}
+{"t":"stufe","stufe":"fertig"}
+{"t":"done","cards":[…]}
+```
+
+Gegenprobe: die unveraenderte JSON-Route `POST /api/drive/reconcile` liefert dasselbe
+Ergebnis und brauchte im selben Zeitraum 113,6 s — beide Wege laufen also ueber
+`fuehreAbgleichAus()`, ohne dass der Stream etwas auslaesst. `drive-karte`-Stufen kamen in
+diesem Lauf nicht vor: der v25-Schnellpfad ueberspringt Karten, die schon am richtigen Ort
+liegen — genau so gewollt, die Anzeige zaehlt keine Arbeit mit, die nicht anfaellt.
+
+**Optische Abnahme:** Screenshot des Kopfes mit „Gleicht die Spalten mit Drive ab …" und
+drehender Sanduhr im Google+Drive-Badge (vorher stand dort nur der fertige Zustand).
+
+### Die offene Abnahme aus v51 ist nachgeholt (22.09.2026)
+
+Das schwebende Terminal ist jetzt im ECHTEN Lauf belegt, nicht mehr mit eingespeisten
+Stufen: Karte „Wasserhyazinten", Knopf „Recherchieren und Definieren" (A2, die
+3-Schritt-Kette). Terminal erschien unter dem Knopf mit „Recherche und Fokus — die KI
+schreibt …" und der Zeile „Kontext wird gesammelt …", der Knopf selbst zeigte „startet …"
+und war gesperrt. Im Screenshot ist zu sehen, dass die Detailspalte zwischendurch neu
+gezeichnet wurde (der Knopf trug wieder seine Beschriftung) — **und das Terminal stand
+weiter da**. Genau dafuer ist die schwebende Fassung gebaut.
+
+Der Lauf wurde vor dem Speichern per Seiten-Neuladen abgebrochen, damit die echte Karte
+unveraendert bleibt; gegengeprueft ueber `/api/board`: „Wasserhyazinten" hat weiterhin
+keine `recherche`. Die zum Test angelegte Karte wurde ueber den echten UI-Weg wieder
+geloescht, das Board steht wieder bei 25 Karten.
 
 ## Stand
 
@@ -398,18 +441,20 @@ Server eine neue Stufe schickt — eine unbekannte Stufe wird still uebersprunge
 (`if (!satzBau) return;`). Das faellt sicher aus (keine kaputte Anzeige), aber still.
 
 Offen:
-- E5 (Karte loeschen) ist nur code-seitig belegt, nicht optisch — dafuer muesste eine echte
-  Karte geloescht werden.
-- **Drive-Operationen senden keinen echten Fortschritt aus dem Server** (siehe Audit-Punkt 1
-  oben) — nur „laeuft" im Browser.
+- **E5 (Karte loeschen) bleibt code-seitig belegt, nicht optisch — mit Grund:** das neue
+  Statuswort steht im Zweig `if (k.driveName)`. Eine frisch angelegte Testkarte hat keinen
+  Drive-Ordner, laeuft also gar nicht durch diesen Zweig; eine Karte, die einen hat, wuerde
+  echten Inhalt in den Papierkorb schieben. Der Loeschweg selbst ist ueber den echten
+  UI-Knopf durchlaufen (Testkarte entfernt, Board wieder bei 25 Karten) — nur die eine
+  Statuszeile hat dabei nicht gefeuert.
+- **Drive-Operationen ausserhalb des Abgleichs** senden weiterhin keinen Fortschritt aus dem
+  Server (Scan, Upload, Papierkorb) — so von Owner entschieden (Variante b, nur der
+  Abgleich).
 - Zwei gleichzeitige schwebende Terminals am selben Anker wuerden sich ueberdecken; heute
   verhindert das nur das Sperren der Knoepfe waehrend eines Laufs.
 - Bricht der Nutzer mitten im Lauf ab (Modal schliessen, Karte wechseln), laeuft der
   Server-Aufruf zu Ende; der Stream-Handler schreibt dann nur nicht mehr in die tote
   Verbindung. Ein echter Abbruch braeuchte ein `AbortSignal` bis in `lib/ai.js`.
-- Das schwebende Terminal an einem Detailspalten-KI-Knopf ist optisch mit eingespeisten
-  Stufen abgenommen, nicht mit einem echten Kaltstart-Durchlauf (dafuer braeuchte es eine
-  Karte ohne Recherche, also eine Aenderung am echten Board-Stand).
 - Innenschritte einer Kette melden „Modell laedt" bis zum Schrittende statt bis zum ersten
   Token (siehe „Bewusste Ungenauigkeit" oben). Folgeschritt: Wechsel auf Ollamas nativen
   `/api/chat` mit `load_duration`.
