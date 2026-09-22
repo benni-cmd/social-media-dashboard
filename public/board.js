@@ -20,6 +20,7 @@ import { statusChip, escape, knopf, leer, icon, knopfLaeuft } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
+import { zeigeKontextmenu } from "./kontextmenu.js";
 
 let oeffne = () => {};
 export const beiOeffnen = (f) => (oeffne = f);
@@ -76,7 +77,10 @@ export function kachel(k) {
     `<span class="format-symbol format-${formatSymbol}" title="${escape(formatText)}" aria-label="${escape(formatText)}">${icon(formatSymbol)}</span>` +
     statusHtml;
 
+  el.tabIndex = -1; // programmatisch fokussierbar: das Kontextmenue gibt den Fokus hierher zurueck
   el.addEventListener("click", () => oeffne(k.id));
+  // Rechtsklick oeffnet das Karten-Kontextmenue (v54) — ersetzt weder Linksklick noch Drag&Drop.
+  el.addEventListener("contextmenu", (e) => zeigeKontextmenu(k, e, el, oeffne));
   el.addEventListener("dragstart", (e) => {
     e.dataTransfer.setData("text/plain", k.id);
     el.classList.add("zieht");
