@@ -15,7 +15,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
+import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -147,7 +147,7 @@ export function zeichneBoard(boardEl, lastEl) {
   const spalten = S.spalten && S.spalten.length ? S.spalten : PHASEN;
 
   for (const p of spalten) {
-    const karten = S.cards.filter((c) => c.column === p.id);
+    const karten = sichtbareKarten().filter((c) => c.column === p.id);
     const spalte = document.createElement("section");
     spalte.className = "spalte";
 
@@ -262,7 +262,7 @@ export async function schiebe(k, ziel) {
 
 function zeichneWochenlast(el) {
   if (!el) return;
-  const w = wochenlast(S.cards);
+  const w = wochenlast(sichtbareKarten());
   el.innerHTML = statusChip(w.status) + `<span>${escape(w.satz)}</span>`;
 
   // Der Redaktionsplan haengt an der Wochenleiste, weil er genau deren Frage beantwortet:

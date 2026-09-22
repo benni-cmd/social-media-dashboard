@@ -104,34 +104,69 @@ blockieren, wo inhaltlich zwingend (Upload). Reads zeigen Ladezustand (v51), fri
   uncommitted. Session „Kontextmenue fuer Board-Karten" laeuft noch (session-map 22.09. 17:38).
 - **Bau blockiert**, bis v54 committed+gepusht ist. Per `tell-session` abgegrenzt.
 
+## Bau (umgesetzt 22.09.2026, nach v54-Landung)
+
+Das Audit korrigierte den Plan mit Belegen (kein One-Shot): **A4/A6 waren schon adaequat** —
+`driveAnlegen` ist an allen Aufrufern nicht-blockierend (detail.js:1116 fire-and-forget; :1584
+Fortschritt + Scan braucht den Ordner zwingend; nachschub.js:189-193 zeigt die Karte vor dem
+`await`), `spaltenUmbenennen` (board.js:119-125) aendert optimistisch + rollt zurueck. Echter
+Rest: **A1 (Loeschen)** + **A2/A3 (stille gcal-Fehler)**.
+
+Umgesetzt in `store.js` (+ 3 Ansichten):
+1. **Gemeinsame Hilfe `imHintergrund(aktion, {was, zurueck})`** (store.js) — die eine Stelle fuer
+   „extern im Hintergrund + Fehler sichtbar (Toast) + Rollback". Genutzt von A2 und A3.
+2. **A1 `loescheKarte`** — optimistisch ueber **Anzeige-Tombstone** `_geloescht`: Karte sofort
+   aus Board/Kalender weg, Drive-Trash im Hintergrund; Karte bleibt in S.cards + board.json, bis
+   der Trash bestaetigt ist (kein Wiederkehr-Bug); `_geloescht` wird nie gespeichert (kein
+   `speichere` im Fenster). Fehlschlag → Karte zurueck + Aufrufer-Toast. `geloeschtInFlight`-Set
+   schuetzt gegen den 30-Min-Abgleich (app.js:461), der sonst `S.cards` neu baut und das Flag
+   verloere (store.js driveAbgleich).
+3. **A2 `autoSync` / A3 `gcalLoeschen`** — stiller `catch` → sichtbare Meldung ueber
+   `imHintergrund`, weiter nicht blockierend + serialisiert.
+4. **Sichtbare-Karten-Sicht** `sichtbareKarten()` (store.js), angewandt in board.js (Spalten +
+   Wochenleiste) und kalender.js — so greift der Tombstone in allen Karten-Ansichten.
+
 ## Stand
 
-- [x] Bestand erhoben: `store.js` voll gelesen, Aufrufer-Grep (loescheKarte/driveVerschieben/
-      driveAnlegen/Upload/Stats/Abgleich), Referenz-Wrapper `schiebe` (board.js:239) gelesen
-- [x] Audit als belegte Liste (A/B/C) ins Paket
-- [x] session-map + git-status geprueft → v54 nicht gelandet, Bau blockiert
-- [x] Paket angelegt
-- [ ] `tell-session` an v54-Session (Abgrenzung store.js/board.js)
-- [ ] **Bau — erst nach v54-Landung** (gemeinsame Hilfe + A1–A6)
-- [ ] Verify: `node --check`; Live-Zeitmessung (Loeschen fuehlt sich sofort an); Fehlerpfad
-      (Drive/Kalender simuliert fehlschlagen → Toast, Daten bleiben); Screenshot des Feedbacks
+- [x] Bestand erhoben: `store.js` voll gelesen, Aufrufer-Grep, Reconcile-Mechanik
+      (lib/projects.js:361-375, server.js:301/788) fuer die Tombstone-Entscheidung
+- [x] Audit als belegte Liste (A/B/C) ins Paket; A4/A6 mit Belegen entschaerft
+- [x] session-map + git-status; v54-Landung verifiziert (`origin/main=ecc9f62` enthaelt `3c2fb96`)
+- [x] Paket angelegt + `tell-session` an v54-Session (2x, inkl. Abschlussmeldung erhalten)
+- [x] Bau: `imHintergrund` + A1 (Tombstone) + A2/A3 + `sichtbareKarten` (store.js, board.js, kalender.js)
+- [x] Verify `node --check`: store.js/board.js/kalender.js OK (node v26.7.0)
+- [x] Verify LIVE im echten Board (nicht-destruktiv, synthetische Karte + fetch-Stub):
+      optimistisch weg < 80 ms (`sofort_sichtbar:false`, `noch_in_cards:true`); Fehlerpfad →
+      Karte zurueck + Toast „Loeschen fehlgeschlagen, die Karte bleibt: …" (Screenshot);
+      Erfolgspfad → dauerhaft entfernt; board.json unveraendert (24 Karten, kein `_geloescht`)
 - [ ] Commit (`git -C` + Pathspec + Attribution) + Push
 
 ## DoD
 
-- [ ] Loeschen fuehlt sich sofort an (Karte weg < 100 ms), Drive-Trash im Hintergrund; Karte
-      kehrt bei Fehlschlag zurueck + Toast; kein Wiederkehr-Bug (Tombstone).
-- [ ] Alle schreibenden externen Aktionen laufen ueber die EINE gemeinsame Hilfe (kein Sonderweg).
-- [ ] Kein stiller `catch` mehr bei gcal (A2/A3) — Fehler als Toast, wiederholbar.
-- [ ] Lokaler Stand IMMER zuerst dauerhaft geschrieben (`speichere` vor externem Aufruf); im
-      Fehlerfall kein Datenverlust (verifiziert am simulierten Fehlschlag).
-- [ ] Reads zeigen Ladezustand (v51), frieren nie ein.
-- [ ] Design/Feedback gegen `docs/ui-standard.md`; optischer Screenshot als Abnahme.
+- [x] Loeschen fuehlt sich sofort an (Karte weg < 80 ms gemessen), Drive-Trash im Hintergrund;
+      Karte kehrt bei Fehlschlag zurueck + Toast; kein Wiederkehr-Bug (Tombstone + `geloeschtInFlight`).
+- [x] Die schreibenden Hintergrund-Fehlerpfade laufen ueber die EINE gemeinsame Hilfe
+      `imHintergrund` (A2/A3); A1 teilt `melde`/`speichere`/`sichtbareKarten`. A4/A6 waren bereits
+      optimistisch (belegt) — kein Sonderweg neu gebaut.
+- [x] Kein stiller `catch` mehr bei gcal (A2/A3) — Fehler als Toast, durch erneute Aktion wiederholbar.
+- [x] Lokaler Stand nie verloren: bei Loeschen bleibt die Karte in board.json, bis der Trash
+      bestaetigt ist; `_geloescht` wird nie persistiert (Disk-Check: 24 Karten, kein Flag).
+- [x] Reads zeigen Ladezustand (v51) unveraendert, frieren nie ein (Stats C3, Abgleich C2, Scan C1).
+- [x] Design/Feedback gegen `docs/ui-standard.md`: Fehl-Toast als `befund`-Hinweis (bestehendes
+      `melde`/`hinweisToast`); optischer Screenshot als Abnahme (Fehler-Toast am echten Board).
 
-## Offene Entscheidung (vor Bau)
+## Entschieden (war „Offene Entscheidung")
 
-- **Tombstone-Mechanik fuer A1:** Wie verhindert der Reconcile die Auferstehung einer optimistisch
-  geloeschten Karte, solange der Drive-Trash laeuft? Kandidaten: (a) lokale Merkliste getrashter
-  `driveName`, die der naechste Abgleich ausblendet; (b) Server meldet „getrasht" und der
-  Reconcile ueberspringt. Vor dem Bau von A1 zu entscheiden — sonst ist „optimistisch loeschen"
-  gleichbedeutend mit dem alten Wiederkehr-Bug.
+- **Tombstone-Mechanik fuer A1 — geloest per Code-Beleg, keine Merkliste, keine Serveraenderung:**
+  Der Reconcile belebt eine Karte nur aus einem Ordner OHNE gepaarte Board-Karte (lib/projects.js:361).
+  Loesung: die Karte bleibt in S.cards + board.json (Paar bleibt), nur die **Anzeige** wird per
+  transientem `_geloescht` unterdrueckt (`sichtbareKarten()`), bis der Trash den Ordner aus den
+  gescannten Phasen zieht (server.js `loesche` → Papierkorb). Strikt sicherer als eine persistente
+  Merkliste; `geloeschtInFlight` haelt das Flag ueber einen gleichzeitigen 30-Min-Abgleich.
+
+## Offen / Folgepakete
+
+- **Uploads (A5)** bleiben bewusst „mit Fortschritt", nicht optimistisch — kein Handlungsbedarf,
+  nur bestaetigt.
+- **Stats (C3)** koennten IG+LI parallel statt sequenziell holen (auswertung.js:69/78) — kleiner
+  Tempo-Feinschliff, kein Freeze; kein eigenes Paket noetig.

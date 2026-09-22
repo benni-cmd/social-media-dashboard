@@ -87,6 +87,12 @@ export const zeichne = () => abonnenten.forEach((f) => f());
 export const karte = (id) => S.cards.find((c) => c.id === id) || null;
 export const aktiveKarte = () => karte(S.aktiv);
 
+// v55: Die auf Board/Kalender SICHTBAREN Karten. Eine optimistisch geloeschte Karte traegt
+// `_geloescht` und ist ausgeblendet — sie bleibt aber in S.cards und in board.json, bis der
+// Drive-Trash bestaetigt ist (sonst baut der Abgleich sie aus dem noch vorhandenen Ordner wieder
+// auf, lib/projects.js:361 — der Wiederkehr-Bug). Jede Karten-Ansicht liest ueber diese Sicht.
+export const sichtbareKarten = () => S.cards.filter((c) => !c._geloescht);
+
 // --- Anzeige im Kopf ------------------------------------------------------
 
 let standEl;
@@ -105,6 +111,18 @@ export function setStand(text) {
 export async function melde(status, satz) {
   const { hinweisToast } = await import("./ui.js");
   hinweisToast(status, satz);
+}
+
+// v55: EINE gemeinsame Hilfe fuer schreibende externe Aktionen — die Oberflaeche wartet nie auf
+// den Dienst. Dieselbe Regel ueberall: lokal fuehrt, extern folgt im Hintergrund, und ein
+// Fehlschlag ist NIE unsichtbar (Toast statt stiller catch — genau der Fehler in autoSync/
+// gcalLoeschen bis v55). `zurueck` nimmt eine optimistische lokale Aenderung zurueck und zeichnet
+// neu. Rueckgabe = Promise, das selbst nie rejectet — kein Aufrufer muss darauf blockieren.
+export function imHintergrund(aktion, { was = "Der Abgleich", zurueck } = {}) {
+  return Promise.resolve().then(aktion).catch(async (e) => {
+    try { zurueck?.(); zeichne(); } catch {}
+    await melde("befund", `${was} ging nicht: ${e.message}`);
+  });
 }
 
 // --- Server ---------------------------------------------------------------
@@ -199,25 +217,49 @@ export function neueKarte(spalte) {
   return k;
 }
 
-// Karte loeschen (v46): ATOMAR. Hat die Karte einen Drive-Ordner (driveName), wandert der ERST
-// in den Papierkorb — sonst baut der Abgleich die Karte aus dem zurueckgelassenen Ordner wieder
-// auf (genau der Wiederkehr-Bug). Nur bei Erfolg wird die Karte aus dem Board genommen; schlaegt
-// das Trashen fehl, wirft der Aufruf und die Karte bleibt (keine Waise, kein Datenverlust).
+// Karten, deren Drive-Trash gerade laeuft (v55). Der Hintergrund-Abgleich (driveAbgleich) baut
+// S.cards komplett neu und wuerde dabei das `_geloescht`-Flag verlieren — diese Menge stellt es
+// wieder her, damit eine optimistisch geloeschte Karte nicht mitten im Trash zurueckpoppt.
+const geloeschtInFlight = new Set();
+export const istGeloeschtInFlight = (id) => geloeschtInFlight.has(id);
+
+// Karte loeschen (v55): OPTIMISTISCH. Ohne Drive-Ordner ist nichts extern zu tun — sofort und
+// dauerhaft raus. Mit Drive-Ordner verschwindet die Karte SOFORT aus der Ansicht (Anzeige-
+// Tombstone `_geloescht`), waehrend der Ordner im Hintergrund in den Papierkorb wandert (bis 7
+// Suchen + Move-Timeout 180 s; bis v54 stand die Oberflaeche dabei bis zu 180 s still). WICHTIG
+// gegen den Wiederkehr-Bug: die Karte bleibt so lange in S.cards UND in board.json — es wird in
+// diesem Fenster NICHT gespeichert, also gelangt `_geloescht` nie nach board.json, und der
+// Abgleich sieht Ordner und Karte gepaart (baut nichts wieder auf, lib/projects.js:361). Erst
+// wenn der Trash bestaetigt ist, wird die Karte dauerhaft entfernt. Scheitert der Trash, kommt
+// die Karte zurueck und der Aufruf wirft (der Aufrufer meldet den Bruch; kein Datenverlust).
 export async function loescheKarte(id) {
   const k = karte(id);
-  if (k && k.driveName) {
-    // v51: Der Weg in den Papierkorb sucht den Ordner (bis 7 Drive-Aufrufe) und verschiebt ihn
-    // (Timeout 180 s) — bis v51 stand die Oberflaeche dabei stumm. Das Statuswort im Kopf sagt
-    // jetzt, dass gearbeitet wird; `speichere()` weiter unten ueberschreibt es danach ohnehin.
-    setStand("Verschiebe den Drive-Ordner in den Papierkorb …");
+  if (!k) return;
+  if (S.aktiv === id) S.aktiv = null;
+  if (!k.driveName) {
+    S.cards = S.cards.filter((c) => c.id !== id);
+    await speichere();
+    zeichne();
+    return;
+  }
+  k._geloescht = true;
+  geloeschtInFlight.add(id);
+  zeichne(); // sofort weg aus Board + Kalender
+  try {
     await hole("/api/karte/loeschen", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(k),
     });
+  } catch (e) {
+    delete k._geloescht; // Anzeige zuruecknehmen — die Karte war nie wirklich fort
+    geloeschtInFlight.delete(id);
+    zeichne();
+    throw e; // Aufrufer (kontextmenu/detail) meldet den Bruch selbst
   }
+  // Trash bestaetigt: jetzt dauerhaft aus dem Board nehmen und sichern.
+  geloeschtInFlight.delete(id);
   S.cards = S.cards.filter((c) => c.id !== id);
-  if (S.aktiv === id) S.aktiv = null;
   await speichere();
   zeichne();
 }
@@ -337,6 +379,9 @@ export function driveAbgleich() {
     try {
       const ergebnis = await abgleichStream();
       S.cards = (ergebnis.cards || []).map(migriere);
+      // v55: Ein Abgleich mitten im Trash-Fenster darf eine optimistisch geloeschte Karte nicht
+      // wieder sichtbar machen — Flag nach dem Neuaufbau erneut setzen.
+      if (geloeschtInFlight.size) for (const c of S.cards) if (geloeschtInFlight.has(c.id)) c._geloescht = true;
       if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
       S.version = ergebnis.version;
       S.driveStand.clear();
@@ -751,22 +796,25 @@ export function autoSync(terminId, mailen = "none") {
   if (!an("gcal-autosync")) return; // Workflow "gcal-autosync" (v26)
   if (!S.googleVerbunden || !terminId) return;
   const prev = syncInFlight.get(terminId) || Promise.resolve();
-  const next = prev.catch(() => {}).then(() => gcalSync(terminId, { mailen })).catch(() => {})
+  // v55: `imHintergrund` faengt den Fehler ab und MELDET ihn sichtbar (frueher: `.catch(()=>{})`,
+  // still verschluckt). Weiter serialisiert je Termin und nicht blockierend.
+  const next = prev.catch(() => {})
+    .then(() => imHintergrund(() => gcalSync(terminId, { mailen }), { was: "Der Kalender/Tasks-Abgleich" }))
     .finally(() => { if (syncInFlight.get(terminId) === next) syncInFlight.delete(terminId); });
   syncInFlight.set(terminId, next);
 }
 
-// Loescht Event + Task eines Termins (beim Loeschen auf dem Board).
-export async function gcalLoeschen(t) {
+// Loescht Event + Task eines Termins (beim Loeschen auf dem Board). Nicht blockierend; ein
+// Fehlschlag wird jetzt sichtbar gemeldet (v55) statt still verschluckt — ein verwaister
+// Kalender-Eintrag blieb sonst unbemerkt.
+export function gcalLoeschen(t) {
   if (!an("gcal-autosync")) return; // Workflow "gcal-autosync" (v26)
   if (!S.googleVerbunden || !t || (!t.gcalEventId && !t.gtaskId)) return;
-  try {
-    await hole("/api/gcal/loeschen", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ eventId: t.gcalEventId || "", taskId: t.gtaskId || "" }),
-    });
-  } catch { /* Auto-Sync darf nie blockieren */ }
+  return imHintergrund(() => hole("/api/gcal/loeschen", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ eventId: t.gcalEventId || "", taskId: t.gtaskId || "" }),
+  }), { was: "Das Loeschen des Kalender-Eintrags" });
 }
 
 // --- Drehtermin-Teilnehmer (v44) ------------------------------------------

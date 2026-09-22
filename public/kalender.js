@@ -4,7 +4,7 @@
 // dieselben Karten — die Termine stehen in card.dates, ein Feld je Meilenstein.
 
 import { TERMINE, isoDatum, saeuleName } from "/lib/pipeline.js";
-import { S, zeichne } from "./store.js";
+import { S, sichtbareKarten, zeichne } from "./store.js";
 import { icon, escape, knopf } from "./ui.js";
 
 let oeffne = () => {};
@@ -19,7 +19,7 @@ const MONATE = [
 // Alle Termine aller Karten, nach Tag sortiert.
 function termineNachTag() {
   const karte = new Map();
-  for (const k of S.cards) {
+  for (const k of sichtbareKarten()) {
     for (const t of TERMINE) {
       const datum = (k.dates || {})[t.key];
       if (!datum) continue;
