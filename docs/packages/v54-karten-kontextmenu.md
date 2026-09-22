@@ -70,7 +70,7 @@ Regel 5), Woerter statt Fragmente, Loeschen in `--befund`.
 - [x] Verify: `node --check` beide Dateien (node v26.7.0, beide OK)
 - [x] Verify: echter Browser-Screenshot — Menue offen, Untermenue rechts + Links-Klapp am rechten Rand,
       roter Loeschen-Eintrag, ESC schliesst + Fokus zurueck, „Oeffnen" feuert. Keine Konsolenfehler.
-- [ ] Commit (`git -C` + Pathspec + Attribution) + Push
+- [x] Commit (`3c2fb96`, expliziter Pathspec + Attribution) + Push (`3f62a25..3c2fb96` main)
 
 ## DoD
 
