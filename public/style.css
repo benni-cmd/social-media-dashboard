@@ -791,6 +791,21 @@ body {
 .eintrag-punkt-befund { color: var(--befund); }
 .eintrag-punkt-unlesbar { color: var(--unlesbar); }
 .eintrag-punkt-entfaellt { color: var(--entfaellt); }
+/* v56 (v50 V2): Aufmerksamkeits-Zustaende (befund/fehlt) als Glyphe statt gefuelltem Punkt —
+   per Form erkennbar, nicht nur Farbe. Neutral bleibt der 8px-Punkt oben. */
+.eintrag-punkt-glyphe {
+  width: auto;
+  height: auto;
+  background: none;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+}
+.eintrag-punkt-glyphe .icon {
+  width: 13px;
+  height: 13px;
+  color: currentColor;
+}
 /* Kachel-Sanduhr (v32 E2): an der Stelle des Status-Punkts, solange der Drive-Scan laeuft. */
 .eintrag-punkt-lade {
   position: absolute;
