@@ -131,7 +131,7 @@ Zwei Teile:
 - [x] Verify (Resize-Screenshots, drei Fenstergroessen + Default)
 - [x] Nachlese: Spaltenbreite-Regression gefunden, nachgemessen, gefixt, erneut verifiziert
 - [x] Nachlese 2: Titel-Wortumbruch (overflow-wrap + zeilenspezifischer Punkt-Freiraum)
-- [ ] Commit + Push (Nachlese 2)
+- [x] Commit + Push (Nachlese 2, 568d965)
 
 ## DoD
 
