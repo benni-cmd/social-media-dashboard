@@ -1,16 +1,17 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, abgleichStufe, beiAbgleichStufe, driveStatus, gcalStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, beiAbgleichStufe, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, statusChip, escape, einstellungenModal, meldung, hinweisToast, sanduhr } from "./ui.js";
+import { fortschritt, einstellungenModal, meldung, sanduhr } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
+import { verdrahteAnschluesse, alleAbgleichen } from "./anschluesse.js"; // v58: Anschluss-Leiste im Kopf
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -56,42 +57,13 @@ verdrahteKopf(el("stand"));
 // Fasst zwei bisher getrennte Zustaende in einem Indikator zusammen: ist Google (Kalender+
 // Tasks) verbunden, ist Drive erreichbar, und war der letzte Hintergrund-Abgleich mit Drive
 // erfolgreich. Alle drei speisen sich aus ohnehin vorhandenen Aufrufen (kein neuer Endpunkt).
-const badgeEl = el("google-drive-badge");
-let googleOk = null;
-let driveOk = null;
-let syncOk = null;
-function zeichneBadge() {
-  if (!badgeEl) return;
-  // v51: Der Hintergrund-Abgleich lief bisher voellig stumm (gemessen 10-70 s, waehrenddessen
-  // springen Karten scheinbar grundlos um). Solange er laeuft, sagt das Badge es.
-  if (abgleichLaeuft()) {
-    // v51 T7: nicht nur DASS der Abgleich laeuft, sondern wo er steht — der Server schickt
-    // die Stufe live mit (Spalten, Ordner 3/8, Karte 12/25).
-    const satz = abgleichStufe() || "Gleicht gerade mit Drive ab …";
-    badgeEl.innerHTML = "";
-    badgeEl.appendChild(sanduhr(satz));
-    badgeEl.title = `${satz} — Karten koennen sich dabei aktualisieren.`;
-    return;
-  }
-  if (googleOk === null || driveOk === null) {
-    badgeEl.innerHTML = statusChip("unlesbar") + `<span>Google/Drive: wird geprueft …</span>`;
-    return;
-  }
-  const luecken = [];
-  if (!googleOk) luecken.push("Google Kalender nicht verbunden");
-  if (!driveOk) luecken.push("Drive nicht erreichbar");
-  if (syncOk === false) luecken.push("letzter Live-Abgleich fehlgeschlagen");
-  const code = luecken.length ? "befund" : "ok";
-  const satz = luecken.length ? luecken.join(" · ") : "Google + Drive verbunden, live abgeglichen";
-  badgeEl.innerHTML = statusChip(code) + `<span>${escape(satz)}</span>`;
-  badgeEl.title = satz;
-}
-zeichneBadge();
-// Jede Stufen-Meldung zeichnet NUR das Badge neu — nicht das Board (v51 T7).
-beiAbgleichStufe(() => zeichneBadge());
-gcalStatus()
-  .then((s) => { googleOk = !!s.verbunden; zeichneBadge(); })
-  .catch(() => { googleOk = false; zeichneBadge(); });
+// v58: Der eine Sammel-Marker ist vier Sektionen gewichen (API · Drive · Weitere · KI), je
+// mit eigenem Zustand, eigenem Abgleich-Knopf und einem aufklappbaren Live-Terminal. Die
+// Leiste lebt in anschluesse.js und speist sich aus dem Ereignis-Strom des Servers; sie
+// braucht hier keine Zustandsvariablen mehr (frueher googleOk/driveOk/syncOk).
+verdrahteAnschluesse(el("anschluesse"));
+// Die Stufen des Drive-Abgleichs (v51 T7) laufen weiter im Kopf-Stand mit.
+beiAbgleichStufe((satz) => { if (satz) standLaedt(satz); });
 
 // --- Karte oeffnen --------------------------------------------------------
 
@@ -207,19 +179,15 @@ el("neuladen").addEventListener("click", async (e) => {
 el("abgleichen").addEventListener("click", async (e) => {
   e.currentTarget.disabled = true;
   standLaedt("Gleiche mit Drive ab …");
-  const weg = fortschritt(lastEl, "Lese alle Phasenordner in Drive und vergleiche sie mit dem Board …");
-  // Dieselbe Stufe, die das Badge zeigt, laeuft hier im Balken mit (v51 T7).
+  const weg = fortschritt(lastEl, "Rufe alle Anschluesse ab: Plattform-Zahlen, Drive-Ordner, Google Kalender …");
+  // Dieselbe Stufe, die die Drive-Sektion zeigt, laeuft hier im Balken mit (v51 T7).
   const stufeAb = beiAbgleichStufe((satz) => { if (satz) weg.text(satz); });
   try {
-    const ergebnis = await driveAbgleich();
-    for (const b of ergebnis.befunde) hinweisToast(b.status, b.satz);
-    driveOk = true;
-    syncOk = true;
-    zeichneBadge();
-    setStand(ergebnis.geaendert ? "Board an Drive angeglichen." : "Board und Drive waren schon gleich.");
+    // v58: nicht mehr nur Drive — alle Anschluesse nacheinander. Fehler einzelner Dienste
+    // meldet alleAbgleichen() selbst, je Dienst sichtbar statt als Sammelfehler.
+    await alleAbgleichen();
+    setStand("Alle Anschluesse abgeglichen.");
   } catch (fehler) {
-    syncOk = false;
-    zeichneBadge();
     await melde("befund", `Der Abgleich lief nicht durch: ${fehler.message}`);
   } finally {
     stufeAb();
@@ -429,16 +397,8 @@ try {
   // Drive einmal beim Start pruefen — damit ein Ausfall sofort sichtbar ist und nicht
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.
   driveStatus()
-    .then((s) => {
-      driveOk = !!s.ok;
-      zeichneBadge();
-      if (!s.ok) melde("unlesbar", s.satz);
-    })
-    .catch(() => {
-      driveOk = false;
-      zeichneBadge();
-      meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler");
-    });
+    .then((s) => { if (!s.ok) melde("unlesbar", s.satz); })
+    .catch(() => meldung("Drive-Verbindung beim Start nicht erreichbar.", "fehler"));
 
   // --- Hintergrund-Abgleich (v32 C3) ---------------------------------------
   //
@@ -449,14 +409,10 @@ try {
   // `driveAbgleich` teilt einen laufenden Abgleich, ein Fehler bleibt still (Board fuehrt).
   function hintergrundAbgleich() {
     if (abgleichLaeuft()) return;
-    // Erst starten (das setzt die Laeuft-Marke synchron), dann zeichnen — sonst sieht das
-    // Badge den laufenden Abgleich nie.
-    const lauf = driveAbgleich();
-    zeichneBadge();
-    lauf.then(
-      () => { driveOk = true; syncOk = true; zeichneBadge(); },
-      () => { syncOk = false; zeichneBadge(); }
-    );
+    // v58: Die Drive-Sektion zeigt den Lauf von selbst — sie haengt am Ereignis-Strom des
+    // Servers und braucht hier keinen Anstoss mehr. Ein Fehler bleibt still (Board fuehrt),
+    // steht aber im Terminal der Sektion.
+    driveAbgleich().catch(() => {});
   }
   hintergrundAbgleich();
   setInterval(() => {
