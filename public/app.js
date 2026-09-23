@@ -10,7 +10,7 @@ import { fortschritt, statusChip, escape, einstellungenModal, meldung, hinweisTo
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
-import { FOKUS } from "./fokus.js";
+import { verdrahteDetailBreite } from "./detail-breite.js";
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -37,7 +37,8 @@ const boardEl = el("board");
 const lastEl = el("wochenlast");
 const auswertungEl = el("ansicht-auswertung");
 const detailEl = el("detail");
-const hauptflaecheEl = el("hauptflaeche");
+const detailGriffEl = el("detail-griff");
+verdrahteDetailBreite(detailEl, detailGriffEl);
 
 const ansichten = {
   board: el("ansicht-board"),
@@ -164,11 +165,11 @@ beiAenderung(() => {
       if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
       else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
     } catch (e) { fehler = fehler || e; }
-    try { zeichneDetail(detailEl); } catch (e) { fehler = fehler || e; }
     try {
-      // Fokus-Ansicht (P27 F4) nur wirksam, solange auch eine Karte offen ist — schliesst sich
-      // die Karte, verlaesst die Fokus-Ansicht sich damit von selbst, ohne S.fokus zu verwalten.
-      hauptflaecheEl.classList.toggle("fokus", FOKUS.an && !!S.aktiv);
+      zeichneDetail(detailEl);
+      // Der Zieh-Griff ist ein eigener Flex-Sibling (v57, siehe detail-breite.js) und muss dem
+      // hidden-Stand von .detail von Hand folgen — zeichneDetail() kennt ihn nicht.
+      detailGriffEl.hidden = detailEl.hidden;
     } catch (e) { fehler = fehler || e; }
   } finally {
     zeichnetGerade = false;

@@ -1,7 +1,6 @@
 # v57 — Detailspalte resizable (bis 80vw) + eigener Resize-/Standard-Cursor im Haus-Stil
 
-> PLAN-Paket, angelegt 23.09.2026. Noch NICHT gebaut — Owner: "verstehe erstmal was ich
-> meine, frag Fragen, rate an keiner Stelle, bau erst nach Freigabe."
+> Umgesetzt 23.09.2026, nach zwei Rueckfrage-Runden (AskUserQuestion) und expliziter Freigabe.
 
 ## PIG
 
@@ -33,56 +32,83 @@ weit horizontal gescrollt werden muss, aendert sich. Zusaetzlich: ein eigener, z
 passender Cursor (a) beim Hover ueber die Zieh-Kante (Links-Rechts-Pfeil) und (b) als normaler
 Maus-Cursor generell im Programm.
 
-## Offene Fragen — bitte beantworten, ich rate nicht
+## Owner-Antworten (23.09.2026, zwei Runden)
 
-Gestellt per AskUserQuestion (siehe Chat): Mindestbreite der Detailspalte, Breite ueber
-Sitzungen hinweg merken oder nicht, Aussehen des Resize-Cursors, Reichweite des "normalen
-Cursors" (nur Cursor-Farbe/-Form allgemein, oder wirklich JEDER Standard-Pfeil im ganzen
-Programm ersetzt).
+Runde 1 (AskUserQuestion):
+1. Mindestbreite beim Ziehen: **380px**, harte Untergrenze (heutige Standardbreite).
+2. Persistenz: **merken** (localStorage, wie das Theme).
+3. Cursor-Reichweite: **wirklich ueberall, auch der normale Pfeil** — voller Ersatz des
+   OS-Cursors im Ruhezustand.
+4. Fokus-Modus/Breite: **eine einzige Variable** — der Fokus-Knopf wird ein Shortcut, der
+   dieselbe Zieh-Variable auf 80vw setzt, keine zweite parallele Breite mehr. Icon wechselt
+   vom Kreis ("ziel") zu einem "von einem Strich aus nach links zeigenden Pfeil".
 
-Zusaetzlich, nicht per AskUserQuestion (Detailfragen, hier dokumentiert):
+Runde 2 (Nachfrage zu den anderen zwei Fokus-Effekten — Board ausblenden + zentrieren):
+**Fallen komplett weg.** Der Knopf wird ausschliesslich ein Breiten-Shortcut; das Board bleibt
+sichtbar/scrollbar im verbleibenden Platz, kein Zentrieren mehr.
 
-1. **Fokus-Modus-Kollision:** Im Fokus-Modus (Karte offen + Fokus an) wird `.detail` bereits
-   automatisch breit (bis 760px, `flex:1 1 auto`). Soll die manuell gezogene Breite dort
-   GELTEN (Fokus-Modus uebernimmt die manuelle Breite, gedeckelt auf sein eigenes 760px-Limit),
-   oder bleibt der Fokus-Modus unangetastet (eigener Mechanismus, Resize wirkt nur ausserhalb)?
-2. **Unterhalb 1100px:** Aktuell schrumpft `.detail` bei schmalen Fenstern automatisch auf
-   320px (Media Query). Soll das Resize-Feature diese Anpassung ersetzen (Nutzer zieht selbst,
-   keine automatische Verkleinerung mehr), oder soll die 1100px-Grenze weiterhin als zusaetzliche
-   Deckelung gelten?
-3. **80% wovon genau:** 80% der Browser-Fensterbreite (`100vw`) oder 80% der Board-Flaeche
-   (`.hauptflaeche`, die volle Fensterbreite abzueglich nichts, da die Kopfzeile eigene Zeile
-   ist — in der Praxis identisch)? Ich gehe von `100vw` aus, sofern nicht widersprochen.
+Die 1100px-Media-Query (Antwort auf Detailfrage 2, implizit durch "380px Mindestbreite beim
+Ziehen" statt "380px immer") bleibt fuer den unberuehrten Fall (nie gezogen) bestehen — erst ein
+tatsaechlicher Zieh-/Shortcut-Einsatz ersetzt sie per Inline-Style, das die Media Query dank
+hoeherer Spezifitaet ueberschreibt. 80% bezieht sich auf `window.innerWidth` (Detailfrage 3, wie
+vorgeschlagen, nicht widersprochen).
 
-## Plan (nach Antworten, noch nicht gebaut)
+## Umsetzung
 
-1. Resize-Griff: schmaler Bereich an der linken Kante von `.detail` (z. B. 6px breiter
-   Hover-Streifen, visuell dezent), Pointer-Events fuer Drag (mousedown/mousemove/mouseup,
-   analog zum bestehenden `verdrahteShutdownSlider`-Muster in `app.js`).
-2. Breite als Custom Property/State statt festem `flex:0 0 380px` — waehrend des Ziehens live
-   aktualisiert, gedeckelt zwischen Mindestbreite (Antwort ausstehend) und `80vw`.
-3. Cursor an der Kante: eigenes SVG (Haus-Linienstil, `--linie`/`--akzent`), als
-   `cursor: url(...) x y, ew-resize` — Fallback `ew-resize` fuer Browser ohne Custom-Cursor-
-   Support oder falls das Bild nicht laedt.
-4. Normaler Cursor: je nach Reichweite-Antwort — eigenes SVG auf `body`/`*`, Fallback `auto`.
-5. Persistenz je nach Antwort: `localStorage` (Muster: `cm-theme` in `app.js`) oder keine.
-6. Fokus-Modus-Verhalten je nach Antwort 1 oben.
-7. Verify: Browser — Ziehen testen (min/max), Cursor-Aussehen in beiden Themes (hell/dunkel),
-   Board-Spalten bleiben unveraendert waehrend des Ziehens, Screenshot vor/nach.
-8. Commit + Push.
+- **Icon:** `ui.js` — neuer ICONS-Eintrag `maximieren`, exakter Lucide-Pfad "arrow-left-from-
+  line" (von der offiziellen Lucide-Quelle geladen, nicht nachgezeichnet/geraten).
+- **Breiten-Zustand:** neues Modul `public/detail-breite.js` — `klemme()` haelt Breite zwischen
+  380px und `80% von window.innerWidth`; `setzeBreite()`, `istMaximal()`,
+  `springeZuMaximum()` (Fokus-Shortcut, merkt sich die Breite von VOR dem Sprung fuers
+  Zurueckspringen), `verlasseMaximumFallsAktiv()` (beim Kartenschliessen). Bei Fenster-Resize
+  wird neu geklemmt, damit eine gespeicherte Breite nie ueber 80% des JETZIGEN Fensters
+  hinaussteht.
+- **Zieh-Griff:** `index.html` — `#detail-griff`, eigener Flex-Sibling NEBEN `#detail` (nicht
+  darin: `zeichneDetail()` leert `.detail.innerHTML` bei jedem Redraw, ein Kind-Element wuerde
+  beim Ziehen mitten im Dragen verschwinden). `app.js` — `verdrahteDetailBreite()` einmalig beim
+  Start verdrahtet (wie `verdrahteShutdownSlider`), Griff-`hidden` folgt manuell dem
+  `.detail`-hidden-Stand (zeichneDetail kennt den Griff nicht).
+- **Fokus-Knopf-Umbau:** `detail.js` — `FOKUS`-Import ersetzt durch `detail-breite.js`; Klick
+  ruft `springeZuMaximum()`; Kartenschliessen ruft `verlasseMaximumFallsAktiv()`.
+  `public/fokus.js` geloescht (nach Umbau nirgends mehr referenziert, geprueft per grep).
+  `style.css` — `.hauptflaeche.fokus`/`.hauptflaeche.fokus .ansicht`/`.hauptflaeche.fokus
+  .detail` (Board ausblenden + zentrieren + eigene 760px-Breite) komplett entfernt;
+  `hauptflaecheEl`-Variable in `app.js` war danach ungenutzt, ebenfalls entfernt.
+- **Cursor:** zwei neue SVG-Dateien im Haus-Stil (harter Versatz-Schatten wie `--schatten`,
+  `--linie`-Umriss, `--akzent`-Orange beim Resize-Pfeil) — `cursor-pfeil.svg` (Standard,
+  ersetzt den System-Pfeil global via `html{cursor:url(...) 8 6, auto}`) und
+  `cursor-resize.svg` (Links-Rechts-Doppelpfeil auf `.detail-griff`, `ew-resize`-Fallback).
+  Vor dem Verdrahten als normale `<img>` in einer Test-Seite vergroessert angeschaut (Cursor
+  selbst lassen sich nicht screenshotten) — danach geloescht, war nur zur Formkontrolle.
+
+## Verify (Browser, 23.09.2026)
+
+- Ziehen am Griff (Maus-Drag): Breite 380px → 570px live, sofort in `localStorage`
+  (`cm-detail-breite`) gespeichert. Board-Spalten waehrenddessen unveraendert 260px, alle acht.
+- Untergrenze: Ziehen weit nach rechts klemmt hart bei 380px (nicht darunter).
+- Obergrenze: Fokus-Knopf setzt exakt `Math.round(window.innerWidth*0.8)` (gemessen: 819px bei
+  1024px Fensterbreite) — Board bleibt sichtbar/scrollbar (kein `display:none` mehr).
+  Zweiter Klick springt zurueck auf die Breite von vorher (570px).
+  Kartenschliessen bei aktivem Maximum springt ebenfalls zurueck, naechste Karte oeffnet NICHT
+  wieder maximiert.
+- Cursor korrekt verdrahtet: `getComputedStyle(html).cursor` und `getComputedStyle(griff)
+  .cursor` zeigen die eigenen SVGs mit Hotspot-Koordinaten.
+- Dunkles Theme: Screenshot ohne Bruch (Griff/Panel/Knopf weiterhin funktional und lesbar).
 
 ## Stand
 
 - [x] Bestand geprueft (`.detail`-CSS, Fokus-Modus, fehlende Cursor-Infrastruktur) — 23.09.2026
-- [ ] Owner-Antworten (AskUserQuestion + drei Detailfragen oben)
-- [ ] Umsetzung
-- [ ] Verify
+- [x] Owner-Antworten (zwei AskUserQuestion-Runden)
+- [x] Umsetzung
+- [x] Verify (Browser: Ziehen, Min/Max, Fokus-Toggle, Theme-Wechsel)
 - [ ] Commit + Push
 
 ## DoD
 
-- Detailspalte per Ziehen an der linken Kante in der Breite veraenderbar, min–80vw.
-- Board-Spalten (Groesse/Reihenfolge) bleiben beim Ziehen unveraendert, nur der Scroll-Bereich
-  aendert sich.
-- Eigener Resize-Cursor an der Kante im Haus-Stil.
-- Normaler Cursor im Haus-Stil, Reichweite laut Owner-Antwort.
+- [x] Detailspalte per Ziehen an der linken Kante in der Breite veraenderbar, 380px–80vw.
+- [x] Board-Spalten (Groesse/Reihenfolge) bleiben beim Ziehen unveraendert, nur der Scroll-
+      Bereich aendert sich.
+- [x] Eigener Resize-Cursor an der Kante im Haus-Stil.
+- [x] Normaler Cursor im Haus-Stil, sitzweit (Owner-Entscheidung: wirklich ueberall).
+- [x] Fokus-Knopf ist ein reiner Breiten-Shortcut (keine zweite Variable, Board-Ausblenden/
+      Zentrieren entfernt), neues Icon.

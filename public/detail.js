@@ -87,7 +87,7 @@ import {
   meldung,
   bestaetigen,
 } from "./ui.js";
-import { FOKUS } from "./fokus.js";
+import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
 let schiebe = async () => {};
 export const beiSchieben = (f) => (schiebe = f);
@@ -126,14 +126,15 @@ export function zeichneDetail(el) {
   kopf.className = "detail-kopf";
   kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>`;
 
-  // Fokus-Ansicht (P27 F4): Board ausblenden, nur diese Karte zeigen — konzentriertes Abarbeiten.
+  // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
+  // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.
   const fokusKnopf = document.createElement("button");
-  fokusKnopf.className = "detail-fokus" + (FOKUS.an ? " an" : "");
-  fokusKnopf.setAttribute("aria-label", FOKUS.an ? "Fokus-Ansicht verlassen" : "Fokus-Ansicht: nur diese Karte zeigen");
-  fokusKnopf.title = FOKUS.an ? "Board wieder einblenden" : "Board ausblenden, konzentriert an dieser Karte arbeiten";
-  fokusKnopf.innerHTML = icon("ziel");
+  fokusKnopf.className = "detail-fokus" + (istMaximal() ? " an" : "");
+  fokusKnopf.setAttribute("aria-label", istMaximal() ? "Auf vorherige Breite zurueck" : "Detailspalte auf maximale Breite ziehen");
+  fokusKnopf.title = istMaximal() ? "Zurueck zur vorherigen Breite" : "Detailspalte auf 80% der Bildschirmbreite ziehen";
+  fokusKnopf.innerHTML = icon("maximieren");
   fokusKnopf.addEventListener("click", () => {
-    FOKUS.an = !FOKUS.an;
+    springeZuMaximum();
     zeichne();
   });
   kopf.appendChild(fokusKnopf);
@@ -144,7 +145,7 @@ export function zeichneDetail(el) {
   zu.innerHTML = icon("schliessen");
   zu.addEventListener("click", () => {
     S.aktiv = null;
-    FOKUS.an = false; // Fokus-Ansicht verlaesst sich automatisch mit dem Schliessen der Karte.
+    verlasseMaximumFallsAktiv(); // Breite verlaesst sich mit der Karte automatisch, wie vorher
     zeichne();
   });
   kopf.appendChild(zu);

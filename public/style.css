@@ -107,6 +107,14 @@
   box-sizing: border-box;
 }
 
+/* Eigener Cursor im Haus-Stil (v57, Owner 23.09.2026) — ersetzt den System-Pfeil ueberall,
+   auch im Ruhezustand. Auf html statt body, damit auch der Rand ausserhalb von body erfasst
+   ist; jedes Element mit einem eigenen cursor (Knoepfe: pointer, .detail-griff: Resize-Pfeil)
+   ueberschreibt das lokal wie gewohnt — nur der Ruhezustand wechselt von System- auf Haus-Pfeil. */
+html {
+  cursor: url("cursor-pfeil.svg") 8 6, auto;
+}
+
 body {
   margin: 0;
   background: var(--grund);
@@ -1001,10 +1009,37 @@ body {
 
 /* --- Detailspalte: eigenes Klassen-Vokabular --- */
 
+/* Zieh-Griff (v57, Owner 23.09.2026): eigener Flex-Sibling statt Kind von .detail, weil
+   zeichneDetail() bei jedem Redraw .detail.innerHTML komplett leert — ein Griff darin wuerde
+   staendig neu erzeugt und seine Ziehen-Logik verlieren. 6px sichtbar, aber ein breiterer
+   Hover-Bereich (siehe ::before) fuer ein bequemeres Trefferfeld. */
+.detail-griff {
+  flex: 0 0 6px;
+  position: relative;
+  cursor: url("cursor-resize.svg") 16 10, ew-resize;
+  background: var(--linie);
+  opacity: 0.35;
+  transition: opacity 0.12s;
+}
+.detail-griff::before {
+  content: "";
+  position: absolute;
+  inset: 0 -5px;
+}
+.detail-griff:hover,
+.detail-griff.zieht {
+  opacity: 1;
+  background: var(--akzent);
+}
+.detail-griff[hidden] {
+  display: none;
+}
+
 .detail {
   flex: 0 0 380px;
   background: var(--flaeche);
-  border-left: 1px solid var(--linie);
+  /* v57: kein eigener border-left mehr — .detail-griff (der Zieh-Balken) uebernimmt die
+     optische Trennung, ein zweiter Strich direkt daneben waere doppelt gemoppelt. */
   overflow-y: auto;
   padding: 0 0 28px;
   display: flex;
@@ -2958,7 +2993,10 @@ body {
   white-space: nowrap;
 }
 
-/* F4: Fokus-Ansicht — Board ausblenden, Detailspalte breiter und zentriert zeigen. */
+/* F4 -> v57 (Owner 23.09.2026): war eine Fokus-ANSICHT (Board ausblenden, zentrieren, eigene
+   760px-Breite als zweite, parallele Breiten-Variable neben der Detailspalte). Jetzt reiner
+   Breiten-SHORTCUT auf dieselbe Zieh-Variable wie .detail-griff (siehe detail-breite.js) —
+   Board bleibt sichtbar/scrollbar, kein Zentrieren mehr, keine eigene Breiten-Regel noetig. */
 .detail-fokus {
   margin-left: auto;
   background: none;
@@ -2976,17 +3014,6 @@ body {
 .detail-fokus.an {
   color: var(--akzent);
   background: var(--akzent-tief);
-}
-.hauptflaeche.fokus {
-  justify-content: center;
-}
-.hauptflaeche.fokus .ansicht {
-  display: none;
-}
-.hauptflaeche.fokus .detail {
-  flex: 1 1 auto;
-  max-width: 760px;
-  border-left: 0;
 }
 
 /* ============================================================

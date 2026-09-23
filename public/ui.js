@@ -39,6 +39,9 @@ export const ICONS = {
   ziel: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   weiter: '<path d="m9 18 6-6-6-6"/>',
   zurueck: '<path d="m15 18-6-6 6-6"/>',
+  // Lucide "arrow-left-from-line" (v57): Strich rechts, Pfeil zieht nach links davon weg —
+  // fuer den Detailspalten-Breiten-Shortcut (zieht auf maximale Breite).
+  maximieren: '<path d="m9 6-6 6 6 6"/><path d="M3 12h14"/><path d="M21 19V5"/>',
   video: '<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/>',
   raute: '<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>',
   personen:
