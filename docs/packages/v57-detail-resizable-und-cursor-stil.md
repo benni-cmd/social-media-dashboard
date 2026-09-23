@@ -121,6 +121,7 @@ Resize-Pfeil bestaetigt ("sieht super aus", unveraendert gelassen). Zwei Aenderu
 - [x] Umsetzung
 - [x] Verify (Browser: Ziehen, Min/Max, Fokus-Toggle, Theme-Wechsel)
 - [x] Commit + Push (eacc394)
+- [x] Nachlese: Pfeil rund + Markengruen, Hand-Cursor fuer Karten (b92d517)
 
 ## DoD
 
