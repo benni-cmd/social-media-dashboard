@@ -889,8 +889,11 @@ body {
   border-radius: var(--rund);
 }
 .spalte-fuss {
-  padding: 0 14px 14px;
+  padding: 12px 14px 14px;
   flex-shrink: 0; /* v53: "Karte anlegen"/"Idee von der KI" bleiben immer erreichbar */
+  /* v59 Nachlese (Owner 23.09.2026): klare Abgrenzung zur scrollenden Kartenliste darueber —
+     derselbe Trenner, den .spalte-kopf schon fuer seine eigene Kante benutzt. */
+  border-top: 1px solid var(--linie);
 }
 
 /* --- Kachel: der Kern der Uebersicht --- */
@@ -955,6 +958,12 @@ body {
   width: 16px;
   height: 1.35em;
 }
+/* v59 Nachlese: steht zusaetzlich ein Ausrufezeichen links vom Punkt (.eintrag-hat-achtung),
+   braucht Zeile 1 des Titels entsprechend mehr Platz — sonst ueberlappt der Titeltext das
+   Ausrufezeichen. */
+.eintrag-hat-achtung .eintrag-titel::before {
+  width: 34px;
+}
 .eintrag-marken {
   display: flex;
   flex-wrap: wrap;
@@ -995,21 +1004,23 @@ body {
 .eintrag-punkt-befund { color: var(--befund); }
 .eintrag-punkt-unlesbar { color: var(--unlesbar); }
 .eintrag-punkt-entfaellt { color: var(--entfaellt); }
-/* v56 (v50 V2): Aufmerksamkeits-Zustaende (befund/fehlt) als Glyphe statt gefuelltem Punkt —
-   per Form erkennbar, nicht nur Farbe. Neutral bleibt der 8px-Punkt oben. */
-.eintrag-punkt-glyphe {
-  width: auto;
-  height: auto;
-  background: none;
-  top: 8px;
-  right: 8px;
+/* v59 Nachlese (Owner 23.09.2026): Aufmerksamkeits-Zustaende (befund/fehlt) bekommen ZUSAETZLICH
+   zum gefuellten Punkt ein Ausrufezeichen links davon (Form UND Farbe, statt Form STATT Farbe —
+   die vorige Glyphe-Loesung ersetzte den Punkt und war bei "fehlt" gegen den Karten-Hintergrund
+   kaum zu sehen). */
+.eintrag-achtung {
+  position: absolute;
+  top: 10px;
+  right: 24px;
   display: inline-flex;
 }
-.eintrag-punkt-glyphe .icon {
+.eintrag-achtung .icon {
   width: 13px;
   height: 13px;
   color: currentColor;
 }
+.eintrag-achtung-fehlt { color: var(--fehlt); }
+.eintrag-achtung-befund { color: var(--befund); }
 /* Kachel-Sanduhr (v32 E2): an der Stelle des Status-Punkts, solange der Drive-Scan laeuft. */
 .eintrag-punkt-lade {
   position: absolute;

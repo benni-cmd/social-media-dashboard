@@ -79,14 +79,20 @@ export function kachel(k) {
   // v32 E2: Laeuft gerade der Drive-Scan dieser Karte, traegt die Kachel die drehende Sanduhr
   // statt des Status-Punkts — „die Drive-Daten sind noch nicht da, gleich aktualisiert sich das".
   // Sobald der Scan landet (store.driveScan zeichnet neu), erscheint der echte Status-Punkt.
-  // v56 (v50 V2): Aufmerksamkeits-Zustaende tragen eine Glyphe (Form, nicht nur Farbe, Regel 3) —
-  // neutral/ok bleibt schlichter Punkt, damit die Uebersicht knapp bleibt (board.js:56-58).
+  // v56 (v50 V2): Aufmerksamkeits-Zustaende bekamen zusaetzlich eine Glyphe (Form, nicht nur
+  // Farbe, Regel 3). v59 Nachlese (Owner 23.09.2026): die Glyphe hatte dabei den FARBIGEN Punkt
+  // ERSETZT — bei "fehlt" (blasses Oliv/Tan) gegen den aehnlich hellen Karten-Hintergrund praktisch
+  // unsichtbar ("transparent"). Jetzt bleibt der gefuellte Punkt IMMER stehen (Farbe bleibt
+  // erkennbar), das Ausrufezeichen kommt bei Aufmerksamkeits-Zustaenden ZUSAETZLICH links davon.
   const AUFMERKSAM = new Set(["befund", "fehlt"]);
+  const istAufmerksam = AUFMERKSAM.has(statusCode);
+  el.classList.toggle("eintrag-hat-achtung", istAufmerksam);
   const statusHtml = S.driveScanLaeuft.has(k.id)
     ? `<span class="eintrag-punkt-lade" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
-    : AUFMERKSAM.has(statusCode)
-      ? `<span class="eintrag-punkt eintrag-punkt-glyphe eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}">${icon((STATUS[statusCode] || {}).icon || "achtung")}</span>`
-      : `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
+    : (istAufmerksam
+        ? `<span class="eintrag-achtung eintrag-achtung-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}">${icon((STATUS[statusCode] || {}).icon || "achtung")}</span>`
+        : "") +
+      `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
 
   el.innerHTML =
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
