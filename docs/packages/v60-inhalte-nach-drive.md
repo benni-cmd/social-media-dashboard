@@ -66,6 +66,12 @@ Privates Repo, nur KI-Prompts/Firmenkontext, keine Secrets → Historie-Bereinig
       Transiente 20s-rclone-Timeouts traten auf → griffen sauber in den Cache-Fallback (kein Verlust, kein Block).
 - [ ] Owner-Entscheidung Historie-Bereinigung eingeholt — **offen** (siehe unten, nicht blockierend).
 
+## Commits (23.09.2026, main, benni-cmd/social-media-dashboard)
+- `259dc69` — Drive-Backing prompts/workflows/defaults (promptstore/workflowstore umgebaut, neu
+  defaultsstore.js, server.js `/api/defaults` an den Store gehaengt), `.gitignore`-Eintraege.
+- `f8b66a0` — `git rm --cached data/{prompts,workflows,kontext}.json` (Untracking; lokale Cache-Dateien bleiben).
+- (dieser Paket-Nachtrag)
+
 ## DoD
 - Prompt-/Workflow-/Defaults-Edit landet in Drive und übersteht das Löschen der lokalen Datei
   (aus Drive wiederhergestellt).
