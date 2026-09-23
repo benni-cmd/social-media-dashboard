@@ -148,7 +148,8 @@ Button, läuft über rclone) — kein Trennen ohne Verbinden.
       auf Knopf, ArrowDown öffnet aus dem Knopf). index.html + app.js + style.css. Verifiziert:
       Screenshot (Menü offen, Icons/Divider, Fokus-Ring) + Live-Events (ArrowDown abgleichen→neuladen,
       Escape schließt+fokussiert Knopf). (12.09.2026)
-- [ ] T1 „Mehr Aktionen aufnehmen": offen — welche seltenen Aktionen ins Menü sollen, nennt der Owner
+- [x] T1 „Mehr Aktionen aufnehmen": GESCHLOSSEN (Owner 23.09.2026) — nicht benötigt. Das Kopf-Menü
+      (Daten/System) reicht; Karten-Aktionen sind seit v54 im Rechtsklick-Menü. Paket damit erledigt.
       (kein Feature geraten).
 
 ## DoD
