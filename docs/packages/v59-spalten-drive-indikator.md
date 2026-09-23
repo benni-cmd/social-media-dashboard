@@ -48,7 +48,7 @@ der nie stattgefunden hat.
 - [x] Bestand geprueft (`kachel()`-Sanduhr-Muster, `.spalte-kopf-zeile`-Layout) — 23.09.2026
 - [x] Umsetzung
 - [x] Verify (Browser: laedt → live Uebergang, Screenshot)
-- [ ] Commit + Push
+- [x] Commit + Push (ee7406e)
 
 ## DoD
 
