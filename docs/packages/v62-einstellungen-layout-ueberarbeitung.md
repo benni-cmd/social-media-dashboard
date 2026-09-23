@@ -1,7 +1,6 @@
 # v62 — Einstellungen: Umbenennung + einheitliches Verbindungs-Layout
 
-> PLAN-Paket, angelegt 23.09.2026. Noch NICHT gebaut — Owner: "sauber planen, Rueckfragen
-> stellen, NIEMALS raten, dann erst umsetzen."
+> Plan steht nach zwei Rueckfrage-Runden + Feasibility-Check, 23.09.2026. Wird jetzt gebaut.
 
 ## PIG
 
@@ -52,30 +51,67 @@
   Groessenspruenge zwischen Tabs) — eine neue Verbindungs-Liste muesste sich darin einpassen,
   nicht die Fenstergroesse je Tab aendern.
 
-## Offene Fragen — bitte beantworten, ich rate nicht
+## Owner-Antworten (23.09.2026, zwei Runden)
 
-Gestellt per AskUserQuestion (siehe Chat).
+1. **Kalender+Tasks**: EINE gemeinsame Zeile "Google Kalender + Tasks" (nicht aufgeteilt).
+2. **Drive/Claude volles Muster**: zunaechst "ja, beide voll" — nach Feasibility-Check
+   (siehe unten) korrigiert: **Claude voll, Drive bleibt Sonderfall** (siehe Beleg).
+3. **Kontext/Prompts-Schmerzpunkte** (alle drei): zu viel Scrollen/schlechte Gliederung +
+   uneinheitlich zum Rest + zu wenig Struktur beim Bearbeiten (Projekte/Schritte sollen sich
+   falten lassen statt alles offen zu zeigen).
+4. **KI-Rollen-Anordnung**: die DREI Rollen-Bloecke (userkomm/recherche/kontext) sollen
+   untereinander einheitlicher aussehen — das Tavily-Feld (nur bei "recherche") macht die
+   Bloecke aktuell unterschiedlich hoch/aufgebaut.
 
-## Plan (nach Antworten, noch nicht gebaut)
+## Feasibility-Check Konto-Anzeige (nachgemessen, nicht geraten)
 
-1. Tab-Umbenennung "Verbindungen" → "KI-Rollen" (`ui.js:615`), ggf. Nav-Reihenfolge je nach
-   Antwort zur "einheitlicheren Anordnung".
-2. Eine gemeinsame "Verbindungs-Zeile"-Komponente (Name/Icon, Status-Chip, Konto-Zeile,
-   Trennen-Knopf) bauen, die "Externe Dienste" UND "Social Media Kanaele" beide nutzen — statt
-   der vier handgebauten Einzel-Sektionen.
-3. Konto-Anzeige ergaenzen, wo technisch moeglich (Google: `kontoMail()`/`/api/gcal/konto`
-   wiederverwenden; Instagram/LinkedIn: pruefen, ob der Server eine Konto-Kennung liefert;
-   Drive/Claude: je nach Antwort Sonderfall oder gleiches Muster).
-4. Unternehmenskontext/System Prompts: konkrete Umbauten je nach Owner-Antwort zu den
-   Schmerzpunkten.
-5. Verify: Screenshot jedes betroffenen Tabs vor/nach, Funktionstest Verbinden/Trennen bleibt
-   intakt.
-6. Commit + Push.
+- **Claude**: `claude auth status --json` liefert direkt `email` mit (getestet:
+  `benknaute@gmx.de`). `/api/verbindungen/status` (`server.js:1161`) ruft diesen Befehl
+  BEREITS auf (fuer `loggedIn`) — `email` mitzunehmen ist eine Zeile, kein neuer Aufruf.
+- **Google (Kalender+Tasks)**: `gcal.kontoMail()` existiert schon (`lib/gcal.js:188`,
+  genutzt von `/api/gcal/konto`) — im selben Statusaufruf mit ausliefern.
+- **Instagram**: `tokens.instagram.username` wird BEREITS beim Verbinden gespeichert
+  (`server.js:1019`) — nur bisher nicht in `/api/verbindungen/status` mit ausgeliefert.
+- **LinkedIn**: `tokens.linkedin.orgName` wird BEREITS gespeichert (`server.js:1318`) — es
+  ist ein SEITEN-/Organisationsname, keine persoenliche Mail (LinkedIn haengt hier an einer
+  Unternehmensseite, nicht an einer Person) — Anzeige-Label entsprechend "Seite: …", nicht
+  "Konto: …".
+- **Drive/rclone**: KEIN eingebauter Befehl liefert die Konto-Mail (nur Speicherplatz-Zahlen
+  via `rclone about`). Eine Mail zu zeigen braeuchte einen neuen Aufruf an die Google-Drive-
+  API (`about?fields=user`) mit dem rclone-intern verwalteten Token — Owner-Entscheidung:
+  bleibt Sonderfall (Status-Chip + erklaerender Satz, kein Konto, kein Trennen — Drive hat
+  heute ohnehin keinen Trennen-Knopf, das war nie Teil des Auftrags).
+
+## Plan (konkret, wird jetzt umgesetzt)
+
+1. **`server.js`** `/api/verbindungen/status`: `email` bei `claude` und `google` ergaenzen
+   (bestehende Aufrufe erweitern), `konto`/`seite` bei `instagram`/`linkedin` aus den bereits
+   gespeicherten Tokens ergaenzen. Kein neuer Endpunkt, keine neue Bibliothek.
+2. **`ui.js:615`**: Tab "Verbindungen" → "KI-Rollen".
+3. **Neue Verbindungs-Zeile-Komponente** in `ui.js` (ersetzt die vier handgebauten
+   `.einst-abschnitt`-Sektionen + `baueApiDienst()`): Name, Status-Chip, Konto-/Seiten-Zeile
+   (wenn vorhanden), Knopf-Reihe (Speichern+Verbinden ODER Trennen, wie bisher). Wird von
+   "Externe Dienste" UND "Social Media Kanaele" genutzt.
+4. **"Externe Dienste"**: Reihenfolge Drive → Google Kalender + Tasks → Claude (Owner-
+   Reihenfolge aus dem Auftrag). Drive ohne Konto-Zeile (Sonderfall), Claude MIT Konto-Zeile.
+5. **"Social Media Kanaele"**: Instagram + LinkedIn im selben Zeilen-Muster, mit Konto-/
+   Seiten-Zeile.
+6. **"KI-Rollen"**: die drei Rollen-Bloecke bekommen eine einheitliche Grundstruktur (fester
+   Slot fuer Provider/Modell, ein optionaler "Extra"-Slot fuer das Tavily-Feld bei
+   "recherche" statt formlosem Anhaengsel) — gleiche Hoehe/gleicher Aufbau, wo inhaltlich
+   moeglich.
+7. **Unternehmenskontext + System Prompts**: Projekte bzw. Schritt-Gruppen standardmaessig
+   gefaltet (nur Titel/Kurzinfo sichtbar, aufklappbar), visuelle Angleichung an das neue
+   Zeilen-/Abschnitts-Muster der anderen Tabs (Abstaende, Labels, Trenner).
+8. Verify: Screenshot jedes Tabs vor/nach, Funktionstest Verbinden/Trennen bleibt intakt,
+   Konto-Zeilen zeigen echte Werte (nicht erfunden).
+9. Commit + Push.
 
 ## Stand
 
 - [x] Bestand geprueft (Explore-Agent: alle sechs Tabs, CSS-Geometrie, bestehende Muster) — 23.09.2026
-- [ ] Owner-Antworten
+- [x] Owner-Antworten (zwei Rueckfrage-Runden)
+- [x] Feasibility-Check Konto-Anzeige (claude auth status, rclone-Befehle getestet)
 - [ ] Umsetzung
 - [ ] Verify
 - [ ] Commit + Push
