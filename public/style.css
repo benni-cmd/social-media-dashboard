@@ -112,7 +112,7 @@
    ist; jedes Element mit einem eigenen cursor (Knoepfe: pointer, .detail-griff: Resize-Pfeil)
    ueberschreibt das lokal wie gewohnt — nur der Ruhezustand wechselt von System- auf Haus-Pfeil. */
 html {
-  cursor: url("cursor-pfeil.svg") 8 6, auto;
+  cursor: url("cursor-pfeil.svg") 9 7, auto;
 }
 
 body {
@@ -705,7 +705,7 @@ body {
   border: 2px solid var(--linie);
   border-radius: var(--rund-klein);
   padding: 10px 12px;
-  cursor: pointer;
+  cursor: url("cursor-hand.svg") 9 3, pointer;
   overflow: hidden;
   transition: border-color 0.12s, transform 0.08s;
   box-shadow: var(--schatten);

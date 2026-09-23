@@ -76,10 +76,11 @@ vorgeschlagen, nicht widersprochen).
   `hauptflaecheEl`-Variable in `app.js` war danach ungenutzt, ebenfalls entfernt.
 - **Cursor:** zwei neue SVG-Dateien im Haus-Stil (harter Versatz-Schatten wie `--schatten`,
   `--linie`-Umriss, `--akzent`-Orange beim Resize-Pfeil) — `cursor-pfeil.svg` (Standard,
-  ersetzt den System-Pfeil global via `html{cursor:url(...) 8 6, auto}`) und
-  `cursor-resize.svg` (Links-Rechts-Doppelpfeil auf `.detail-griff`, `ew-resize`-Fallback).
-  Vor dem Verdrahten als normale `<img>` in einer Test-Seite vergroessert angeschaut (Cursor
-  selbst lassen sich nicht screenshotten) — danach geloescht, war nur zur Formkontrolle.
+  ersetzt den System-Pfeil global via `html{cursor:url(...) 8 6, auto}`, Hotspot nach der
+  Nachlese-Neuzeichnung `9 7`) und `cursor-resize.svg` (Links-Rechts-Doppelpfeil auf
+  `.detail-griff`, `ew-resize`-Fallback). Vor dem Verdrahten als normale `<img>` in einer
+  Test-Seite vergroessert angeschaut (Cursor selbst lassen sich nicht screenshotten) — danach
+  geloescht, war nur zur Formkontrolle.
 
 ## Verify (Browser, 23.09.2026)
 
@@ -94,6 +95,24 @@ vorgeschlagen, nicht widersprochen).
 - Cursor korrekt verdrahtet: `getComputedStyle(html).cursor` und `getComputedStyle(griff)
   .cursor` zeigen die eigenen SVGs mit Hotspot-Koordinaten.
 - Dunkles Theme: Screenshot ohne Bruch (Griff/Panel/Knopf weiterhin funktional und lesbar).
+
+## Nachlese (23.09.2026): Owner-Feedback nach optischer Abnahme
+
+Resize-Pfeil bestaetigt ("sieht super aus", unveraendert gelassen). Zwei Aenderungen:
+
+1. **Standard-Pfeil war zu eckig** — neu gezeichnet als rundes Tropfen/Pfeil-Hybrid (kubische
+   Bezierkurven statt gerader Linien), dazu unser Markengruen `#72ac43` verarbeitet: Umriss in
+   Markengruen, Fuellung hell (Lesbarkeit auf jedem Hintergrund), Schatten in einem dunkleren
+   Gruenton statt neutralem Dunkelbraun — vorher/nachher visuell an einer vergroesserten
+   Testseite geprueft (light+dark Hintergrund), danach geloescht.
+2. **Neu: Hand-Cursor beim Karten-Hover** — `.eintrag` (Board-Karte) zeigt jetzt eine
+   zeigende Hand statt des System-Pointers. Bewusst der ECHTE Lucide-„pointer"-Pfad (von der
+   Original-Quelle geladen, nicht nachgezeichnet — eine Hand-Anatomie freihaendig zu erfinden
+   waere riskant), als dicke Strich-Version (Schatten dunkelgruen, Weiss-Halo fuer Kontrast auf
+   jedem Hintergrund, Markengruen-Linie obenauf) statt gefuellter Silhouette, weil der Lucide-
+   Pfad aus 5 einzelnen Strich-Segmenten besteht (Finger-Trenner etc.), keiner fuellbaren Kontur.
+   Bewusst nur auf `.eintrag` beschraenkt (das ist die "Karte" im Owner-Wortlaut) — andere
+   `cursor:pointer`-Stellen (Knoepfe etc.) unangetastet, bis explizit gewuenscht.
 
 ## Stand
 
