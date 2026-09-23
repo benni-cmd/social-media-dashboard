@@ -230,11 +230,16 @@ body {
   align-items: center;
   gap: 4px;
 }
+/* Feste Breite je Sektion (Owner 23.09.2026): sonst schiebt jede Zustandsaenderung in einer
+   Sektion die anderen zur Seite — der Knopf, den man treffen will, wandert unter dem Finger
+   weg. Alle vier gleich breit, auch die KI-Sektion mit nur einem Knopf. */
 .anschluss {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  width: 132px;
+  box-sizing: border-box;
   padding: 2px 6px;
   border: 1px solid var(--linie-hell);
   border-radius: var(--rund-klein);
@@ -244,11 +249,19 @@ body {
   white-space: nowrap;
 }
 .anschluss-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
 }
+/* Auch der Marker bekommt seinen Platz fest zugeteilt: die Sanduhr und die Status-Glyphe
+   sind nicht gleich breit, sonst zuckt der Name bei jedem Wechsel. */
 .anschluss-marker {
+  flex: 0 0 15px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 }
 /* Im Marker zaehlt die Glyphe, nicht das Wort — die Leiste soll schmal bleiben. Das
    Status-Wort steht weiterhin im Titel des Chips und im Terminal (Regel 3 bleibt gewahrt). */
@@ -261,6 +274,7 @@ body {
   background: none;
 }
 .anschluss-knopf {
+  flex: 0 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -352,13 +366,13 @@ body {
   color: var(--text-leise);
   font-variant-numeric: tabular-nums;
 }
+/* Der Leerzustand laeuft ueber die ganze Breite statt durch das Spaltenraster der Zeilen. */
 .anschluss-leer {
   grid-column: 1 / -1;
-}
-.anschluss-leer {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
   color: var(--text-leise);
-  font-style: normal;
 }
 /* Laufende Zeile: dieselbe drehende Sanduhr wie ueberall sonst (v32 E). */
 .anschluss-zeile-icon {

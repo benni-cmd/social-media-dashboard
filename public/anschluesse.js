@@ -77,6 +77,11 @@ const HOECHSTENS = 200; // was die Anzeige haelt; die volle Tiefe liegt im Serve
 let offeneSektion = null;
 let leiste = null;
 
+// Wie es um den Ereignis-Strom steht. Wichtig fuer den Leerzustand: „nichts passiert" und
+// „ich kann es nicht wissen" sind ZWEI Zustaende. Die erste Fassung zeigte fuer beide denselben
+// Satz — und behauptete damit Ruhe, waehrend in Wahrheit die Verbindung fehlte.
+let feed = { stand: "verbindet", satz: "" };
+
 function merke(e) {
   const liste = verlauf[e.sektion];
   if (!liste) return;
@@ -130,7 +135,13 @@ function zeichneTerminal(sektion) {
   if (!el) return;
   const liste = verlauf[sektion] || [];
   if (!liste.length) {
-    el.innerHTML = `<li class="anschluss-zeile anschluss-leer">Noch nichts passiert, seit der Server laeuft.</li>`;
+    // Nur wenn der Strom wirklich steht, ist „nichts passiert" die Wahrheit.
+    const satz =
+      feed.stand === "offen"
+        ? "Noch nichts passiert, seit der Server laeuft."
+        : feed.satz || "Der Ereignis-Strom ist noch nicht verbunden.";
+    const code = feed.stand === "offen" ? "entfaellt" : "unlesbar";
+    el.innerHTML = `<li class="anschluss-zeile anschluss-leer">${statusChip(code)}<span>${escape(satz)}</span></li>`;
     return;
   }
   // Neueste unten, wie in einem Terminal; die Ansicht springt ans Ende mit.
@@ -233,17 +244,25 @@ export async function alleAbgleichen() {
 
 function verbindeFeed() {
   const quelle = new EventSource("/api/ereignisse/stream");
+  quelle.onopen = () => {
+    feed = { stand: "offen", satz: "" };
+    zeichneAnschluesse();
+  };
   quelle.onmessage = (nachricht) => {
     let o;
     try { o = JSON.parse(nachricht.data); } catch { return; }
+    feed = { stand: "offen", satz: "" };
     if (o.aktiv) Object.assign(aktiv, o.aktiv);
     if (o.art === "ereignis" && o.ereignis) merke(o.ereignis);
     zeichneAnschluesse();
   };
-  // EventSource verbindet von selbst neu; hier steht nur, dass die Marker in der Zwischenzeit
-  // nicht faelschlich „arbeitet" zeigen.
+  // EventSource verbindet von selbst neu. Hier steht nur, dass die Marker in der Zwischenzeit
+  // nicht faelschlich „arbeitet" zeigen und der Leerzustand nicht Ruhe behauptet.
   quelle.onerror = () => {
     for (const k of Object.keys(aktiv)) aktiv[k] = false;
+    if (feed.stand !== "veraltet") {
+      feed = { stand: "getrennt", satz: "Der Ereignis-Strom ist abgerissen — es wird neu verbunden." };
+    }
     zeichneAnschluesse();
   };
 }
@@ -257,11 +276,24 @@ export async function verdrahteAnschluesse(el) {
   // Was vor dem Laden der Seite passiert ist, steht schon im Server-Ringpuffer — ohne das
   // waere das Terminal nach jedem Neuladen leer, obwohl der Server durchgearbeitet hat.
   try {
-    const r = await fetch("/api/ereignisse").then((x) => x.json());
-    for (const e of r.verlauf || []) merke(e);
-    if (r.aktiv) Object.assign(aktiv, r.aktiv);
-  } catch { /* ohne Verlauf starten ist kein Fehler */ }
+    const antwort = await fetch("/api/ereignisse");
+    if (antwort.status === 404) {
+      // Genau der Fall, der beim ersten Einsatz auftrat: das Frontend kommt frisch von der
+      // Platte, der Serverprozess laeuft aber noch mit einer aelteren Fassung und kennt die
+      // Route nicht. Ohne diesen Satz sieht es aus, als passiere nichts.
+      feed = {
+        stand: "veraltet",
+        satz: "Dieser Server kennt den Ereignis-Strom noch nicht — er laeuft mit einer aelteren Fassung. Einmal neu starten.",
+      };
+    } else {
+      const r = await antwort.json();
+      for (const e of r.verlauf || []) merke(e);
+      if (r.aktiv) Object.assign(aktiv, r.aktiv);
+    }
+  } catch (e) {
+    feed = { stand: "getrennt", satz: `Der Verlauf liess sich nicht laden: ${e.message}` };
+  }
 
   zeichneAnschluesse();
-  verbindeFeed();
+  if (feed.stand !== "veraltet") verbindeFeed();
 }
