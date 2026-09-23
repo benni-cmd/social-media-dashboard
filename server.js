@@ -20,6 +20,7 @@ import { execSync } from "node:child_process";
 
 import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
+import * as ereignisse from "./lib/ereignisse.js"; // v58: was das Board nach aussen tut
 import * as projekte from "./lib/projects.js";
 import * as planstore from "./lib/planstore.js";
 import * as spaltenStore from "./lib/spalten.js";
@@ -1117,6 +1118,47 @@ async function handler(req, res) {
       await envSchreiben(key, wert);
       process.env[key] = wert; // sofort wirksam, ohne Neustart
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    // --- Ereignisse: was das Board gerade nach aussen tut (v58) ---------------
+    //
+    // Zwei Wege, absichtlich getrennt: der Verlauf ist eine normale Abfrage (beim Oeffnen
+    // eines Terminals), der Strom ist eine dauerhaft offene Verbindung. Fuer den Strom
+    // Server-Sent Events statt des Haus-NDJSON (v51): die beiden NDJSON-Stroeme gehoeren je
+    // zu EINEM Vorgang und enden mit ihm, dieser Feed steht dagegen die ganze Sitzung offen —
+    // und `EventSource` im Browser bringt das Wiederverbinden von selbst mit.
+    if (pfad === "/api/ereignisse" && req.method === "GET") {
+      const sektion = url.searchParams.get("sektion") || "";
+      const seitId = Number(url.searchParams.get("seit") || 0);
+      sendJson(res, 200, { verlauf: ereignisse.verlauf({ sektion, seitId }), aktiv: ereignisse.aktiv() });
+      return;
+    }
+
+    if (pfad === "/api/ereignisse/stream" && req.method === "GET") {
+      res.writeHead(200, {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+        "x-accel-buffering": "no",
+      });
+      const schreib = (o) => {
+        if (res.writableEnded || res.destroyed) return;
+        res.write(`data: ${JSON.stringify(o)}\n\n`);
+      };
+      // Erst den Stand mitgeben, damit der Browser die Marker sofort richtig zeichnet und
+      // nicht bis zum naechsten Ereignis blind ist.
+      schreib({ art: "stand", aktiv: ereignisse.aktiv() });
+      const ab = ereignisse.abonniere((e) => schreib({ art: "ereignis", ereignis: e, aktiv: ereignisse.aktiv() }));
+      // Ohne Lebenszeichen schliessen Zwischenstationen eine stille Verbindung nach ~60 s.
+      const puls = setInterval(() => {
+        if (res.writableEnded || res.destroyed) return;
+        res.write(": puls\n\n");
+      }, 25000);
+      if (puls.unref) puls.unref();
+      const aufraeumen = () => { ab(); clearInterval(puls); };
+      req.on("close", aufraeumen);
+      req.on("error", aufraeumen);
       return;
     }
 
