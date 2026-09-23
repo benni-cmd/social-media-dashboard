@@ -10,7 +10,7 @@ import {
   contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots, fruehesterUpload,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
-import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, terminplan, schwebendeNeuBerechnen } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, optimistisch, terminplan, schwebendeNeuBerechnen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -188,18 +188,19 @@ export async function holeIdee() {
       }
       S.cards.push(k);
       zeichne();
-      zeigeLaden(`Lege „${k.title}" an und erstelle den Drive-Ordner …`);
-      try {
-        await speichere();
-        // Der neue Slot kann eine schwebende Karte verdraengt haben (v30) — neu rechnen.
-        if (slot) { await schwebendeNeuBerechnen(); zeichne(); }
-        await driveAnlegen(k); // erst beim Uebernehmen: Drive-Ordner + (AI only)/projekt.json
-        meldung(`Idee „${k.title}" als Karte und Drive-Ordner angelegt.`, "erfolg");
-      } catch (e) {
-        // board.json ist Cache: die Karte bleibt, nur der Drive-Ordner fehlt — der Abgleich heilt.
-        meldung(`Karte angelegt, aber Drive-Ordner nicht: ${e.message}`, "fehler");
-      }
+      await speichere();
+      // Der neue Slot kann eine schwebende Karte verdraengt haben (v30) — neu rechnen.
+      if (slot) { await schwebendeNeuBerechnen(); zeichne(); }
+      // Optimistisch (v55): die Karte ist da, der Dialog geht SOFORT zu — der Drive-Ordner entsteht
+      // im Hintergrund (erst beim Uebernehmen: Ordner + (AI only)/projekt.json). Fehlschlag ist
+      // sichtbar + wiederholbar; board.json fuehrt, der Abgleich heilt einen fehlenden Ordner.
       schliesse(k.id);
+      if (k.title) optimistisch({
+        extern: () => driveAnlegen(k),
+        sichern: null,
+        was: `Projektordner fuer „${k.title}"`,
+        beiErfolg: () => meldung(`Drive-Ordner fuer „${k.title}" angelegt.`, "erfolg"),
+      });
     }
 
     naechste();

@@ -15,7 +15,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, an } from "./store.js";
+import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -122,16 +122,16 @@ function starteUmbenennen(nameEl, p) {
       return;
     }
     umbenennenLaeuft = true;
-    setStand("Benenne Spalte und Drive-Ordner um …");
-    try {
-      await spaltenUmbenennen(p.id, neu);
-      setStand(`Spalte heisst jetzt "${neu}" — im Board und in Drive.`);
-    } catch (e) {
-      nameEl.textContent = alt;
-      await melde("befund", `Umbenennen ging nicht: ${e.message}`);
-    } finally {
-      umbenennenLaeuft = false;
-    }
+    // Optimistisch (v55): der neue Name steht sofort (lokal in S.spalten), der Drive-Ordner wird
+    // im Hintergrund mit umbenannt; scheitert das, geht der Name zurueck und ist wiederholbar.
+    // `sichern:null` — Spalten stehen nicht in board.json, der Rename-Endpoint ist die Wahrheit.
+    optimistisch({
+      anwenden: () => setzeSpaltenName(p.id, neu),
+      zuruecknehmen: () => setzeSpaltenName(p.id, alt),
+      extern: () => spaltenUmbenennen(p.id, neu),
+      was: `Spalte „${neu}" umbenennen`,
+      sichern: null,
+    }).finally(() => { umbenennenLaeuft = false; });
   };
 
   nameEl.addEventListener("keydown", (e) => {
@@ -240,27 +240,23 @@ export function zeichneBoard(boardEl, lastEl) {
   }
 }
 
-// Verschiebt eine Karte und zieht den Drive-Ordner mit.
-export async function schiebe(k, ziel) {
+// Verschiebt eine Karte und zieht den Drive-Ordner mit — optimistisch (v55, 2. Abschnitt): die
+// Karte springt SOFORT in die Zielspalte (lokal + board.json), der Drive-Move laeuft im
+// Hintergrund. Scheitert er, geht die Karte zurueck und der Bruch ist sichtbar + mit einem Klick
+// wiederholbar. Ohne Titel oder mit abgeschaltetem Workflow gibt es nichts extern zu tun.
+export function schiebe(k, ziel) {
   const alt = k.column;
-  k.column = ziel;
-  zeichne();
-  await speichere();
-  if (!k.title) return;
-  // Workflow "drive-ordner-mitziehen" (v26): aus laeuft das Board bewusst ohne Drive-Nachzug.
-  if (!an("drive-ordner-mitziehen")) return;
-  setStand("Ziehe den Drive-Ordner nach …");
-  try {
-    await driveVerschieben(k, ziel);
-    setStand(`"${k.title}" liegt jetzt in ${phase(ziel).name}, in Drive und im Board.`);
+  if (!k.title || !an("drive-ordner-mitziehen")) {
+    k.column = ziel;
     zeichne();
-  } catch (e) {
-    // Das Board bleibt fuehrend — aber der Bruch wird gesagt, nicht verschluckt.
-    k.column = alt;
-    zeichne();
-    await speichere();
-    await melde("befund", `Der Drive-Ordner liess sich nicht verschieben, die Karte bleibt in ${phase(alt).name}: ${e.message}`);
+    return speichere();
   }
+  return optimistisch({
+    anwenden: () => { k.column = ziel; },
+    zuruecknehmen: () => { k.column = alt; },
+    extern: () => driveVerschieben(k, ziel),
+    was: `„${k.title}" verschieben`,
+  });
 }
 
 // --- Wochenleiste ---------------------------------------------------------

@@ -125,6 +125,36 @@ export function imHintergrund(aktion, { was = "Der Abgleich", zurueck } = {}) {
   });
 }
 
+// Wie melde(), aber der Toast traegt einen „Wiederholen"-Knopf (v55, 2. Abschnitt): ein
+// fehlgeschlagener Hintergrund-Abgleich ist so mit einem Klick erneut anstossbar.
+export async function meldeWiederholbar(status, satz, onWiederholen) {
+  const { hinweisToastAktion } = await import("./ui.js");
+  hinweisToastAktion(status, satz, "Wiederholen", onWiederholen);
+}
+
+// v55 (2. Abschnitt): DIE gemeinsame Hilfe fuer eine schreibende externe Aktion, die sich sofort
+// anfuehlen soll. Lokal fuehrt — `anwenden` macht die Aenderung, `zeichne()` zeigt sie, `sichern`
+// schreibt sie dauerhaft (Standard: `speichere` -> board.json). Erst danach laeuft `extern` im
+// Hintergrund. Scheitert der Dienst, wird `zuruecknehmen` gefahren und der Bruch SICHTBAR gemeldet
+// — mit einem Klick „Wiederholen", der Aenderung und Dienst-Aufruf erneut startet. Kein Aufrufer
+// blockiert; das zurueckgegebene Promise rejectet nie (der Fehler ist bereits behandelt).
+export function optimistisch({ anwenden, zuruecknehmen, extern, was = "Die Aktion", sichern = speichere, beiErfolg }) {
+  const fahre = () => {
+    try { anwenden?.(); } catch {}
+    zeichne();
+    return Promise.resolve(sichern ? sichern() : undefined)
+      .then(() => extern())
+      .then((r) => { zeichne(); try { beiErfolg?.(r); } catch {} return r; })
+      .catch(async (e) => {
+        try { zuruecknehmen?.(); } catch {}
+        zeichne();
+        if (sichern) { try { await sichern(); } catch {} }
+        await meldeWiederholbar("befund", `${was} ging nicht: ${e.message}`, fahre);
+      });
+  };
+  return fahre();
+}
+
 // --- Server ---------------------------------------------------------------
 
 async function hole(pfad, optionen) {
@@ -436,6 +466,13 @@ export async function spaltenUmbenennen(id, name) {
   if (Array.isArray(r.spalten)) S.spalten = r.spalten;
   zeichne();
   return r;
+}
+
+// Setzt den Anzeigenamen einer Spalte lokal — fuer das optimistische Umbenennen (v55). Nichts,
+// wenn die Spalte nicht in S.spalten liegt (PHASEN-Fallback); dann fuehrt erst die Server-Antwort.
+export function setzeSpaltenName(id, name) {
+  const s = S.spalten.find((x) => x.id === id);
+  if (s) s.name = name;
 }
 
 export async function driveStatus() {

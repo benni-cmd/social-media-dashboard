@@ -44,6 +44,7 @@ import {
   loescheKarte,
   driveScan,
   driveAnlegen,
+  optimistisch,
   driveSpeichern,
   ki,
   kiStream,
@@ -1112,11 +1113,15 @@ function guidedIdee(k, box) {
           setzeTief(k, "chosenVisuell", i);
           setzeTief(k, "hook.visual", hvis.hooks[i].visuell || "");
           await speichere();
-          // Drive-Ordner automatisch anlegen — Workflow "drive-ordner-anlegen" (v26).
+          // Drive-Ordner automatisch anlegen — Workflow "drive-ordner-anlegen" (v26). Optimistisch
+          // im Hintergrund; ein Fehlschlag ist sichtbar + wiederholbar (v55).
           if (an("drive-ordner-anlegen") && k.title && !k.driveName) {
-            driveAnlegen(k)
-              .then(() => meldung("Projektordner im Drive angelegt.", "erfolg"))
-              .catch(() => meldung("Drive-Ordner konnte nicht angelegt werden.", "fehler"));
+            optimistisch({
+              extern: () => driveAnlegen(k),
+              sichern: null,
+              was: "Projektordner anlegen",
+              beiErfolg: () => meldung("Projektordner im Drive angelegt.", "erfolg"),
+            });
           }
           // v16c: Karte bleibt in „Skript schreiben"; der Skript-Loop erscheint jetzt darunter.
           zeichne();
@@ -1578,19 +1583,18 @@ function blockDrive(k, stand) {
       knopf("Projektordner in Drive anlegen", {
         art: "haupt",
         zeichen: "ordner",
-        klick: async (e) => {
+        klick: (e) => {
+          // Optimistisch (v55): Fortschritt sichtbar, aber nicht blockierend; der Ordner entsteht
+          // im Hintergrund, danach frischer Scan. Fehlschlag ist sichtbar + wiederholbar.
           const weg = fortschritt(box, "Lege den Projektordner an …");
-          e.currentTarget.disabled = true;
-          try {
-            await driveAnlegen(k);
-            meldung("Projektordner im Drive angelegt.", "erfolg");
-            await driveScan(k, true);
-            zeichne();
-          } catch (fehler) {
-            meldung(`Ordner konnte nicht angelegt werden: ${fehler.message}`, "fehler");
-          } finally {
-            weg();
-          }
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          optimistisch({
+            extern: () => driveAnlegen(k).then(() => driveScan(k, true)),
+            sichern: null,
+            was: "Projektordner anlegen",
+            beiErfolg: () => meldung("Projektordner im Drive angelegt.", "erfolg"),
+          }).finally(() => { weg(); btn.disabled = false; });
         },
       })
     );

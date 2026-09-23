@@ -1,7 +1,9 @@
 # v55 — Echtzeit-Gefuehl fuer alle externen Abgleiche
 
-> Geplant 22.09.2026. Nummer v55 (v54 „karten-kontextmenu" ist die hoechste vergebene).
-> Status: **AUDIT + PLAN. Bau blockiert, bis v54 gelandet ist** (siehe Koordination).
+> Geplant 22.09.2026, abgeschlossen 23.09.2026. Nummer v55.
+> Status: **FERTIG.** Abschnitt 1 (Loeschen + gcal-Fehler, `ec90550`) und Abschnitt 2
+> (Verschieben/Verwerfen + Anlegen + Umbenennen optimistisch, Wiederhol-Toast) umgesetzt und
+> live verifiziert. A5 (Upload) bleibt bewusst mit Fortschritt.
 
 ## PIG
 
@@ -126,6 +128,25 @@ Umgesetzt in `store.js` (+ 3 Ansichten):
 4. **Sichtbare-Karten-Sicht** `sichtbareKarten()` (store.js), angewandt in board.js (Spalten +
    Wochenleiste) und kalender.js — so greift der Tombstone in allen Karten-Ansichten.
 
+## Bau 2. Abschnitt (umgesetzt 23.09.2026, nach v57-Landung)
+
+Auf Owner-Ansage: A4/A6 + Verschieben/Verwerfen NICHT nur „adaequat", sondern **durchgaengig
+optimistisch mit sichtbarem, mit einem Klick wiederholbarem Fehler** — kein Sonderweg je Stelle.
+
+1. **`optimistisch({anwenden, zuruecknehmen, extern, was, sichern, beiErfolg})`** (store.js) — DIE
+   gemeinsame Hilfe: lokal anwenden → `zeichne` → `sichern` (Standard `speichere`, `null` wo nichts
+   in board.json gehoert) → `extern` im Hintergrund; Fehlschlag: `zuruecknehmen` + `zeichne` +
+   Wiederhol-Toast, dessen Klick Aenderung und Dienst-Aufruf erneut faehrt.
+2. **Wiederhol-Toast** `hinweisToastAktion` (ui.js) + `meldeWiederholbar` (store.js) — Hinweis mit
+   „Wiederholen"-Knopf, im Haus-Stil (`knopf()`, `statusChip`).
+3. **Verschieben/Verwerfen** — `schiebe` (board.js) laeuft jetzt ueber `optimistisch`: Karte springt
+   sofort, Drive-Move im Hintergrund, bei Fehler zurueck + wiederholbar.
+4. **Drive-Ordner anlegen** — detail.js (Auto nach Hook-Wahl + Button) und nachschub.js
+   (Uebernehmen: Dialog schliesst sofort, Ordner im Hintergrund) ueber `optimistisch` (`sichern:null`,
+   `beiErfolg`-Meldung).
+5. **Spalte umbenennen** — board.js ueber `optimistisch` + `setzeSpaltenName` (lokaler Name sofort,
+   `sichern:null`, Rename-Endpoint ist die Wahrheit), Fehler zurueck + wiederholbar.
+
 ## Stand
 
 - [x] Bestand erhoben: `store.js` voll gelesen, Aufrufer-Grep, Reconcile-Mechanik
@@ -139,15 +160,29 @@ Umgesetzt in `store.js` (+ 3 Ansichten):
       optimistisch weg < 80 ms (`sofort_sichtbar:false`, `noch_in_cards:true`); Fehlerpfad →
       Karte zurueck + Toast „Loeschen fehlgeschlagen, die Karte bleibt: …" (Screenshot);
       Erfolgspfad → dauerhaft entfernt; board.json unveraendert (24 Karten, kein `_geloescht`)
+- [x] Abschnitt 1 committet + gepusht (`ec90550`)
+
+**Abschnitt 2 (23.09.2026):**
+- [x] Koordination: v57 gelandet (`6124656`, behind origin = 0), Layout-Session per `tell-session`
+      abgegrenzt; `detail.js`-Diff gegen HEAD geprueft — nur meine 3 Stellen, Fokus-Knopf unberuehrt
+- [x] Bau: `optimistisch()` + `hinweisToastAktion`/`meldeWiederholbar` + schiebe (Verschieben/
+      Verwerfen) + Anlegen (detail.js Auto+Button, nachschub Uebernehmen) + Umbenennen (board.js)
+- [x] Verify `node --check`: ui/store/board/detail/nachschub/kalender OK (node v26.7.0)
+- [x] Verify LIVE (nicht-destruktiv): schiebe optimistisch sofort (videodreh→skript < 60 ms) →
+      Move-Fehler → Karte zurueck + Wiederhol-Toast (Screenshot) → „Wiederholen"-Klick → Erfolg;
+      Retry-Wiring deterministisch (anwenden 2×, extern-Erfolg, beiErfolg); board.json unberuehrt (24)
 - [ ] Commit (`git -C` + Pathspec + Attribution) + Push
 
 ## DoD
 
 - [x] Loeschen fuehlt sich sofort an (Karte weg < 80 ms gemessen), Drive-Trash im Hintergrund;
       Karte kehrt bei Fehlschlag zurueck + Toast; kein Wiederkehr-Bug (Tombstone + `geloeschtInFlight`).
-- [x] Die schreibenden Hintergrund-Fehlerpfade laufen ueber die EINE gemeinsame Hilfe
-      `imHintergrund` (A2/A3); A1 teilt `melde`/`speichere`/`sichtbareKarten`. A4/A6 waren bereits
-      optimistisch (belegt) — kein Sonderweg neu gebaut.
+- [x] Alle schreibenden externen Aktionen laufen ueber gemeinsame Hilfen — kein Sonderweg:
+      auto-Syncs (A2/A3) ueber `imHintergrund`; nutzer-initiierte (Verschieben/Verwerfen, Anlegen,
+      Umbenennen) ueber `optimistisch()` mit sichtbarem, per Klick wiederholbarem Fehler; A1 teilt
+      `melde`/`speichere`/`sichtbareKarten`.
+- [x] Verschieben/Verwerfen, Drive-Ordner anlegen, Spalte umbenennen sind optimistisch: lokal
+      sofort, Dienst im Hintergrund; Fehler zeigt „Wiederholen" (live verifiziert an schiebe).
 - [x] Kein stiller `catch` mehr bei gcal (A2/A3) — Fehler als Toast, durch erneute Aktion wiederholbar.
 - [x] Lokaler Stand nie verloren: bei Loeschen bleibt die Karte in board.json, bis der Trash
       bestaetigt ist; `_geloescht` wird nie persistiert (Disk-Check: 24 Karten, kein Flag).

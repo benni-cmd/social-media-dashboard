@@ -1668,6 +1668,30 @@ export function hinweisToast(status, satz) {
   st.appendChild(el);
 }
 
+// Wie hinweisToast, aber mit EINER Aktion (v55, 2. Abschnitt): ein fehlgeschlagener Hintergrund-
+// Abgleich zeigt so einen „Wiederholen"-Knopf direkt am Hinweis. Klick fuehrt die Aktion aus und
+// schliesst den Toast; das X schliesst nur.
+export function hinweisToastAktion(status, satz, aktionLabel, onAktion) {
+  const st = _bekommStapel();
+  const el = document.createElement("div");
+  el.className = "meldung meldung-hinweis";
+  el.innerHTML =
+    statusChip(status) +
+    `<span class="meldung-text">${escape(satz)}</span>`;
+  const aktion = knopf(aktionLabel, {
+    klick: () => { _schliesseMeldung(el); try { onAktion(); } catch {} },
+  });
+  aktion.classList.add("meldung-aktion");
+  el.appendChild(aktion);
+  const zu = document.createElement("button");
+  zu.className = "meldung-schliessen";
+  zu.setAttribute("aria-label", "Schliessen");
+  zu.innerHTML = icon("schliessen");
+  zu.addEventListener("click", () => _schliesseMeldung(el));
+  el.appendChild(zu);
+  st.appendChild(el);
+}
+
 // Zeigt einen Bestaetigungs-Toast (ersetzt confirm()). Ruft onJa() bei Bestaetigung.
 export function bestaetigen(text, jaText, onJa) {
   const st = _bekommStapel();
