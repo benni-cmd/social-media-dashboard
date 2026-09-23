@@ -171,7 +171,17 @@ optimistisch mit sichtbarem, mit einem Klick wiederholbarem Fehler** — kein So
 - [x] Verify LIVE (nicht-destruktiv): schiebe optimistisch sofort (videodreh→skript < 60 ms) →
       Move-Fehler → Karte zurueck + Wiederhol-Toast (Screenshot) → „Wiederholen"-Klick → Erfolg;
       Retry-Wiring deterministisch (anwenden 2×, extern-Erfolg, beiErfolg); board.json unberuehrt (24)
-- [ ] Commit (`git -C` + Pathspec + Attribution) + Push
+- [x] Commit (`git -C` + Pathspec + Attribution) + Push — `f1433b1` (in HEAD, origin/main)
+
+**Nachpruefung (23.09.2026):** Bestand gegen den Code geprueft (kein One-Shot) — alle
+Audit-Stellen sind umgesetzt UND gelandet: A1 Tombstone + A2/A3 `imHintergrund` (`ec90550`);
+A4 `driveAnlegen` an allen drei Aufrufern optimistisch (detail.js:1119/1592, nachschub.js:198),
+A6 `spaltenUmbenennen` (board.js) + Verschieben/Verwerfen (`schiebe`, board.js) optimistisch,
+Wiederhol-Toast `hinweisToastAktion` (ui.js:1674) (`f1433b1`). Kein blockierendes `await` und
+kein stiller Write-`catch` mehr offen; die verbliebenen `.catch(()=>{})` sind LESEND (driveScan/
+gcalStatus/driveAbgleich, Klasse C) bzw. der Shutdown-Flush (app.js:304). A5 Upload bewusst
+mit Fortschritt (`fortschritt()`). `node --check` store/board/detail/nachschub/kalender/ui/app OK
+(node v26.7.0).
 
 ## DoD
 
