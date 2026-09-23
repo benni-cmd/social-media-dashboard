@@ -178,6 +178,26 @@ Zeilen mit Uhrzeit, Statuswort, Dienst, Befehl, Ergebnis und Dauer; das API-Term
 echte Instagram-Aufrufe mit sichtbar geschwaerztem Token. Der API-Abgleich-Knopf lief durch
 und stellte den Marker auf „ok".
 
+### Nachlese nach dem ersten Einsatz (Owner 23.09.2026, Commit `96344ac`)
+
+**Feste Sektionsbreite.** Die Sektionen sprangen, sobald sich in einer der Zustand aenderte —
+der Knopf wanderte unter dem Finger weg. Alle vier jetzt fest 132 px; Marker und Knoepfe haben
+ihre eigene feste Spur, der Name kuerzt statt zu schieben.
+
+**Der Leerzustand log.** Das Terminal zeigte „Noch nichts passiert, seit der Server laeuft",
+obwohl es nichts wissen KONNTE. Ursache beim Owner: das Frontend kommt frisch von der Platte,
+der Serverprozess lief aber noch mit dem Code vor v58 und kannte `/api/ereignisse` nicht —
+belegt mit `curl` auf denselben Server: `/api/board` HTTP 200, `/api/ereignisse` HTTP 404.
+„Nichts passiert" und „ich kann es nicht wissen" sind jetzt zwei Zustaende: bei 404 steht da,
+dass der Server neu gestartet werden muss (Statuswort `unlesbar`), bei einem Abriss ebenso.
+Belegt gegen beide Server: alter Server → Neustart-Hinweis, aktueller Server → „Noch nichts
+passiert" mit `entfaellt` und laufendem Verlauf; Breiten je 132 px in beiden Faellen.
+
+**Daraus gelernt, ueber dieses Paket hinaus:** Ein Leerzustand muss unterscheiden, ob nichts
+geschah oder ob die Quelle fehlt. Beides mit demselben Satz zu beantworten ist eine Behauptung
+ohne Grundlage — genau das, was die Werkbank-Regel „Zahlen messen, nicht erinnern" fuer Zahlen
+verbietet, hier fuer Zustaende.
+
 ## Stand
 
 **23.09.2026** — Paket angelegt, vier Rueckfragen vom Owner beantwortet, Bestand geprueft.
