@@ -43,6 +43,33 @@ API-Sektion nach Owner-Wortlaut die Social-Plattformen fuehrt.
 **KI bekommt eine eigene, vierte Sektion** (Owner-Entscheidung) — zusaetzlich zum
 Terminal am ausloesenden Knopf aus v51, das bleibt unveraendert.
 
+## Abgleich-Knoepfe (Owner-Entscheidung 23.09.2026, zweite Runde)
+
+Das Terminal liest nicht nur mit, es kann auch anstossen:
+
+- **„Mit Drive abgleichen" im Kopf-Menue wird zu „Alles abgleichen"** — ruft ALLE
+  Schnittstellen auf einmal ab und aktualisiert sie, nicht mehr nur Drive.
+- **Jede Sektion bekommt zusaetzlich einen eigenen Knopf** fuer den erneuten Abgleich nur
+  dieses Anschlusses.
+- **Ausnahme KI:** keine Abgleich-Knopf. Dort reicht das Terminal zum Mitlesen — ein
+  KI-Lauf wird von einer Karte ausgeloest, nicht von der Kopfzeile.
+
+Was der jeweilige Knopf aufruft — alles bereits vorhanden, nichts Neues:
+
+| Sektion | Knopf ruft | Stelle |
+|---|---|---|
+| API-Abgleich | `instagramZahlen()` + `linkedinZahlen()` | `public/store.js:623/627` |
+| Drive-Abgleich | `driveAbgleich()` (der v51-T7-Stufenstrom) | `public/store.js:406` |
+| Weitere | **offen — siehe Rueckfrage unten** | `gcalStatus()` `:795`, `gcalSync()` `:805` |
+| KI | (kein Knopf) | — |
+| Kopf-Menue „Alles abgleichen" | die drei obigen nacheinander | `public/app.js`, Handler `el("abgleichen")` |
+
+**Offene Rueckfrage zur Sektion „Weitere":** Google Kalender+Tasks hat heute `gcalStatus()`
+(nur Verbindungs-Pruefung) und `gcalSync(terminId)` (Sync EINES Drehtermins) — einen
+„alles nachziehen"-Weg gibt es nicht. Die Websuche hat gar keinen Zustand zum Auffrischen,
+nur Erreichbarkeit. Was der Knopf dort genau tun soll, ist nicht aus dem Code ableitbar und
+wird nicht geraten.
+
 ## Weitere Owner-Entscheidungen
 
 - **Log-Tiefe: jeder Aufruf technisch.** Nicht nur die fachlichen Stufen aus v51, sondern
@@ -97,10 +124,14 @@ Ein Ereignis-/Log-Modul gibt es NICHT (`ls lib/`), ebenso wenig SSE (`grep -rn "
        v51: der Feed steht DAUERHAFT offen, und `EventSource` bringt den Wiederverbinden-
        Mechanismus von selbst mit) plus `GET /api/ereignisse` fuer die History beim Oeffnen.
 4. [ ] **Kopfzeile in vier Sektionen** — `public/index.html` + `public/app.js`: das eine
-       `#google-drive-badge` wird zu vier Sektionen, je mit Marker und Aufklapp-Icon.
-       Dienst-Register statt fester Namen, damit YouTube/TikTok spaeter nur eine Zeile sind.
+       `#google-drive-badge` wird zu vier Sektionen, je mit Marker, Aufklapp-Icon und
+       Abgleich-Knopf (KI ohne Knopf). Dienst-Register statt fester Namen, damit
+       YouTube/TikTok spaeter nur eine Zeile sind.
 5. [ ] **Terminal je Sektion** — die `.denk`-Komponente aus v51 wiederverwenden, in der
        groesseren Fassung unter der Sektion verankert, gefuellt aus History + Live-Feed.
+5b. [ ] **„Alles abgleichen"** — der Kopf-Menue-Eintrag „Mit Drive abgleichen" ruft kuenftig
+       alle Sektionen nacheinander auf. Fehlschlaege einzeln sichtbar ueber
+       `meldeWiederholbar()` aus v55 (`public/store.js:130`), nicht als Sammelfehler.
 6. [ ] **Verify** — `node --check`, echter Browser-Screenshot je Sektion gegen
        `docs/ui-standard.md` (Regel 3 Status-Woerter, Regel 5 keine Unicode-Symbole), plus
        ein Live-Beleg: laufender Drive-Abgleich, im Terminal die einzelnen rclone-Aufrufe
@@ -122,4 +153,8 @@ Neuladen der Seite · keine Zugangsdaten im Log (Gegenprobe mit gesetztem IG-Tok
 `node --check` auf jede geaenderte Datei · echter Browser-Screenshot gegen
 `docs/ui-standard.md`.
 
-Offen: alles — Bau noch nicht begonnen.
+Offen:
+- **Was der Abgleich-Knopf der Sektion „Weitere" tun soll** (Google Kalender+Tasks,
+  Websuche) — einzige nicht aus dem Code ableitbare Stelle, Rueckfrage laeuft.
+- Der Bau selbst (Teilpakete 1–6). Teilpakete 1–3 (Ereignis-Bus, Engstellen anzapfen,
+  Live-Feed) haengen NICHT an der Rueckfrage und koennen sofort starten.
