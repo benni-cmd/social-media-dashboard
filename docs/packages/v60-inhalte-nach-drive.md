@@ -1,4 +1,6 @@
-# v57 — Firmendaten in Drive als Wahrheit, raus aus GitHub
+# v60 — Firmendaten in Drive als Wahrheit, raus aus GitHub
+
+> Umbenannt v57→v60 (23.09.2026): „v57" war schon von der Detailspalten-Resize-Arbeit belegt.
 
 ## PIG
 
