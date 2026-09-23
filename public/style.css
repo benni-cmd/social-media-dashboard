@@ -3166,7 +3166,10 @@ body {
    Breiten-SHORTCUT auf dieselbe Zieh-Variable wie .detail-griff (siehe detail-breite.js) —
    Board bleibt sichtbar/scrollbar, kein Zentrieren mehr, keine eigene Breiten-Regel noetig. */
 .detail-fokus {
-  margin-left: auto;
+  /* v58 (Owner 23.09.2026): kein margin-left:auto mehr — sitzt linksbuendig direkt neben
+     dem Spalten-Titel (.detail-phase), statt an den rechten Rand gedrueckt zu werden.
+     .detail-schliessen traegt sein eigenes margin-left:auto und bleibt dadurch der einzige
+     Knopf, der noch rechts sitzt. */
   background: none;
   border: 0;
   color: var(--text-leise);
@@ -3291,6 +3294,9 @@ body {
 .knopf-symbol-funken .icon { background: var(--chrome-d); }
 .knopf-symbol-kalender .icon { background: var(--chrome-b); }
 .knopf-symbol-ordner .icon { background: var(--chrome-b); }
+/* v58: Detailspalten-Breiten-Shortcut bekommt dieselbe farbige Icon-Kachel wie die anderen
+   Symbol-Knoepfe ("wie ein richtiger Button", Owner 23.09.2026) statt eines blossen Glyphen. */
+.knopf-symbol-maximieren .icon { background: var(--chrome-c); }
 
 /* Sanduhr im Denk-Panel (v29, Owner 05.09.2026): dreht sich durchgehend, solange die KI
    arbeitet — ersetzt die vorherigen drei blinkenden Punkte (dieselbe Aussage, aber im

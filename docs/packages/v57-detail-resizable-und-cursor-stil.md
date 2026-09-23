@@ -137,6 +137,23 @@ gelten, wo `cursor:pointer` vorkommt — Karten waren nur ein Beispiel, keine Gr
   Cursor-Zustaende (`grab`/`grabbing`/`progress`/`help`/`default`) unangetastet geprueft.
 - Wieder vorab an vergroesserter Testseite visuell geprueft (hell+dunkel), danach geloescht.
 
+## Nachlese 3 (23.09.2026): Breiten-Shortcut-Knopf umplatziert + eigene Icon-Box
+
+Owner: der Maximal-Breite-Knopf soll linksbuendig direkt neben dem Spalten-Titel sitzen (war
+per `margin-left:auto` an den rechten Rand gedrueckt, neben dem Schliessen-Knopf), und sein
+Icon soll eine farbige Box bekommen "wie ein richtiger Button".
+
+- `style.css`: `margin-left:auto` von `.detail-fokus` entfernt — `.detail-schliessen` traegt
+  sein eigenes `margin-left:auto` und bleibt dadurch allein am rechten Rand.
+- `detail.js`/`style.css`: `fokusKnopf` bekommt zusaetzlich `knopf-symbol knopf-symbol-
+  maximieren` — dieselbe farbige Icon-Kachel-Familie wie Einstellungen-Zahnrad/Redaktionsplan-
+  Kalender/KI-Funken/Karte-Plus (`--chrome-c`, Blau, bisher nur am Kopf-Menue-Zahnrad benutzt,
+  keine Ueberschneidung mit dem Detail-Panel). Bewusst in diese bestehende Familie eingereiht
+  statt einer Einzel-Regel, wie im Code-Kommentar dort dokumentiert vorgesehen.
+- Verify: Browser-Screenshot (Knopf jetzt direkt neben "SKRIPT SCHREIBEN", blaue Icon-Box,
+  Schliessen-Knopf weiterhin rechts), Klick-Test Maximieren/Zurueck weiterhin funktionsfaehig
+  (819px bei 1024px Fenster, wie zuvor).
+
 ## Stand
 
 - [x] Bestand geprueft (`.detail`-CSS, Fokus-Modus, fehlende Cursor-Infrastruktur) — 23.09.2026
@@ -146,6 +163,7 @@ gelten, wo `cursor:pointer` vorkommt — Karten waren nur ein Beispiel, keine Gr
 - [x] Commit + Push (eacc394)
 - [x] Nachlese: Pfeil rund + Markengruen, Hand-Cursor fuer Karten (b92d517)
 - [x] Nachlese 2: Pfeil+Hand komplett neu (Phosphor-Fill), Hand-Cursor ueberall statt nur Karten
+- [x] Nachlese 3: Breiten-Shortcut-Knopf linksbuendig + eigene Icon-Box
 
 ## DoD
 

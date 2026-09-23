@@ -130,7 +130,7 @@ export function zeichneDetail(el) {
   // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
   // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.
   const fokusKnopf = document.createElement("button");
-  fokusKnopf.className = "detail-fokus" + (istMaximal() ? " an" : "");
+  fokusKnopf.className = "detail-fokus knopf-symbol knopf-symbol-maximieren" + (istMaximal() ? " an" : "");
   fokusKnopf.setAttribute("aria-label", istMaximal() ? "Auf vorherige Breite zurueck" : "Detailspalte auf maximale Breite ziehen");
   fokusKnopf.title = istMaximal() ? "Zurueck zur vorherigen Breite" : "Detailspalte auf 80% der Bildschirmbreite ziehen";
   fokusKnopf.innerHTML = icon("maximieren");
