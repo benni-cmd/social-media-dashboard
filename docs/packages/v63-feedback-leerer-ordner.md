@@ -62,7 +62,7 @@ sichtbar bleiben. Reine Anzeige-/Klassifizierungs-Aenderung, kein Eingriff ins D
 - [x] Bestand geprueft (Aufrufstelle, grep, Renderer/Statuswort) — 23.09.2026
 - [x] Umsetzung (lib/drive.js:311)
 - [x] Verify (node --check + JS-Beleg des Ereignis-Texts ueber echten Exit-3-Pfad)
-- [x] Commit + Push (<hash>)
+- [x] Commit + Push (653ce71)
 
 ## DoD
 
