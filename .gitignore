@@ -43,6 +43,14 @@ data/board.json
 # (System (AI only)/redaktionsplan.json). Fehlt der Cache, greift pipeline.defaultPlan(). Nicht committen.
 data/plan.json
 
+# Firmen-/Projektinhalte (v60): Prompts, Workflow-Stand, Firmenkontext und Defaults sind ab v60
+# Drive-gestuetzt (System (AI only)/…), lokal nur Cache. Wahrheit ist Drive, Firmendaten gehoeren
+# nicht ins GitHub-Repo (Intent Owner 23.09.2026). Regeneriert lokal aus Drive. Nicht committen.
+data/prompts.json
+data/workflows.json
+data/kontext.json
+data/defaults.json
+
 # Selbstsigniertes HTTPS-Zertifikat: wird beim Start erzeugt, rechnerlokal
 data/localhost.key
 data/localhost.crt

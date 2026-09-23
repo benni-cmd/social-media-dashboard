@@ -46,13 +46,25 @@ Privates Repo, nur KI-Prompts/Firmenkontext, keine Secrets → Historie-Bereinig
 **Owner entscheidet, ob die Historie zusätzlich bereinigt wird.**
 
 ## Stand
-- [ ] Schritt 0: Audit bestätigt (getrackte Firmendaten, keine Accounts in git, Drive-Layout)
-- [ ] Drive-Backing prompts/workflows/defaults (Muster planstore/kontextstore)
-- [ ] Migration ohne Verlust (Drive gewinnt / lokal hochschreiben)
-- [ ] `git rm --cached` + `.gitignore` für prompts/workflows/kontext
-- [ ] Accounts-lokal erneut verifiziert
-- [ ] Verify (node --check; Beleg: Edit landet in Drive UND übersteht gelöschten lokalen Cache; kein Token in git) + Commit/Push
-- [ ] Owner-Entscheidung Historie-Bereinigung eingeholt
+- [x] Schritt 0: Audit bestätigt (23.09.2026) — getrackte Firmendaten `data/{kontext,prompts,workflows}.json`
+      (`git ls-files data/`); Accounts/Keys NICHT getrackt (`git ls-files | grep -iE "token|\.env$|key|secret|credential|gdrive-env"` = leer, exit 1);
+      `defaults.json` lokal/untracked (existierte noch nicht). Drive erreichbar; `System (AI only)/` vorhanden
+      (redaktionsplan.json, redaktionsplan.slots.json, spalten.json), `Kontext/_global` vorhanden;
+      prompts/workflows/defaults noch NICHT in Drive → Migration = lokalen Stand hochschreiben.
+- [x] Drive-Backing prompts/workflows/defaults (Muster planstore/kontextstore) — `lib/promptstore.js`,
+      `lib/workflowstore.js` umgebaut, neu `lib/defaultsstore.js`; `System (AI only)/{prompts,workflows,defaults}.json`;
+      20s-Timeout, Cache-Fallback, nie blockieren; Schreiben immer erst lokal, dann Drive. `kontext` unverändert (schon Drive).
+- [x] Migration ohne Verlust — `lies()` lädt Drive als Wahrheit; fehlt die Datei in Drive, wird der lokale
+      Stand einmalig hochgeschrieben; bei Drive-Störung Cache-Fallback. Real gelaufen: prompts/workflows/defaults
+      nach Drive migriert (`System (AI only)/` enthält jetzt alle drei).
+- [x] `git rm --cached` + `.gitignore` für prompts/workflows/kontext (+ defaults) — lokale Dateien als Cache erhalten.
+- [x] Accounts-lokal erneut verifiziert — `git ls-files | grep -iE "token|\.env$|key|secret|credential|gdrive-env"` = leer (exit 1).
+- [x] Verify — `node --check` grün (promptstore, workflowstore, defaultsstore, server.js). Echter Lauf über
+      `lib/drive.js`: je Datei bewiesen, dass ein Store-Edit in Drive landet UND das Löschen der lokalen Datei
+      übersteht (aus Drive wiederhergestellt, Cache neu angelegt); prompts: `aufgaben.skript` unversehrt.
+      Owner-Originale danach byte-identisch zurückgeschrieben (lokal+Drive), defaults auf `{}` gesetzt.
+      Transiente 20s-rclone-Timeouts traten auf → griffen sauber in den Cache-Fallback (kein Verlust, kein Block).
+- [ ] Owner-Entscheidung Historie-Bereinigung eingeholt — **offen** (siehe unten, nicht blockierend).
 
 ## DoD
 - Prompt-/Workflow-/Defaults-Edit landet in Drive und übersteht das Löschen der lokalen Datei

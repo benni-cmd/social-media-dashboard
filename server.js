@@ -32,6 +32,7 @@ import * as gcal from "./lib/gcal.js";
 import * as zip from "./lib/zip.js";
 import * as prompts from "./lib/promptstore.js";
 import * as workflows from "./lib/workflowstore.js";
+import * as defaultsStore from "./lib/defaultsstore.js";
 import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as websuche from "./lib/websuche.js";
@@ -53,6 +54,7 @@ const LIB_DIR = join(__dirname, "lib");
 // Die beiden Ablagen kennen ihren Pfad nicht von selbst — hier bekommt jede ihren (v26).
 prompts.setzePfad(PROMPTS_FILE);
 workflows.setzePfad(WORKFLOWS_FILE);
+defaultsStore.setzePfad(DEFAULTS_FILE); // v60: Defaults Drive-gestuetzt, data/defaults.json nur Cache
 unternehmen.setzePfad(KONTEXT_FILE); // v33: Unternehmens- und Projektkontext
 
 // --- .env laden (ohne dotenv-Paket) --------------------------------------
@@ -497,22 +499,16 @@ async function handler(req, res) {
     // ---- Benutzer-Defaults ------------------------------------------------
 
     if (pfad === "/api/defaults" && req.method === "GET") {
-      try {
-        const roh = JSON.parse(await readFile(DEFAULTS_FILE, "utf8"));
-        sendJson(res, 200, roh);
-      } catch {
-        sendJson(res, 200, {});
-      }
+      // v60: Wahrheit liegt in Drive; der Store faellt bei Drive-Stoerung still auf den lokalen
+      // Cache zurueck (nie blockieren).
+      sendJson(res, 200, await defaultsStore.lies());
       return;
     }
 
     if (pfad === "/api/defaults" && req.method === "PUT") {
       const daten = JSON.parse(await readBody(req));
-      await mkdir(DATA_DIR, { recursive: true });
-      let alt = {};
-      try { alt = JSON.parse(await readFile(DEFAULTS_FILE, "utf8")); } catch {}
-      const neu = { ...alt, ...daten };
-      await writeFile(DEFAULTS_FILE, JSON.stringify(neu, null, 2), "utf8");
+      // v60: zuerst lokal (Cache), dann Drive spiegeln — feldweise verschmolzen.
+      const neu = await defaultsStore.mische(daten);
       sendJson(res, 200, { ok: true, defaults: neu });
       return;
     }
