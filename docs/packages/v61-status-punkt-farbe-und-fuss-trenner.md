@@ -57,7 +57,7 @@ Knopf-Sektion am Spaltenende hebt sich klar von der Liste ab.
 - [x] Bestand geprueft (v56-Glyphe-Logik, tatsaechliche Farbwerte nachgemessen) — 23.09.2026
 - [x] Umsetzung
 - [x] Verify (Browser: computed styles vor/nach, Screenshot)
-- [ ] Commit + Push
+- [x] Commit + Push (1e55c81)
 
 ## DoD
 
