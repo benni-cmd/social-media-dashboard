@@ -1,7 +1,7 @@
 # v58 — Kopfzeile in Sektionen, je Sektion ein Live-Terminal
 
 > Sichtbares Arbeitsartefakt nach `working-method.md`. Angelegt 23.09.2026.
-> Status: **PLAN — Bau noch nicht begonnen.** Nummer v58 (hoechste vergebene ist v57,
+> Status: **GEBAUT und verifiziert** (23.09.2026). Nummer v58 (hoechste vergebene ist v57,
 > zweimal belegt: `v57-detail-resizable-und-cursor-stil.md` und `v57-inhalte-nach-drive.md`).
 
 ## PIG
@@ -60,15 +60,14 @@ Was der jeweilige Knopf aufruft — alles bereits vorhanden, nichts Neues:
 |---|---|---|
 | API-Abgleich | `instagramZahlen()` + `linkedinZahlen()` | `public/store.js:623/627` |
 | Drive-Abgleich | `driveAbgleich()` (der v51-T7-Stufenstrom) | `public/store.js:406` |
-| Weitere | **offen — siehe Rueckfrage unten** | `gcalStatus()` `:795`, `gcalSync()` `:805` |
+| Weitere | `gcalStatus()` + `gcalSync()` je Drehtermin ohne `gcalEventId` | `public/store.js:795/805` |
 | KI | (kein Knopf) | — |
 | Kopf-Menue „Alles abgleichen" | die drei obigen nacheinander | `public/app.js`, Handler `el("abgleichen")` |
 
-**Offene Rueckfrage zur Sektion „Weitere":** Google Kalender+Tasks hat heute `gcalStatus()`
-(nur Verbindungs-Pruefung) und `gcalSync(terminId)` (Sync EINES Drehtermins) — einen
-„alles nachziehen"-Weg gibt es nicht. Die Websuche hat gar keinen Zustand zum Auffrischen,
-nur Erreichbarkeit. Was der Knopf dort genau tun soll, ist nicht aus dem Code ableitbar und
-wird nicht geraten.
+**Entschieden zur Sektion „Weitere" (Owner 23.09.2026, nach Empfehlung):** Der Knopf prueft
+die Google-Verbindung UND zieht alle Drehtermine nach, die noch kein `gcalEventId` tragen —
+sonst waere es ein Knopf, der nur eine Ampel umschaltet. Die Web-Suche hat keinen Zustand
+zum Auffrischen und erscheint dort nur, wenn eine Recherche laeuft.
 
 ## Weitere Owner-Entscheidungen
 
@@ -115,27 +114,69 @@ Ein Ereignis-/Log-Modul gibt es NICHT (`ls lib/`), ebenso wenig SSE (`grep -rn "
 
 ## Plan (Teilpakete)
 
-1. [ ] **Ereignis-Bus im Server** — neues `lib/ereignisse.js`: Ringpuffer (500),
+1. [x] **Ereignis-Bus im Server** — neues `lib/ereignisse.js`: Ringpuffer (500),
        `melde({sektion, dienst, text, dauerMs, ergebnis})`, Abonnenten-Liste,
        Schluessel-Schwaerzung. Kein Fremd-Modul, keine Datei auf Platte.
-2. [ ] **Die acht Engstellen anzapfen** — je Engstelle eine Zeile vor und eine nach dem
+2. [x] **Die acht Engstellen anzapfen** — je Engstelle eine Zeile vor und eine nach dem
        Aufruf; die Aufrufe selbst bleiben unveraendert. Kein neues Verhalten, nur Mitschnitt.
-3. [ ] **Live-Feed** — `GET /api/ereignisse/stream` als Server-Sent Events (nicht NDJSON wie
+3. [x] **Live-Feed** — `GET /api/ereignisse/stream` als Server-Sent Events (nicht NDJSON wie
        v51: der Feed steht DAUERHAFT offen, und `EventSource` bringt den Wiederverbinden-
        Mechanismus von selbst mit) plus `GET /api/ereignisse` fuer die History beim Oeffnen.
-4. [ ] **Kopfzeile in vier Sektionen** — `public/index.html` + `public/app.js`: das eine
+4. [x] **Kopfzeile in vier Sektionen** — `public/index.html` + `public/app.js`: das eine
        `#google-drive-badge` wird zu vier Sektionen, je mit Marker, Aufklapp-Icon und
        Abgleich-Knopf (KI ohne Knopf). Dienst-Register statt fester Namen, damit
        YouTube/TikTok spaeter nur eine Zeile sind.
-5. [ ] **Terminal je Sektion** — die `.denk`-Komponente aus v51 wiederverwenden, in der
+5. [x] **Terminal je Sektion** — die `.denk`-Komponente aus v51 wiederverwenden, in der
        groesseren Fassung unter der Sektion verankert, gefuellt aus History + Live-Feed.
-5b. [ ] **„Alles abgleichen"** — der Kopf-Menue-Eintrag „Mit Drive abgleichen" ruft kuenftig
+5b. [x] **„Alles abgleichen"** — der Kopf-Menue-Eintrag „Mit Drive abgleichen" ruft kuenftig
        alle Sektionen nacheinander auf. Fehlschlaege einzeln sichtbar ueber
        `meldeWiederholbar()` aus v55 (`public/store.js:130`), nicht als Sammelfehler.
-6. [ ] **Verify** — `node --check`, echter Browser-Screenshot je Sektion gegen
+6. [x] **Verify** — `node --check`, echter Browser-Screenshot je Sektion gegen
        `docs/ui-standard.md` (Regel 3 Status-Woerter, Regel 5 keine Unicode-Symbole), plus
        ein Live-Beleg: laufender Drive-Abgleich, im Terminal die einzelnen rclone-Aufrufe
        mitlesbar; Gegenprobe, dass keine Zugangsdaten im Log stehen.
+
+## Umgesetzt + verifiziert (23.09.2026)
+
+**Teilpakete 1–3** (`c133a98`): `lib/ereignisse.js` — Ringpuffer 500 im Speicher,
+Abonnenten, Zaehler je Sektion, Schwaerzung. Die acht Engstellen angezapft, ohne einen
+einzigen Aufruf selbst zu aendern. `server.js`: `GET /api/ereignisse` (Verlauf + Stand) und
+`GET /api/ereignisse/stream` als Server-Sent Events mit Puls alle 25 s.
+
+**Teilpakete 4, 5, 5b** (`85764aa`): `public/anschluesse.js` als eigenes Modul, damit die
+Leiste an EINER Stelle lebt und `app.js` nicht weiter waechst. Das alte
+`#google-drive-badge` samt `googleOk`/`driveOk`/`syncOk` ist entfallen; der
+Kopf-Menue-Eintrag heisst „Alles abgleichen".
+
+**Befund waehrend des Baus, behoben:** Die erste Fassung liess das Ergebnis die
+Befehlszeile ERSETZEN — nach Abschluss stand dort nur noch „12 Zeile(n) zurueck", und
+genau die Frage „welcher Ordner war das?" war wieder unbeantwortet. Jetzt stehen Befehl
+und Ergebnis nebeneinander.
+
+### Belege
+
+**Live-Feed waehrend eines Drive-Abgleichs** (`curl -sk --no-buffer https://localhost:4399/api/ereignisse/stream`,
+24 rclone-Ereignisse):
+
+```
+[drive/rclone] → cat gdrive:In Bearbeitung/Idee/.phase
+[drive/rclone] ✓ 1 Zeile(n) zurueck  (3207 ms)  [ok]
+[drive/rclone] → lsf gdrive:In Bearbeitung --dirs-only
+[drive/rclone] ✓ 6 Zeile(n) zurueck  (832 ms)  [ok]
+```
+
+**Schwaerzung gegen echte Daten** (`curl https://localhost:4399/api/ereignisse` nach einem
+echten Instagram-Abruf): 93 Ereignisse im Puffer, **0 unschwaerzte Geheimnis-Parameter**,
+24-mal `access_token=…`. Die Gegenprobe lief ueber einen regulaeren Ausdruck auf
+`(access_token|refresh_token|client_secret|api_key|key|code|token)=` gefolgt von etwas
+anderem als dem Schwaerzungszeichen.
+
+**Optische Abnahme** (Browser, eigener Server `PORT=4399`, 1440×900): vier Sektionen im
+Kopf — API, Drive, Weitere, KI. KI traegt genau EINEN Knopf (Mitlesen), die drei anderen je
+zwei (Mitlesen + Abgleich), gepruefte Knopfzahlen 2/2/2/1. Das Drive-Terminal zeigt 22
+Zeilen mit Uhrzeit, Statuswort, Dienst, Befehl, Ergebnis und Dauer; das API-Terminal zeigt
+echte Instagram-Aufrufe mit sichtbar geschwaerztem Token. Der API-Abgleich-Knopf lief durch
+und stellte den Marker auf „ok".
 
 ## Stand
 
@@ -154,7 +195,8 @@ Neuladen der Seite · keine Zugangsdaten im Log (Gegenprobe mit gesetztem IG-Tok
 `docs/ui-standard.md`.
 
 Offen:
-- **Was der Abgleich-Knopf der Sektion „Weitere" tun soll** (Google Kalender+Tasks,
-  Websuche) — einzige nicht aus dem Code ableitbare Stelle, Rueckfrage laeuft.
-- Der Bau selbst (Teilpakete 1–6). Teilpakete 1–3 (Ereignis-Bus, Engstellen anzapfen,
-  Live-Feed) haengen NICHT an der Rueckfrage und koennen sofort starten.
+- Die Sektion „Weitere" ist gebaut, aber noch nicht im Lauf abgenommen: dafuer muesste ein
+  Drehtermin ohne `gcalEventId` existieren, den der Knopf nachzieht. Die Google-Aufrufe
+  selbst erscheinen bereits im Terminal (Token-Refresh und API-Wrapper sind angezapft).
+- Die KI-Sektion ist verdrahtet, aber in diesem Durchgang nicht mit einem echten Lauf
+  bespielt — v51 belegt denselben Weg bereits am Karten-Terminal.
