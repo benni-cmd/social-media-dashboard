@@ -101,7 +101,7 @@ vorgeschlagen, nicht widersprochen).
 - [x] Owner-Antworten (zwei AskUserQuestion-Runden)
 - [x] Umsetzung
 - [x] Verify (Browser: Ziehen, Min/Max, Fokus-Toggle, Theme-Wechsel)
-- [ ] Commit + Push
+- [x] Commit + Push (eacc394)
 
 ## DoD
 
