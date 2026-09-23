@@ -114,6 +114,29 @@ Resize-Pfeil bestaetigt ("sieht super aus", unveraendert gelassen). Zwei Aenderu
    Bewusst nur auf `.eintrag` beschraenkt (das ist die "Karte" im Owner-Wortlaut) — andere
    `cursor:pointer`-Stellen (Knoepfe etc.) unangetastet, bis explizit gewuenscht.
 
+## Nachlese 2 (23.09.2026): zweiter Owner-Durchgang — komplett neu gezeichnet
+
+Owner-Feedback auf Nachlese 1: Resize-Pfeil weiterhin bestaetigt (nur "bisschen rundere
+Ecken"), aber Pfeil UND Hand nochmal neu — diesmal "Apple-like": Markengruen `#72ac43` als
+FUELLUNG (nicht als Umriss wie in Nachlese 1), dazu schwarze Umrisse, Schatten, an den
+Dimensionen/der Machart des Resize-Pfeils orientiert. Ausserdem: Hand-Cursor soll ÜBERALL
+gelten, wo `cursor:pointer` vorkommt — Karten waren nur ein Beispiel, keine Grenze.
+
+- **Quelle diesmal: Phosphor Icons "fill"-Familie** statt Lucide-Strichpfade — `cursor-fill.svg`
+  (Pfeil) und `hand-pointing-fill.svg` (Hand), beides GESCHLOSSENE, fuellbare Silhouetten aus
+  derselben Icon-Familie (konsistente Rundung/Gewicht zueinander, "Apple-like" von Haus aus).
+  Von der offiziellen Quelle geladen (github.com/phosphor-icons/core), nicht nachgezeichnet.
+  Damit erledigt sich auch das Lucide-Strich-Problem aus Nachlese 1 (keine 5-Segment-Behelfsloesung
+  mehr noetig — die Hand ist jetzt eine echte fuellbare Kontur).
+- Farben: Fuellung `#72ac43` (Markengruen), Umriss+Schatten `#141210` (schwarz/nahezu schwarz).
+- Resize-Pfeil: Farben/Form unveraendert (Owner: "sehr schoen geworden"), nur `stroke-width`
+  1.4→2.6 fuer sichtbar rundere Ecken bei gleicher Silhouette.
+- **Reichweite korrigiert:** alle 28 Stellen mit `cursor: pointer;` in `style.css` per
+  gezieltem Ersetzen (`sed`, danach mit grep verifiziert — 0 `cursor: pointer;` mehr uebrig,
+  28 `cursor-hand.svg`-Treffer) auf den Hand-Cursor umgestellt. Andere, bewusst ANDERE
+  Cursor-Zustaende (`grab`/`grabbing`/`progress`/`help`/`default`) unangetastet geprueft.
+- Wieder vorab an vergroesserter Testseite visuell geprueft (hell+dunkel), danach geloescht.
+
 ## Stand
 
 - [x] Bestand geprueft (`.detail`-CSS, Fokus-Modus, fehlende Cursor-Infrastruktur) — 23.09.2026
@@ -122,6 +145,7 @@ Resize-Pfeil bestaetigt ("sieht super aus", unveraendert gelassen). Zwei Aenderu
 - [x] Verify (Browser: Ziehen, Min/Max, Fokus-Toggle, Theme-Wechsel)
 - [x] Commit + Push (eacc394)
 - [x] Nachlese: Pfeil rund + Markengruen, Hand-Cursor fuer Karten (b92d517)
+- [x] Nachlese 2: Pfeil+Hand komplett neu (Phosphor-Fill), Hand-Cursor ueberall statt nur Karten
 
 ## DoD
 
