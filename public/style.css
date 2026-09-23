@@ -828,12 +828,40 @@ body {
   font-weight: 650;
   font-size: 13.5px;
 }
+.spalte-kopf-rechts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
 .spalte-anzahl {
   color: var(--text-leise);
   font-size: 11.5px;
   background: var(--flaeche-tief);
   border-radius: 20px;
   padding: 1px 8px;
+}
+/* Spalten-Drive-Indikator (v58): links neben der Karten-Anzahl, dieselbe Sanduhr-Animation
+   wie an der Kachel (.eintrag-punkt-lade) — nur hier fuer die ganze Spalte aggregiert. */
+.spalte-drive-status {
+  display: inline-flex;
+}
+.spalte-drive-status .icon {
+  width: 13px;
+  height: 13px;
+}
+.spalte-drive-status-laedt {
+  color: var(--text-leise);
+}
+.spalte-drive-status-laedt .icon {
+  animation: sanduhr-dreht 1.8s linear infinite;
+  transform-origin: 50% 50%;
+}
+.spalte-drive-status-live {
+  color: var(--ok);
+}
+@media (prefers-reduced-motion: reduce) {
+  .spalte-drive-status-laedt .icon { animation: none; }
 }
 .spalte-satz {
   color: var(--text-leise);

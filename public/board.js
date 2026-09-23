@@ -35,6 +35,17 @@ function offenePunkte(k) {
   return liste;
 }
 
+// Spalten-Kopf-Indikator (v58, Owner 23.09.2026): "sanduhr" solange irgendeine Karte der
+// Spalte gerade gescannt wird (Arbeit passiert), "live" sobald mindestens eine Karte echten
+// Drive-Stand traegt und nichts mehr laeuft (die Spalte ist mit Drive abgeglichen). Hat noch
+// keine Karte der Spalte je einen Scan gesehen, bleibt der Indikator weg — sonst wuerde er
+// einen Abgleich behaupten, der nie stattgefunden hat.
+function spalteDriveStatus(karten) {
+  if (karten.some((k) => S.driveScanLaeuft.has(k.id))) return "laedt";
+  if (karten.some((k) => S.driveStand.has(k.id))) return "live";
+  return null;
+}
+
 // --- Kachel ---------------------------------------------------------------
 
 export function kachel(k) {
@@ -156,11 +167,19 @@ export function zeichneBoard(boardEl, lastEl) {
     const spalte = document.createElement("section");
     spalte.className = "spalte";
 
+    const driveStatus = spalteDriveStatus(karten);
+    const driveStatusHtml =
+      driveStatus === "laedt"
+        ? `<span class="spalte-drive-status spalte-drive-status-laedt" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
+        : driveStatus === "live"
+          ? `<span class="spalte-drive-status spalte-drive-status-live" title="Mit Drive abgeglichen" aria-label="Mit Drive abgeglichen">${icon("check")}</span>`
+          : "";
+
     const kopf = document.createElement("div");
     kopf.className = "spalte-kopf";
     kopf.innerHTML =
       `<div class="spalte-kopf-zeile"><span class="spalte-name" title="Doppelklick zum Umbenennen (benennt den Drive-Ordner mit)">${escape(p.name)}</span>` +
-      `<span class="spalte-anzahl">${karten.length}</span></div>` +
+      `<span class="spalte-kopf-rechts">${driveStatusHtml}<span class="spalte-anzahl">${karten.length}</span></span></div>` +
       `<p class="spalte-satz">${escape(p.satz || "")}</p>`;
     kopf.querySelector(".spalte-name").addEventListener("dblclick", (e) => starteUmbenennen(e.currentTarget, p));
     // v50: Die Phasen-Erklaerung (.spalte-satz) ist seit v29 fuer einheitliche Kopfhoehe
