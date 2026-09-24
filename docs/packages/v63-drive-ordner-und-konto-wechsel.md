@@ -1,6 +1,6 @@
 # v63 — Google Drive: Ordner und Konto wechseln, sauberer Startstand
 
-> PLAN-Paket, 24.09.2026. Noch NICHT gebaut — Owner: Rueckfragen stellen, nicht raten.
+> 24.09.2026. Plan nach Rueckfragen freigegeben, gebaut und live getestet.
 
 ## PIG
 
@@ -47,22 +47,56 @@ Oberflaeche sofort den echten aktuellen Stand statt "…"/veralteter Werte.
 - Pflichtfelder braucht es dafuer nicht: die Namen kommen von den Anbietern selbst, sobald der
   Zugang gueltig ist.
 
-## Plan (nach Antworten)
+## Owner-Antworten (24.09.2026)
 
-0. Klaeren: wer legt die Spalten-Ordner der Struktur beim ersten Mal an (Code lesen/testen).
-1. **Root-Ordner dynamisch:** `ROOT` aus Modul-Konstante zu lesbarem/setzbarem Wert
-   (persistiert in Konfig, Wirkung sofort ohne Neustart).
-2. **Endpunkte:** Ordner setzen (Link/ID pruefen -> leer? -> Struktur anlegen), Konto
-   wechseln (rclone-Neu-Autorisierung starten), Status inkl. aktueller Ordnername.
-3. **UI Google Drive:** Zeile mit Konto/Ordner, Knoepfe "Ordner wechseln", "Konto wechseln",
-   kurze Anleitung (3 Schritte).
-4. **Startstand:** Status-Abrufe parallel und beim Serverstart vorwaermen, Oberflaeche
-   zeigt keinen alten/leeren Zwischenstand.
-5. Instagram-Name live ausliefern; Google-Reconnect-Hinweis bei abgelaufenem Token.
-6. Verify (echter Wechsel Test-Ordner -> leerer Ordner, Struktur entsteht), Commit + Push.
+1. Board bei Ordnerwechsel: **sichern und leeren** (je Drive-Ordner eine Sicherung, Zurueckwechseln
+   stellt sie wieder her).
+2. Ordner-Auswahl: **Drive-Link oder ID einfuegen**.
+3. Leer-Pruefung: **leer ODER schon Board-Struktur** (= "System (AI only)" liegt darin).
+4. Kontowechsel: **App startet den Login** (rclone-Browser-Anmeldung).
+Zusaetzlich: kurze Anleitung in "Externe Dienste > Google Drive"; Serverstart darf dauern, danach
+aber sofort der aktuelle Stand.
+
+## Umsetzung
+
+- `lib/drive.js`: Arbeitsordner zur Laufzeit setzbar (`setzeRoot`, persistiert in
+  `data/drive-root.json`, Vorrang vor `.env` und Standard), `rcloneMitRoot` (Pruefung eines
+  fremden Ordners), `ladeZugangNeu` (nach Neu-Anmeldung).
+- `lib/drivesetup.js` (neu): `parseOrdnerId` (Link/ID), `pruefeOrdner` (leer/board/fremd/
+  unerreichbar), `legeStrukturAn` (je Spalte ein `.phase`-Marker legt den Ordner mit an +
+  `spalten.json`), `konto` (Besitzer der Board-Dateien per `rclone lsjson --metadata` — ohne
+  hinterlegte Fremd-Zugangsdaten), `starteKontoWechsel` (`rclone config reconnect gdrive:`).
+- `server.js`: `POST /api/drive/ordner/pruefen`, `POST /api/drive/ordner/setzen` (sichert
+  Board je Root nach `data/board-sicherungen/`, leert Caches `spalten.json`/`plan.json`, hebt die
+  Board-Version an, damit offene Tabs neu laden), `POST/GET /api/drive/konto/wechseln`.
+  `/api/verbindungen/status` liefert jetzt Drive-Ordner + Konto, laeuft PARALLEL statt
+  nacheinander (Serverstart ~20 s -> ~6,5 s gemessen), Drive-Konto wird beim Start
+  vorgewaermt, Instagram-Name wird live nachgetragen (`worldedenera`).
+- `public/ui.js`: eigene Drive-Zeile (Konto, Arbeitsordner mit Link, "Ordner wechseln",
+  "Konto wechseln", 4-Schritt-Anleitung, Pruefen/Wechseln, Bestaetigung, danach Neuladen).
+
+## Verify (live, 24.09.2026)
+
+- Ordner-Pruefung: aktueller Ordner -> "board", Quatsch -> Fehlertext, unbekannte ID ->
+  "nicht erreichbar" (Google 404).
+- Kompletter Rundlauf gegen einen leeren Test-Unterordner: Board (24 Karten) gesichert, Board
+  leer, Struktur angelegt (In Bearbeitung/{Idee,Skript,Videodreh,Schnitt,Caption,Upload},
+  Verworfen, Videoauswertung, System (AI only)); Zurueckwechseln stellte 24 Karten wieder her.
+- Struktur-Anlage: erst 200 s (viele Einzelaufrufe), dann 184 s (je Spalte ein Marker), jetzt ein
+  einziger Baum-Upload (`rclone copy` eines lokalen Baums): **54 s** (jeder rclone-Start kostet
+  hier viele Sekunden).
+- Oberflaeche live: Drive-Zeile zeigt Konto (bennibi03@gmail.com), Arbeitsordner mit Link,
+  Anleitung; Pruefen -> "enthaelt bereits eine Board-Struktur"; Wechseln (mit Bestaetigung) ->
+  Board gesichert, Ordner gewechselt, Seite laedt neu, 24 Karten wieder da. Testordner
+  (`_v63-test-*`) danach aus Drive geloescht, Root steht wieder auf dem urspruenglichen Ordner.
+- Konto-Wechsel (Browser-Login) NICHT gegen das echte Konto ausgefuehrt — wuerde den
+  laufenden Zugang veraendern; nur Aufruf/Flags geprueft.
 
 ## Stand
 
-- [x] Bestand + Konto-Diagnose nachgemessen
-- [ ] Owner-Antworten
-- [ ] Umsetzung / Verify / Commit
+- [x] Bestand + Konto-Diagnose, Owner-Antworten, Umsetzung, Rundlauf-Test
+- [x] UI-Abnahme im Browser
+- [x] Commit + Push
+- OFFEN: Konto-Wechsel per rclone-Browser-Login nur vorbereitet, nicht gegen dein echtes Konto
+  ausgefuehrt; Google-Kalender-Zugang seit 09.09. abgelaufen (Neu-Verbinden + OAuth-App auf
+  Production); rclones eingebaute Client-ID laeuft 2026 aus.

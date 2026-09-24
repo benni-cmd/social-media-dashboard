@@ -54,3 +54,7 @@ data/defaults.json
 # Selbstsigniertes HTTPS-Zertifikat: wird beim Start erzeugt, rechnerlokal
 data/localhost.key
 data/localhost.crt
+
+# Drive-Arbeitsordner und je Ordner gesicherte Board-Staende (v63): rechnerlokal, Firmendaten — nicht committen.
+data/drive-root.json
+data/board-sicherungen/

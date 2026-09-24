@@ -16,10 +16,12 @@ import { tmpdir } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { execSync } from "node:child_process";
+import { execSync, exec } from "node:child_process";
+import { promisify } from "node:util";
 
 import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
+import * as driveSetup from "./lib/drivesetup.js"; // v63: Ordner/Konto wechseln
 import * as ereignisse from "./lib/ereignisse.js"; // v58: was das Board nach aussen tut
 import * as projekte from "./lib/projects.js";
 import * as planstore from "./lib/planstore.js";
@@ -44,6 +46,7 @@ const BOARD_FILE = join(DATA_DIR, "board.json");
 const TOKEN_FILE = join(DATA_DIR, "tokens.json");
 const DEFAULTS_FILE = join(DATA_DIR, "defaults.json");
 const PLAN_FILE = join(DATA_DIR, "plan.json");
+const BOARD_SICHERUNGEN = join(DATA_DIR, "board-sicherungen"); // v63: je Drive-Ordner ein Board-Stand
 const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
 const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
@@ -56,6 +59,86 @@ prompts.setzePfad(PROMPTS_FILE);
 workflows.setzePfad(WORKFLOWS_FILE);
 defaultsStore.setzePfad(DEFAULTS_FILE); // v60: Defaults Drive-gestuetzt, data/defaults.json nur Cache
 unternehmen.setzePfad(KONTEXT_FILE); // v33: Unternehmens- und Projektkontext
+
+// --- Drive: Arbeitsordner und Konto wechseln (v63) ---------------------------------------
+//
+// Ein Ordnerwechsel tauscht die Wahrheit unter dem Board aus: die Karten zeigen auf Ordner im
+// alten Root. Darum wird der Board-Stand je Drive-Ordner gesichert (data/board-sicherungen/
+// <root>.json) und beim Zurueckwechseln wiederhergestellt; ein neuer Ordner startet leer.
+let ordnerWechselLaeuft = false;
+
+async function sichereBoardFuerRoot(root) {
+  await mkdir(BOARD_SICHERUNGEN, { recursive: true });
+  let board = null;
+  try { board = JSON.parse(await readFile(BOARD_FILE, "utf8")); } catch { /* noch kein Board */ }
+  if (board) {
+    await writeFile(join(BOARD_SICHERUNGEN, `${root}.json`), JSON.stringify({ gesichertAm: new Date().toISOString(), board }, null, 2), "utf8");
+  }
+}
+
+async function ladeBoardSicherung(root) {
+  try { return JSON.parse(await readFile(join(BOARD_SICHERUNGEN, `${root}.json`), "utf8")).board; } catch { return null; }
+}
+
+async function wechsleDriveOrdner(neuId) {
+  if (ordnerWechselLaeuft) throw Object.assign(new Error("Ein Ordnerwechsel laeuft bereits."), { status: 409 });
+  ordnerWechselLaeuft = true;
+  try {
+    const alt = drive.aktuellerRoot();
+    if (neuId === alt) return { unveraendert: true, art: "aktuell" };
+    const pruef = await driveSetup.pruefeOrdner(neuId);
+    if (pruef.art === "fremd") {
+      throw Object.assign(
+        new Error("Der Ordner ist nicht leer und wurde nicht vom Board angelegt. Bitte einen leeren Ordner waehlen."),
+        { status: 400 }
+      );
+    }
+    await sichereBoardFuerRoot(alt);
+    const aktuell = await leseBoard();
+    drive.setzeRoot(neuId);
+    // Alles, was am alten Ordner hing, ist ueberholt (die Caches regenerieren aus dem neuen Drive).
+    for (const f of [SPALTEN_FILE, PLAN_FILE]) { try { await rm(f, { force: true }); } catch { /* egal */ } }
+    projekte.setSpalten(null);
+    projekte.scanCacheLeeren();
+    driveSetup.kontoCacheLeeren();
+    const sicherung = await ladeBoardSicherung(neuId);
+    const version = Math.max(aktuell.version, (sicherung && sicherung.version) || 1) + 1; // offene Tabs laufen in den Versions-Lock und laden neu
+    await schreibeBoard(sicherung ? (sicherung.cards || []) : [], version, sicherung ? sicherung.drehtermine || [] : []);
+    let struktur = null;
+    if (pruef.art === "leer") struktur = await driveSetup.legeStrukturAn();
+    return { art: pruef.art, boardWiederhergestellt: !!sicherung, struktur };
+  } finally {
+    ordnerWechselLaeuft = false;
+  }
+}
+
+// Kontowechsel: rclones Browser-Anmeldung laeuft im Hintergrund, die Oberflaeche fragt den Stand ab.
+const kontoWechsel = { laeuft: false, gestartet: 0, ergebnis: null, satz: "" };
+function starteDriveKontoWechsel() {
+  if (kontoWechsel.laeuft) return;
+  kontoWechsel.laeuft = true;
+  kontoWechsel.gestartet = Date.now();
+  kontoWechsel.ergebnis = null;
+  kontoWechsel.satz = "Anmeldung im Browser laeuft …";
+  let fehlerText = "";
+  const kind = driveSetup.starteKontoWechsel();
+  kind.stderr.on("data", (d) => { fehlerText += d; });
+  const abbruch = setTimeout(() => { try { kind.kill(); } catch { /* schon beendet */ } }, 10 * 60 * 1000); // 10 Min. fuer den Login
+  const fertig = (ok, satz) => {
+    clearTimeout(abbruch);
+    kontoWechsel.laeuft = false;
+    kontoWechsel.ergebnis = ok ? "ok" : "fehler";
+    kontoWechsel.satz = satz;
+  };
+  kind.on("error", (e) => fertig(false, e.code === "ENOENT" ? "rclone ist nicht installiert." : e.message));
+  kind.on("close", (code) => {
+    const letzteZeile = fehlerText.trim().split(/\r?\n/).pop() || "Abbruch";
+    if (code !== 0) return fertig(false, `Anmeldung nicht abgeschlossen (${letzteZeile}).`);
+    drive.ladeZugangNeu();
+    driveSetup.kontoCacheLeeren();
+    fertig(true, "Angemeldet. Jetzt den Arbeitsordner pruefen.");
+  });
+}
 
 // --- .env laden (ohne dotenv-Paket) --------------------------------------
 async function ladeEnv() {
@@ -145,6 +228,23 @@ async function speichereToken(plattform, daten) {
   t[plattform] = { ...daten, verbundenAm: new Date().toISOString() };
   await mkdir(DATA_DIR, { recursive: true });
   await writeFile(TOKEN_FILE, JSON.stringify(t, null, 2), "utf8");
+}
+
+// v63: Instagram-Benutzername. Beim Verbinden wurde er frueher nicht immer gespeichert (Feld
+// leer) — dann einmal live nachfragen und im Token nachtragen.
+async function instagramName(tokens) {
+  const ig = tokens.instagram;
+  if (!ig || !ig.accessToken) return "";
+  if (ig.username) return ig.username;
+  try {
+    const r = await fetch(`https://graph.instagram.com/v21.0/me?fields=username&access_token=${ig.accessToken}`);
+    const j = await r.json();
+    if (r.ok && j.username) {
+      await speichereToken("instagram", { ...ig, username: j.username });
+      return j.username;
+    }
+  } catch { /* Name bleibt leer */ }
+  return "";
 }
 
 // v40: Trennen — den Token-Eintrag eines Dienstes entfernen und tokens.json neu schreiben.
@@ -771,6 +871,49 @@ async function handler(req, res) {
 
     // ---- Drive -----------------------------------------------------------
 
+    // ---- Drive einrichten (v63) ------------------------------------------
+
+    // Ist der Ordner (Link oder ID) brauchbar? Aendert nichts.
+    if (pfad === "/api/drive/ordner/pruefen" && req.method === "POST") {
+      const { eingabe } = JSON.parse(await readBody(req));
+      const id = driveSetup.parseOrdnerId(eingabe);
+      if (!id) { sendJson(res, 400, { error: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID.", satz: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID." }); return; }
+      try {
+        const p = await driveSetup.pruefeOrdner(id);
+        const satz = p.art === "leer" ? "Der Ordner ist leer — die Board-Struktur wird darin angelegt."
+          : p.art === "board" ? "Der Ordner enthaelt bereits eine Board-Struktur — sie wird uebernommen."
+          : "Der Ordner ist nicht leer und wurde nicht vom Board angelegt — bitte einen leeren Ordner waehlen.";
+        sendJson(res, 200, { id, art: p.art, ok: p.art !== "fremd", satz });
+      } catch (e) {
+        sendJson(res, 200, { id, art: "unerreichbar", ok: false, satz: e.message });
+      }
+      return;
+    }
+
+    // Arbeitsordner wechseln: Board sichern, Caches leeren, ggf. Struktur anlegen.
+    if (pfad === "/api/drive/ordner/setzen" && req.method === "POST") {
+      const { eingabe } = JSON.parse(await readBody(req));
+      const id = driveSetup.parseOrdnerId(eingabe);
+      if (!id) { sendJson(res, 400, { error: "Ungueltiger Ordner.", satz: "Ungueltiger Ordner." }); return; }
+      try {
+        sendJson(res, 200, { ok: true, id, ...(await wechsleDriveOrdner(id)) });
+      } catch (e) {
+        sendJson(res, e.status || 502, { error: e.message, satz: e.message });
+      }
+      return;
+    }
+
+    // Konto wechseln: startet die Browser-Anmeldung; der Stand wird per GET abgefragt.
+    if (pfad === "/api/drive/konto/wechseln" && req.method === "POST") {
+      starteDriveKontoWechsel();
+      sendJson(res, 200, { laeuft: kontoWechsel.laeuft, satz: kontoWechsel.satz });
+      return;
+    }
+    if (pfad === "/api/drive/konto/wechseln" && req.method === "GET") {
+      sendJson(res, 200, { ...kontoWechsel });
+      return;
+    }
+
     if (pfad === "/api/drive/status" && req.method === "GET") {
       sendJson(res, 200, await drive.erreichbar());
       return;
@@ -1160,34 +1303,39 @@ async function handler(req, res) {
 
     if (pfad === "/api/verbindungen/status" && req.method === "GET") {
       const tokens = await leseTokens();
-      let driveOk = false;
-      try { driveOk = !!(await drive.erreichbar())?.ok; } catch { /* Drive gestoert = nicht verbunden */ }
-      let claudeOk = false;
-      let claudeMail = "";
-      // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
-      // v62: dieselbe Antwort traegt bereits die Konto-Mail (email) mit — keine zweite Abfrage noetig.
-      try {
-        const stand = JSON.parse(execSync("claude auth status", { encoding: "utf8" }));
-        claudeOk = !!stand.loggedIn;
-        claudeMail = stand.email || "";
-      } catch { /* CLI fehlt oder nicht eingeloggt */ }
-      const googleStatus = await gcal.statusGoogle(); // v45: echte Gueltigkeit + hinweis, kurz gecacht
-      // v62: Konto-Mail fuers Einstellungen-Fenster — nur abfragen, wenn ueberhaupt verbunden.
-      if (googleStatus.verbunden) googleStatus.email = await gcal.kontoMail();
+      const execAsync = promisify(exec);
+      // v63: alle Abfragen PARALLEL statt nacheinander — der Status haengt nur noch an der
+      // langsamsten (vorher Summe aus Drive-Pruefung + Claude-CLI + Google), damit man nach dem
+      // Serverstart schnell den echten Stand sieht.
+      const [driveOk, driveKonto, claude, googleStatus, igName] = await Promise.all([
+        drive.erreichbar().then((r) => !!(r && r.ok)).catch(() => false), // Drive gestoert = nicht verbunden
+        driveSetup.konto().catch(() => null),
+        // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
+        // v62: dieselbe Antwort traegt die Konto-Mail (email) mit.
+        execAsync("claude auth status", { encoding: "utf8", timeout: 15000 })
+          .then((r) => { const st = JSON.parse(r.stdout); return { ok: !!st.loggedIn, email: st.email || "" }; })
+          .catch(() => ({ ok: false, email: "" })), // CLI fehlt oder nicht eingeloggt
+        gcal.statusGoogle().then(async (g) => {
+          // v62: Konto-Mail fuers Einstellungen-Fenster — nur abfragen, wenn ueberhaupt verbunden.
+          if (g.verbunden) g.email = await gcal.kontoMail();
+          return g;
+        }), // v45: echte Gueltigkeit + hinweis, kurz gecacht
+        instagramName(tokens),
+      ]);
       sendJson(res, 200, {
         google: googleStatus,
-        drive: { verbunden: driveOk },
+        drive: { verbunden: driveOk, root: drive.aktuellerRoot(), email: driveKonto ? driveKonto.email : "" },
         instagram: {
           verbunden: !!(tokens.instagram && tokens.instagram.accessToken),
           clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID,
-          konto: (tokens.instagram && tokens.instagram.username) || "",
+          konto: igName,
         },
         linkedin: {
           verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken),
           clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID,
           konto: (tokens.linkedin && tokens.linkedin.orgName) || "",
         },
-        claude: { verbunden: claudeOk, email: claudeMail },
+        claude: { verbunden: claude.ok, email: claude.email },
         tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
       return;
@@ -1508,6 +1656,7 @@ server.listen(PORT, async () => {
   try {
     spaltenResolverSetzen(pipeline.mischeSpalten(await spaltenCacheLesen()));
   } catch { /* Defaults greifen ohnehin */ }
+  driveSetup.konto().catch(() => {}); // v63: Drive-Konto vorwaermen, damit "Externe Dienste" sofort den Stand zeigt
   // KPI-Sammlung beim Start ausloesen (Owner 02.09.2026): wenn nach den Intervallen eine
   // Post-Messung faellig ist ODER die Konto-Kadenz (woechentl./quartalsw.) greift. Die
   // Faelligkeits-Logik steckt in kpi.sammle — der Aufruf ist selbst-gated und schreibt

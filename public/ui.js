@@ -1105,15 +1105,149 @@ export function einstellungenModal(onThemeChange) {
     container.appendChild(zeile);
   }
 
+  // Google Drive (v63): eigene Zeile, weil hier statt Zugangsdaten-Feldern ZWEI Wechsel-Wege
+  // gebraucht werden — Arbeitsordner (Link einfuegen, pruefen, wechseln) und Google-Konto
+  // (rclone-Browser-Anmeldung). Sieht aus wie die anderen Verbindungs-Zeilen.
+  function baueDriveZeile(container) {
+    const zeile = document.createElement("div");
+    zeile.className = "verb-zeile";
+    const kopf = document.createElement("div");
+    kopf.className = "verb-kopf";
+    const name = document.createElement("span");
+    name.className = "verb-name";
+    name.textContent = "Google Drive";
+    kopf.appendChild(name);
+    const chip = statusChipEl();
+    chip.style.marginLeft = "0";
+    kopf.appendChild(chip);
+    const konto = document.createElement("span");
+    konto.className = "verb-konto";
+    konto.hidden = true;
+    kopf.appendChild(konto);
+    const knoepfe = document.createElement("div");
+    knoepfe.className = "verb-knoepfe";
+    const ordnerKnopf = knopf("Ordner wechseln", { klick: () => { panel.hidden = !panel.hidden; } });
+    ordnerKnopf.classList.add("knopf-inline");
+    const kontoKnopf = knopf("Konto wechseln", { klick: () => starteKontoWechsel() });
+    kontoKnopf.classList.add("knopf-inline");
+    knoepfe.appendChild(ordnerKnopf);
+    knoepfe.appendChild(kontoKnopf);
+    kopf.appendChild(knoepfe);
+    zeile.appendChild(kopf);
+
+    const ordnerZeile = document.createElement("p");
+    ordnerZeile.className = "einst-provider-sub verb-text";
+    zeile.appendChild(ordnerZeile);
+    const kontoInfo = document.createElement("p");
+    kontoInfo.className = "einst-provider-sub verb-text";
+    kontoInfo.hidden = true;
+    zeile.appendChild(kontoInfo);
+
+    const panel = document.createElement("div");
+    panel.className = "verb-detail einst-ollama-konfig";
+    panel.hidden = true;
+    const anl = document.createElement("ol");
+    anl.className = "einst-provider-sub verb-anleitung";
+    anl.innerHTML =
+      "<li>In Google Drive (im gewuenschten Konto) einen <b>neuen, leeren Ordner</b> anlegen.</li>" +
+      "<li>Ordner-Link kopieren: Rechtsklick auf den Ordner → <i>Link kopieren</i>.</li>" +
+      "<li>Link unten einfuegen und <b>Pruefen</b>.</li>" +
+      "<li><b>Wechseln</b>: das Board sichert seinen aktuellen Stand, legt alle Spalten-Ordner im " +
+      "neuen Ordner selbst an und laedt neu. Ein frueher genutzter Ordner bringt sein Board zurueck.</li>";
+    panel.appendChild(anl);
+    const linkFeld = eingabe("", { platzhalter: "https://drive.google.com/drive/folders/…" });
+    panel.appendChild(feld("Ordner-Link oder ID", linkFeld));
+    const reihe = document.createElement("div");
+    reihe.className = "einst-ping-zeile";
+    const pruefen = knopf("Pruefen", { klick: () => pruefe() });
+    const wechseln = knopf("Wechseln", { art: "haupt", klick: () => wechsle() });
+    wechseln.disabled = true;
+    const info = document.createElement("div");
+    info.className = "einst-ping-status";
+    reihe.appendChild(pruefen);
+    reihe.appendChild(wechseln);
+    reihe.appendChild(info);
+    panel.appendChild(reihe);
+    zeile.appendChild(panel);
+    linkFeld.addEventListener("input", () => { wechseln.disabled = true; info.textContent = ""; });
+
+    async function post(pfad, body) {
+      const r = await fetch(pfad, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) });
+      let j = {};
+      try { j = await r.json(); } catch { /* keine JSON-Antwort */ }
+      return { ok: r.ok, j };
+    }
+    async function pruefe() {
+      info.textContent = "Pruefe den Ordner …";
+      wechseln.disabled = true;
+      pruefen.disabled = true;
+      try {
+        const { j } = await post("/api/drive/ordner/pruefen", { eingabe: linkFeld.value });
+        info.textContent = (j.ok ? "✅ " : "❌ ") + (j.satz || j.error || "Unbekannter Fehler.");
+        wechseln.disabled = !j.ok;
+      } catch {
+        info.textContent = "❌ Pruefen fehlgeschlagen — laeuft der Server?";
+      } finally {
+        pruefen.disabled = false;
+      }
+    }
+    function wechsle() {
+      bestaetigen(
+        "Das Board sichert seinen aktuellen Stand und wechselt in den neuen Ordner. Fortfahren?",
+        "Wechseln",
+        async () => {
+          info.textContent = "Wechsle den Ordner und lege die Struktur an … (kann eine Minute dauern)";
+          wechseln.disabled = true;
+          pruefen.disabled = true;
+          const { ok, j } = await post("/api/drive/ordner/setzen", { eingabe: linkFeld.value });
+          if (!ok) {
+            info.textContent = "❌ " + (j.satz || j.error || "Wechsel fehlgeschlagen.");
+            pruefen.disabled = false;
+            return;
+          }
+          info.textContent = "✅ Fertig — das Board laedt mit dem neuen Stand neu …";
+          setTimeout(() => location.reload(), 900);
+        }
+      );
+    }
+
+    let kontoTimer = null;
+    async function starteKontoWechsel() {
+      kontoKnopf.disabled = true;
+      kontoInfo.hidden = false;
+      kontoInfo.textContent = "Starte die Anmeldung … im Browser oeffnet sich der Google-Login.";
+      try { await post("/api/drive/konto/wechseln"); } catch { /* Abfrage unten zeigt den Stand */ }
+      clearInterval(kontoTimer);
+      kontoTimer = setInterval(async () => {
+        try {
+          const st = await (await fetch("/api/drive/konto/wechseln")).json();
+          kontoInfo.textContent = st.satz || "";
+          if (!st.laeuft) {
+            clearInterval(kontoTimer);
+            kontoKnopf.disabled = false;
+            if (st.ergebnis === "ok") { ladeVerbStatus(); panel.hidden = false; }
+          }
+        } catch { /* naechster Versuch */ }
+      }, 2000);
+    }
+
+    dienstRender.push((s) => {
+      const d = s.drive || {};
+      setzeChip(chip, d.verbunden, false);
+      konto.hidden = !d.email;
+      konto.textContent = d.email ? `Konto: ${d.email}` : "";
+      const link = d.root ? `https://drive.google.com/drive/folders/${d.root}` : "";
+      ordnerZeile.innerHTML = d.root
+        ? `Arbeitsordner: <code>${d.root}</code> · <a href="${link}" target="_blank" rel="noopener">in Drive oeffnen</a>` +
+          (d.verbunden ? "" : " · <b>nicht erreichbar</b> — Konto oder Ordner pruefen")
+        : "Kein Arbeitsordner festgelegt.";
+    });
+
+    container.appendChild(zeile);
+  }
+
   // Reihenfolge wie im Owner-Auftrag genannt: Drive, Kalender+Tasks, Claude.
-  baueVerbindungsZeile(seite3, {
-    name: "Google Drive",
-    statusKey: "drive",
-    // Kein Trennen: rclone wird ausserhalb der App konfiguriert (Remote 'gdrive'), die App
-    // kennt weder ein eigenes Verbinden noch eine Konto-Mail dafuer (nachgeprueft — rclone
-    // liefert nur Speicherplatz-Zahlen, keine Konto-Kennung; siehe Paket-Doc v62).
-    text: "Laeuft ueber das rclone-Remote 'gdrive'. Ist es verbunden, findet das Board die Projektordner.",
-  });
+  baueDriveZeile(seite3);
   baueVerbindungsZeile(seite3, {
     name: "Google Kalender + Tasks",
     statusKey: "google", kontoFeld: "email", kontoLabel: "Konto",

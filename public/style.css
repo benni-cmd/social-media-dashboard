@@ -2835,6 +2835,9 @@ body {
   padding-top: 12px;
 }
 .verb-detail[hidden] { display: none; }
+.verb-anleitung { margin: 0; padding-left: 18px; }
+.verb-anleitung li { margin-bottom: 3px; }
+.verb-text a { color: var(--akzent); }
 .einst-modell-select {
   width: 100%;
   padding: 7px 10px;
