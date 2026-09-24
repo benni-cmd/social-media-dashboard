@@ -2724,6 +2724,23 @@ body {
 .einst-seite { display: none; }
 .einst-seite.aktiv { display: block; }
 .einst-abschnitt { margin-bottom: 20px; }
+/* v62 (Owner 23.09.2026): die drei KI-Rollen-Bloecke hatten KEINE eigene Kachel-Optik — nur
+   Kind-Elemente mit Standard-Abstand, dadurch wirkten sie uneinheitlich (v. a. weil nur
+   "recherche" zusaetzlich die Web-Suche-Sektion traegt). Jetzt eine gemeinsame Kachel; der
+   Zusatz-Block bekommt eine eigene, klar abgesetzte Unter-Sektion statt formlos anzuhaengen. */
+.einst-rolle {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  background: var(--flaeche);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.einst-rolle:last-child { margin-bottom: 0; }
+.einst-rolle-zusatz {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--linie);
+}
 .einst-label {
   font-size: 12px;
   font-weight: 600;
@@ -2780,6 +2797,44 @@ body {
   flex: 1 1 auto;
   color: var(--text-still);
 }
+/* Verbindungs-Zeile (v62, Owner 23.09.2026): "Externe Dienste" + "Social Media Kanaele" waren
+   vier grosse, unterschiedlich gebaute Dauer-Formulare — jetzt eine uebersichtliche Liste:
+   Kopf-Zeile (Name/Status/Konto/Trennen) immer sichtbar, die Einrichtung klappt sich weg,
+   sobald verbunden. */
+.verb-zeile {
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  background: var(--flaeche);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.verb-zeile:last-child { margin-bottom: 0; }
+.verb-kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.verb-name {
+  font-weight: 650;
+  font-size: 13.5px;
+}
+.verb-konto {
+  font-size: 12px;
+  color: var(--text-still);
+}
+.verb-knoepfe {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.verb-text { margin: 8px 0 0; }
+.verb-detail {
+  border-top: 1px solid var(--linie);
+  padding-top: 12px;
+}
+.verb-detail[hidden] { display: none; }
 .einst-modell-select {
   width: 100%;
   padding: 7px 10px;

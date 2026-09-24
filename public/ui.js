@@ -612,7 +612,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Verbindungen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
+  for (const name of ["Darstellung", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -659,12 +659,13 @@ export function einstellungenModal(onThemeChange) {
   }
   seite1.appendChild(themeReihe);
 
-  // Seite 2: Verbindungen
+  // Seite 2: KI-Rollen (v62, vorher irrefuehrend "Verbindungen" genannt — der Tab enthaelt
+  // ausschliesslich KI-Modell-Auswahl je Rolle, keinerlei Verbindungs-/OAuth-UI).
   const seite2 = document.createElement("div");
   seite2.className = "einst-seite";
   const titel2 = document.createElement("div");
   titel2.className = "einst-titel";
-  titel2.textContent = "Verbindungen";
+  titel2.textContent = "KI-Rollen";
   seite2.appendChild(titel2);
 
   // --- KI-Modelle je Rolle (v40) ---
@@ -863,7 +864,9 @@ export function einstellungenModal(onThemeChange) {
     // Optional ein Gratis-Tavily-Key fuer stabilere Treffer — bleibt lokal in .env, nie im Repo.
     if (rolle === "recherche") {
       const web = document.createElement("div");
-      web.className = "einst-ollama-konfig";
+      // v62: eigene Klasse fuer den klar abgesetzten Zusatz-Rahmen (siehe style.css) — bleibt
+      // zusaetzlich zu .einst-ollama-konfig fuer den bestehenden Flex-Abstand.
+      web.className = "einst-ollama-konfig einst-rolle-zusatz";
       web.style.display = "flex";
 
       const wLabel = document.createElement("div");
@@ -986,175 +989,151 @@ export function einstellungenModal(onThemeChange) {
     c.className = "chip " + (verbunden ? "chip-ok" : bereit ? "chip-hinweis" : "chip-fehlt");
   }
 
-  // Google Kalender + Tasks
-  {
-    const ab = document.createElement("div");
-    ab.className = "einst-abschnitt";
-    const label = document.createElement("div");
-    label.className = "einst-label";
-    label.textContent = "Google Kalender + Tasks";
-    const chip = statusChipEl();
-    label.appendChild(chip);
-    ab.appendChild(label);
+  // Verbindungs-Zeile (v62): EIN gemeinsamer Baustein fuer "Externe Dienste" UND "Social
+  // Media Kanaele" statt vier von Hand nachgebauter Einzel-Sektionen. Kopf-Zeile (Name,
+  // Status, Konto, Trennen) ist IMMER sichtbar; die Einrichtung (Anleitung + ID/Secret-
+  // Felder) klappt sich weg, sobald verbunden — sonst waere die "uebersichtliche Liste" ein
+  // Dauer-Formular. opt.idKey fehlt => Dienst ohne eigenes Setup (aktuell nur Drive: rclone
+  // wird ausserhalb der App konfiguriert). opt.kontoFeld benennt das Statusfeld mit der
+  // Konto-Kennung (z. B. "email" bei Google/Claude, "konto" bei Instagram/LinkedIn).
+  function baueVerbindungsZeile(container, opt) {
+    const zeile = document.createElement("div");
+    zeile.className = "verb-zeile";
 
-    const anleitung = document.createElement("p");
-    anleitung.className = "einst-provider-sub";
-    anleitung.innerHTML =
+    const kopf = document.createElement("div");
+    kopf.className = "verb-kopf";
+    const name = document.createElement("span");
+    name.className = "verb-name";
+    name.textContent = opt.name;
+    kopf.appendChild(name);
+    const chip = statusChipEl();
+    chip.style.marginLeft = "0";
+    kopf.appendChild(chip);
+    const konto = document.createElement("span");
+    konto.className = "verb-konto";
+    konto.hidden = true;
+    kopf.appendChild(konto);
+
+    const knoepfe = document.createElement("div");
+    knoepfe.className = "verb-knoepfe";
+    let detail = null;
+    let einrichtenKnopf = null;
+    if (opt.idKey) {
+      einrichtenKnopf = knopf("Einrichten", { klick: () => { detail.hidden = !detail.hidden; } });
+      einrichtenKnopf.classList.add("knopf-inline");
+      einrichtenKnopf.style.display = "none";
+      knoepfe.appendChild(einrichtenKnopf);
+    }
+    let trennen = null;
+    if (opt.trennenPfad) {
+      trennen = knopf("Trennen", { klick: (e) => trenneDienst(opt.trennenPfad, e.currentTarget) });
+      trennen.classList.add("knopf-inline");
+      trennen.style.display = "none";
+      knoepfe.appendChild(trennen);
+    }
+    kopf.appendChild(knoepfe);
+    zeile.appendChild(kopf);
+
+    if (opt.text) {
+      const t = document.createElement("p");
+      t.className = "einst-provider-sub verb-text";
+      t.innerHTML = opt.text;
+      zeile.appendChild(t);
+    }
+
+    if (opt.idKey) {
+      detail = document.createElement("div");
+      // einst-ollama-konfig liefert die Eingabefeld-Optik (Rand/Hintergrund) wieder, statt sie
+      // fuer .verb-detail zu duplizieren.
+      detail.className = "verb-detail einst-ollama-konfig";
+      const anl = document.createElement("p");
+      anl.className = "einst-provider-sub";
+      anl.innerHTML = opt.anleitung;
+      detail.appendChild(anl);
+      const idFeld = eingabe("", { platzhalter: opt.idPlatz });
+      const secretFeld = eingabe("", { typ: "password", platzhalter: opt.secretPlatz });
+      detail.appendChild(feld(opt.idLabel, idFeld));
+      detail.appendChild(feld(opt.secretLabel, secretFeld));
+      const reihe = document.createElement("div");
+      reihe.className = "einst-ping-zeile";
+      const info = document.createElement("div");
+      info.className = "einst-ping-status";
+      const speichern = knopf("Speichern", {
+        klick: async () => {
+          info.textContent = "Speichere …";
+          try {
+            await putEnv(opt.idKey, idFeld.value.trim());
+            await putEnv(opt.secretKey, secretFeld.value.trim());
+            idFeld.value = ""; secretFeld.value = "";
+            info.textContent = "Gespeichert in .env. Jetzt Verbinden.";
+            ladeVerbStatus();
+          } catch { info.textContent = "Speichern fehlgeschlagen."; }
+        },
+      });
+      const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = opt.connectPfad; } });
+      reihe.appendChild(speichern);
+      reihe.appendChild(verbinden);
+      reihe.appendChild(info);
+      detail.appendChild(reihe);
+      zeile.appendChild(detail);
+
+      dienstRender.push((s) => {
+        const d = s[opt.statusKey] || {};
+        setzeChip(chip, d.verbunden, d.clientKonfiguriert, d.hinweis);
+        verbinden.disabled = !d.clientKonfiguriert;
+        verbinden.style.display = d.verbunden ? "none" : "";
+        if (trennen) trennen.style.display = d.verbunden ? "" : "none";
+        const kontoWert = opt.kontoFeld ? d[opt.kontoFeld] : "";
+        konto.hidden = !kontoWert;
+        konto.textContent = kontoWert ? `${opt.kontoLabel || "Konto"}: ${kontoWert}` : "";
+        // Verbunden -> Zeile bleibt kurz (Liste statt Dauer-Formular); "Einrichten" holt die
+        // Felder bei Bedarf zurueck (z. B. um Zugangsdaten zu wechseln).
+        detail.hidden = !!d.verbunden;
+        einrichtenKnopf.style.display = d.clientKonfiguriert || d.verbunden ? "" : "none";
+      });
+    } else {
+      dienstRender.push((s) => {
+        const d = s[opt.statusKey] || {};
+        setzeChip(chip, d.verbunden, false, d.hinweis);
+        if (trennen) trennen.style.display = d.verbunden ? "" : "none";
+        const kontoWert = opt.kontoFeld ? d[opt.kontoFeld] : "";
+        konto.hidden = !kontoWert;
+        konto.textContent = kontoWert ? `${opt.kontoLabel || "Konto"}: ${kontoWert}` : "";
+      });
+    }
+
+    container.appendChild(zeile);
+  }
+
+  // Reihenfolge wie im Owner-Auftrag genannt: Drive, Kalender+Tasks, Claude.
+  baueVerbindungsZeile(seite3, {
+    name: "Google Drive",
+    statusKey: "drive",
+    // Kein Trennen: rclone wird ausserhalb der App konfiguriert (Remote 'gdrive'), die App
+    // kennt weder ein eigenes Verbinden noch eine Konto-Mail dafuer (nachgeprueft — rclone
+    // liefert nur Speicherplatz-Zahlen, keine Konto-Kennung; siehe Paket-Doc v62).
+    text: "Laeuft ueber das rclone-Remote 'gdrive'. Ist es verbunden, findet das Board die Projektordner.",
+  });
+  baueVerbindungsZeile(seite3, {
+    name: "Google Kalender + Tasks",
+    statusKey: "google", kontoFeld: "email", kontoLabel: "Konto",
+    idKey: "GOOGLE_OAUTH_CLIENT_ID", secretKey: "GOOGLE_OAUTH_CLIENT_SECRET",
+    connectPfad: "/api/auth/google", trennenPfad: "/api/auth/google/trennen",
+    idLabel: "Client-ID", secretLabel: "Client-Secret",
+    idPlatz: "Client-ID (…apps.googleusercontent.com)", secretPlatz: "Client-Secret",
+    anleitung:
       "1. <b>console.cloud.google.com</b> → Credentials → OAuth client ID (Web application). " +
       "2. Redirect URI: <code>https://localhost:4321/api/auth/google/callback</code>. " +
-      "3. Client-ID + Secret unten eintragen, Speichern, dann Verbinden. Scopes: Kalender + Tasks.";
-    ab.appendChild(anleitung);
-
-    const idFeld = eingabe("", { platzhalter: "Client-ID (…apps.googleusercontent.com)" });
-    const secretFeld = eingabe("", { typ: "password", platzhalter: "Client-Secret" });
-    ab.appendChild(feld("Client-ID", idFeld));
-    ab.appendChild(feld("Client-Secret", secretFeld));
-
-    const reihe = document.createElement("div");
-    reihe.className = "einst-ping-zeile";
-    const info = document.createElement("div");
-    info.className = "einst-ping-status";
-    const speichern = knopf("Speichern", {
-      klick: async () => {
-        info.textContent = "Speichere …";
-        try {
-          await putEnv("GOOGLE_OAUTH_CLIENT_ID", idFeld.value.trim());
-          await putEnv("GOOGLE_OAUTH_CLIENT_SECRET", secretFeld.value.trim());
-          idFeld.value = ""; secretFeld.value = "";
-          info.textContent = "Gespeichert in .env. Jetzt Verbinden.";
-          ladeVerbStatus();
-        } catch { info.textContent = "Speichern fehlgeschlagen."; }
-      },
-    });
-    const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = "/api/auth/google"; } });
-    const trennen = knopf("Trennen", { klick: (e) => trenneDienst("/api/auth/google/trennen", e.currentTarget) });
-    // .knopf setzt per CSS display, das ein [hidden]-Attribut ueberschreibt — daher style.display.
-    trennen.style.display = "none";
-    reihe.appendChild(speichern);
-    reihe.appendChild(verbinden);
-    reihe.appendChild(trennen);
-    reihe.appendChild(info);
-    ab.appendChild(reihe);
-    seite3.appendChild(ab);
-
-    dienstRender.push((s) => {
-      const g = s.google || {};
-      setzeChip(chip, g.verbunden, g.clientKonfiguriert, g.hinweis);
-      verbinden.disabled = !g.clientKonfiguriert;
-      verbinden.style.display = g.verbunden ? "none" : "";
-      trennen.style.display = g.verbunden ? "" : "none";
-    });
-  }
-
-  // Google Drive (rclone) — Status + Hinweis; volle Einrichtung folgt in v24
-  {
-    const ab = document.createElement("div");
-    ab.className = "einst-abschnitt";
-    const label = document.createElement("div");
-    label.className = "einst-label";
-    label.textContent = "Google Drive";
-    const chip = statusChipEl();
-    label.appendChild(chip);
-    ab.appendChild(label);
-    const t = document.createElement("p");
-    t.className = "einst-provider-sub";
-    t.textContent = "Drive laeuft ueber das rclone-Remote 'gdrive'. Ist es verbunden, findet das Board die Projektordner.";
-    ab.appendChild(t);
-    seite3.appendChild(ab);
-    dienstRender.push((s) => setzeChip(chip, (s.drive || {}).verbunden, false));
-  }
-
-  // Claude (KI-Texte) — laeuft ueber die Claude-CLI / dein Abo
-  {
-    const ab = document.createElement("div");
-    ab.className = "einst-abschnitt";
-    const label = document.createElement("div");
-    label.className = "einst-label";
-    label.textContent = "Claude (KI-Texte)";
-    const chip = statusChipEl();
-    label.appendChild(chip);
-    ab.appendChild(label);
-    const t = document.createElement("p");
-    t.className = "einst-provider-sub";
-    t.innerHTML =
+      "3. Client-ID + Secret unten eintragen, Speichern, dann Verbinden. Scopes: Kalender + Tasks.",
+  });
+  baueVerbindungsZeile(seite3, {
+    name: "Claude (KI-Texte)",
+    statusKey: "claude", kontoFeld: "email", kontoLabel: "Konto",
+    trennenPfad: "/api/auth/claude/trennen",
+    text:
       "Die KI-Texte der Userkommunikation laufen ueber deine <b>Claude-CLI</b> (dein Abo, keine API-Kosten). " +
-      "Verbinden: einmal im Terminal <code>claude auth login</code> und mit dem eigenen Abo einloggen.";
-    ab.appendChild(t);
-    const cReihe = document.createElement("div");
-    cReihe.className = "einst-ping-zeile";
-    const cInfo = document.createElement("div");
-    cInfo.className = "einst-ping-status";
-    const cTrennen = knopf("Trennen", {
-      klick: async (e) => {
-        cInfo.textContent = "Melde ab …";
-        await trenneDienst("/api/auth/claude/trennen", e.currentTarget);
-        cInfo.textContent = "Abgemeldet. Neu verbinden: claude auth login im Terminal.";
-      },
-    });
-    cTrennen.style.display = "none";
-    cReihe.appendChild(cTrennen);
-    cReihe.appendChild(cInfo);
-    ab.appendChild(cReihe);
-    seite3.appendChild(ab);
-    dienstRender.push((s) => {
-      const c = s.claude || {};
-      setzeChip(chip, c.verbunden, false);
-      cTrennen.style.display = c.verbunden ? "" : "none";
-    });
-  }
-
-  // --- Seite 4: Social Media Kanaele (v24-2) ---
-  // Generischer Dienst mit ID/Secret-Feldern -> .env, Verbinden-Redirect, Status-Chip.
-  function baueApiDienst(container, opt) {
-    const ab = document.createElement("div");
-    ab.className = "einst-abschnitt";
-    const label = document.createElement("div");
-    label.className = "einst-label";
-    label.textContent = opt.name;
-    const chip = statusChipEl();
-    label.appendChild(chip);
-    ab.appendChild(label);
-    const anl = document.createElement("p");
-    anl.className = "einst-provider-sub";
-    anl.innerHTML = opt.anleitung;
-    ab.appendChild(anl);
-    const idFeld = eingabe("", { platzhalter: opt.idPlatz });
-    const secretFeld = eingabe("", { typ: "password", platzhalter: opt.secretPlatz });
-    ab.appendChild(feld(opt.idLabel, idFeld));
-    ab.appendChild(feld(opt.secretLabel, secretFeld));
-    const reihe = document.createElement("div");
-    reihe.className = "einst-ping-zeile";
-    const info = document.createElement("div");
-    info.className = "einst-ping-status";
-    const speichern = knopf("Speichern", {
-      klick: async () => {
-        info.textContent = "Speichere …";
-        try {
-          await putEnv(opt.idKey, idFeld.value.trim());
-          await putEnv(opt.secretKey, secretFeld.value.trim());
-          idFeld.value = ""; secretFeld.value = "";
-          info.textContent = "Gespeichert in .env. Jetzt Verbinden.";
-          ladeVerbStatus();
-        } catch { info.textContent = "Speichern fehlgeschlagen."; }
-      },
-    });
-    const verbinden = knopf("Verbinden", { art: "haupt", klick: () => { window.location.href = opt.connectPfad; } });
-    const trennen = knopf("Trennen", { klick: (e) => trenneDienst(opt.trennenPfad, e.currentTarget) });
-    trennen.style.display = "none";
-    reihe.appendChild(speichern);
-    reihe.appendChild(verbinden);
-    reihe.appendChild(trennen);
-    reihe.appendChild(info);
-    ab.appendChild(reihe);
-    container.appendChild(ab);
-    dienstRender.push((s) => {
-      const d = s[opt.statusKey] || {};
-      setzeChip(chip, d.verbunden, d.clientKonfiguriert);
-      verbinden.disabled = !d.clientKonfiguriert;
-      verbinden.style.display = d.verbunden ? "none" : "";
-      trennen.style.display = d.verbunden ? "" : "none";
-    });
-  }
+      "Verbinden: einmal im Terminal <code>claude auth login</code> und mit dem eigenen Abo einloggen.",
+  });
 
   const seite4 = document.createElement("div");
   seite4.className = "einst-seite";
@@ -1203,10 +1182,11 @@ export function einstellungenModal(onThemeChange) {
     seite4.appendChild(ab);
   }
 
-  baueApiDienst(seite4, {
+  baueVerbindungsZeile(seite4, {
     name: "Instagram",
+    statusKey: "instagram", kontoFeld: "konto", kontoLabel: "Konto",
     idKey: "INSTAGRAM_APP_ID", secretKey: "INSTAGRAM_APP_SECRET",
-    connectPfad: "/api/auth/instagram", trennenPfad: "/api/auth/instagram/trennen", statusKey: "instagram",
+    connectPfad: "/api/auth/instagram", trennenPfad: "/api/auth/instagram/trennen",
     idLabel: "App-ID", secretLabel: "App-Secret",
     idPlatz: "Instagram App-ID", secretPlatz: "App-Secret",
     anleitung:
@@ -1214,10 +1194,13 @@ export function einstellungenModal(onThemeChange) {
       "2. Redirect: <code>https://localhost:4321/api/auth/instagram/callback</code>. " +
       "3. App-ID + Secret unten eintragen. Dein IG-Konto muss als Tester eingeladen und akzeptiert sein.",
   });
-  baueApiDienst(seite4, {
+  baueVerbindungsZeile(seite4, {
     name: "LinkedIn",
+    // v62: LinkedIn haengt an einer Unternehmensseite, nicht an einer Person (orgName,
+    // server.js:1318) — Label bewusst "Seite" statt "Konto", nicht erfunden gleichgesetzt.
+    statusKey: "linkedin", kontoFeld: "konto", kontoLabel: "Seite",
     idKey: "LINKEDIN_CLIENT_ID", secretKey: "LINKEDIN_CLIENT_SECRET",
-    connectPfad: "/api/auth/linkedin", trennenPfad: "/api/auth/linkedin/trennen", statusKey: "linkedin",
+    connectPfad: "/api/auth/linkedin", trennenPfad: "/api/auth/linkedin/trennen",
     idLabel: "Client-ID", secretLabel: "Client-Secret",
     idPlatz: "LinkedIn Client-ID", secretPlatz: "Client-Secret",
     anleitung:

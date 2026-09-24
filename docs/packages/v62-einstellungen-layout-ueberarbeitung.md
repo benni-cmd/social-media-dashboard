@@ -112,9 +112,10 @@
 - [x] Bestand geprueft (Explore-Agent: alle sechs Tabs, CSS-Geometrie, bestehende Muster) — 23.09.2026
 - [x] Owner-Antworten (zwei Rueckfrage-Runden)
 - [x] Feasibility-Check Konto-Anzeige (claude auth status, rclone-Befehle getestet)
-- [ ] Umsetzung
-- [ ] Verify
-- [ ] Commit + Push
+- [x] Umsetzung Teil 1: Server-Konto-Felder, Tab-Umbenennung KI-Rollen, Rollen-Kacheln, Verbindungs-Zeile fuer Externe Dienste + Social Media Kanaele
+- [x] Verify Teil 1 (Browser: Externe Dienste, Social Media Kanaele, KI-Rollen)
+- [ ] Umsetzung Teil 2: Unternehmenskontext + System Prompts (falten, angleichen) — OFFEN
+- [ ] Commit + Push Teil 2
 
 ## DoD
 
@@ -123,3 +124,14 @@
   (Status, Konto wo moeglich, Trennen).
 - Unternehmenskontext/System Prompts adressieren die konkret genannten Schmerzpunkte.
 - Modal-Groesse bleibt stabil (kein Springen zwischen Tabs).
+
+## Stand Teil 1 (24.09.2026)
+
+- Live gemessen: `/api/verbindungen/status` liefert `claude.email` = echte Mail. `google.email`
+  und `instagram.konto` sind bei Ben LEER (Kalender-Mail-Abruf liefert nichts, Instagram-Token
+  hat keinen gespeicherten Username) — die Konto-Zeile blendet sich dann aus statt etwas zu
+  erfinden. Ursache fuer Google/Instagram noch nicht untersucht.
+- Drive: nur Status-Chip + Erklaersatz, KEIN Trennen-Knopf (es gibt keinen Drive-Trennen-
+  Endpunkt; die Rueckfrage-Option "Status + Trennen" war ungenau formuliert — nicht gebaut).
+- Verbunden -> Einrichtung klappt weg (Einrichten-Knopf holt sie zurueck); nicht verbunden ->
+  Formular offen.

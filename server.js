@@ -1163,14 +1163,31 @@ async function handler(req, res) {
       let driveOk = false;
       try { driveOk = !!(await drive.erreichbar())?.ok; } catch { /* Drive gestoert = nicht verbunden */ }
       let claudeOk = false;
+      let claudeMail = "";
       // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
-      try { claudeOk = !!JSON.parse(execSync("claude auth status", { encoding: "utf8" })).loggedIn; } catch { /* CLI fehlt oder nicht eingeloggt */ }
+      // v62: dieselbe Antwort traegt bereits die Konto-Mail (email) mit — keine zweite Abfrage noetig.
+      try {
+        const stand = JSON.parse(execSync("claude auth status", { encoding: "utf8" }));
+        claudeOk = !!stand.loggedIn;
+        claudeMail = stand.email || "";
+      } catch { /* CLI fehlt oder nicht eingeloggt */ }
+      const googleStatus = await gcal.statusGoogle(); // v45: echte Gueltigkeit + hinweis, kurz gecacht
+      // v62: Konto-Mail fuers Einstellungen-Fenster — nur abfragen, wenn ueberhaupt verbunden.
+      if (googleStatus.verbunden) googleStatus.email = await gcal.kontoMail();
       sendJson(res, 200, {
-        google: await gcal.statusGoogle(), // v45: echte Gueltigkeit + hinweis, kurz gecacht
+        google: googleStatus,
         drive: { verbunden: driveOk },
-        instagram: { verbunden: !!(tokens.instagram && tokens.instagram.accessToken), clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID },
-        linkedin: { verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken), clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID },
-        claude: { verbunden: claudeOk },
+        instagram: {
+          verbunden: !!(tokens.instagram && tokens.instagram.accessToken),
+          clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID,
+          konto: (tokens.instagram && tokens.instagram.username) || "",
+        },
+        linkedin: {
+          verbunden: !!(tokens.linkedin && tokens.linkedin.accessToken),
+          clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID,
+          konto: (tokens.linkedin && tokens.linkedin.orgName) || "",
+        },
+        claude: { verbunden: claudeOk, email: claudeMail },
         tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
       return;
