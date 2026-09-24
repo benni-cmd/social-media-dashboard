@@ -3,6 +3,7 @@
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
   rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload, setDeadlineKette,
+  setAmpelSchwellen,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -43,6 +44,7 @@ function uebernimm(d) {
     };
   }
   syncDeadlineKette();
+  syncAmpelSchwellen();
 }
 
 // Schiebt die konfigurierte Deadline-Kette (v66) aus den rueckwaertsplan-Params in pipeline.js,
@@ -53,6 +55,15 @@ function syncDeadlineKette() {
     freigabe: wfParam(S.workflows, "rueckwaertsplan", "gapFreigabe"),
     schnitt: wfParam(S.workflows, "rueckwaertsplan", "gapSchnitt"),
     dreh: wfParam(S.workflows, "rueckwaertsplan", "gapDreh"),
+  });
+}
+
+// Schiebt die konfigurierten Ampel-Schwellen (v68) aus den ampel-schwellen-Params in pipeline.js,
+// damit ampelStatus()/ampel() ueberall mit den eingestellten Rot-/Gelb-Grenzen faerben.
+function syncAmpelSchwellen() {
+  setAmpelSchwellen({
+    rotTage: wfParam(S.workflows, "ampel-schwellen", "rotTage"),
+    gelbTage: wfParam(S.workflows, "ampel-schwellen", "gelbTage"),
   });
 }
 
