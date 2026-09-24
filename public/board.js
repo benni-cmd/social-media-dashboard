@@ -64,15 +64,26 @@ export function kachel(k) {
   const f = faelligkeit(k);
   const offen = offenePunkte(k);
 
-  // Was aufhaelt, hat Vorrang vor dem Termin — sonst sieht die Karte gruen aus, obwohl
-  // sie nicht weiterkann. Die Kachel zeigt nur noch den Punkt; Wort und Satz stehen in der
-  // Detailspalte, damit die Uebersicht knapp bleibt und trotzdem nichts verschwindet.
-  const statusCode = offen.length ? offen[0].status : f.status;
-  const statusSatz = offen.length
-    ? offen.length === 1
-      ? offen[0].satz
-      : `${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`
-    : f.satz;
+  // Was aufhaelt, hat Vorrang vor dem Termin — sonst sieht die Karte gruen aus, obwohl sie
+  // nicht weiterkann. ABER (v64, Owner 24.09.2026): nur, solange der Termin nicht DRINGLICHER ist
+  // als der Sperr-Punkt. Vorher gewann der erste offene Sperr-Punkt IMMER (`offen[0].status`) —
+  // dadurch verdeckte ein blasses „fehlt" (z. B. fehlendes Rohmaterial, `--fehlt` blasses Oliv)
+  // einen ueberfaelligen Drehtermin (`befund`/rot), obwohl die Zeit-Ueberfaelligkeit die
+  // eigentliche Warnung war (Owner: „der Punkt ist einfach grau und zeigt gar nichts an").
+  // Jetzt faerbt der DRINGLICHERE der beiden Signale die Kachel; bei gleichem Rang behaelt der
+  // Sperr-Punkt Vorrang (die Karte kann nicht weiter). Keine neuen Status-Woerter, keine
+  // geaenderten Schwellen — nur die Vorrang-Frage zwischen zwei bestehenden Zustaenden.
+  // Die Kachel zeigt nur den Punkt; Wort und Satz stehen in der Detailspalte, damit die
+  // Uebersicht knapp bleibt und trotzdem nichts verschwindet.
+  const DRINGLICHKEIT = { befund: 5, fehlt: 4, hinweis: 3, unlesbar: 2, entfaellt: 1, ok: 0 };
+  const sperr = offen.length ? offen[0] : null;
+  const zeigeTermin = !sperr || (DRINGLICHKEIT[f.status] || 0) > (DRINGLICHKEIT[sperr.status] || 0);
+  const statusCode = zeigeTermin ? f.status : sperr.status;
+  const statusSatz = zeigeTermin
+    ? f.satz
+    : offen.length === 1
+      ? sperr.satz
+      : `${sperr.satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`;
 
   const formatText = contenttypName(k.contenttyp || "reel");
 
@@ -84,7 +95,13 @@ export function kachel(k) {
   // ERSETZT — bei "fehlt" (blasses Oliv/Tan) gegen den aehnlich hellen Karten-Hintergrund praktisch
   // unsichtbar ("transparent"). Jetzt bleibt der gefuellte Punkt IMMER stehen (Farbe bleibt
   // erkennbar), das Ausrufezeichen kommt bei Aufmerksamkeits-Zustaenden ZUSAETZLICH links davon.
-  const AUFMERKSAM = new Set(["befund", "fehlt"]);
+  // v64 (Owner 24.09.2026): die Glyphe erscheint NUR bei einer echten Warnung (`befund`, rotes
+  // Achtung-Icon). Vorher trug auch `fehlt` eine Glyphe — und `fehlt`s Icon ist „kreis", also ein
+  // LEERER Kreis in blassem Oliv, den der Owner als „leerer Platzhalter-Kreis, der nichts anzeigt"
+  // gemeldet hat. Ist keine echte Warnung da, steht neben dem Punkt jetzt nichts (auch die
+  // breitere Titel-Platzreservierung `eintrag-hat-achtung` entfaellt dann → Titelzeile hat mehr
+  // Platz). Der gefuellte Farbpunkt bleibt bei jedem Status stehen (Farbe traegt weiter, Regel 3).
+  const AUFMERKSAM = new Set(["befund"]);
   const istAufmerksam = AUFMERKSAM.has(statusCode);
   el.classList.toggle("eintrag-hat-achtung", istAufmerksam);
   const statusHtml = S.driveScanLaeuft.has(k.id)
