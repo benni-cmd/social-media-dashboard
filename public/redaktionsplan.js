@@ -10,7 +10,7 @@ import {
   zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
-import { melde, setStand } from "./store.js";
+import { melde, setStand, stellschraube, setzeWorkflow, zeichne } from "./store.js";
 import { escape, knopf, sanduhr } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
@@ -178,9 +178,108 @@ function baueInhalt(plan, koerper) {
   kalenderRendere = baueKalender(koerper);
 }
 
+// ── Deadlines (v66) ─────────────────────────────────────────────────────────
+//
+// Upload ist die Basis (oben); jede Zeile darunter traegt die Zahl der Tage bis zur NACHFOLGENDEN
+// (spaeteren) Deadline. Die Werte liegen als Params am Workflow „rueckwaertsplan" und speisen ueber
+// store.setDeadlineKette() den Rueckwaertsplan und das Dreh-Fenster. Rot/Gelb-Grenzen bleiben fest.
+function baueDeadlines(koerper, nachSpeichern) {
+  sektionKopf("Deadlines", koerper, "0 0 8px");
+
+  const hinweis = document.createElement("p");
+  hinweis.className = "feld-hinweis";
+  hinweis.style.marginBottom = "10px";
+  hinweis.textContent =
+    "Der Upload-Termin ist die Basis. Jede Zeile darunter: wie viele Tage davor liegt der Schritt — " +
+    "die Zahl ist der Abstand bis zur nachfolgenden Deadline. Wirkt auf neu gesetzte Upload-Termine " +
+    "und sofort auf das Dreh-Fenster.";
+  koerper.appendChild(hinweis);
+
+  const kette = document.createElement("div");
+  kette.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:10px";
+
+  // Basis-Zeile: Upload (kein Feld) — ganz oben.
+  const basis = document.createElement("div");
+  basis.style.cssText =
+    "display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--border);" +
+    "border-radius:6px;background:var(--bg1);font-size:13px;font-weight:600";
+  basis.innerHTML =
+    `<span style="flex:1">Upload · Veroeffentlichung</span>` +
+    `<span style="color:var(--fg2);font-weight:400;font-size:12px">Basis</span>`;
+  kette.appendChild(basis);
+
+  const felder = {};
+  const zeilen = [
+    { key: "gapFreigabe", name: "Caption-Freigabe", nach: "Upload" },
+    { key: "gapSchnitt",  name: "Schnitt fertig",   nach: "Freigabe" },
+    { key: "gapDreh",     name: "Drehtag",          nach: "Schnitt" },
+  ];
+  for (const z of zeilen) {
+    const zeile = document.createElement("div");
+    zeile.style.cssText =
+      "display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--border);" +
+      "border-radius:6px;background:var(--bg0)";
+
+    const name = document.createElement("span");
+    name.style.cssText = "flex:1;font-size:13px";
+    name.textContent = z.name;
+
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.max = "60";
+    inp.value = stellschraube("rueckwaertsplan", z.key);
+    inp.style.cssText =
+      "width:58px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;" +
+      "background:var(--bg1);color:var(--fg1);font-size:13px;text-align:right";
+
+    const label = document.createElement("span");
+    label.style.cssText = "font-size:12px;color:var(--fg2);white-space:nowrap";
+    label.textContent = `Tage bis ${z.nach}`;
+
+    zeile.appendChild(name);
+    zeile.appendChild(inp);
+    zeile.appendChild(label);
+    kette.appendChild(zeile);
+    felder[z.key] = inp;
+  }
+  koerper.appendChild(kette);
+
+  const speichern = knopf("Deadlines speichern", { art: "haupt" });
+  speichern.style.cssText += ";width:100%";
+  speichern.addEventListener("click", async () => {
+    const params = {};
+    for (const key of Object.keys(felder)) {
+      const n = Number(felder[key].value);
+      if (Number.isFinite(n)) params[key] = Math.min(60, Math.max(0, n));
+    }
+    speichern.disabled = true;
+    try {
+      await setzeWorkflow("rueckwaertsplan", { params }); // persistiert + syncDeadlineKette()
+      zeichne();                 // Board neu — Ampel/Dreh-Fenster folgen sofort
+      if (nachSpeichern) nachSpeichern(); // Kalender-Vorschau aktualisieren
+      // Felder auf die geclampten Werte zuruecksetzen (Server ist die Wahrheit).
+      for (const key of Object.keys(felder)) felder[key].value = stellschraube("rueckwaertsplan", key);
+      setStand("Deadlines gespeichert.");
+    } catch (e) {
+      await melde("befund", e.message);
+    } finally {
+      speichern.disabled = false;
+    }
+  });
+  koerper.appendChild(speichern);
+
+  const hr = document.createElement("hr");
+  hr.style.cssText = "margin:16px 0;border:none;border-top:1px solid var(--border)";
+  koerper.appendChild(hr);
+}
+
 // ── Einstellungen ─────────────────────────────────────────────────────────
 
 function baueEinstellungen(plan, koerper, nachSpeichern) {
+
+  // ── Deadlines (v66) ────────────────────────────────────────────────────
+  baueDeadlines(koerper, nachSpeichern);
 
   // ── Aktive Plattformen ─────────────────────────────────────────────────
   sektionKopf("Aktive Plattformen", koerper);

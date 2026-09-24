@@ -2,7 +2,7 @@
 
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
-  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload,
+  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload, setDeadlineKette,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -42,6 +42,18 @@ function uebernimm(d) {
       params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
     };
   }
+  syncDeadlineKette();
+}
+
+// Schiebt die konfigurierte Deadline-Kette (v66) aus den rueckwaertsplan-Params in pipeline.js,
+// damit rueckwaertsplan()/drehFenster() ueberall mit den eingestellten Abstaenden rechnen. Greift
+// bei jedem Laden (ladeWorkflows) UND nach jedem Speichern (setzeWorkflow).
+function syncDeadlineKette() {
+  setDeadlineKette({
+    freigabe: wfParam(S.workflows, "rueckwaertsplan", "gapFreigabe"),
+    schnitt: wfParam(S.workflows, "rueckwaertsplan", "gapSchnitt"),
+    dreh: wfParam(S.workflows, "rueckwaertsplan", "gapDreh"),
+  });
 }
 
 export async function ladeWorkflows() {
