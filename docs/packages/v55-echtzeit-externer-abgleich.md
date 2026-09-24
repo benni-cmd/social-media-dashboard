@@ -213,5 +213,12 @@ mit Fortschritt (`fortschritt()`). `node --check` store/board/detail/nachschub/k
 
 - **Uploads (A5)** bleiben bewusst „mit Fortschritt", nicht optimistisch — kein Handlungsbedarf,
   nur bestaetigt.
-- **Stats (C3)** koennten IG+LI parallel statt sequenziell holen (auswertung.js:69/78) — kleiner
-  Tempo-Feinschliff, kein Freeze; kein eigenes Paket noetig.
+- **Stats (C3) — ERLEDIGT 24.09.2026:** IG- und LI-Zahlen werden in `auswertung.js` jetzt
+  PARALLEL geholt statt nacheinander (`instagramZahlen`/`linkedinZahlen` als zwei sofort
+  gestartete Promises, `await Promise.all`). Beide Sanduhren (`ladeMarke`) erscheinen
+  gleichzeitig; die Fehlersichtbarkeit bleibt je Plattform getrennt (jeder Abruf faengt
+  seinen Fehler in sein eigenes `S.zahlen`/`S.zahlenLi` und entfernt seine eigene Marke via
+  `.finally`), ein IG-Fehler kann den LI-Abruf nicht mehr verschlucken. Reines Zeitverhalten,
+  keine Funktionsaenderung. Verify: `node --check public/auswertung.js` OK. Live-Screenshot
+  bewusst ausgelassen — eine Parallel-Session hielt den einzigen festen Port (4321) belegt;
+  Beleg daher statisch + Logik (DOM-Beleg-Regel).

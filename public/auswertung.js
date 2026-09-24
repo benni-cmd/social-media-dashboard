@@ -63,24 +63,30 @@ export async function zeichneAuswertung(el) {
     el.appendChild(w);
     return () => w.remove();
   };
+  // v55 C3: IG- und LI-Zahlen PARALLEL holen statt nacheinander — beide Sanduhren
+  // erscheinen gleichzeitig, beide Abrufe starten zusammen. Fehler bleiben je Plattform
+  // einzeln sichtbar: jeder Abruf faengt seinen eigenen Fehler in sein eigenes S-Feld,
+  // deshalb kann ein IG-Fehler den LI-Abruf nicht verschlucken. Reines Zeitverhalten.
+  const holen = [];
   if (S.zahlen === null) {
     const weg = ladeMarke("Hole die Zahlen von Instagram …");
-    try {
-      S.zahlen = await instagramZahlen();
-    } catch (e) {
-      S.zahlen = { verbunden: false, fehler: e.message };
-    }
-    weg();
+    holen.push(
+      instagramZahlen()
+        .then((z) => { S.zahlen = z; })
+        .catch((e) => { S.zahlen = { verbunden: false, fehler: e.message }; })
+        .finally(weg)
+    );
   }
   if (S.zahlenLi === null) {
     const weg = ladeMarke("Hole die Zahlen von LinkedIn …");
-    try {
-      S.zahlenLi = await linkedinZahlen();
-    } catch (e) {
-      S.zahlenLi = { verbunden: false, fehler: e.message };
-    }
-    weg();
+    holen.push(
+      linkedinZahlen()
+        .then((z) => { S.zahlenLi = z; })
+        .catch((e) => { S.zahlenLi = { verbunden: false, fehler: e.message }; })
+        .finally(weg)
+    );
   }
+  if (holen.length) await Promise.all(holen);
 
   const ig = S.zahlen || {};
   const li = S.zahlenLi || {};
