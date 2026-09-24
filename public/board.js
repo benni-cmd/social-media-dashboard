@@ -7,7 +7,8 @@ import {
   PHASEN,
   phase,
   phaseIndex,
-  faelligkeit,
+  ampel,
+  drehImFenster,
   tore,
   sperren,
   contenttypFormat,
@@ -15,7 +16,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an } from "./store.js";
+import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS } from "./ui.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -61,55 +62,48 @@ export function kachel(k) {
   const formatName = contenttypFormat(k.contenttyp);
   const formatSymbol = FORMAT_SYMBOL[formatName] || "video";
 
-  const f = faelligkeit(k);
-  const offen = offenePunkte(k);
+  // v65 (Owner 24.09.2026): Der Punkt ist eine REINE Zeit-Ampel — er faerbt sich nach der
+  // DRINGLICHSTEN relevanten Frist (aktuelle + noch kommende Phasen-Termine plus den zugewiesenen
+  // Drehtermin) und mischt sich NICHT mehr mit Sperr-Punkten (das war v64). Offene Blocker und
+  // Detail-Warnungen erscheinen jetzt getrennt als gelbes „!" daneben; der Punkt behaelt seine
+  // Zeit-Farbe unabhaengig davon. Der zugewiesene Drehtermin zaehlt AUCH bei leerem card.dates.dreh
+  // (aus S.drehtermine ueber card.drehterminId aufgeloest) und nur, solange die Karte hoechstens in
+  // „videodreh" steht (danach ist der Dreh vorbei). Die Aufloesung passiert hier, weil pipeline.js
+  // kein S kennt; die Ampel-Logik selbst liegt in pipeline.js (ampel()).
+  const drehZugewiesen = k.drehterminId ? drehtermin(k.drehterminId) : null;
+  const drehRelevant = phaseIndex(k.column) <= phaseIndex("videodreh");
+  const drehDatum = drehRelevant && drehZugewiesen ? drehZugewiesen.datum : null;
 
-  // Was aufhaelt, hat Vorrang vor dem Termin — sonst sieht die Karte gruen aus, obwohl sie
-  // nicht weiterkann. ABER (v64, Owner 24.09.2026): nur, solange der Termin nicht DRINGLICHER ist
-  // als der Sperr-Punkt. Vorher gewann der erste offene Sperr-Punkt IMMER (`offen[0].status`) —
-  // dadurch verdeckte ein blasses „fehlt" (z. B. fehlendes Rohmaterial, `--fehlt` blasses Oliv)
-  // einen ueberfaelligen Drehtermin (`befund`/rot), obwohl die Zeit-Ueberfaelligkeit die
-  // eigentliche Warnung war (Owner: „der Punkt ist einfach grau und zeigt gar nichts an").
-  // Jetzt faerbt der DRINGLICHERE der beiden Signale die Kachel; bei gleichem Rang behaelt der
-  // Sperr-Punkt Vorrang (die Karte kann nicht weiter). Keine neuen Status-Woerter, keine
-  // geaenderten Schwellen — nur die Vorrang-Frage zwischen zwei bestehenden Zustaenden.
-  // Die Kachel zeigt nur den Punkt; Wort und Satz stehen in der Detailspalte, damit die
-  // Uebersicht knapp bleibt und trotzdem nichts verschwindet.
-  const DRINGLICHKEIT = { befund: 5, fehlt: 4, hinweis: 3, unlesbar: 2, entfaellt: 1, ok: 0 };
-  const sperr = offen.length ? offen[0] : null;
-  const zeigeTermin = !sperr || (DRINGLICHKEIT[f.status] || 0) > (DRINGLICHKEIT[sperr.status] || 0);
-  const statusCode = zeigeTermin ? f.status : sperr.status;
-  const statusSatz = zeigeTermin
-    ? f.satz
-    : offen.length === 1
-      ? sperr.satz
-      : `${sperr.satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`;
+  const a = ampel(k, drehDatum); // { status, frist, satz } — reine Zeit
+  const statusCode = a.status;
+
+  // „!" = Warnung, getrennt vom Punkt und immer im Hinweis-Ton: offene Blocker (offenePunkte) ODER
+  // ein Drehtermin ausserhalb des empfohlenen Fensters (drehImFenster, sonst nur im Detail sichtbar).
+  const offen = offenePunkte(k);
+  const drehAusserhalb = !!drehDatum && !drehImFenster(drehDatum, (k.dates || {}).upload);
+  const warnTeile = [];
+  if (drehAusserhalb) warnTeile.push("Drehtermin liegt ausserhalb des empfohlenen Fensters.");
+  if (offen.length === 1) warnTeile.push(offen[0].satz);
+  else if (offen.length > 1)
+    warnTeile.push(`${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`);
+  const hatWarnung = warnTeile.length > 0;
+  const warnSatz = warnTeile.join(" ");
 
   const formatText = contenttypName(k.contenttyp || "reel");
 
-  // v32 E2: Laeuft gerade der Drive-Scan dieser Karte, traegt die Kachel die drehende Sanduhr
-  // statt des Status-Punkts — „die Drive-Daten sind noch nicht da, gleich aktualisiert sich das".
-  // Sobald der Scan landet (store.driveScan zeichnet neu), erscheint der echte Status-Punkt.
-  // v56 (v50 V2): Aufmerksamkeits-Zustaende bekamen zusaetzlich eine Glyphe (Form, nicht nur
-  // Farbe, Regel 3). v59 Nachlese (Owner 23.09.2026): die Glyphe hatte dabei den FARBIGEN Punkt
-  // ERSETZT — bei "fehlt" (blasses Oliv/Tan) gegen den aehnlich hellen Karten-Hintergrund praktisch
-  // unsichtbar ("transparent"). Jetzt bleibt der gefuellte Punkt IMMER stehen (Farbe bleibt
-  // erkennbar), das Ausrufezeichen kommt bei Aufmerksamkeits-Zustaenden ZUSAETZLICH links davon.
-  // v64 (Owner 24.09.2026): die Glyphe erscheint NUR bei einer echten Warnung (`befund`, rotes
-  // Achtung-Icon). Vorher trug auch `fehlt` eine Glyphe — und `fehlt`s Icon ist „kreis", also ein
-  // LEERER Kreis in blassem Oliv, den der Owner als „leerer Platzhalter-Kreis, der nichts anzeigt"
-  // gemeldet hat. Ist keine echte Warnung da, steht neben dem Punkt jetzt nichts (auch die
-  // breitere Titel-Platzreservierung `eintrag-hat-achtung` entfaellt dann → Titelzeile hat mehr
-  // Platz). Der gefuellte Farbpunkt bleibt bei jedem Status stehen (Farbe traegt weiter, Regel 3).
-  const AUFMERKSAM = new Set(["befund"]);
-  const istAufmerksam = AUFMERKSAM.has(statusCode);
-  el.classList.toggle("eintrag-hat-achtung", istAufmerksam);
+  // Laeuft gerade der Drive-Scan dieser Karte, traegt die Kachel die drehende Sanduhr statt des
+  // Punkts. Sonst steht immer der gefuellte Zeit-Punkt (Farbe traegt nie allein — title/aria-label
+  // geben den Satz), und links davon bei Bedarf das gelbe Ausrufezeichen (Icon „warnung", Hinweis-
+  // Farbe inline aus var(--hinweis) — style.css ist der Parallel-Session vorbehalten und hat keine
+  // .eintrag-achtung-hinweis-Regel). Regel 3: Form UND Farbe, plus Wort im Tooltip. Ohne Warnung
+  // entfaellt die Glyphe und die breitere Titel-Reservierung (eintrag-hat-achtung).
+  el.classList.toggle("eintrag-hat-achtung", hatWarnung);
   const statusHtml = S.driveScanLaeuft.has(k.id)
     ? `<span class="eintrag-punkt-lade" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
-    : (istAufmerksam
-        ? `<span class="eintrag-achtung eintrag-achtung-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}">${icon((STATUS[statusCode] || {}).icon || "achtung")}</span>`
+    : (hatWarnung
+        ? `<span class="eintrag-achtung" style="color:var(--hinweis)" title="${escape(warnSatz)}" aria-label="${escape(warnSatz)}">${icon((STATUS.hinweis || {}).icon || "warnung")}</span>`
         : "") +
-      `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(statusSatz)}" aria-label="${escape(statusSatz)}"></span>`;
+      `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(a.satz)}" aria-label="${escape(a.satz)}"></span>`;
 
   el.innerHTML =
     `<div class="eintrag-titel">${escape(k.title || "(ohne Titel)")}</div>` +
