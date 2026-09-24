@@ -1,4 +1,6 @@
-# v68 — Deferred-Reste: Sanduhr-Dauerdreher + Karten-Titelzeile
+# v69 — Deferred-Reste: Sanduhr-Dauerdreher + Karten-Titelzeile
+
+> Umbenannt v68→v69 (24.09.2026): „v68" war parallel von der Ampel-Schwellen-Arbeit belegt.
 
 > Zwei zurueckgestellte Kleinigkeiten aus dem Ampel-/Layout-Umbau, jetzt nachgezogen (Owner-Freigabe 24.09.2026).
 
