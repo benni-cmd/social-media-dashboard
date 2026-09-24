@@ -6,7 +6,7 @@ import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, einstellungenModal, meldung, sanduhr } from "./ui.js";
+import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, gecachterCursorModus, ladeCursorModusVomServer } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
@@ -21,6 +21,13 @@ function setzeTheme(name) {
 const gespeichertesTheme = (() => { try { return localStorage.getItem("cm-theme"); } catch { return null; } })();
 if (gespeichertesTheme) setzeTheme(gespeichertesTheme);
 // Kein gespeichertes Theme = Light (Default, steht in CSS).
+
+// --- Cursor-Modus (v67) ---
+// Sofort aus dem lokalen Cache anwenden, damit der eigene Cursor nicht kurz aufblitzt, bevor
+// /api/defaults geantwortet hat — Wahrheit bleibt der Drive-gestuetzte Defaults-Store, siehe
+// unten nach ladeDefaults().
+const gecachterCursor = gecachterCursorModus();
+if (gecachterCursor != null) wendeCursorModusAn(gecachterCursor);
 
 const el = (id) => document.getElementById(id);
 
@@ -367,7 +374,7 @@ try {
     // Der Workflow-Stand muss VOR dem Board stehen: das Laden setzt ggf. selbst einen
     // Drehtermin, und dieser Griff ist einer der abschaltbaren Workflows (v26).
     await ladeWorkflows();
-    await Promise.all([ladeBoard(), ladeDefaults()]);
+    await Promise.all([ladeBoard(), ladeDefaults(), ladeCursorModusVomServer()]);
     setStand(`${S.cards.length} Karten geladen.`);
   } catch (e) {
     await melde("befund", `Das Board liess sich nicht laden: ${e.message}`);

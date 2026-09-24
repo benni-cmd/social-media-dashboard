@@ -114,8 +114,12 @@
 - [x] Feasibility-Check Konto-Anzeige (claude auth status, rclone-Befehle getestet)
 - [x] Umsetzung Teil 1: Server-Konto-Felder, Tab-Umbenennung KI-Rollen, Rollen-Kacheln, Verbindungs-Zeile fuer Externe Dienste + Social Media Kanaele
 - [x] Verify Teil 1 (Browser: Externe Dienste, Social Media Kanaele, KI-Rollen)
-- [ ] Umsetzung Teil 2: Unternehmenskontext + System Prompts (falten, angleichen) — OFFEN
-- [ ] Commit + Push Teil 2
+- [x] Umsetzung Teil 2: Unternehmenskontext + System Prompts (falten, angleichen) — erledigt
+      24.09.2026 im Zuge von v67 (`docs/packages/v67-ansicht-tab-cursor-toggle.md`): Projekte
+      falten sich jetzt wie eine Verbindungs-Zeile (Kopf immer sichtbar, Bearbeiten klappt auf);
+      System Prompts falteten die Knopf-Bloecke bereits seit v41 (`aufgabeBlock()` ohne
+      `open = true`) — hier nur die Optik an `.verb-zeile` angeglichen (Rundung/Flaeche/Fuellung).
+- [x] Commit + Push Teil 2 — im selben Commit wie v67
 
 ## DoD
 

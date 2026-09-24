@@ -58,6 +58,16 @@
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   color-scheme: light;
+
+  /* Haus-Cursor als Variablen (v67, Einstellungen > Ansicht > "Eigener Cursor"). Jede
+     cursor:-Regel im Haus-Stil zeigt hierher statt den Wert selbst zu tragen — die
+     html.system-cursor-Regel weiter unten muss dann nur DIESE drei Variablen umbiegen, nicht
+     jede einzelne Stelle (v57: 1 Pfeil-Cursor + 1 Resize-Cursor + 28 Hand-Cursor-Stellen). Die
+     zweiten Werte je Zeile sind die echten System-Cursor-Fallbacks, dieselben, die vorher schon
+     hinter dem Komma standen. */
+  --cursor-pfeil: url("cursor-pfeil.svg") 5 4, auto;
+  --cursor-hand: url("cursor-hand.svg") 11 3, pointer;
+  --cursor-resize: url("cursor-resize.svg") 16 10, ew-resize;
 }
 
 [data-theme="dark"] {
@@ -112,7 +122,18 @@
    ist; jedes Element mit einem eigenen cursor (Knoepfe: pointer, .detail-griff: Resize-Pfeil)
    ueberschreibt das lokal wie gewohnt — nur der Ruhezustand wechselt von System- auf Haus-Pfeil. */
 html {
-  cursor: url("cursor-pfeil.svg") 5 4, auto;
+  cursor: var(--cursor-pfeil);
+}
+
+/* Custom-Cursor-Toggle (v67, Einstellungen > Ansicht, Standard AN). Ausgeschaltet: die drei
+   Haus-Cursor-Variablen biegen auf ihre reinen System-Fallbacks um — jede Stelle im Haus, die
+   `cursor: var(--cursor-*)` traegt, zeigt dann automatisch wieder den System-Cursor, ohne dass
+   irgendeine der einzelnen Regeln angefasst werden muss. Andere, bewusst ANDERE Cursor-Zustaende
+   (grab/grabbing/progress/help/default) sind schon System-Cursor und bleiben unberuehrt. */
+html.system-cursor {
+  --cursor-pfeil: auto;
+  --cursor-hand: pointer;
+  --cursor-resize: ew-resize;
 }
 
 body {
@@ -420,7 +441,7 @@ body {
   font-size: 13px;
   padding: 5px 11px;
   border-radius: 5px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .ansicht-knopf:hover {
   color: var(--text);
@@ -468,7 +489,7 @@ body {
   color: var(--text);
   padding: 8px 10px;
   border-radius: 6px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .kopf-menu-item .icon {
   width: 15px;
@@ -500,7 +521,7 @@ body {
   font-size: 13px;
   padding: 6px 12px;
   border-radius: var(--rund-klein);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   border: 1px solid var(--linie-hell);
   background: var(--flaeche-hoch);
   color: var(--text);
@@ -676,7 +697,7 @@ body {
   background: var(--flaeche);
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   text-align: left;
   white-space: nowrap;
 }
@@ -733,7 +754,7 @@ body {
   padding: 6px 10px;
   font-size: 13px;
   color: var(--text);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .dreh-kartentitel:hover {
   border-color: var(--akzent);
@@ -764,7 +785,7 @@ body {
 .dreh-chip-x {
   border: 0;
   background: none;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   font-size: 15px;
   line-height: 1;
   color: var(--text-leise);
@@ -904,7 +925,7 @@ body {
   border: 2px solid var(--linie);
   border-radius: var(--rund-klein);
   padding: 10px 12px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   overflow: hidden;
   transition: border-color 0.12s, transform 0.08s;
   box-shadow: var(--schatten);
@@ -1192,7 +1213,7 @@ body {
   border-radius: 4px;
   background: var(--flaeche-hoch);
   border-left: 2px solid var(--saeule-ohne);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1223,7 +1244,7 @@ body {
 .detail-griff {
   flex: 0 0 6px;
   position: relative;
-  cursor: url("cursor-resize.svg") 16 10, ew-resize;
+  cursor: var(--cursor-resize);
   background: var(--linie);
   opacity: 0.35;
   transition: opacity 0.12s;
@@ -1278,7 +1299,7 @@ body {
   background: none;
   border: 0;
   color: var(--text-leise);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   padding: 3px;
   display: flex;
   border-radius: 5px;
@@ -1383,7 +1404,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 9px 11px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   list-style: none;
   user-select: none;
 }
@@ -1460,7 +1481,7 @@ body {
   border: 1px solid var(--linie);
   background: var(--flaeche-tief);
   color: var(--text-leise);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .schalter input {
   display: none;
@@ -1484,7 +1505,7 @@ body {
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
   background: var(--flaeche-tief);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1780,7 +1801,7 @@ body {
   box-shadow: var(--schatten);
 }
 .letzte-zeile.klickbar {
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   transition: border-color 0.12s, background 0.12s;
 }
 .letzte-zeile.klickbar:hover {
@@ -2154,7 +2175,7 @@ body {
   border-radius: 6px;
   background: var(--flaeche-tief);
   color: var(--text-still);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .mini-nav:hover {
   border-color: var(--akzent);
@@ -2346,7 +2367,7 @@ body {
   font: inherit;
   font-size: 10.5px;
   color: var(--text-still);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .denk-mehr:hover {
   background: var(--flaeche-hoch);
@@ -2506,7 +2527,7 @@ body {
   color: #fff;
   font-size: 20px;
   line-height: 1;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   z-index: 1;
 }
 .plan-schliessen:hover { background: rgba(255, 255, 255, 0.25); }
@@ -2528,7 +2549,7 @@ body {
   background: none;
   border: 1px solid var(--linie-hell);
   border-radius: 5px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   padding: 3px 6px;
   color: var(--text-still);
   display: flex;
@@ -2557,7 +2578,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-still);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2671,7 +2692,7 @@ body {
   font-size: 13px;
   padding: 8px 16px;
   text-align: left;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .einst-nav-item:hover {
   background: var(--flaeche-tief);
@@ -2708,7 +2729,7 @@ body {
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
   background: var(--flaeche-tief);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   font-size: 13px;
   color: var(--text-still);
 }
@@ -2762,7 +2783,7 @@ body {
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
   background: var(--flaeche-tief);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   font-size: 13px;
   color: var(--text-still);
 }
@@ -2847,7 +2868,7 @@ body {
   color: var(--text);
   font: inherit;
   font-size: 13px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 
 /* Hilfe, wenn Ollama nicht laeuft oder kein Modell da ist (v26). */
@@ -2885,17 +2906,19 @@ body {
   gap: 10px;
 }
 .einst-prompt {
+  /* v67: an die Verbindungs-Zeile (.verb-zeile) angeglichene Geometrie — dieselbe Rundung/
+     Flaeche/Fuellung, damit gefaltete Abschnitte im ganzen Einstellungsfenster gleich aussehen. */
   border: 1px solid var(--linie);
-  border-radius: var(--rund-klein);
-  background: var(--flaeche-tief);
-  padding: 10px 12px;
+  border-radius: var(--rund);
+  background: var(--flaeche);
+  padding: 12px 14px;
 }
 .einst-prompt[open] { border-color: var(--akzent); }
 .einst-prompt-kopf {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   list-style: none;
 }
 .einst-prompt-kopf::-webkit-details-marker { display: none; }
@@ -3002,7 +3025,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
 }
 .einst-wf-kopf .einst-label { margin-bottom: 0; text-transform: none; font-size: 13px; color: var(--text); }
 .einst-wf-warnung {
@@ -3054,7 +3077,7 @@ body {
   padding: 10px 12px;
   border: 1px solid var(--rand);
   border-radius: var(--rund-klein);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   transition: border-color 0.15s, background 0.15s;
 }
 .termin-kachel:hover:not(.termin-kachel-leer) {
@@ -3160,7 +3183,7 @@ body {
   background: none;
   border: 0;
   color: var(--text-leise);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   padding: 0;
   display: flex;
   align-items: center;
@@ -3204,7 +3227,7 @@ body {
   border-radius: var(--rund);
   padding: 20px 16px;
   text-align: center;
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   color: var(--text-leise);
   background: var(--flaeche-hoch);
   transition: border-color 0.15s, background 0.15s, color 0.15s;
@@ -3270,7 +3293,7 @@ body {
   background: none;
   border: 0;
   color: var(--text-leise);
-  cursor: url("cursor-hand.svg") 11 3, pointer;
+  cursor: var(--cursor-hand);
   padding: 3px;
   display: flex;
   border-radius: 5px;

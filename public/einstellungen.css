@@ -119,12 +119,34 @@
   gap: 14px;
 }
 .kontext-block {
+  /* v67: an die Verbindungs-Zeile (.verb-zeile) angeglichene Geometrie — dieselbe Rundung und
+     Flaeche wie die anderen gefalteten Abschnitte im Einstellungsfenster. */
   border: 1px solid var(--linie);
-  border-radius: var(--rund-klein);
-  background: var(--flaeche-tief);
+  border-radius: var(--rund);
+  background: var(--flaeche);
   padding: 12px 14px;
   margin-bottom: 0;
 }
+
+/* Projekt-Zeile, gefaltet (v67): Kopf immer sichtbar (Titel/Kurzinfo/Aktiv-Haken), das
+   Bearbeiten-Formular klappt sich per Knopf auf — selbes Muster wie .verb-zeile/.verb-detail. */
+.kontext-projekt-zeile { margin-bottom: 10px; }
+.kontext-projekt-zeile:last-child { margin-bottom: 0; }
+.kontext-projekt-kurz {
+  font-size: 12px;
+  color: var(--text-still);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kontext-projekt-detail {
+  border-top: 1px solid var(--linie);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.kontext-projekt-detail[hidden] { display: none; }
 .kontext-feld {
   width: 100%;
   box-sizing: border-box;
@@ -148,11 +170,6 @@
 .kontext-projekte-kopf .einst-label {
   margin-bottom: 0;
   flex: 1 1 auto;
-}
-.kontext-projekt-kopf {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 .kontext-projektname {
   flex: 1 1 auto;

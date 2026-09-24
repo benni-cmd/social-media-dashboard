@@ -274,12 +274,17 @@ export async function zeichneKontext(ziel) {
       wurzel.appendChild(leer);
     }
 
+    // v67: jedes Projekt eine gefaltete Zeile (Kopf immer sichtbar: Aktiv-Haken, Name,
+    // Kurzinfo), das Bearbeiten-Formular klappt per Knopf auf — dasselbe Zeilen-/Detail-Muster
+    // wie die Verbindungs-Zeilen (baueVerbindungsZeile in ui.js), statt alles auf einmal zu zeigen.
     for (const p of stand.projekte) {
       const box = document.createElement("div");
-      box.className = "einst-abschnitt kontext-block";
+      box.className = "verb-zeile kontext-projekt-zeile";
+
+      let detail; // Vorwaertsdeklaration: der Bearbeiten-Knopf im Kopf klappt sie erst spaeter auf.
 
       const kopf = document.createElement("div");
-      kopf.className = "kontext-projekt-kopf";
+      kopf.className = "verb-kopf";
 
       const schalter = document.createElement("input");
       schalter.type = "checkbox";
@@ -292,16 +297,54 @@ export async function zeichneKontext(ziel) {
           schalter.checked = !schalter.checked;
         }
       });
+      kopf.appendChild(schalter);
 
-      const name = document.createElement("input");
-      name.type = "text";
-      name.className = "kontext-projektname";
-      name.value = p.name;
-      name.addEventListener("blur", async () => {
-        if (name.value.trim() && name.value !== p.name) {
-          try { neu(await aendere({ was: "projekt-aendern", id: p.id, name: name.value })); } catch {}
+      const name = document.createElement("span");
+      name.className = "verb-name";
+      name.textContent = p.name || "Unbenanntes Projekt";
+      kopf.appendChild(name);
+
+      const kurz = document.createElement("span");
+      kurz.className = "kontext-projekt-kurz";
+      const vorschauText = (p.text || "").trim();
+      const quellenSatz = `${p.quellen.length} Quelle${p.quellen.length === 1 ? "" : "n"}`;
+      kurz.textContent = vorschauText ? `${quellenSatz} · ${vorschauText}` : `${quellenSatz} · noch kein Text hinterlegt`;
+      kopf.appendChild(kurz);
+
+      const knoepfe = document.createElement("div");
+      knoepfe.className = "verb-knoepfe";
+      const bearbeiten = document.createElement("button");
+      bearbeiten.className = "chip";
+      bearbeiten.textContent = "Bearbeiten";
+      bearbeiten.addEventListener("click", () => { detail.hidden = !detail.hidden; });
+      knoepfe.appendChild(bearbeiten);
+      kopf.appendChild(knoepfe);
+
+      box.appendChild(kopf);
+
+      detail = document.createElement("div");
+      detail.className = "verb-detail kontext-projekt-detail";
+      detail.hidden = true;
+
+      const nameFeld = document.createElement("input");
+      nameFeld.type = "text";
+      nameFeld.className = "kontext-projektname";
+      nameFeld.value = p.name;
+      nameFeld.addEventListener("blur", async () => {
+        if (nameFeld.value.trim() && nameFeld.value !== p.name) {
+          try { neu(await aendere({ was: "projekt-aendern", id: p.id, name: nameFeld.value })); } catch {}
         }
       });
+      detail.appendChild(nameFeld);
+
+      const feld = textfeld(
+        p.text,
+        "Worum es in diesem Projekt geht, was hier anders ist als sonst …",
+        (text) => aendere({ was: "projekt-aendern", id: p.id, text })
+      );
+      detail.appendChild(feld.feld);
+      detail.appendChild(feld.status);
+      detail.appendChild(quellenBlock(p.id, p.quellen, neu));
 
       const weg = document.createElement("button");
       weg.className = "chip";
@@ -310,20 +353,9 @@ export async function zeichneKontext(ziel) {
         weg.disabled = true;
         try { neu(await aendere({ was: "projekt-loeschen", id: p.id })); } catch { weg.disabled = false; }
       });
+      detail.appendChild(weg);
 
-      kopf.appendChild(schalter);
-      kopf.appendChild(name);
-      kopf.appendChild(weg);
-      box.appendChild(kopf);
-
-      const feld = textfeld(
-        p.text,
-        "Worum es in diesem Projekt geht, was hier anders ist als sonst …",
-        (text) => aendere({ was: "projekt-aendern", id: p.id, text })
-      );
-      box.appendChild(feld.feld);
-      box.appendChild(feld.status);
-      box.appendChild(quellenBlock(p.id, p.quellen, neu));
+      box.appendChild(detail);
       wurzel.appendChild(box);
     }
 

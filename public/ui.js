@@ -601,6 +601,59 @@ export function feldMitInfo(label, el, tipp = "") {
   return wrap;
 }
 
+// --- Cursor-Modus (v67, Tab "Ansicht") -------------------------------------
+//
+// Standard: eigener Haus-Cursor ueberall (v57). Ausgeschaltet: System-Cursor ueberall — eine
+// Klasse auf <html> hebt die eigenen cursor:-Regeln auf (siehe style.css, --cursor-*-Variablen).
+// Wahrheit ist der Drive-gestuetzte Defaults-Store (v60, /api/defaults); der lokale Cache ist
+// nur ein Vorschuss, damit der eigene Cursor beim Start nicht kurz aufblitzt, bevor der Server
+// geantwortet hat (selbes Muster wie das Theme in app.js). Bewusst EIGENE fetch-Aufrufe statt
+// store.js/S.defaults zu erweitern: store.js ist waehrend dieses Auftrags Baustelle einer
+// parallelen Sitzung (Kollisionsvermeidung, siehe docs/packages/v67-…md).
+const CURSOR_CACHE_KEY = "cm-system-cursor";
+
+export function wendeCursorModusAn(systemCursor) {
+  document.documentElement.classList.toggle("system-cursor", !!systemCursor);
+  try { localStorage.setItem(CURSOR_CACHE_KEY, systemCursor ? "1" : "0"); } catch {}
+}
+
+export function gecachterCursorModus() {
+  try {
+    const v = localStorage.getItem(CURSOR_CACHE_KEY);
+    return v == null ? null : v === "1";
+  } catch {
+    return null;
+  }
+}
+
+// Direkter, eigener Zugriff auf den generischen Defaults-Store (lib/defaultsstore.js via
+// server.js /api/defaults, feldweise verschmolzen — verlangt kein Schema, kein Eingriff dort).
+async function holeCursorDefault() {
+  const res = await fetch("/api/defaults");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  return !!d.systemCursor;
+}
+async function schreibeCursorDefault(systemCursor) {
+  const res = await fetch("/api/defaults", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ systemCursor }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// App-Start (v67): den wahren Stand vom Server holen und anwenden — der Cache (oben) hat bis
+// dahin schon den letzten bekannten Stand gezeigt, damit nichts aufblitzt.
+export async function ladeCursorModusVomServer() {
+  try {
+    wendeCursorModusAn(await holeCursorDefault());
+  } catch {
+    /* Defaults sind Beiwerk — der Cache-Stand (falls vorhanden) bleibt einfach aktiv. */
+  }
+}
+
 // Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
 export function einstellungenModal(onThemeChange) {
   const overlay = document.createElement("div");
@@ -612,7 +665,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
+  for (const name of ["Darstellung", "Ansicht", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -658,6 +711,76 @@ export function einstellungenModal(onThemeChange) {
     themeReihe.appendChild(label);
   }
   seite1.appendChild(themeReihe);
+
+  // Seite Ansicht (v67, Owner-Auftrag 24.09.2026): Cursor-Stil + Ampel-Regeln erklaeren — rein
+  // Vorlieben/Erklaerung, keine Verbindung, kein OAuth.
+  const seiteAnsicht = document.createElement("div");
+  seiteAnsicht.className = "einst-seite";
+  const titelAnsicht = document.createElement("div");
+  titelAnsicht.className = "einst-titel";
+  titelAnsicht.textContent = "Ansicht";
+  seiteAnsicht.appendChild(titelAnsicht);
+
+  const cursorAbschnitt = document.createElement("div");
+  cursorAbschnitt.className = "einst-abschnitt";
+  const cursorLabel = document.createElement("div");
+  cursorLabel.className = "einst-label";
+  cursorLabel.textContent = "Cursor";
+  cursorAbschnitt.appendChild(cursorLabel);
+  const cursorHinweis = document.createElement("p");
+  cursorHinweis.className = "einst-provider-sub";
+  cursorHinweis.textContent =
+    "Standardmaessig ersetzt ein eigener Pfeil im Haus-Stil den System-Cursor ueberall, auch an " +
+    "Knoepfen und an der Zieh-Kante der Detailspalte (v57). Ausgeschaltet zeigt das Programm " +
+    "ueberall wieder den System-Cursor.";
+  cursorAbschnitt.appendChild(cursorHinweis);
+
+  const cursorReihe = document.createElement("div");
+  cursorReihe.className = "schalterreihe";
+  const cursorSchalter = document.createElement("label");
+  // Anfangszustand aus der DOM-Klasse lesen, nicht aus einem eigenen Zustandsobjekt: app.js hat
+  // sie beim Start schon aus /api/defaults gesetzt (ladeCursorModusVomServer) — eine zweite
+  // Wahrheit waere hier nur eine Fehlerquelle mehr.
+  const eigenerCursorAn = !document.documentElement.classList.contains("system-cursor");
+  cursorSchalter.className = "schalter" + (eigenerCursorAn ? " an" : "");
+  cursorSchalter.innerHTML = `<input type="checkbox" ${eigenerCursorAn ? "checked" : ""}><span>Eigener Cursor</span>`;
+  const cursorInput = cursorSchalter.querySelector("input");
+  cursorInput.addEventListener("change", async () => {
+    const neuEigen = cursorInput.checked;
+    cursorSchalter.classList.toggle("an", neuEigen);
+    wendeCursorModusAn(!neuEigen);
+    cursorInput.disabled = true;
+    try {
+      await schreibeCursorDefault(!neuEigen);
+    } catch {
+      // Speichern fehlgeschlagen: zurueck auf den vorherigen Stand (Muster wie kontext.js).
+      cursorInput.checked = !neuEigen;
+      cursorSchalter.classList.toggle("an", !neuEigen);
+      wendeCursorModusAn(neuEigen);
+    } finally {
+      cursorInput.disabled = false;
+    }
+  });
+  cursorReihe.appendChild(cursorSchalter);
+  cursorAbschnitt.appendChild(cursorReihe);
+  seiteAnsicht.appendChild(cursorAbschnitt);
+
+  // Ampel-Regeln (v65): nur erklaert, nicht editierbar — die Schwellen sind Haus-Standard;
+  // editierbar-oder-fest klaert der Owner separat (v67-Auftrag, bewusst keine Eingabefelder hier).
+  const ampelAbschnitt = document.createElement("div");
+  ampelAbschnitt.className = "einst-abschnitt";
+  const ampelLabel = document.createElement("div");
+  ampelLabel.className = "einst-label";
+  ampelLabel.textContent = "Ampel-Regeln";
+  ampelAbschnitt.appendChild(ampelLabel);
+  const ampelText = document.createElement("p");
+  ampelText.className = "einst-provider-sub";
+  ampelText.textContent =
+    "Der Zeit-Punkt an jeder Karte richtet sich nach der dringlichsten Frist: ueberfaellig oder " +
+    "noch hoechstens 2 Tage entfernt faerbt rot, 3 bis 5 Tage faerbt gelb, ab 6 Tagen faerbt " +
+    "gruen. Fest hinterlegt, hier nicht aenderbar.";
+  ampelAbschnitt.appendChild(ampelText);
+  seiteAnsicht.appendChild(ampelAbschnitt);
 
   // Seite 2: KI-Rollen (v62, vorher irrefuehrend "Verbindungen" genannt — der Tab enthaelt
   // ausschliesslich KI-Modell-Auswahl je Rolle, keinerlei Verbindungs-/OAuth-UI).
@@ -1382,6 +1505,7 @@ export function einstellungenModal(onThemeChange) {
   seite7.appendChild(kontextListe);
 
   rechts.appendChild(seite1);
+  rechts.appendChild(seiteAnsicht);
   rechts.appendChild(seite2);
   rechts.appendChild(seite3);
   rechts.appendChild(seite4);
@@ -1389,7 +1513,10 @@ export function einstellungenModal(onThemeChange) {
   rechts.appendChild(seite5);
 
   // --- Tab-Switching ---
-  const seiten = [seite1, seite2, seite3, seite4, seite7, seite5];
+  // Reihenfolge deckungsgleich mit den Namen oben: Darstellung, Ansicht, KI-Rollen, Externe
+  // Dienste, Social Media Kanaele, Unternehmenskontext, System Prompts (v67: Ansicht neu an
+  // Index 1, alle folgenden Index-Pruefungen unten entsprechend verschoben).
+  const seiten = [seite1, seiteAnsicht, seite2, seite3, seite4, seite7, seite5];
   let kontextGeladen = false;
   let promptsGeladen = false;
   navItems.forEach((btn, i) => {
@@ -1402,12 +1529,12 @@ export function einstellungenModal(onThemeChange) {
       // v41: Die Ollama-Modelle laedt jeder Rollen-Block selbst (baueRollenKonfig) — kein
       // modal-weites ladeModelle mehr.
       // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
-      if (i === 2 || i === 3) ladeVerbStatus();
-      if (i === 4 && !kontextGeladen) {
+      if (i === 3 || i === 4) ladeVerbStatus();
+      if (i === 5 && !kontextGeladen) {
         kontextGeladen = true;
         import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
       }
-      if (i === 5 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
+      if (i === 6 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
     });
   });
 
