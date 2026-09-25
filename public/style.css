@@ -958,11 +958,13 @@ body {
 .eintrag-titel {
   font-weight: 600;
   font-size: 13.5px;
-  line-height: 1.35;
+  /* Owner 24.09.2026 (v69): die Titelzeile war etwas zu knapp — line-height leicht erhoeht
+     (1.35 → 1.5) fuer mehr Luft pro Zeile; die Zwei-Zeilen-Reservierung unten zieht mit. */
+  line-height: 1.5;
   margin-bottom: 7px;
   /* Owner 04.09.2026: Karten sollen einheitlich hoch sein, bemessen auf zwei Titelzeilen —
      reserviert den Platz immer, auch wenn der Titel kuerzer ist und nur eine Zeile braucht. */
-  min-height: calc(1.35em * 2);
+  min-height: calc(1.5em * 2);
   /* Owner 22.09.2026: ein einzelnes, leerzeichenloses Wort (z. B. eine Test-ID) lief bisher
      ueber den Kartenrand hinaus und wurde von .eintrag{overflow:hidden} hart abgeschnitten,
      statt umzubrechen. */
@@ -977,7 +979,7 @@ body {
   content: "";
   float: right;
   width: 16px;
-  height: 1.35em;
+  height: 1.5em; /* v69: mit der erhoehten line-height mitgezogen, spannt genau Zeile 1 */
 }
 /* v59 Nachlese: steht zusaetzlich ein Ausrufezeichen links vom Punkt (.eintrag-hat-achtung),
    braucht Zeile 1 des Titels entsprechend mehr Platz — sonst ueberlappt der Titeltext das
@@ -1040,6 +1042,8 @@ body {
   height: 13px;
   color: currentColor;
 }
+.eintrag-achtung-zweit { right: 39px; }
+.eintrag-hat-achtung-2 .eintrag-titel::before { width: 49px; }
 .eintrag-achtung-fehlt { color: var(--fehlt); }
 .eintrag-achtung-befund { color: var(--befund); }
 /* Kachel-Sanduhr (v32 E2): an der Stelle des Status-Punkts, solange der Drive-Scan laeuft. */
@@ -2758,6 +2762,38 @@ body {
 }
 .einst-rolle:last-child { margin-bottom: 0; }
 .einst-kachel-sub { margin: -4px 0 12px; line-height: 1.5; }
+/* v68: Checkbox-Listen in "Hinweise & Warnungen" */
+.meldung-gruppe { margin-top: 10px; }
+.meldung-gruppe:first-of-type { margin-top: 0; }
+.meldung-gruppenkopf {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-still);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--linie);
+  margin-bottom: 2px;
+}
+.meldung-zeile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  font-size: 13px;
+  cursor: var(--cursor-hand);
+  border-radius: var(--rund-klein);
+}
+.meldung-zeile:hover { background: var(--flaeche-tief); }
+.meldung-zeile input { accent-color: var(--akzent); flex: 0 0 auto; margin: 0; cursor: var(--cursor-hand); }
+.meldung-tag {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-still);
+  white-space: nowrap;
+}
+.meldung-status:empty { display: none; }
+.meldung-status { color: var(--befund); margin-bottom: 8px; }
 .einst-rolle-zusatz {
   margin-top: 14px;
   padding-top: 14px;

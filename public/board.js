@@ -18,6 +18,7 @@ import {
 } from "/lib/pipeline.js";
 import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS } from "./ui.js";
+import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
@@ -30,10 +31,9 @@ export const beiOeffnen = (f) => (oeffne = f);
 // werden — sonst behauptet die Kachel etwas, das niemand geprueft hat.
 const BRAUCHT_DRIVE = new Set(["rohmaterial", "final"]);
 
-function offenePunkte(k) {
+function pruefungen(k) {
   const stand = S.driveStand.get(k.id);
-  const liste = sperren(tore(k, stand)).filter((t) => stand || !BRAUCHT_DRIVE.has(t.id));
-  return liste;
+  return tore(k, stand).filter((t) => stand || !BRAUCHT_DRIVE.has(t.id));
 }
 
 // Spalten-Kopf-Indikator (v58, Owner 23.09.2026): "sanduhr" solange irgendeine Karte der
@@ -79,30 +79,36 @@ export function kachel(k) {
 
   // „!" = Warnung, getrennt vom Punkt und immer im Hinweis-Ton: offene Blocker (offenePunkte) ODER
   // ein Drehtermin ausserhalb des empfohlenen Fensters (drehImFenster, sonst nur im Detail sichtbar).
-  const offen = offenePunkte(k);
+  // v68: was erscheint, bestimmen die Haken unter Einstellungen > "Hinweise & Warnungen"
+  // (lib/kartenhinweise.js). Warnung = roter Befund, Hinweis = fehlend/Empfehlung; Pflichtangaben
+  // zaehlen als Hinweis erst bei gelber/roter Frist.
   const drehAusserhalb = !!drehDatum && !drehImFenster(drehDatum, (k.dates || {}).upload);
-  const warnTeile = [];
-  if (drehAusserhalb) warnTeile.push("Drehtermin liegt ausserhalb des empfohlenen Fensters.");
-  if (offen.length === 1) warnTeile.push(offen[0].satz);
-  else if (offen.length > 1)
-    warnTeile.push(`${offen[0].satz} Insgesamt ${offen.length} Punkte offen, bevor die Karte weiter darf.`);
-  const hatWarnung = warnTeile.length > 0;
-  const warnSatz = warnTeile.join(" ");
+  const meldungen = kartenMeldungen(pruefungen(k), drehAusserhalb, statusCode !== "ok");
+  const satzAus = (liste) => liste.length === 1 ? liste[0] : `${liste[0]} Insgesamt ${liste.length} Punkte.`;
+  const hatWarnung = meldungen.warnungen.length > 0;
+  const hatHinweis = meldungen.hinweise.length > 0;
+  const warnSatz = hatWarnung ? satzAus(meldungen.warnungen) : "";
+  const hinweisSatz = hatHinweis ? satzAus(meldungen.hinweise) : "";
 
   const formatText = contenttypName(k.contenttyp || "reel");
 
   // Laeuft gerade der Drive-Scan dieser Karte, traegt die Kachel die drehende Sanduhr statt des
   // Punkts. Sonst steht immer der gefuellte Zeit-Punkt (Farbe traegt nie allein — title/aria-label
-  // geben den Satz), und links davon bei Bedarf das gelbe Ausrufezeichen (Icon „warnung", Hinweis-
-  // Farbe inline aus var(--hinweis) — style.css ist der Parallel-Session vorbehalten und hat keine
-  // .eintrag-achtung-hinweis-Regel). Regel 3: Form UND Farbe, plus Wort im Tooltip. Ohne Warnung
-  // entfaellt die Glyphe und die breitere Titel-Reservierung (eintrag-hat-achtung).
-  el.classList.toggle("eintrag-hat-achtung", hatWarnung);
+  // geben den Satz), und links davon bei Bedarf die Warnung (rotes Ausrufezeichen, Icon „warnung")
+  // und/oder der Hinweis (gelber Info-Kreis, Icon „info"). Form UND Farbe, plus Satz im Tooltip.
+  // Ohne beides entfaellt die breitere Titel-Reservierung (eintrag-hat-achtung / -2).
+  const anzahlZeichen = (hatWarnung ? 1 : 0) + (hatHinweis ? 1 : 0);
+  el.classList.toggle("eintrag-hat-achtung", anzahlZeichen === 1);
+  el.classList.toggle("eintrag-hat-achtung-2", anzahlZeichen === 2);
+  const warnHtml = hatWarnung
+    ? `<span class="eintrag-achtung" style="color:var(--befund)" title="Warnung: ${escape(warnSatz)}" aria-label="Warnung: ${escape(warnSatz)}">${icon("warnung")}</span>`
+    : "";
+  const hinweisHtml = hatHinweis
+    ? `<span class="eintrag-achtung${hatWarnung ? " eintrag-achtung-zweit" : ""}" style="color:var(--hinweis)" title="Hinweis: ${escape(hinweisSatz)}" aria-label="Hinweis: ${escape(hinweisSatz)}">${icon("info")}</span>`
+    : "";
   const statusHtml = S.driveScanLaeuft.has(k.id)
     ? `<span class="eintrag-punkt-lade" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
-    : (hatWarnung
-        ? `<span class="eintrag-achtung" style="color:var(--hinweis)" title="${escape(warnSatz)}" aria-label="${escape(warnSatz)}">${icon((STATUS.hinweis || {}).icon || "warnung")}</span>`
-        : "") +
+    : warnHtml + hinweisHtml +
       `<span class="eintrag-punkt eintrag-punkt-${statusCode}" title="${escape(a.satz)}" aria-label="${escape(a.satz)}"></span>`;
 
   el.innerHTML =

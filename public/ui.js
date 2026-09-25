@@ -7,6 +7,7 @@
 // KI-Rollen-Konfig kommt aus store.js (eine Wahrheit): ui.js importiert statisch, store.js
 // zieht ui.js nur dynamisch (store.js:130) — deshalb kein Zyklus.
 import { ROLLEN, ROLLEN_META, rolleKonfig, setzeRolleKonfig } from "./store.js";
+import { KATALOG, istAn, setzeAn } from "/lib/kartenhinweise.js";
 
 // --- Icons (Lucide, 24x24, Strich) ---------------------------------------
 
@@ -665,7 +666,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Ansicht", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
+  for (const name of ["Darstellung", "Ansicht", "Hinweise & Warnungen", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -792,6 +793,80 @@ export function einstellungenModal(onThemeChange) {
     "gruen. Fest hinterlegt, hier nicht aenderbar.";
   ampelAbschnitt.appendChild(ampelText);
   seiteAnsicht.appendChild(ampelAbschnitt);
+
+  // Seite Hinweise & Warnungen (v68): zwei Kacheln mit Checkbox-Listen; jeder Haken speichert
+  // sofort (kein "Speichern"-Knopf) und die Karten zeichnen sich neu.
+  const seiteMeldungen = document.createElement("div");
+  seiteMeldungen.className = "einst-seite";
+  const titelMeldungen = document.createElement("div");
+  titelMeldungen.className = "einst-titel";
+  titelMeldungen.textContent = "Hinweise & Warnungen";
+  seiteMeldungen.appendChild(titelMeldungen);
+
+  const meldungsKachel = (art, titel, text) => {
+    const kachel = document.createElement("div");
+    kachel.className = "einst-rolle";
+    const l = document.createElement("div");
+    l.className = "einst-label";
+    l.textContent = titel;
+    kachel.appendChild(l);
+    const s = document.createElement("p");
+    s.className = "einst-provider-sub einst-kachel-sub";
+    s.textContent = text;
+    kachel.appendChild(s);
+    const status = document.createElement("div");
+    status.className = "einst-ping-status meldung-status";
+    kachel.appendChild(status);
+
+    let gruppe = null;
+    let letzteSpalte = null;
+    for (const e of KATALOG.filter((x) => x.art === art)) {
+      if (e.spalte !== letzteSpalte) {
+        letzteSpalte = e.spalte;
+        gruppe = document.createElement("div");
+        gruppe.className = "meldung-gruppe";
+        const gk = document.createElement("div");
+        gk.className = "meldung-gruppenkopf";
+        gk.textContent = e.spalte;
+        gruppe.appendChild(gk);
+        kachel.appendChild(gruppe);
+      }
+      const zeile = document.createElement("label");
+      zeile.className = "meldung-zeile";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = istAn(e.key);
+      const txt = document.createElement("span");
+      txt.textContent = e.label;
+      zeile.append(cb, txt);
+      if (e.pflicht) {
+        const tag = document.createElement("span");
+        tag.className = "meldung-tag";
+        tag.textContent = "erst bei naher Frist";
+        zeile.appendChild(tag);
+      }
+      cb.addEventListener("change", async () => {
+        cb.disabled = true;
+        status.textContent = "";
+        try {
+          await setzeAn(e.key, cb.checked);
+        } catch {
+          cb.checked = istAn(e.key);
+          status.textContent = "Speichern fehlgeschlagen — der Haken wurde zurückgesetzt.";
+        } finally {
+          cb.disabled = false;
+        }
+      });
+      gruppe.appendChild(zeile);
+    }
+    return kachel;
+  };
+  seiteMeldungen.appendChild(meldungsKachel(
+    "warnung", "Warnungen",
+    "Rotes Ausrufezeichen auf der Karte: etwas ist falsch oder verstößt gegen eine Regel."));
+  seiteMeldungen.appendChild(meldungsKachel(
+    "hinweis", "Hinweise",
+    "Gelber Info-Kreis auf der Karte: etwas fehlt oder eine Empfehlung greift. Angaben, die die Spalte sperren, melden sich erst, wenn die Frist der Karte gelb oder rot ist."));
 
   // Seite 2: KI-Rollen (v62, vorher irrefuehrend "Verbindungen" genannt — der Tab enthaelt
   // ausschliesslich KI-Modell-Auswahl je Rolle, keinerlei Verbindungs-/OAuth-UI).
@@ -1517,6 +1592,7 @@ export function einstellungenModal(onThemeChange) {
 
   rechts.appendChild(seite1);
   rechts.appendChild(seiteAnsicht);
+  rechts.appendChild(seiteMeldungen);
   rechts.appendChild(seite2);
   rechts.appendChild(seite3);
   rechts.appendChild(seite4);
@@ -1527,7 +1603,8 @@ export function einstellungenModal(onThemeChange) {
   // Reihenfolge deckungsgleich mit den Namen oben: Darstellung, Ansicht, KI-Rollen, Externe
   // Dienste, Social Media Kanaele, Unternehmenskontext, System Prompts (v67: Ansicht neu an
   // Index 1, alle folgenden Index-Pruefungen unten entsprechend verschoben).
-  const seiten = [seite1, seiteAnsicht, seite2, seite3, seite4, seite7, seite5];
+  // v68: "Hinweise & Warnungen" an Index 2, alle folgenden Index-Pruefungen unten verschoben.
+  const seiten = [seite1, seiteAnsicht, seiteMeldungen, seite2, seite3, seite4, seite7, seite5];
   let kontextGeladen = false;
   let promptsGeladen = false;
   navItems.forEach((btn, i) => {
@@ -1540,12 +1617,12 @@ export function einstellungenModal(onThemeChange) {
       // v41: Die Ollama-Modelle laedt jeder Rollen-Block selbst (baueRollenKonfig) — kein
       // modal-weites ladeModelle mehr.
       // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
-      if (i === 3 || i === 4) ladeVerbStatus();
-      if (i === 5 && !kontextGeladen) {
+      if (i === 4 || i === 5) ladeVerbStatus();
+      if (i === 6 && !kontextGeladen) {
         kontextGeladen = true;
         import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
       }
-      if (i === 6 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
+      if (i === 7 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
     });
   });
 

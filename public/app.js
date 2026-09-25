@@ -22,6 +22,10 @@ const gespeichertesTheme = (() => { try { return localStorage.getItem("cm-theme"
 if (gespeichertesTheme) setzeTheme(gespeichertesTheme);
 // Kein gespeichertes Theme = Light (Default, steht in CSS).
 
+// Haken unter "Hinweise & Warnungen" (v68): Karten sofort neu zeichnen.
+import { ladeKartenHinweise, beiHinweisAenderung } from "/lib/kartenhinweise.js";
+beiHinweisAenderung(() => zeichne());
+
 // --- Cursor-Modus (v67) ---
 // Sofort aus dem lokalen Cache anwenden, damit der eigene Cursor nicht kurz aufblitzt, bevor
 // /api/defaults geantwortet hat — Wahrheit bleibt der Drive-gestuetzte Defaults-Store, siehe
@@ -70,7 +74,13 @@ verdrahteKopf(el("stand"));
 // braucht hier keine Zustandsvariablen mehr (frueher googleOk/driveOk/syncOk).
 verdrahteAnschluesse(el("anschluesse"));
 // Die Stufen des Drive-Abgleichs (v51 T7) laufen weiter im Kopf-Stand mit.
-beiAbgleichStufe((satz) => { if (satz) standLaedt(satz); });
+// v69: Ein leerer Satz ist das Abschluss-Signal (driveAbgleich() ruft im finally
+// setzeAbgleichStufe("") ) — dann die Sanduhr wegraeumen, sonst dreht sie nach dem
+// automatischen Hintergrund-Abgleich ewig weiter (der Knopf-Pfad hatte sein eigenes
+// setStand im finally, der Start-/Intervall-Abgleich nicht). Live bestaetigt 25.09.2026:
+// /api/drive/reconcile/stream kam mit 200 durch, der Kopf blieb trotzdem auf der letzten
+// Stufe stehen.
+beiAbgleichStufe((satz) => { if (satz) standLaedt(satz); else setStand("Bereit."); });
 
 // --- Karte oeffnen --------------------------------------------------------
 
@@ -374,7 +384,7 @@ try {
     // Der Workflow-Stand muss VOR dem Board stehen: das Laden setzt ggf. selbst einen
     // Drehtermin, und dieser Griff ist einer der abschaltbaren Workflows (v26).
     await ladeWorkflows();
-    await Promise.all([ladeBoard(), ladeDefaults(), ladeCursorModusVomServer()]);
+    await Promise.all([ladeBoard(), ladeDefaults(), ladeCursorModusVomServer(), ladeKartenHinweise()]);
     setStand(`${S.cards.length} Karten geladen.`);
   } catch (e) {
     await melde("befund", `Das Board liess sich nicht laden: ${e.message}`);
