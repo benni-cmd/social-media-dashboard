@@ -46,6 +46,15 @@ const BOARD_FILE = join(DATA_DIR, "board.json");
 const TOKEN_FILE = join(DATA_DIR, "tokens.json");
 const DEFAULTS_FILE = join(DATA_DIR, "defaults.json");
 const PLAN_FILE = join(DATA_DIR, "plan.json");
+const ordnerLinkCache = new Map();
+async function ordnerLinkId(rel) {
+  const root = drive.aktuellerRoot();
+  const key = `${root}|${rel}`;
+  let id = ordnerLinkCache.get(key);
+  if (!id) id = rel ? await drive.ordnerId(rel) : root;
+  if (id) ordnerLinkCache.set(key, id);
+  return id;
+}
 const BOARD_SICHERUNGEN = join(DATA_DIR, "board-sicherungen"); // v63: je Drive-Ordner ein Board-Stand
 const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
@@ -914,6 +923,17 @@ async function handler(req, res) {
       return;
     }
 
+    // v72: Link auf einen Drive-Ordner (Drive-Marke mit Ortsangabe in den Einstellungen und im
+    // Detailkopf). `pfad` relativ zum Arbeitsordner; leer = der Arbeitsordner selbst. IDs kommen
+    // aus der Eltern-Auflistung (ein rclone-Aufruf) und werden je Arbeitsordner gemerkt.
+    if (pfad === "/api/drive/ordner-link" && req.method === "GET") {
+      const rel = (url.searchParams.get("pfad") || "").replace(/^\/+|\/+$/g, "");
+      const id = await ordnerLinkId(rel);
+      if (!id) { sendJson(res, 404, { error: `Der Ordner „${rel}“ existiert in Drive noch nicht.` }); return; }
+      sendJson(res, 200, { url: drive.ordnerLink(id) });
+      return;
+    }
+
     if (pfad === "/api/drive/status" && req.method === "GET") {
       sendJson(res, 200, await drive.erreichbar());
       return;
@@ -1656,6 +1676,8 @@ server.listen(PORT, async () => {
   try {
     spaltenResolverSetzen(pipeline.mischeSpalten(await spaltenCacheLesen()));
   } catch { /* Defaults greifen ohnehin */ }
+  // v72: Ordner-Links der Drive-Marken vorwaermen (nacheinander, ein Aufruf je Ordner), damit der Klick sofort oeffnet
+  (async () => { for (const rel of ["System (AI only)", "Kontext", "Videoauswertung/Auswertung-Tabellen"]) { try { await ordnerLinkId(rel); } catch { /* Beiwerk */ } } })();
   driveSetup.konto().catch(() => {}); // v63: Drive-Konto vorwaermen, damit "Externe Dienste" sofort den Stand zeigt
   // KPI-Sammlung beim Start ausloesen (Owner 02.09.2026): wenn nach den Intervallen eine
   // Post-Messung faellig ist ODER die Konto-Kadenz (woechentl./quartalsw.) greift. Die

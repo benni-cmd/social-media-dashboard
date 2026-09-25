@@ -3526,3 +3526,16 @@ body {
 .knopf-symbol-drive .icon { width: 20px; height: 20px; }
 .einst-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; }
 .detail-kopf .drive-marke { margin-left: 8px; }
+
+/* v72: Drive-Ort — Marke plus Ordnername als Link */
+.drive-ort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--akzent);
+  text-decoration: none;
+  cursor: var(--cursor-hand);
+}
+.drive-ort:hover .drive-ort-name { text-decoration: underline; }
+.drive-ort-zeile { display: flex; align-items: center; gap: 6px; margin: -8px 0 14px; }
+.detail-kopf .drive-ort { margin-left: 8px; font-size: 12px; }

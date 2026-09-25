@@ -91,6 +91,42 @@ export function driveMarke(titel = "Kommt aus Google Drive") {
   return `<span class="drive-marke" title="${escape(titel)}" aria-label="${escape(titel)}">${icon("drive")}</span>`;
 }
 
+// Drive-Ort (v72): Marke + Ordnername als Link direkt dahinter. Ein Klick loest den Ordner-Link
+// beim Server auf (/api/drive/ordner-link) und oeffnet ihn in einem neuen Tab. `pfad` relativ zum
+// Arbeitsordner, "" = der Arbeitsordner selbst.
+export function driveOrt(pfad, label, titel = "In Google Drive oeffnen") {
+  return `<a class="drive-ort" href="#" data-drive-pfad="${escape(pfad)}" title="${escape(titel)}">` +
+    `<span class="drive-marke">${icon("drive")}</span><span class="drive-ort-name">${escape(label)}</span></a>`;
+}
+
+// Eine Zeile "Liegt in: <Drive-Ort>" fuer die Kopfbereiche der Einstellungen.
+export function driveOrtZeile(vorher, pfad, label) {
+  const p = document.createElement("p");
+  p.className = "einst-provider-sub drive-ort-zeile";
+  p.innerHTML = `${escape(vorher)} ${driveOrt(pfad, label)}`;
+  return p;
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", async (e) => {
+    const a = e.target.closest && e.target.closest("a.drive-ort");
+    if (!a) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // Fenster sofort oeffnen (Popup-Blocker), Ziel folgt, sobald der Link aufgeloest ist.
+    const w = window.open("about:blank", "_blank");
+    try {
+      const res = await fetch("/api/drive/ordner-link?pfad=" + encodeURIComponent(a.dataset.drivePfad || ""));
+      const j = await res.json();
+      if (!res.ok || !j.url) throw new Error(j.error || `HTTP ${res.status}`);
+      if (w) w.location.href = j.url; else window.location.href = j.url;
+    } catch (err) {
+      if (w) w.close();
+      meldung(`Drive-Ordner nicht geoeffnet: ${err.message}`, "fehler");
+    }
+  }, true);
+}
+
 // --- Status: sechs Woerter, nie Farbe allein -----------------------------
 
 export const STATUS = {
@@ -750,7 +786,7 @@ export function einstellungenModal(onThemeChange) {
   cursorAbschnitt.className = "einst-rolle";
   const cursorLabel = document.createElement("div");
   cursorLabel.className = "einst-label";
-  cursorLabel.innerHTML = "Cursor " + driveMarke("Diese Einstellung liegt in Google Drive");
+  cursorLabel.textContent = "Cursor";
   cursorAbschnitt.appendChild(cursorLabel);
   const cursorHinweis = document.createElement("p");
   cursorHinweis.className = "einst-provider-sub einst-kachel-sub";
@@ -758,6 +794,7 @@ export function einstellungenModal(onThemeChange) {
     "Ein eigener Pfeil im Haus-Stil ersetzt den System-Cursor ueberall, auch an Knoepfen und an " +
     "der Zieh-Kante der Detailspalte. Ausgeschaltet zeigt die Oberflaeche wieder den System-Cursor.";
   cursorAbschnitt.appendChild(cursorHinweis);
+  cursorAbschnitt.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
 
   const cursorReihe = document.createElement("div");
   cursorReihe.className = "schalterreihe";
@@ -814,6 +851,7 @@ export function einstellungenModal(onThemeChange) {
   titelMeldungen.className = "einst-titel";
   titelMeldungen.textContent = "Hinweise & Warnungen";
   seiteMeldungen.appendChild(titelMeldungen);
+  seiteMeldungen.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
 
   const meldungsKachel = (art, titel, text) => {
     const kachel = document.createElement("div");
@@ -1337,6 +1375,7 @@ export function einstellungenModal(onThemeChange) {
     const name = document.createElement("span");
     name.className = "verb-name";
     name.innerHTML = driveMarke("Google Drive") + " Google Drive";
+    // Arbeitsordner-Zeile unten hat schon den Link "in Drive oeffnen"
     kopf.appendChild(name);
     const chip = statusChipEl();
     chip.style.marginLeft = "0";
@@ -1513,6 +1552,7 @@ export function einstellungenModal(onThemeChange) {
     hinweis.className = "einst-provider-sub";
     hinweis.textContent = "Woher die Zahlen kommen: frisch von den Plattform-APIs, oder aus den in Google Drive gespeicherten CSVs.";
     ab.appendChild(hinweis);
+    ab.appendChild(driveOrtZeile("CSVs liegen in", "Videoauswertung/Auswertung-Tabellen", "Auswertung-Tabellen"));
     let aktQuelle;
     try { aktQuelle = localStorage.getItem("cm-auswertung-quelle") || "api"; } catch { aktQuelle = "api"; }
     const reihe = document.createElement("div");
@@ -1572,6 +1612,7 @@ export function einstellungenModal(onThemeChange) {
   titel5.className = "einst-titel";
   titel5.textContent = "System Prompts";
   seite5.appendChild(titel5);
+  seite5.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
   const hint5 = document.createElement("p");
   hint5.className = "einst-provider-sub";
   hint5.textContent =
@@ -1592,6 +1633,7 @@ export function einstellungenModal(onThemeChange) {
   titel7.className = "einst-titel";
   titel7.textContent = "Unternehmenskontext";
   seite7.appendChild(titel7);
+  seite7.appendChild(driveOrtZeile("Dateien liegen in", "Kontext", "Kontext"));
   const hint7 = document.createElement("p");
   hint7.className = "einst-provider-sub";
   hint7.textContent =

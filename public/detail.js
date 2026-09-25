@@ -33,6 +33,7 @@ import {
   deutschesDatum,
   POSTZEITEN,
   naechsteFreieSlots,
+  projektPfad,
 } from "/lib/pipeline.js";
 import { fensterFuerTyp, slotsForMonth } from "/lib/scheduler.js";
 import {
@@ -87,7 +88,7 @@ import {
   infoTipp,
   meldung,
   bestaetigen,
-  driveMarke,
+  driveOrt,
 } from "./ui.js";
 import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
@@ -127,7 +128,7 @@ export function zeichneDetail(el) {
   const kopf = document.createElement("div");
   kopf.className = "detail-kopf";
   kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>` +
-    (k.driveName ? driveMarke("Projektordner in Google Drive: " + k.driveName + " — Stand wird mit Drive abgeglichen") : "");
+    (k.driveName ? driveOrt(projektPfad(k), "Projektordner", "Projektordner in Google Drive oeffnen: " + k.driveName) : "");
 
   // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
   // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.

@@ -15,3 +15,9 @@
 ## Stand
 - [x] Bau, Screenshot-Verify (Einstellungen, Detailspalte)
 - OFFEN: Dark Mode nicht angesehen; Knoepfe im Detail nicht einzeln angesehen.
+
+## Nachtrag v72 — Marke als Link auf den Drive-Ordner (25.09.2026)
+- `driveOrt(pfad, label)` / `driveOrtZeile()` in `public/ui.js`: Marke + Ordnername als Link; Klick oeffnet den Ordner in neuem Tab.
+- Server: `GET /api/drive/ordner-link?pfad=…` (ID aus der Eltern-Auflistung, gemerkt je Arbeitsordner, beim Start fuer die drei Einstellungs-Ordner vorgewaermt).
+- Stellen: Hinweise & Warnungen, System Prompts, Cursor -> "System (AI only)"; Unternehmenskontext -> "Kontext"; Datenquelle Auswertung -> "Videoauswertung/Auswertung-Tabellen"; Detailkopf -> "Projektordner" der Karte.
+- Verify: Klick loest die richtigen Ordner-IDs auf (System, Projektordner); erster Klick ohne Vorwaermung dauert 5-25 s (langsames rclone).
