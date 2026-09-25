@@ -42,8 +42,17 @@ kein Dauer-Spinner Arbeit vortaeuscht und der Titel lesbar Platz hat.
 `style.css` ist der Ampel-Session vorbehalten, solange dort uncommitted (git diff). `board.js`/`store.js`
 aktuell sauber. Nicht committen, was du nicht selbst geaendert hast (kein Fremd-Diff mit hochnehmen).
 
+## Live-Befund (25.09.2026, laufendes Board :4321)
+Der Dauerdreher ist NICHT die Karten-Sanduhr (`spalteDriveStatus`/`driveScan`), sondern der
+**globale Reconcile-Fortschritt oben rechts im Kopf**: Anzeige haengt auf „Liest Drive-Ordner 8/8:
+Verworfen …" mit drehendem Indikator. Also die Abgleich-Stufen-Kette (`app.js` `beiAbgleichStufe`/
+`standLaedt` ↔ `store.js` `driveAbgleich`): die letzte Stufe (Ordner 8/8 „Verworfen") wird gesetzt,
+aber der Abschluss-`setStand("Bereit.")` (der die Sanduhr wegraeumt) feuert nie. ZUERST via Konsole/
+Netzwerk pruefen, ob der Abgleich real durchlaeuft (dann reine Anzeige) oder an „Verworfen" haengt.
+
 ## Stand
-- [ ] Sanduhr-Ursache live bestaetigt
+- [x] Sanduhr-Ursache live eingegrenzt: globaler Reconcile-Indikator haengt bei Ordner 8/8 „Verworfen" (25.09.2026)
+- [ ] Sanduhr-Ursache im Code bestaetigt (app.js/store.js Abgleich-Abschluss)
 - [ ] Sanduhr-Fix + Verify
 - [ ] Titelzeile-Fix + Verify (nur bei sauberer style.css)
 - [ ] Commit(s) + Paket nachgefuehrt
