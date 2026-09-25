@@ -531,6 +531,7 @@ function blockDrehtermin(k) {
     // Zuordnen + Karte gleich in den Videodreh schieben (Termin steht -> Skript ist fertig).
     const zuordnen = async (terminId) => {
       const r = karteZuTermin(k.id, terminId);
+      if (r && !r.ok && r.grund) { melde("befund", r.grund); return; } // v70: zu spaeter Drehtermin, blockiert
       if (r && r.warnung) melde("hinweis", r.warnung);
       // Workflow "drehtermin-zuordnen-videodreh" (v26)
       if (r && r.ok && an("drehtermin-zuordnen-videodreh") && phaseIndex(k.column) < phaseIndex("videodreh"))
