@@ -62,6 +62,8 @@ export const ICONS = {
   // (Mittelkreis + 8 gerade Strahlen) las sich als Sonne, nicht als Zahnrad (v40).
   zahnrad:
     '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  // Stilisiertes Drive-Zeichen (v71): Sechseck wie das Drive-Logo mit den drei Balken als Linien.
+  drive: '<path d="M8.5 3h7L22 14.5l-3.5 6h-13L2 14.5Z"/><path d="M15.5 3 9 14.5"/><path d="M9 14.5h13"/><path d="m9 14.5-3.5 6"/>',
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   mehr: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
   // Format-Symbole der Kachel (v29): ersetzen die Plattform-Text-Marken — auf den ersten
@@ -81,6 +83,12 @@ export function icon(name, klasse = "") {
     `<svg class="icon ${klasse}" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
     `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${pfad}</svg>`
   );
+}
+
+// Kleine Drive-Marke (v71): zeigt, dass diese Daten aus einem Drive-Abgleich kommen bzw. dort
+// liegen. Nicht auf den Board-Karten, sondern in Einstellungen, Kopf der Detailspalte, Knoepfen.
+export function driveMarke(titel = "Kommt aus Google Drive") {
+  return `<span class="drive-marke" title="${escape(titel)}" aria-label="${escape(titel)}">${icon("drive")}</span>`;
 }
 
 // --- Status: sechs Woerter, nie Farbe allein -----------------------------
@@ -148,7 +156,7 @@ export function eigenschaft(label, wertHtml) {
 // blosses Strich-Icon — bewusst eine kleine, feste Liste statt aller `zeichen`-Werte:
 // Navigations-/Bestaetigungs-Icons (schliessen, weiter, zurueck, check ...) sollen klein
 // und unauffaellig bleiben, nur "Datei-Ort"-Symbole tragen die Kachel.
-const KACHEL_ZEICHEN = new Set(["ordner"]);
+const KACHEL_ZEICHEN = new Set(["ordner", "drive"]);
 
 export function knopf(text, { art = "still", zeichen = null, klick = null, titel = "" } = {}) {
   const b = document.createElement("button");
@@ -655,6 +663,8 @@ export async function ladeCursorModusVomServer() {
   }
 }
 
+const DRIVE_TABS = new Set(["Hinweise & Warnungen", "Unternehmenskontext", "System Prompts"]);
+
 // Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
 export function einstellungenModal(onThemeChange) {
   const overlay = document.createElement("div");
@@ -670,6 +680,8 @@ export function einstellungenModal(onThemeChange) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
+    // Tabs, deren Inhalt in Drive liegt (Kontext, Prompts, Kartenmeldungen in defaults.json)
+    if (DRIVE_TABS.has(name)) btn.insertAdjacentHTML("beforeend", driveMarke("Liegt in Google Drive"));
     links.appendChild(btn);
     navItems.push(btn);
   }
@@ -738,7 +750,7 @@ export function einstellungenModal(onThemeChange) {
   cursorAbschnitt.className = "einst-rolle";
   const cursorLabel = document.createElement("div");
   cursorLabel.className = "einst-label";
-  cursorLabel.textContent = "Cursor";
+  cursorLabel.innerHTML = "Cursor " + driveMarke("Diese Einstellung liegt in Google Drive");
   cursorAbschnitt.appendChild(cursorLabel);
   const cursorHinweis = document.createElement("p");
   cursorHinweis.className = "einst-provider-sub einst-kachel-sub";
@@ -1324,7 +1336,7 @@ export function einstellungenModal(onThemeChange) {
     kopf.className = "verb-kopf";
     const name = document.createElement("span");
     name.className = "verb-name";
-    name.textContent = "Google Drive";
+    name.innerHTML = driveMarke("Google Drive") + " Google Drive";
     kopf.appendChild(name);
     const chip = statusChipEl();
     chip.style.marginLeft = "0";
@@ -1505,7 +1517,7 @@ export function einstellungenModal(onThemeChange) {
     try { aktQuelle = localStorage.getItem("cm-auswertung-quelle") || "api"; } catch { aktQuelle = "api"; }
     const reihe = document.createElement("div");
     reihe.className = "einst-theme-reihe";
-    for (const opt of [{ id: "api", name: "Live von den APIs (Standard)" }, { id: "drive", name: "Aus Google Drive" }]) {
+    for (const opt of [{ id: "api", name: "Live von den APIs (Standard)" }, { id: "drive", name: "Aus Google Drive", drive: true }]) {
       const l = document.createElement("label");
       l.className = "einst-theme-option" + (aktQuelle === opt.id ? " aktiv" : "");
       const r = document.createElement("input");
@@ -1518,6 +1530,7 @@ export function einstellungenModal(onThemeChange) {
       l.appendChild(r);
       const s = document.createElement("span");
       s.textContent = opt.name;
+      if (opt.drive) s.insertAdjacentHTML("afterbegin", driveMarke("Zahlen kommen aus den CSVs in Google Drive") + " ");
       l.appendChild(s);
       reihe.appendChild(l);
     }

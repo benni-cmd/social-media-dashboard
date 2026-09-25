@@ -44,7 +44,7 @@
 
 /* Linke Liste: feste Breite, scrollt bei Bedarf fuer sich. */
 .einstellungen-modal .einst-nav {
-  flex: 0 0 176px;
+  flex: 0 0 192px;
   border-right: 1px solid var(--linie);
   padding: 16px 0;
   display: flex;

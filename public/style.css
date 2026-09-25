@@ -3505,3 +3505,24 @@ body {
   padding: 8px;
   border-radius: 9px;
 }
+
+/* v71: Drive-Marke — kleine Icon-Kachel wie die Symbol-Kacheln (knopf-symbol), zeigt "kommt aus / liegt in Drive". */
+.drive-marke {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+.drive-marke .icon,
+.knopf-symbol-drive .icon {
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  border-radius: 5px;
+  background: var(--chrome-c);
+  color: #fff;
+  box-sizing: border-box;
+}
+.knopf-symbol-drive .icon { width: 20px; height: 20px; }
+.einst-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; }
+.detail-kopf .drive-marke { margin-left: 8px; }

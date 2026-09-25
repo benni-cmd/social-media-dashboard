@@ -87,6 +87,7 @@ import {
   infoTipp,
   meldung,
   bestaetigen,
+  driveMarke,
 } from "./ui.js";
 import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
@@ -125,7 +126,8 @@ export function zeichneDetail(el) {
   // --- Kopf ---
   const kopf = document.createElement("div");
   kopf.className = "detail-kopf";
-  kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>`;
+  kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>` +
+    (k.driveName ? driveMarke("Projektordner in Google Drive: " + k.driveName + " — Stand wird mit Drive abgeglichen") : "");
 
   // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
   // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.
@@ -1510,7 +1512,7 @@ function felderCaption(k, box, merke) {
   }
 
   box.appendChild(
-    knopf("Caption nach Drive speichern", {
+    knopf("Caption nach Drive speichern", { zeichen: "drive",
       zeichen: "ordner",
       klick: (e) =>
         nachDrive(
@@ -1580,7 +1582,7 @@ function blockDrive(k, stand) {
     z.innerHTML = statusChip("fehlt") + `<span class="befund-satz">${escape(stand.satz)}</span>`;
     box.appendChild(z);
     box.appendChild(
-      knopf("Projektordner in Drive anlegen", {
+      knopf("Projektordner in Drive anlegen", { zeichen: "drive",
         art: "haupt",
         zeichen: "ordner",
         klick: (e) => {
@@ -1667,7 +1669,7 @@ function blockDrive(k, stand) {
   }
 
   box.appendChild(
-    knopf("Drive erneut lesen", {
+    knopf("Drive erneut lesen", { zeichen: "drive",
       zeichen: "neuladen",
       klick: async () => {
         await driveScan(k, true).catch(() => {
