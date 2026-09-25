@@ -227,6 +227,10 @@ gdrive:System (AI only)/redaktionsplan.slots.json` → `Drive · cat gdrive:Syst
 only)/defaults.json`, also genau der Abfolge der echten Aufrufe nach. Im Ruhezustand
 „Bereit." ohne Sanduhr, bei gleichzeitig ruhigen Sektions-Markern.
 
+Der Ruhezustand ist mit dem FERTIGEN Code nachgemessen (25.09.2026, eigener Server
+`PORT=4399`): waehrend des Laufs „Gleicht die Spalten mit Drive ab …" mit Sanduhr, danach
+`{"stand":"Bereit.","sanduhr":false,"sektionAktiv":false}` — beide Sanduhren weg.
+
 ## Stand
 
 **23.09.2026** — Paket angelegt, vier Rueckfragen vom Owner beantwortet, Bestand geprueft.
