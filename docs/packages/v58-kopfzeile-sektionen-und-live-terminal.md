@@ -198,6 +198,35 @@ geschah oder ob die Quelle fehlt. Beides mit demselben Satz zu beantworten ist e
 ohne Grundlage — genau das, was die Werkbank-Regel „Zahlen messen, nicht erinnern" fuer Zahlen
 verbietet, hier fuer Zustaende.
 
+### Nachlese 3: der Kopf-Satz (Owner 25.09.2026, Commit `edf7864`)
+
+**Problem:** Der Satz in der Kopfzeile wurde allein vom Drive-Stufenstrom gespeist. Nach dem
+Reconcile stand dort „Bereit.", auch wenn Drive weiter Ordner las oder API/Weitere/KI
+arbeiteten — der Kopf behauptete Ruhe, waehrend anderswo gearbeitet wurde. (Die Vorgeschichte:
+v69 hatte den umgekehrten Fehler behoben, bei dem die letzte Stufe samt Sanduhr ewig
+stehenblieb.)
+
+**Regel jetzt:** Solange IRGENDEIN Anschluss arbeitet, steht im Kopf die **neueste** Aktion
+ueber alle vier Bereiche; sobald nichts mehr laeuft, steht dort „Bereit.". Die Bedingung
+kennt nur der Ereignis-Bus, denn nur er sieht alle vier — also fuehrt er den Kopf.
+
+**Zwei Feinheiten, beide aus einem echten Fehlversuch:**
+
+1. Der Bus besitzt den Kopf NUR waehrend der Arbeit und schreibt danach genau EINMAL
+   „Bereit.". Wuerde er im Ruhezustand weiterschreiben, wischte er Bestaetigungen wie
+   „Upload am 3.10." (`public/detail.js`) im Sekundentakt weg.
+2. Meine erste Fassung gab Drive unbedingten Vorrang, sobald der Stufenstrom lief. Gemessen
+   25.09.2026: ein Klick auf „Zahlen neu abrufen" erzeugte 24 Instagram-Aufrufe, und der Kopf
+   zeigte die ganze Zeit „Gleicht die Spalten mit Drive ab …" — also gerade NICHT die neueste
+   Aktion. Jetzt entscheidet allein die Zeit; der lesbarere Drive-Stufensatz gewinnt nur, wenn
+   die neueste Aktion ohnehin von Drive kommt.
+
+**Belegt im Browser:** Der Kopf wechselte in dieser Reihenfolge — `API · GET
+https://graph.instagram.com/v21.0/me/media…` → zwei weitere API-Zeilen → `Drive · cat
+gdrive:System (AI only)/redaktionsplan.slots.json` → `Drive · cat gdrive:System (AI
+only)/defaults.json`, also genau der Abfolge der echten Aufrufe nach. Im Ruhezustand
+„Bereit." ohne Sanduhr, bei gleichzeitig ruhigen Sektions-Markern.
+
 ## Stand
 
 **23.09.2026** — Paket angelegt, vier Rueckfragen vom Owner beantwortet, Bestand geprueft.
