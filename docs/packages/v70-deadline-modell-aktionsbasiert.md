@@ -91,14 +91,36 @@ Ueberlappt v66 (`17e8f27`) + `6e5d1dc` der Ampel-Session HART (pipeline.js, boar
 ui.js, style.css, stores/workflows). Nur EINE Session baut. Owner entscheidet Besitzer; Peer ist informiert
 (pausiert weiteren v66/6e5d1dc-Aufbau). Architektur-schwer → Modell Opus 5, eigene Session (Owner-Muster fuer Grosses).
 
+## Verify (Beleg, 25.09.2026)
+- `node --check` pipeline/workflows/store/redaktionsplan/kontextmenu → OK.
+- Node-Probe gegen echtes `lib/pipeline.js` + echte `data/board.json`:
+  - deadlineFuer(U=11-01): upload 11-01 · freigabe 10-29 (−3) · schnitt 10-26 (−6) · dreh 10-20
+    (=spaetesterDreh); zugewiesener Dreh gewinnt (10-15).
+  - **Gruen-Puffer bewiesen:** spaetesterDreh 10-20 → Schnitt 10-26 = 6 Tage entfernt (> gelbTage 5)
+    → GRUEN beim Eintritt in den Schnitt. Schwellen fest 2/5 (−1/0/2 befund · 3/5 hinweis · 6 ok).
+  - Alle realen Karten faerben sinnvoll, keine Crashes; Karten OHNE Uploaddatum → neutral (gruen).
+- Browser-Integration (Server :4399, echte kachel() × Modell v70 × Peer-kartenMeldungen):
+  12 Karten gerendert, 0 Fehler; Punkt-Klassen ok/befund korrekt; Screenshot bestaetigt Punkt +
+  Warn-/Hinweis-Glyphen.
+
 ## Stand
-- [x] Owner-Modell erfasst (24.09.2026, 2 AskUserQuestion-Runden)
-- [x] Peer informiert (pause v66/6e5d1dc), Besitzerfrage gestellt
-- [ ] Design-Fragen mit Owner geklaert
-- [ ] Bestandsanalyse pipeline/redaktionsplan/6e5d1dc
-- [ ] Bau + Verify
+- [x] Owner-Modell erfasst (24./25.09.2026, mehrere AskUserQuestion-Runden inkl. Drehtermin-Block)
+- [x] Peer informiert, Besitzer = diese Session, Freeze der 4 Logik-Files bestaetigt
+- [x] Design-Fragen mit Owner geklaert (Aktionen, Offsets, Drehtermin gewinnt, Gruen-Puffer-Block)
+- [x] Bestandsanalyse pipeline/redaktionsplan/store/workflows/board (board.js unveraendert noetig)
+- [x] Bau: pipeline (offset-Modell + AMPEL fest + deadlineFuer/spaetesterDreh), workflows (offset-Params,
+      ampel-schwellen raus), store (syncDeadlineOffsets + Dreh-Block), redaktionsplan (v66-UI raus),
+      kontextmenu (Block-Meldung)
+- [x] Verify (node --check, Node-Probe, Browser-Integration + Screenshot)
+- [ ] Commit + Push (Logik-Teil)
+- [ ] detail.js: Block-Meldung (Refusal) — an Peer uebergeben (detail.js dirty von Peer-WIP)
+- [ ] ui.js: EIN Offset-Feldblock in den Einstellungen — Peer, Ort abstimmen
 
 ## DoD
-- Genau eine Deadline-Quelle (Einstellungen), Redaktionsplan ohne Deadline-Bearbeitung.
-- Ampel faerbt nach Upload−Offset; rot/gelb fest.
-- Offsets editierbar + persistent (Drive); Migration verlustfrei; Browser-Verify.
+- Genau eine Deadline-Quelle (Einstellungen), Redaktionsplan ohne Deadline-Bearbeitung. ✓ (Logik)
+- Ampel faerbt nach Upload−Offset; rot/gelb fest. ✓
+- Offsets editierbar (Workflow-Params `offsetFreigabe`/`offsetSchnitt`) + persistent; Karten ohne Upload
+  neutral. ✓ (Bedien-UI in ui.js noch beim Peer.)
+Geprueft gegen: `node --check` · Node-Probe gegen `lib/pipeline.js` + `data/board.json` · Browser-Integration
+:4399 + Screenshot. Offen: detail.js-Refusal + ui.js-Offset-Felder (Peer); Live-Board-Screenshot (Board
+haengt beim Vollstart an Drive — Rendering-Pfad unveraendert seit v65, isoliert bestaetigt).

@@ -2,8 +2,8 @@
 
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
-  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload, setDeadlineKette,
-  setAmpelSchwellen,
+  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload, setDeadlineOffsets,
+  spaetesterDreh, deutschesDatum,
 } from "/lib/pipeline.js";
 import { slotsForMonth } from "/lib/scheduler.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -43,27 +43,16 @@ function uebernimm(d) {
       params: Object.fromEntries((w.params || []).map((p) => [p.key, p.wert])),
     };
   }
-  syncDeadlineKette();
-  syncAmpelSchwellen();
+  syncDeadlineOffsets();
 }
 
-// Schiebt die konfigurierte Deadline-Kette (v66) aus den rueckwaertsplan-Params in pipeline.js,
-// damit rueckwaertsplan()/drehFenster() ueberall mit den eingestellten Abstaenden rechnen. Greift
-// bei jedem Laden (ladeWorkflows) UND nach jedem Speichern (setzeWorkflow).
-function syncDeadlineKette() {
-  setDeadlineKette({
-    freigabe: wfParam(S.workflows, "rueckwaertsplan", "gapFreigabe"),
-    schnitt: wfParam(S.workflows, "rueckwaertsplan", "gapSchnitt"),
-    dreh: wfParam(S.workflows, "rueckwaertsplan", "gapDreh"),
-  });
-}
-
-// Schiebt die konfigurierten Ampel-Schwellen (v68) aus den ampel-schwellen-Params in pipeline.js,
-// damit ampelStatus()/ampel() ueberall mit den eingestellten Rot-/Gelb-Grenzen faerben.
-function syncAmpelSchwellen() {
-  setAmpelSchwellen({
-    rotTage: wfParam(S.workflows, "ampel-schwellen", "rotTage"),
-    gelbTage: wfParam(S.workflows, "ampel-schwellen", "gelbTage"),
+// Schiebt die konfigurierten Deadline-Offsets (v70) aus den rueckwaertsplan-Params in pipeline.js,
+// damit alle Deadlines (Ampel, rueckwaertsplan, drehFenster, spaetesterDreh) upload-verankert mit den
+// eingestellten Offsets rechnen. Greift bei jedem Laden (ladeWorkflows) UND nach jedem Speichern.
+function syncDeadlineOffsets() {
+  setDeadlineOffsets({
+    freigabe: wfParam(S.workflows, "rueckwaertsplan", "offsetFreigabe"),
+    schnitt: wfParam(S.workflows, "rueckwaertsplan", "offsetSchnitt"),
   });
 }
 
@@ -777,12 +766,22 @@ export function drehterminLoeschen(id) {
   zeichne();
 }
 
-// Ordnet eine Karte einem Drehtermin zu. Liefert {ok, warnung}: warnung, wenn der Termin
-// ausserhalb des Dreh-Fensters der Karte liegt (14 Tage vor Schnitt bis Schnitt) — keine Sperre.
+// Ordnet eine Karte einem Drehtermin zu. Liefert {ok, warnung} bei Erfolg; {ok:false, grund} wenn der
+// Termin zu spaet liegt (v70-Block). warnung = Termin ausserhalb des empfohlenen Fensters (keine Sperre).
 export function karteZuTermin(karteId, terminId) {
   const k = karte(karteId);
   const t = drehtermin(terminId);
   if (!k || !t) return { ok: false };
+  // v70-Block (Owner 25.09.2026): ein zu spaeter Drehtermin ist NICHT zuweisbar — der Drehtag muss so
+  // weit vor dem Schnitt liegen, dass die Karte GRUEN in den Schnitt rutscht (spaetesterDreh). Ohne
+  // Uploaddatum ist die Grenze nicht rechenbar → keine Sperre. Greift je Karte (eigener Upload).
+  const grenze = spaetesterDreh((k.dates || {}).upload);
+  if (grenze && t.datum && t.datum > grenze) {
+    return {
+      ok: false,
+      grund: `Der Drehtermin am ${deutschesDatum(t.datum)} liegt zu spaet — spaetestens am ${deutschesDatum(grenze)}, sonst geht die Karte schon mit gelbem Punkt in den Schnitt.`,
+    };
+  }
   // Falls die Karte schon an einem anderen Termin haengt: dort loesen (und den mit-syncen).
   let altId = null;
   if (k.drehterminId && k.drehterminId !== terminId) {

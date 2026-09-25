@@ -247,6 +247,7 @@ async function terminZuweisen(k) {
 
 function drehZuordnen(k, terminId) {
   const r = karteZuTermin(k.id, terminId); // speichert + zeichnet selbst
+  if (r && !r.ok && r.grund) { melde("befund", r.grund); return; } // v70: zu spaeter Drehtermin, blockiert
   if (r && r.warnung) melde("hinweis", r.warnung);
 }
 
