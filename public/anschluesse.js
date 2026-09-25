@@ -165,7 +165,62 @@ function zeichneMarker(sektion) {
   el.innerHTML = statusChip(code);
 }
 
+// --- Der Satz in der Kopfzeile -------------------------------------------
+//
+// Owner 25.09.2026: Solange IRGENDEIN Anschluss arbeitet, steht dort die neueste Aktion aus
+// allen vier Bereichen; sobald nichts mehr laeuft, steht dort „Bereit.". Vorher speiste den
+// Kopf allein der Drive-Abgleich — API, Weitere und KI kamen dort nie an, und der Kopf
+// behauptete Ruhe, waehrend anderswo gearbeitet wurde.
+//
+// Der Kopf gehoert dem Bus NUR waehrend der Arbeit. Danach schreibt er genau EINMAL
+// „Bereit." und laesst los — sonst wuerde er Bestaetigungen wie „Upload am 3.10."
+// (detail.js) im Sekundentakt wieder wegwischen.
+let standEl = null;
+let warAktiv = false;
+let driveStufe = ""; // der schoenere Satz aus dem v51-Stufenstrom, wenn Drive gerade laeuft
+
+export function merkeDriveStufe(satz) {
+  driveStufe = satz || "";
+  zeichneKopf();
+}
+
+function neuesteAktion() {
+  // Die zuletzt begonnene, noch laufende Zeile ueber alle Sektionen — NUR die Zeit
+  // entscheidet, keine Sektion hat Vorrang.
+  //
+  // Die erste Fassung liess Drive immer gewinnen, sobald der Stufenstrom lief. Gemessen
+  // 25.09.2026: ein Klick auf „Zahlen neu abrufen" erzeugte 24 Instagram-Aufrufe, und der
+  // Kopf zeigte die ganze Zeit „Gleicht die Spalten mit Drive ab …" — genau die Aktion, die
+  // NICHT die neueste war.
+  let beste = null;
+  for (const s of SEKTIONEN) {
+    for (const e of verlauf[s.id] || []) {
+      if (!e.laeuft) continue;
+      if (!beste || e.zeit >= beste.e.zeit) beste = { e, name: s.name, id: s.id };
+    }
+  }
+  if (!beste) return driveStufe || "Arbeitet …";
+  // Ist die neueste Aktion eine von Drive und der Stufenstrom hat einen fertigen Satz, gewinnt
+  // der: „Liest Drive-Ordner 4/8: Schnitt" liest sich besser als der nackte rclone-Befehl.
+  if (beste.id === "drive" && driveStufe) return driveStufe;
+  return `${beste.name} · ${beste.e.text}`;
+}
+
+function zeichneKopf() {
+  if (!standEl) return;
+  const laeuftWas = Object.values(aktiv).some(Boolean);
+  if (laeuftWas) {
+    warAktiv = true;
+    standEl.innerHTML = "";
+    standEl.appendChild(sanduhr(neuesteAktion()));
+  } else if (warAktiv) {
+    warAktiv = false;
+    standEl.textContent = "Bereit.";
+  }
+}
+
 export function zeichneAnschluesse() {
+  zeichneKopf();
   if (!leiste) return;
   for (const s of SEKTIONEN) {
     zeichneMarker(s.id);
@@ -267,8 +322,9 @@ function verbindeFeed() {
   };
 }
 
-export async function verdrahteAnschluesse(el) {
+export async function verdrahteAnschluesse(el, stand) {
   leiste = el;
+  standEl = stand || null;
   if (!leiste) return;
   leiste.innerHTML = "";
   for (const s of SEKTIONEN) leiste.appendChild(baueSektion(s));

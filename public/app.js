@@ -11,7 +11,7 @@ import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, 
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
-import { verdrahteAnschluesse, alleAbgleichen } from "./anschluesse.js"; // v58: Anschluss-Leiste im Kopf
+import { verdrahteAnschluesse, alleAbgleichen, merkeDriveStufe } from "./anschluesse.js"; // v58: Anschluss-Leiste + Kopf-Satz
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -72,15 +72,17 @@ verdrahteKopf(el("stand"));
 // mit eigenem Zustand, eigenem Abgleich-Knopf und einem aufklappbaren Live-Terminal. Die
 // Leiste lebt in anschluesse.js und speist sich aus dem Ereignis-Strom des Servers; sie
 // braucht hier keine Zustandsvariablen mehr (frueher googleOk/driveOk/syncOk).
-verdrahteAnschluesse(el("anschluesse"));
-// Die Stufen des Drive-Abgleichs (v51 T7) laufen weiter im Kopf-Stand mit.
-// v69: Ein leerer Satz ist das Abschluss-Signal (driveAbgleich() ruft im finally
-// setzeAbgleichStufe("") ) — dann die Sanduhr wegraeumen, sonst dreht sie nach dem
-// automatischen Hintergrund-Abgleich ewig weiter (der Knopf-Pfad hatte sein eigenes
-// setStand im finally, der Start-/Intervall-Abgleich nicht). Live bestaetigt 25.09.2026:
-// /api/drive/reconcile/stream kam mit 200 durch, der Kopf blieb trotzdem auf der letzten
-// Stufe stehen.
-beiAbgleichStufe((satz) => { if (satz) standLaedt(satz); else setStand("Bereit."); });
+verdrahteAnschluesse(el("anschluesse"), el("stand"));
+// v58 Nachlese 3: Den Satz in der Kopfzeile fuehrt jetzt der Ereignis-Bus, nicht mehr allein der
+// Drive-Abgleich. Grund (Owner 25.09.2026): der Kopf schrieb „Bereit.", sobald der Reconcile
+// durch war — arbeitete danach Drive weiter (Scans, Speichern) oder liefen API/Weitere/KI,
+// blieb er trotzdem auf „Bereit." stehen und behauptete Ruhe. Die Bedingung dafuer, ob
+// gearbeitet wird, kennt nur der Bus: er sieht ALLE vier Bereiche.
+//
+// Der v69-Befund bleibt gewahrt: ein leerer Satz ist weiterhin das Abschluss-Signal des
+// Stufenstroms — er raeumt jetzt nur die Stufe weg, und ob die Sanduhr bleibt, entscheidet
+// der Bus anhand echter laufender Aufrufe.
+beiAbgleichStufe(merkeDriveStufe);
 
 // --- Karte oeffnen --------------------------------------------------------
 
