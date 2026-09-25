@@ -31,13 +31,53 @@ Farben/Ampel-Trigger NICHT editierbar.
 - Was macht `6e5d1dc` genau (`stellschraube("ampel-schwellen",...)`, `workflows.js`) und wer liest es?
 - Welche Karten haben kein Uploaddatum (`floatUpload`) — wie greift das Modell dort?
 
-## OFFENE DESIGN-FRAGEN (vor dem Bau mit Owner klaeren)
-1. **Welche Aktionen** tragen Deadlines (heutige Phasen: Idee/Skript/Freigabe/Dreh/Schnitt/Upload)? Welche NICHT?
-2. **Default-Offsets** je Aktion (Tage vor Upload)?
-3. **Aktion ↔ Spalte:** Board-Spalten bleiben; wie mappen Aktionen darauf (1:1, oder Aktionen quer)?
-4. **Drehtermin:** bleibt der zugewiesene Drehtermin (`drehterminId`) eine eigene, feste Deadline neben den
-   offset-basierten, oder wird er auch als Aktions-Offset gefuehrt?
-5. **Migration** bestehender v66-Daten + Karten ohne Uploaddatum.
+## DESIGN-ENTSCHEIDE (Owner + Bau-Session, 25.09.2026)
+
+Besitzer des Baus: die Ampel-/Deadline-Session (diese) — Owner-Entscheid per AskUserQuestion.
+
+1. **Aktionen mit Deadline** = die bestehenden TERMINE: `dreh`, `schnitt`, `freigabe`, `upload`
+   (Skript bleibt ohne Datum). Keine neuen Aktionen — minimaler, korrekter Umbau.
+2. **Default-Offsets (Tage VOR Upload):** upload 0 · freigabe 3 · schnitt 6 · dreh 12. freigabe/schnitt
+   = bisheriges Verhalten; dreh 12 = Ziel-Vorlauf, wenn kein echter Drehtermin zugewiesen ist. Alle
+   editierbar an EINER Stelle (Einstellungen).
+3. **Aktion ↔ Fortschritt:** Deadline-DATUM ist rein upload-verankert (Upload − Offset), NICHT
+   spaltenabhaengig. Welche Aktionen fuer die Ampel noch RELEVANT sind (also faerben), bleibt an der
+   Spalte: eine Aktion zaehlt, solange die Karte ihre Phase noch nicht hinter sich hat
+   (`phaseIndex(card.column) <= phaseIndex(aktion.phase)`) — verhindert falsches Rot fuer erledigte Schritte.
+4. **Drehtermin — „zugewiesener Termin gewinnt" + Gruen-Puffer-Block (Owner 25.09.2026):**
+   - Ampel: ist ein echter Drehtermin zugewiesen (`drehterminId` → `S.drehtermine`), zaehlt SEIN Datum
+     als Dreh-Deadline; sonst der ABGELEITETE spaeteste Dreh (kein eigener Offset).
+   - **Spaetester Dreh = Schnitt-Deadline − (gelbTage+1) = Upload − offsetSchnitt − (gelbTage+1)**
+     (Defaults 6+6 → Upload−12). Begruendung Owner: wird der Drehtag eingehalten, soll die Karte mit
+     GRUENEM Punkt in den Schnitt rutschen — der Dreh muss so weit vor dem Schnitt liegen, dass die
+     Schnitt-Deadline am Drehtag noch gruen ist (> gelbTage Tage entfernt), nicht schon gelb.
+   - **Block bei Zuweisung (`store.js karteZuTermin`):** ein Drehtermin mit Datum > spaetester Dreh
+     ist fuer diese Karte NICHT zuweisbar (Refusal mit Grund), nicht nur gewarnt. Greift je
+     Karte↔Termin (geteilter Termin, je Karte eigener Upload). Kein Upload → kein Block (nicht rechenbar).
+   - Hinweis-Text dazu in den Einstellungen bei den Deadline-Offsets (Peer/ui.js).
+5. **rot/gelb FEST** — `6e5d1dc` (editierbare Schwellen) wird ZURUECKGEROLLT: `AMPEL` wieder feste
+   Konstante, `ampel-schwellen`-Workflow + `setAmpelSchwellen`/`syncAmpelSchwellen` raus.
+6. **Migration:** Karten behalten `dates.upload` (Anker). Abgeleitete Deadlines werden LIVE aus Upload +
+   Offsets gerechnet — die Ampel liest NICHT mehr `card.dates[termin]` (Ende der v66-Staleness). Karten
+   ohne Uploaddatum (`floatUpload`/kein Upload) haben keine abgeleiteten Deadlines → Ampel neutral (gruen).
+   `card.dates.schnitt/freigabe` bleiben als Anzeige-Cache fuer detail.js (rueckwaertsplan unveraendert),
+   sind aber nicht mehr Ampel-Quelle. `detail.js` wird NICHT angefasst.
+
+## Bau-Plan (diese Session)
+
+- `lib/pipeline.js`: `AKTIONEN` (dreh/schnitt/freigabe/upload, je Offset + `phase`), `deadlineOffsets`
+  + `setDeadlineOffsets()`; `deadlineFuer(card, key, drehDatum)` = Upload − Offset (dreh: zugewiesener
+  Termin gewinnt). `relevanteFristen`/`ampel` auf abgeleitete Deadlines umstellen. `AMPEL` wieder feste
+  Konstante; `AMPEL_STANDARD`/`ampelSchwellen`/`setAmpelSchwellen`/`ampelSchwellenJetzt` entfernen.
+  `deadlineKette`/`setDeadlineKette` durch `deadlineOffsets`/`setDeadlineOffsets` ersetzen; `rueckwaertsplan`
+  bleibt (detail.js-Cache), liest die Offsets.
+- `lib/workflows.js`: `ampel-schwellen`-Eintrag raus (Rollback 6e5d1dc); `rueckwaertsplan`-Params von
+  gap* (Tage-zu-naechster) auf offset* (Tage-vor-Upload) umstellen: `offsetDreh`/`offsetSchnitt`/`offsetFreigabe`.
+- `public/store.js`: `syncAmpelSchwellen` raus; `syncDeadlineKette` → `syncDeadlineOffsets` (liest offset*-Params).
+- `public/redaktionsplan.js`: `baueDeadlines`-Sektion entfernen (v66-UI raus, keine Doppelung).
+- `public/board.js`: `ampel()`-Aufruf an die neue Signatur anpassen (Drehtermin-Aufloesung bleibt).
+- `public/ui.js` (Peer): EIN Einstellungen-Feldblock fuer die Offsets — Ort mit Peer abstimmen; API:
+  `stellschraube("rueckwaertsplan","offsetDreh"/…)` lesen, `setzeWorkflow` schreiben.
 
 ## Plan (nach Design-Freigabe)
 1. Datenmodell: Aktions-Offsets in den Drive-Defaults (v60), zentrale `deadlineFuer(card, aktion)` = Upload − Offset in `pipeline.js`.
