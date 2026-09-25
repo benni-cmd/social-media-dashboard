@@ -112,15 +112,19 @@ ui.js, style.css, stores/workflows). Nur EINE Session baut. Owner entscheidet Be
       ampel-schwellen raus), store (syncDeadlineOffsets + Dreh-Block), redaktionsplan (v66-UI raus),
       kontextmenu (Block-Meldung)
 - [x] Verify (node --check, Node-Probe, Browser-Integration + Screenshot)
-- [ ] Commit + Push (Logik-Teil)
-- [ ] detail.js: Block-Meldung (Refusal) — an Peer uebergeben (detail.js dirty von Peer-WIP)
-- [ ] ui.js: EIN Offset-Feldblock in den Einstellungen — Peer, Ort abstimmen
+- [x] Commit + Push (Logik-Teil): 1fbbe9d
+- [x] detail.js: Block-Meldung (Refusal) — Layout-Session, b9d370a
+- [x] ui.js: Offset-Feldblock im Ansicht-Tab (Deadline-Vorlauf) — Layout-Session, b46fe24
+- [x] End-to-End verifiziert (25.09.2026): UI schreibt offsetFreigabe/offsetSchnitt (Param-Keys passen zu
+      store.syncDeadlineOffsets), setzeWorkflow persistiert (Datei), ladeWorkflows → pipeline: offsetSchnitt
+      10 → Schnitt-Deadline U−10, spaetesterDreh U−16 (Gruen-Puffer −6 erhalten); danach auf 3/6 zurueckgesetzt.
 
-## DoD
-- Genau eine Deadline-Quelle (Einstellungen), Redaktionsplan ohne Deadline-Bearbeitung. ✓ (Logik)
-- Ampel faerbt nach Upload−Offset; rot/gelb fest. ✓
-- Offsets editierbar (Workflow-Params `offsetFreigabe`/`offsetSchnitt`) + persistent; Karten ohne Upload
-  neutral. ✓ (Bedien-UI in ui.js noch beim Peer.)
-Geprueft gegen: `node --check` · Node-Probe gegen `lib/pipeline.js` + `data/board.json` · Browser-Integration
-:4399 + Screenshot. Offen: detail.js-Refusal + ui.js-Offset-Felder (Peer); Live-Board-Screenshot (Board
-haengt beim Vollstart an Drive — Rendering-Pfad unveraendert seit v65, isoliert bestaetigt).
+## DoD — ERFUELLT (25.09.2026)
+- Genau eine Deadline-Quelle (Ansicht-Tab, Offset-Felder), Redaktionsplan ohne Deadline-Bearbeitung. ✓
+- Ampel faerbt nach Upload−Offset; rot/gelb fest (2/5). ✓
+- Offsets editierbar (`offsetFreigabe`/`offsetSchnitt`) + persistent; Karten ohne Upload neutral. ✓
+- Drehtermin: zugewiesener gewinnt; zu spaeter Termin blockiert (Gruen-Puffer). ✓
+Geprueft gegen: `node --check` (pipeline/workflows/store/redaktionsplan/kontextmenu) · Node-Probe gegen
+`lib/pipeline.js` + `data/board.json` · Browser-Integration :4399 (12 Karten, 0 Fehler) + Screenshot ·
+End-to-End UI→pipeline (offsetSchnitt 10 → Deadlines verschoben, dann 3/6) · Commits 1fbbe9d (Logik),
+b9d370a (detail.js), b46fe24 (ui.js). Offen: nichts — v70 vollstaendig.
