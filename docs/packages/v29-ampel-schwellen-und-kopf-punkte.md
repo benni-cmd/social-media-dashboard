@@ -296,6 +296,18 @@ zeigt alle drei Runde-9-Textentfernungen UND alle vorherigen Runden korrekt: kei
 Kopf-Pfad-Kette, keine Kategorie-Zahlen, "Drehtermine" nur als Icon, Formate/Schatten/
 Icon-Kacheln aus den Runden 1–8 weiterhin intakt.
 
+### Runde 10 (Owner 16.09.2026: Ampel-Punkte im Hauptkopf weg, Titel "Content-Maschine" →
+"WEE Social Media Suit")
+
+**Umgesetzt:** `public/style.css` — die drei `::before`-Chrome-Punkte vor dem Haupttitel
+entfernt (dieselbe Art Dekoration, die schon in v29 Runde 1 aus den Spaltenkoepfen raus ist,
+jetzt konsequent auch hier). `public/index.html` — `<span class="kopf-titel">` UND das
+`<title>`-Tag im `<head>` (Browser-Tab-Titel, dieselbe sichtbare Namensflaeche) von
+"Content-Maschine" auf "WEE Social Media Suit" geaendert. README/sonstige Stellen bewusst
+nicht angefasst — nicht Teil der Anfrage.
+
+**Verifiziert:** Screenshot Board — Kopfzeile ohne Punkte, Titel zeigt den neuen Namen.
+
 ## DoD
 
 - [x] Chrome-Punkte aus jedem Spaltenkopf entfernt, Platz freigegeben.
