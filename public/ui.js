@@ -601,7 +601,7 @@ export function feldMitInfo(label, el, tipp = "") {
   return wrap;
 }
 
-// --- Cursor-Modus (v67, Tab "Ansicht") -------------------------------------
+// --- Cursor-Modus (v67, Tab "Darstellung")-------------------------------------
 //
 // Standard: eigener Haus-Cursor ueberall (v57). Ausgeschaltet: System-Cursor ueberall — eine
 // Klasse auf <html> hebt die eigenen cursor:-Regeln auf (siehe style.css, --cursor-*-Variablen).
@@ -710,7 +710,19 @@ export function einstellungenModal(onThemeChange) {
     label.appendChild(span);
     themeReihe.appendChild(label);
   }
-  seite1.appendChild(themeReihe);
+  // Beide Bloecke als Kachel (.einst-rolle), wie die Rollen- und Verbindungs-Zeilen der anderen Tabs.
+  const themeKachel = document.createElement("div");
+  themeKachel.className = "einst-rolle";
+  const themeLabel = document.createElement("div");
+  themeLabel.className = "einst-label";
+  themeLabel.textContent = "Farbschema";
+  themeKachel.appendChild(themeLabel);
+  const themeHinweis = document.createElement("p");
+  themeHinweis.className = "einst-provider-sub einst-kachel-sub";
+  themeHinweis.textContent = "Helles oder dunkles Erscheinungsbild der ganzen Oberflaeche.";
+  themeKachel.appendChild(themeHinweis);
+  themeKachel.appendChild(themeReihe);
+  seite1.appendChild(themeKachel);
 
   // Seite Ansicht (v67, Owner-Auftrag 24.09.2026): Cursor-Stil + Ampel-Regeln erklaeren — rein
   // Vorlieben/Erklaerung, keine Verbindung, kein OAuth.
@@ -722,17 +734,16 @@ export function einstellungenModal(onThemeChange) {
   seiteAnsicht.appendChild(titelAnsicht);
 
   const cursorAbschnitt = document.createElement("div");
-  cursorAbschnitt.className = "einst-abschnitt";
+  cursorAbschnitt.className = "einst-rolle";
   const cursorLabel = document.createElement("div");
   cursorLabel.className = "einst-label";
   cursorLabel.textContent = "Cursor";
   cursorAbschnitt.appendChild(cursorLabel);
   const cursorHinweis = document.createElement("p");
-  cursorHinweis.className = "einst-provider-sub";
+  cursorHinweis.className = "einst-provider-sub einst-kachel-sub";
   cursorHinweis.textContent =
-    "Standardmaessig ersetzt ein eigener Pfeil im Haus-Stil den System-Cursor ueberall, auch an " +
-    "Knoepfen und an der Zieh-Kante der Detailspalte (v57). Ausgeschaltet zeigt das Programm " +
-    "ueberall wieder den System-Cursor.";
+    "Ein eigener Pfeil im Haus-Stil ersetzt den System-Cursor ueberall, auch an Knoepfen und an " +
+    "der Zieh-Kante der Detailspalte. Ausgeschaltet zeigt die Oberflaeche wieder den System-Cursor.";
   cursorAbschnitt.appendChild(cursorHinweis);
 
   const cursorReihe = document.createElement("div");
@@ -763,7 +774,7 @@ export function einstellungenModal(onThemeChange) {
   });
   cursorReihe.appendChild(cursorSchalter);
   cursorAbschnitt.appendChild(cursorReihe);
-  seiteAnsicht.appendChild(cursorAbschnitt);
+  seite1.appendChild(cursorAbschnitt);
 
   // Ampel-Regeln (v65): nur erklaert, nicht editierbar — die Schwellen sind Haus-Standard;
   // editierbar-oder-fest klaert der Owner separat (v67-Auftrag, bewusst keine Eingabefelder hier).

@@ -2757,6 +2757,7 @@ body {
   margin-bottom: 14px;
 }
 .einst-rolle:last-child { margin-bottom: 0; }
+.einst-kachel-sub { margin: -4px 0 12px; line-height: 1.5; }
 .einst-rolle-zusatz {
   margin-top: 14px;
   padding-top: 14px;
