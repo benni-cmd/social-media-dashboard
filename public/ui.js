@@ -6,7 +6,7 @@
 
 // KI-Rollen-Konfig kommt aus store.js (eine Wahrheit): ui.js importiert statisch, store.js
 // zieht ui.js nur dynamisch (store.js:130) — deshalb kein Zyklus.
-import { ROLLEN, ROLLEN_META, rolleKonfig, setzeRolleKonfig } from "./store.js";
+import { ROLLEN, ROLLEN_META, rolleKonfig, setzeRolleKonfig, stellschraube, setzeWorkflow, zeichne } from "./store.js";
 import { KATALOG, istAn, setzeAn } from "/lib/kartenhinweise.js";
 
 // --- Icons (Lucide, 24x24, Strich) ---------------------------------------
@@ -842,6 +842,89 @@ export function einstellungenModal(onThemeChange) {
     "gruen. Fest hinterlegt, hier nicht aenderbar.";
   ampelAbschnitt.appendChild(ampelText);
   seiteAnsicht.appendChild(ampelAbschnitt);
+
+  // Deadline-Vorlauf (v70): die EINE Stelle, an der der Owner die Offsets „Tage vor Upload" aendert.
+  // Das geplante Upload-Datum ist der Anker; Freigabe- und Schnitt-Deadline rechnen sich davon
+  // rueckwaerts. Beide Offsets teilen sich den Workflow "rueckwaertsplan" — beim Schreiben deshalb
+  // IMMER beide mitgeben (sonst faellt der andere auf seinen Standard zurueck).
+  const offsetKachel = document.createElement("div");
+  offsetKachel.className = "einst-rolle";
+  const offsetLabel = document.createElement("div");
+  offsetLabel.className = "einst-label";
+  offsetLabel.textContent = "Deadline-Vorlauf";
+  offsetKachel.appendChild(offsetLabel);
+  const offsetSub = document.createElement("p");
+  offsetSub.className = "einst-provider-sub einst-kachel-sub";
+  offsetSub.textContent =
+    "Wie viele Tage vor dem geplanten Upload die abgeleiteten Deadlines faellig sind. Das " +
+    "Upload-Datum bleibt die zentrale Deadline; Freigabe und Schnitt rechnen sich davon zurueck.";
+  offsetKachel.appendChild(offsetSub);
+
+  const offsetReihe = document.createElement("div");
+  offsetReihe.className = "schalterreihe";
+  offsetReihe.style.gap = "16px";
+  offsetReihe.style.flexWrap = "wrap";
+
+  const offsetFeld = (labelText, key) => {
+    const feld = document.createElement("label");
+    feld.className = "einst-provider-sub";
+    feld.style.display = "flex";
+    feld.style.flexDirection = "column";
+    feld.style.gap = "4px";
+    const t = document.createElement("span");
+    t.textContent = labelText;
+    const input = eingabe(String(stellschraube("rueckwaertsplan", key)), { typ: "number" });
+    input.min = "0";
+    input.step = "1";
+    input.style.maxWidth = "120px";
+    input.dataset.offsetKey = key;
+    feld.appendChild(t);
+    feld.appendChild(input);
+    return input;
+  };
+
+  const freigabeInput = offsetFeld("Freigabe (Tage vor Upload)", "offsetFreigabe");
+  const schnittInput = offsetFeld("Schnitt (Tage vor Upload)", "offsetSchnitt");
+  offsetReihe.appendChild(freigabeInput.parentElement);
+  offsetReihe.appendChild(schnittInput.parentElement);
+  offsetKachel.appendChild(offsetReihe);
+
+  // Ganze Tage, nicht negativ. Beim Speichern BEIDE aktuellen Werte zusammen schreiben.
+  const leseGanzeTage = (input) => {
+    const z = Math.max(0, Math.round(Number(input.value)));
+    return Number.isFinite(z) ? z : 0;
+  };
+  const speichereOffsets = async () => {
+    const neuFreigabe = leseGanzeTage(freigabeInput);
+    const neuSchnitt = leseGanzeTage(schnittInput);
+    freigabeInput.value = String(neuFreigabe);
+    schnittInput.value = String(neuSchnitt);
+    freigabeInput.disabled = true;
+    schnittInput.disabled = true;
+    try {
+      await setzeWorkflow("rueckwaertsplan", {
+        params: { offsetFreigabe: neuFreigabe, offsetSchnitt: neuSchnitt },
+      });
+      zeichne();
+    } catch {
+      // Speichern fehlgeschlagen: zurueck auf die zuletzt gueltigen (gespeicherten) Werte.
+      freigabeInput.value = String(stellschraube("rueckwaertsplan", "offsetFreigabe"));
+      schnittInput.value = String(stellschraube("rueckwaertsplan", "offsetSchnitt"));
+    } finally {
+      freigabeInput.disabled = false;
+      schnittInput.disabled = false;
+    }
+  };
+  freigabeInput.addEventListener("change", speichereOffsets);
+  schnittInput.addEventListener("change", speichereOffsets);
+
+  const offsetPuffer = document.createElement("p");
+  offsetPuffer.className = "einst-provider-sub einst-kachel-sub";
+  offsetPuffer.textContent =
+    "Mehr Vorlauf heisst: die Deadline wird frueher faellig — also mehr Puffer bis zum Upload. " +
+    "Die Ampel der Karte wird dadurch frueher gruen.";
+  offsetKachel.appendChild(offsetPuffer);
+  seiteAnsicht.appendChild(offsetKachel);
 
   // Seite Hinweise & Warnungen (v68): zwei Kacheln mit Checkbox-Listen; jeder Haken speichert
   // sofort (kein "Speichern"-Knopf) und die Karten zeichnen sich neu.
