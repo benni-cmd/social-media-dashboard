@@ -52,12 +52,32 @@ Netzwerk pruefen, ob der Abgleich real durchlaeuft (dann reine Anzeige) oder an 
 
 ## Stand
 - [x] Sanduhr-Ursache live eingegrenzt: globaler Reconcile-Indikator haengt bei Ordner 8/8 „Verworfen" (25.09.2026)
-- [ ] Sanduhr-Ursache im Code bestaetigt (app.js/store.js Abgleich-Abschluss)
-- [ ] Sanduhr-Fix + Verify
-- [ ] Titelzeile-Fix + Verify (nur bei sauberer style.css)
-- [ ] Commit(s) + Paket nachgefuehrt
+- [x] Sanduhr-Ursache im Code bestaetigt (25.09.2026): NICHT der Server. `/api/drive/reconcile/stream`
+  kam live mit **200 OK durch** (Netzwerk-Tab, kein haengender Request), Konsole fehlerfrei. Reine
+  Anzeige: `driveAbgleich()` ruft im `finally` `setzeAbgleichStufe("")` (store.js:445), aber der
+  Dauer-Hoerer in `app.js:73` hatte ein `if (satz)`-Guard und verwarf den leeren Abschluss-Satz —
+  die Sanduhr blieb auf der letzten Stufe stehen. Der Knopf-Pfad („Alles abgleichen") hatte sein
+  eigenes `setStand` im `finally` und raeumte auf; der automatische Start-/Intervall-Abgleich nicht.
+- [x] Sanduhr-Fix + Verify (25.09.2026): `app.js:73` raeumt bei leerem Satz per `setStand("Bereit.")`
+  auf. Live: nach Reload lief der Auto-Abgleich (`reconcile/stream` 200 OK) durch, Kopf zeigt wieder
+  „Bereit." statt Dauer-Sanduhr (Screenshot). Minimal-invasiv, nur die eine Hoerer-Zeile.
+- [x] Titelzeile-Fix + Verify (25.09.2026): `.eintrag-titel` `line-height` 1.35 → 1.5, Zwei-Zeilen-
+  Reservierung (`min-height`) und der Status-Punkt-Float (`::before height`) ziehen mit. Live:
+  Karten-Titel haben sichtbar mehr Luft, Kachel-Layout intakt (Screenshot). `node --check` n/a (CSS).
+- [x] **Code-Fixes committet + gepusht (25.09.2026) — via Kollisions-Aufloesung:** Waehrend dieser
+  Sitzung hat die parallele **v68-Session** („Hinweise & Warnungen") dieselben zwei Zieldateien
+  (`public/app.js`, `public/style.css`) uncommitted mitbenutzt (Import `/lib/kartenhinweise.js`,
+  `meldung-*`-Klassen). Ein eigener Pathspec-Commit haette v68s halbfertige Arbeit mit-hochgenommen
+  (kurzzeitig auch die noch untracked `lib/kartenhinweise.js`), also NICHT selbst committet. Dann hat
+  v68 seine Dateien selbst per Pathspec committet (**`a76c1ed`**, bereits auf `origin/main` gepusht) —
+  und weil ein Pathspec-Commit den ganzen Datei-Stand nimmt, sind MEINE v69-Hunks darin mitgelandet:
+  `git show a76c1ed:public/app.js` fuehrt `… else setStand("Bereit.")` (Zeile 83), `…style.css` das
+  `min-height: calc(1.5em * 2)` (Zeile 967). Gepruefte Realitaet des geteilten Arbeitsbaums:
+  Datei-Eigentum ist Pathspec-scharf, nicht Hunk-scharf. Code-Stand ist somit gesichert; dieses
+  Paket-Artefakt kommt als eigener v69-Doc-Commit hinterher.
 
 ## DoD
-- Verworfen-Indikator dreht nicht mehr dauerhaft (live gegengeprueft).
-- Titelzeile hat mehr Platz, Kachel-Layout intakt (Screenshot).
-- `node --check` gruen; nur selbst geaenderte Dateien committet.
+- [x] Verworfen-/Reconcile-Indikator dreht nicht mehr dauerhaft (live gegengeprueft, Kopf = „Bereit.").
+- [x] Titelzeile hat mehr Platz, Kachel-Layout intakt (Screenshot).
+- [x] `node --check public/app.js` gruen.
+- [x] Code-Fixes in `origin/main` (`a76c1ed`, von v68s Pathspec-Commit mitgetragen); v69-Doc separat committet.
