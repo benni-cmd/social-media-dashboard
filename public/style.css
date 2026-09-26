@@ -3555,3 +3555,20 @@ body {
 .drive-klick:hover .icon { outline: 2px solid var(--akzent); outline-offset: 1px; }
 /* Menue: Marke durch eine feine Linie vom Menuetext abgetrennt, rechtsbuendig */
 .einst-nav-item .drive-marke { margin-left: auto; padding-left: 8px; border-left: 1px solid var(--linie); }
+
+/* v74: Auf-/Zuklapp-Pfeil an jedem Gruppenkopf der Detailspalte (zu = nach unten, offen = nach oben) */
+.gruppe-kopf::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  margin-right: 3px;
+  border-right: 2px solid var(--text-still);
+  border-bottom: 2px solid var(--text-still);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform .15s ease;
+}
+.gruppe-kopf:has(.gruppe-anzahl)::after { margin-left: 4px; }
+.gruppe[open] > .gruppe-kopf::after { transform: translateY(2px) rotate(-135deg); }
+.gruppe-kopf:hover::after { border-color: var(--text); }
