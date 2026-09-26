@@ -64,7 +64,17 @@ diese Session diagnostiziert, Bau erst nach Owner-Entscheid + Abstimmung, um Kol
 - [x] Ursache lokalisiert: fehlendes sperrendes Skript-Datei-Tor (pipeline.js)
 - [x] Owner-Entscheid (26.09.2026): vorwärts sperren + Altlasten „!"; nur „skript"-Dateien zählen
 - [x] Exakte 3-Datei-Spec erstellt (pipeline.js / board.js / kartenhinweise.js)
-- [ ] Bau (Peer-geführt) + Live-Verify (diese Session)
+- [x] Bau (Ampel/pipeline-Session, atomar in EINEM Commit): pipeline.js (hatSkript + skriptDateiTor:
+      idee sperrend, skript/videodreh markierend, `gespeichert` ersetzt) · board.js BRAUCHT_DRIVE +=
+      „skript-datei" · kartenhinweise.js KATALOG += skript-datei (Warnung), `gespeichert` entfernt.
+- [x] Node-Verify: idee ohne Datei → sperrt; mit → frei; „caption.md" oeffnet NICHT (nur „skript" zaehlt,
+      case-insensitiv); skript/videodreh → nur Markierung; kartenMeldungen → rotes „!"; `gespeichert` weg.
+- [ ] Live-Verify im Browser (Layout-/Diagnose-Session) nach Server-Neustart (neues Register/Tore aktiv)
+
+## Verify (Node-Probe, 26.09.2026)
+`node --check` pipeline/board/kartenhinweise → OK. Tor-Matrix: idee/[] fehlt/sperrt (blockt) · idee/[10_skript.md]
+ok/frei · idee/[caption.md] fehlt/sperrt · skript/[] fehlt/frei · skript/[Skript_final.docx] ok · videodreh/[]
+fehlt/frei. `kartenMeldungen` liefert die skript-datei-Warnung als rotes „!". KATALOG: gespeichert=weg, skript-datei=da.
 
 ## DoD
 - idee→skript blockiert, solange „Skript und Caption" keine (passende) Datei enthält; frei, sobald eine liegt.

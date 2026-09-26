@@ -29,7 +29,7 @@ export const beiOeffnen = (f) => (oeffne = f);
 
 // Tore, die den Drive-Stand brauchen. Ohne ihn duerfen sie nicht als "offen" gezaehlt
 // werden — sonst behauptet die Kachel etwas, das niemand geprueft hat.
-const BRAUCHT_DRIVE = new Set(["rohmaterial", "final"]);
+const BRAUCHT_DRIVE = new Set(["rohmaterial", "final", "skript-datei"]);
 
 function pruefungen(k) {
   const stand = S.driveStand.get(k.id);
