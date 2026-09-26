@@ -33,18 +33,27 @@ Nutzt den bestehenden, korrekt arbeitenden Scan. Statuswort `fehlt` wenn keine D
 - Tore aktiv: `upload-fertig-weiter an=true, toreBeachten=true` (live).
 - Datenlage: 13 Karten in skript/videodreh; mehrere mit `skriptFinal:false` UND leerem `skriptDateien`.
 
-## OFFENE OWNER-FRAGEN (vor dem Bau)
-1. Nur **vorwärts** sperren (künftige Übergänge), oder auch die **bereits falsch** in Drehtermin/Videodreh
-   stehenden Karten markieren/zurückholen?
-2. Zählt JEDE Datei in „Skript und Caption" als Skript, oder nur bestimmte (z. B. `*skript*`/`.md`)?
-   (Mischkultur hat `10_skript.md`.)
-3. Soll zusätzlich der bisherige weiche Hinweis `gespeichert` durch das echte Scan-Tor ersetzt werden?
+## OWNER-ENTSCHEID (26.09.2026, AskUserQuestion)
+1. **Vorwärts sperren + Altlasten markieren:** künftige Übergänge idee→skript blockieren, UND bereits
+   ohne Skript-Datei in Drehtermin/Videodreh stehende Karten sichtbar mit rotem „!" markieren. KEIN
+   automatisches Zurückschieben.
+2. **Nur Dateien mit „skript" im Namen** zählen (Namensfilter, case-insensitive) — vermeidet, dass eine
+   reine Caption-Datei im selben Ordner „Skript und Caption" die Sperre fälschlich öffnet.
 
-## Plan (nach Owner-Antwort + Peer-Abstimmung)
-1. In `lib/pipeline.js` `tore()` im `if (p === "idee")`-Block ein sperrendes Tor ergänzen:
-   `tor("skript-datei", d.skriptDateien?.length ? "ok" : "fehlt", …, true)`.
-2. Sicherstellen, dass der Scan `d` im idee-Pfad wirklich anliegt (board.js/detail.js Aufrufkette).
-3. Verify: Karte ohne Datei → idee→skript blockiert; Datei anlegen → Übergang frei. Browser + `node --check`.
+## Plan — exakte 3-Datei-Spec (nach Peer-Abstimmung, pipeline.js ist Peer-Datei)
+Helfer: `hatSkript(d) = (d?.skriptDateien || []).some(n => n.toLowerCase().includes("skript"))`.
+1. **`lib/pipeline.js` `tore()`** (Peer):
+   - `if (p === "idee")`: sperrendes Tor `tor("skript-datei", hatSkript(d) ? "ok" : "fehlt", <satz>, true)` → blockiert idee→skript ohne Skript-Datei.
+   - `if (p === "skript")` und `if (p === "videodreh")`: dasselbe Tor OHNE sperrt (nur Markierung) — surft über KATALOG (art „warnung") als rotes „!".
+   - Den bisherigen weichen Flag-Hinweis `gespeichert` (pipeline.js:1021, an `card.skriptGespeichert`) durch dieses scan-basierte Tor **ersetzen** (keine Doppelmeldung).
+2. **`public/board.js`**: `BRAUCHT_DRIVE = new Set(["rohmaterial", "final", "skript-datei"])` — Tor nur nach Scan werten.
+3. **`lib/kartenhinweise.js` KATALOG** (v68-Datei): Eintrag `{ key: "skript-datei", art: "warnung", spalte: "Idee, Skript, Videodreh", label: "Kein Skript-Dokument im Drive-Ordner" }`; alten `gespeichert`-Eintrag (Z. 43) entfernen. Prüfen, dass `schluesselVon` die Tor-id „skript-datei" auf denselben Key mappt.
+4. **Verify:** Karte ohne „skript"-Datei → idee→skript blockiert + „!"; „…skript.md" in „Skript und Caption" anlegen → Tor „ok", Sperre/„!" weg. Browser-Screenshot + `node --check`.
+
+## Koordination — 3 fremde/geteilte Dateien
+pipeline.js = Peer (v70/v70b), kartenhinweise.js = Session „Hinweise & Warnungen" (v68), board.js = geteilt.
+Am saubersten baut EINE Session alle drei in EINEM Commit (atomar: Tor ohne KATALOG-Eintrag = unsichtbar).
+Empfehlung: Peer führt (owned pipeline.js), diese Session verifiziert live.
 
 ## Koordination
 `lib/pipeline.js` ist die Datei der Session „Ampel-Logik" (Peer, v70/v70b). Edit mit ihr abstimmen —
@@ -53,8 +62,9 @@ diese Session diagnostiziert, Bau erst nach Owner-Entscheid + Abstimmung, um Kol
 ## Stand
 - [x] Drive-Abgleich verifiziert: Scan meldet skriptDateien korrekt (26.09.2026)
 - [x] Ursache lokalisiert: fehlendes sperrendes Skript-Datei-Tor (pipeline.js)
-- [ ] Owner-Fragen geklärt
-- [ ] Bau + Verify (nach Peer-Abstimmung)
+- [x] Owner-Entscheid (26.09.2026): vorwärts sperren + Altlasten „!"; nur „skript"-Dateien zählen
+- [x] Exakte 3-Datei-Spec erstellt (pipeline.js / board.js / kartenhinweise.js)
+- [ ] Bau (Peer-geführt) + Live-Verify (diese Session)
 
 ## DoD
 - idee→skript blockiert, solange „Skript und Caption" keine (passende) Datei enthält; frei, sobald eine liegt.
