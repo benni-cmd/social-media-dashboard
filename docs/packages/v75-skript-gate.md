@@ -69,13 +69,20 @@ diese Session diagnostiziert, Bau erst nach Owner-Entscheid + Abstimmung, um Kol
       „skript-datei" · kartenhinweise.js KATALOG += skript-datei (Warnung), `gespeichert` entfernt.
 - [x] Node-Verify: idee ohne Datei → sperrt; mit → frei; „caption.md" oeffnet NICHT (nur „skript" zaehlt,
       case-insensitiv); skript/videodreh → nur Markierung; kartenMeldungen → rotes „!"; `gespeichert` weg.
-- [ ] Live-Verify im Browser (Layout-/Diagnose-Session) nach Server-Neustart (neues Register/Tore aktiv)
+- [x] Live-Verify (Diagnose-Session, :4321, DOM aria-labels, 26.09.2026): MachuPicchu (skript,
+      skriptDateien=[]) traegt das rote „!" „kein Skript-Dokument"; Mischkultur (10_skript.md) NICHT;
+      ungescannte Karten zeigen es erst nach ihrem Drive-Scan (BRAUCHT_DRIVE, gewollt); idee-Sperre
+      code+node bestaetigt (skriptDateiTor(d,true)).
 
 ## Verify (Node-Probe, 26.09.2026)
 `node --check` pipeline/board/kartenhinweise → OK. Tor-Matrix: idee/[] fehlt/sperrt (blockt) · idee/[10_skript.md]
 ok/frei · idee/[caption.md] fehlt/sperrt · skript/[] fehlt/frei · skript/[Skript_final.docx] ok · videodreh/[]
 fehlt/frei. `kartenMeldungen` liefert die skript-datei-Warnung als rotes „!". KATALOG: gespeichert=weg, skript-datei=da.
 
-## DoD
-- idee→skript blockiert, solange „Skript und Caption" keine (passende) Datei enthält; frei, sobald eine liegt.
-- Bestehende korrekt-belegte Karten unberührt; Verify im Browser.
+## DoD — ERFUELLT (26.09.2026)
+- idee→skript blockiert, solange „Skript und Caption" keine „skript"-Datei enthält; frei, sobald eine liegt. ✓
+- Altlasten (skript/videodreh ohne Skript-Datei) mit rotem „!" markiert, kein Zurueckschieben; weicher
+  „gespeichert"-Hinweis ersetzt. ✓
+- Bestehende korrekt-belegte Karten unberuehrt (Mischkultur mit 10_skript.md ohne „!"). ✓
+Geprueft gegen: `node --check` (pipeline/board/kartenhinweise) · Node-Probe Tor-Matrix + kartenMeldungen ·
+Live-DOM (Diagnose-Session, :4321): MachuPicchu „!" / Mischkultur kein „!" · Commit 7b8d1b1. Offen: nichts.
