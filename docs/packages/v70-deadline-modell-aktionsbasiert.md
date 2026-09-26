@@ -128,3 +128,21 @@ Geprueft gegen: `node --check` (pipeline/workflows/store/redaktionsplan/kontextm
 `lib/pipeline.js` + `data/board.json` · Browser-Integration :4399 (12 Karten, 0 Fehler) + Screenshot ·
 End-to-End UI→pipeline (offsetSchnitt 10 → Deadlines verschoben, dann 3/6) · Commits 1fbbe9d (Logik),
 b9d370a (detail.js), b46fe24 (ui.js). Offen: nichts — v70 vollstaendig.
+
+## Nachtrag v70b — Ketten-Offsets + Dreh-Feld + vertikale Anordnung (Owner 26.09.2026)
+
+Owner an der Ansicht-Tab-UI: (1) das Dreh-Kettenglied fehlte, (2) die Tage sollen sich auf die VORHERIGE
+Deadline beziehen (3 + 3 + 6 statt 3, 6 — bessere Uebersicht), (3) Felder untereinander: oben Upload,
+darunter Freigabe, Schnitt, Dreh.
+
+Logik (diese Session, committet): Offsets sind jetzt eine KETTE (Tage vor der jeweils naechsten Deadline);
+`pipeline.kumuliert()` summiert sie zu Upload-Offsets. Standard 3/3/6 → kumuliert 3/6/12 = altes Verhalten.
+Der Dreh ist ein eigenes, editierbares Kettenglied; `spaetesterDreh` = Upload − kumulierter Dreh-Offset
+(Standard 6 vor Schnitt haelt gruen). Register-Params neu (Kollision mit Alt-Daten vermieden):
+`freigabeVorUpload` (3), `schnittVorFreigabe` (3), `drehVorSchnitt` (6). `store.syncDeadlineOffsets` liest sie.
+Verify: node-Probe Default-CHECK + Changed-CHECK PASS (2/4/8 → freigabe−2/schnitt−6/dreh−14); zugewiesener
+Dreh gewinnt.
+
+Frontend (an Layout-Session): ui.js-Feldblock neu — 3 vertikale Zeilen (Upload als Basis oben, dann
+Freigabe/Schnitt/Dreh), Labels „Tage vor Upload/Freigabe/Schnitt", lesen/schreiben die 3 neuen Keys;
+alte `offsetFreigabe`/`offsetSchnitt` entfallen.

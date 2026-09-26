@@ -51,8 +51,9 @@ function uebernimm(d) {
 // eingestellten Offsets rechnen. Greift bei jedem Laden (ladeWorkflows) UND nach jedem Speichern.
 function syncDeadlineOffsets() {
   setDeadlineOffsets({
-    freigabe: wfParam(S.workflows, "rueckwaertsplan", "offsetFreigabe"),
-    schnitt: wfParam(S.workflows, "rueckwaertsplan", "offsetSchnitt"),
+    freigabe: wfParam(S.workflows, "rueckwaertsplan", "freigabeVorUpload"),
+    schnitt: wfParam(S.workflows, "rueckwaertsplan", "schnittVorFreigabe"),
+    dreh: wfParam(S.workflows, "rueckwaertsplan", "drehVorSchnitt"),
   });
 }
 
