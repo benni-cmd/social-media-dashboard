@@ -128,7 +128,7 @@ export function zeichneDetail(el) {
   const kopf = document.createElement("div");
   kopf.className = "detail-kopf";
   kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>` +
-    (k.driveName ? driveOrt(projektPfad(k), "Projektordner", "Projektordner in Google Drive oeffnen: " + k.driveName) : "");
+    (k.driveName ? driveOrt(projektPfad(k), "In Drive öffnen", "Ordner dieser Karte in Google Drive öffnen: " + k.driveName) : "");
 
   // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
   // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.

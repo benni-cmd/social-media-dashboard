@@ -3538,4 +3538,20 @@ body {
 }
 .drive-ort:hover .drive-ort-name { text-decoration: underline; }
 .drive-ort-zeile { display: flex; align-items: center; gap: 6px; margin: -8px 0 14px; }
-.detail-kopf .drive-ort { margin-left: 8px; font-size: 12px; }
+/* Detailkopf: eigenstaendiger Knopf (Rand + Flaeche) statt Text im Fliesstext, klar abgesetzt vom Spaltennamen */
+.detail-kopf .drive-ort {
+  margin-left: 14px;
+  padding: 2px 10px 2px 3px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+}
+.detail-kopf .drive-ort:hover { border-color: var(--akzent); }
+.detail-kopf .drive-ort:hover .drive-ort-name { text-decoration: none; }
+/* Klickbares Symbol allein (Menue, Zeilenkoepfe) */
+.drive-klick { cursor: var(--cursor-hand); }
+.drive-klick:hover .icon { outline: 2px solid var(--akzent); outline-offset: 1px; }
+/* Menue: Marke durch eine feine Linie vom Menuetext abgetrennt, rechtsbuendig */
+.einst-nav-item .drive-marke { margin-left: auto; padding-left: 8px; border-left: 1px solid var(--linie); }

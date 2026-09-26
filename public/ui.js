@@ -87,8 +87,10 @@ export function icon(name, klasse = "") {
 
 // Kleine Drive-Marke (v71): zeigt, dass diese Daten aus einem Drive-Abgleich kommen bzw. dort
 // liegen. Nicht auf den Board-Karten, sondern in Einstellungen, Kopf der Detailspalte, Knoepfen.
-export function driveMarke(titel = "Kommt aus Google Drive") {
-  return `<span class="drive-marke" title="${escape(titel)}" aria-label="${escape(titel)}">${icon("drive")}</span>`;
+export function driveMarke(titel = "Kommt aus Google Drive", pfad = null) {
+  // Mit `pfad` ist auch das Symbol selbst ein Link auf den Ordner (Klick-Handler unten).
+  const link = pfad == null ? "" : ` data-drive-pfad="${escape(pfad)}" role="link" tabindex="0"`;
+  return `<span class="drive-marke${pfad == null ? "" : " drive-klick"}"${link} title="${escape(titel)}" aria-label="${escape(titel)}">${icon("drive")}</span>`;
 }
 
 // Drive-Ort (v72): Marke + Ordnername als Link direkt dahinter. Ein Klick loest den Ordner-Link
@@ -109,7 +111,7 @@ export function driveOrtZeile(vorher, pfad, label) {
 
 if (typeof document !== "undefined") {
   document.addEventListener("click", async (e) => {
-    const a = e.target.closest && e.target.closest("a.drive-ort");
+    const a = e.target.closest && e.target.closest("[data-drive-pfad]");
     if (!a) return;
     e.preventDefault();
     e.stopPropagation();
@@ -699,7 +701,12 @@ export async function ladeCursorModusVomServer() {
   }
 }
 
-const DRIVE_TABS = new Set(["Hinweise & Warnungen", "Unternehmenskontext", "System Prompts"]);
+// Tab -> Drive-Ordner, in dem seine Daten liegen (die Marke im Menue oeffnet ihn per Klick).
+const DRIVE_TABS = new Map([
+  ["Hinweise & Warnungen", "System (AI only)"],
+  ["Unternehmenskontext", "Kontext"],
+  ["System Prompts", "System (AI only)"],
+]);
 
 // Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
 export function einstellungenModal(onThemeChange) {
@@ -717,7 +724,7 @@ export function einstellungenModal(onThemeChange) {
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
     // Tabs, deren Inhalt in Drive liegt (Kontext, Prompts, Kartenmeldungen in defaults.json)
-    if (DRIVE_TABS.has(name)) btn.insertAdjacentHTML("beforeend", driveMarke("Liegt in Google Drive"));
+    if (DRIVE_TABS.has(name)) btn.insertAdjacentHTML("beforeend", driveMarke(`Ordner „${DRIVE_TABS.get(name)}" in Google Drive öffnen`, DRIVE_TABS.get(name)));
     links.appendChild(btn);
     navItems.push(btn);
   }
@@ -1457,7 +1464,7 @@ export function einstellungenModal(onThemeChange) {
     kopf.className = "verb-kopf";
     const name = document.createElement("span");
     name.className = "verb-name";
-    name.innerHTML = driveMarke("Google Drive") + " Google Drive";
+    name.innerHTML = driveMarke("Arbeitsordner in Google Drive öffnen", "") + " Google Drive";
     // Arbeitsordner-Zeile unten hat schon den Link "in Drive oeffnen"
     kopf.appendChild(name);
     const chip = statusChipEl();
@@ -1653,7 +1660,7 @@ export function einstellungenModal(onThemeChange) {
       l.appendChild(r);
       const s = document.createElement("span");
       s.textContent = opt.name;
-      if (opt.drive) s.insertAdjacentHTML("afterbegin", driveMarke("Zahlen kommen aus den CSVs in Google Drive") + " ");
+      if (opt.drive) s.insertAdjacentHTML("afterbegin", driveMarke("CSV-Ordner in Google Drive öffnen", "Videoauswertung/Auswertung-Tabellen") + " ");
       l.appendChild(s);
       reihe.appendChild(l);
     }
