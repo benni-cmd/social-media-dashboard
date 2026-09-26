@@ -850,10 +850,10 @@ export function einstellungenModal(onThemeChange) {
   ampelAbschnitt.appendChild(ampelText);
   seiteAnsicht.appendChild(ampelAbschnitt);
 
-  // Deadline-Vorlauf (v70): die EINE Stelle, an der der Owner die Offsets „Tage vor Upload" aendert.
-  // Das geplante Upload-Datum ist der Anker; Freigabe- und Schnitt-Deadline rechnen sich davon
-  // rueckwaerts. Beide Offsets teilen sich den Workflow "rueckwaertsplan" — beim Schreiben deshalb
-  // IMMER beide mitgeben (sonst faellt der andere auf seinen Standard zurueck).
+  // Deadline-Vorlauf (v70b): die EINE Stelle, an der der Owner die Offsets aendert — jetzt als KETTE.
+  // Das geplante Upload-Datum ist der Anker (zentrale Deadline); Freigabe liegt davor, Schnitt vor
+  // Freigabe, Dreh vor Schnitt. Alle drei Glieder teilen sich den Workflow "rueckwaertsplan" — beim
+  // Speichern IMMER alle drei mitgeben (sonst faellt ein Glied auf seinen Standard zurueck).
   const offsetKachel = document.createElement("div");
   offsetKachel.className = "einst-rolle";
   const offsetLabel = document.createElement("div");
@@ -863,73 +863,81 @@ export function einstellungenModal(onThemeChange) {
   const offsetSub = document.createElement("p");
   offsetSub.className = "einst-provider-sub einst-kachel-sub";
   offsetSub.textContent =
-    "Wie viele Tage vor dem geplanten Upload die abgeleiteten Deadlines faellig sind. Das " +
-    "Upload-Datum bleibt die zentrale Deadline; Freigabe und Schnitt rechnen sich davon zurueck.";
+    "Die Deadlines haengen als Kette am geplanten Upload-Datum: Freigabe liegt vor dem Upload, " +
+    "Schnitt vor der Freigabe, Dreh vor dem Schnitt. Jede Zahl sind Tage vor der jeweils naechsten Stufe.";
   offsetKachel.appendChild(offsetSub);
 
-  const offsetReihe = document.createElement("div");
-  offsetReihe.className = "schalterreihe";
-  offsetReihe.style.gap = "16px";
-  offsetReihe.style.flexWrap = "wrap";
+  // Basiszeile: das Upload-Datum ist der Anker, von dem die Kette rueckwaerts rechnet.
+  const offsetBasis = document.createElement("p");
+  offsetBasis.className = "einst-provider-sub einst-kachel-sub";
+  offsetBasis.style.fontWeight = "600";
+  offsetBasis.style.marginBottom = "2px";
+  offsetBasis.textContent = "Upload (geplantes Datum) — zentrale Deadline";
+  offsetKachel.appendChild(offsetBasis);
 
-  const offsetFeld = (labelText, key) => {
+  // Drei Kettenglieder, vertikal untereinander (Owner-Wunsch v70b).
+  const KETTE = [
+    { key: "freigabeVorUpload", label: "Freigabe — Tage vor Upload" },
+    { key: "schnittVorFreigabe", label: "Schnitt — Tage vor Freigabe" },
+    { key: "drehVorSchnitt", label: "Dreh — Tage vor Schnitt" },
+  ];
+  const offsetInputs = {};
+  const offsetSpalte = document.createElement("div");
+  offsetSpalte.style.display = "flex";
+  offsetSpalte.style.flexDirection = "column";
+  offsetSpalte.style.gap = "10px";
+  for (const { key, label } of KETTE) {
     const feld = document.createElement("label");
     feld.className = "einst-provider-sub";
     feld.style.display = "flex";
-    feld.style.flexDirection = "column";
-    feld.style.gap = "4px";
+    feld.style.alignItems = "center";
+    feld.style.justifyContent = "space-between";
+    feld.style.gap = "12px";
     const t = document.createElement("span");
-    t.textContent = labelText;
+    t.textContent = label;
     const input = eingabe(String(stellschraube("rueckwaertsplan", key)), { typ: "number" });
     input.min = "0";
     input.step = "1";
-    input.style.maxWidth = "120px";
+    input.style.maxWidth = "90px";
     input.dataset.offsetKey = key;
     feld.appendChild(t);
     feld.appendChild(input);
-    return input;
-  };
+    offsetSpalte.appendChild(feld);
+    offsetInputs[key] = input;
+  }
+  offsetKachel.appendChild(offsetSpalte);
 
-  const freigabeInput = offsetFeld("Freigabe (Tage vor Upload)", "offsetFreigabe");
-  const schnittInput = offsetFeld("Schnitt (Tage vor Upload)", "offsetSchnitt");
-  offsetReihe.appendChild(freigabeInput.parentElement);
-  offsetReihe.appendChild(schnittInput.parentElement);
-  offsetKachel.appendChild(offsetReihe);
-
-  // Ganze Tage, nicht negativ. Beim Speichern BEIDE aktuellen Werte zusammen schreiben.
+  // Ganze Tage, nicht negativ. Beim Speichern ALLE drei aktuellen Werte zusammen schreiben.
   const leseGanzeTage = (input) => {
-    const z = Math.max(0, Math.round(Number(input.value)));
-    return Number.isFinite(z) ? z : 0;
+    const z = Math.round(Number(input.value));
+    return Number.isFinite(z) ? Math.max(0, z) : 0;
   };
   const speichereOffsets = async () => {
-    const neuFreigabe = leseGanzeTage(freigabeInput);
-    const neuSchnitt = leseGanzeTage(schnittInput);
-    freigabeInput.value = String(neuFreigabe);
-    schnittInput.value = String(neuSchnitt);
-    freigabeInput.disabled = true;
-    schnittInput.disabled = true;
+    const werte = {};
+    for (const { key } of KETTE) werte[key] = leseGanzeTage(offsetInputs[key]);
+    for (const { key } of KETTE) {
+      offsetInputs[key].value = String(werte[key]);
+      offsetInputs[key].disabled = true;
+    }
     try {
-      await setzeWorkflow("rueckwaertsplan", {
-        params: { offsetFreigabe: neuFreigabe, offsetSchnitt: neuSchnitt },
-      });
+      await setzeWorkflow("rueckwaertsplan", { params: werte });
       zeichne();
     } catch {
       // Speichern fehlgeschlagen: zurueck auf die zuletzt gueltigen (gespeicherten) Werte.
-      freigabeInput.value = String(stellschraube("rueckwaertsplan", "offsetFreigabe"));
-      schnittInput.value = String(stellschraube("rueckwaertsplan", "offsetSchnitt"));
+      for (const { key } of KETTE) offsetInputs[key].value = String(stellschraube("rueckwaertsplan", key));
     } finally {
-      freigabeInput.disabled = false;
-      schnittInput.disabled = false;
+      for (const { key } of KETTE) offsetInputs[key].disabled = false;
     }
   };
-  freigabeInput.addEventListener("change", speichereOffsets);
-  schnittInput.addEventListener("change", speichereOffsets);
+  for (const { key } of KETTE) offsetInputs[key].addEventListener("change", speichereOffsets);
 
+  // Gruen-Hinweis speziell am Dreh-Glied: genug Vorlauf vor dem Schnitt = gruener Start in den Schnitt.
   const offsetPuffer = document.createElement("p");
   offsetPuffer.className = "einst-provider-sub einst-kachel-sub";
   offsetPuffer.textContent =
-    "Mehr Vorlauf heisst: die Deadline wird frueher faellig — also mehr Puffer bis zum Upload. " +
-    "Die Ampel der Karte wird dadurch frueher gruen.";
+    "Mehr Vorlauf heisst frueher faellig — also mehr Puffer. Beim Dreh gilt: liegt der Drehtag genug " +
+    "vor dem Schnitt (ab 6 Tagen), rutscht die Karte mit gruenem Punkt in den Schnitt; ein spaeter " +
+    "liegender Drehtermin ist nicht zuweisbar.";
   offsetKachel.appendChild(offsetPuffer);
   seiteAnsicht.appendChild(offsetKachel);
 
