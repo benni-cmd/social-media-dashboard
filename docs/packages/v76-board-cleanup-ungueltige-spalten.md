@@ -50,9 +50,18 @@ verschoben) — nur sinnvoll für echte Wegwerf-/Test-Karten.
 
 ## Stand
 - [x] Befund live erstellt (9 ungültige Karten, 28.09.2026)
-- [ ] Owner-Entscheid Löschart
-- [ ] Ausführung + Verify
+- [x] Owner-Entscheid: **löschen** (App-Delete, Drive-Ordner wiederherstellbar in Papierkorb) — 28.09.2026
+- [x] Ausführung: 9 Drive-Ordner getrasht (`/api/karte/loeschen`) + aus board.json entfernt (`PUT /api/board`,
+      v410→411, 24→15 Karten). Hinweis: erster PUT lief in einen Versionskonflikt (409) → Ordner waren getrasht,
+      board.json noch nicht aktualisiert; mit frischer Version + Retry sauber nachgezogen (Halb-Zustand geschlossen).
+- [x] Verify: Re-Scan der verbleibenden skript/videodreh/schnitt-Karten → **0 ungültig**.
+
+## Gelöschte Karten (Audit, 28.09.2026)
+skript / keine Skript-Datei: Hühnernahrung mit Maden · MachuPicchu · Kompost-Tee aus Küchenresten ·
+Warum wir Unkraut stehen lassen · Nicht jeder Regenwurm hilft… · Biointensive Landwirtschaft · Neue Idee.
+schnitt / kein Rohmaterial: Lehmboden · Oberflächenspannung von Wasser.
+Drive-Ordner liegen wiederherstellbar im Papierkorb/Verworfen.
 
 ## DoD
-- Keine Karte mehr in skript/videodreh/schnitt ohne ihre Drive-Voraussetzung (Re-Scan leer).
-- Echte Ideen nicht verloren (bei „zurückschieben"); bei „löschen" Drive-Ordner wiederherstellbar.
+- [x] Keine Karte mehr in skript/videodreh/schnitt ohne ihre Drive-Voraussetzung (Re-Scan = 0).
+- [x] „löschen"-Variante: Drive-Ordner wiederherstellbar (nicht permanent gelöscht).
