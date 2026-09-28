@@ -77,7 +77,6 @@ import {
   feldMitInfo,
   eingabe,
   textfeld,
-  auswahl,
   gruppe,
   befundZeile,
   eigenschaft,
@@ -90,6 +89,8 @@ import {
   meldung,
   bestaetigen,
   driveOrt,
+  pillenReihe,
+  pillenSchalter,
 } from "./ui.js";
 import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
@@ -271,8 +272,31 @@ if (typeof document !== "undefined") {
 // aufgeklappt sind. Rein im Speicher — nach einem Neuladen startet jede Karte eingeklappt.
 const stammOffenIds = new Set();
 
+// v77 (Owner 28.09.2026): Auf-/Zuklappen der Abschnitte haelt jetzt ueber einen Redraw hinweg —
+// vorher baute zeichneDetail() bei jeder Aenderung alles neu aus den JS-Defaults, ein von Hand
+// zugeklappter Abschnitt sprang beim naechsten Tippen sofort wieder auf. Rein im Speicher (wie
+// stammOffenIds oben) — nach einem Neuladen der Seite gelten wieder die Defaults.
+const klappZustand = new Map(); // Schluessel `${karteId}:${abschnitt}` -> boolean
+const offenFuer = (k, abschnitt, standard) => {
+  const key = `${k.id}:${abschnitt}`;
+  return klappZustand.has(key) ? klappZustand.get(key) : standard;
+};
+const merkeKlapp = (k, abschnitt) => (offen) => klappZustand.set(`${k.id}:${abschnitt}`, offen);
+
+// Farbige Kopfzeile je Abschnitt (v77, Owner: "staerker an den Board-Look angleichen") — eine
+// FESTE Zuordnung je Abschnitts-BEDEUTUNG statt nach DOM-Position gezaehlt: welche Abschnitte
+// bei einer Karte ueberhaupt erscheinen, haengt vom Kartenstand ab (z. B. "Termin" fehlt bei
+// einer frischen Idee) — nach Position gezaehlt haette derselbe Abschnitt je nach Karte eine
+// andere Farbe getragen.
+const ABSCHNITT_FARBE = { stamm: 1, termin: 2, dreh: 3, phase: 4, drive: 1, archiv: 2 };
+const gruppeMitFarbe = (abschnitt, ...args) => {
+  const g = gruppe(...args);
+  g.classList.add(`gruppe-c${ABSCHNITT_FARBE[abschnitt]}`);
+  return g;
+};
+
 function blockStamm(k, merke) {
-  const g = gruppe("Worum geht es", null, true);
+  const g = gruppeMitFarbe("stamm", "Worum geht es", null, offenFuer(k, "stamm", true), merkeKlapp(k, "stamm"));
   const box = document.createElement("div");
 
   const titel = eingabe(k.title, { platzhalter: "Thema in einem Halbsatz" });
@@ -300,20 +324,10 @@ function blockStamm(k, merke) {
     box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE, k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
 
     // Plattformen: Multi-Select Toggle-Buttons
-    const plattformen = document.createElement("div");
-    plattformen.className = "schalterreihe";
-    for (const pl of PLATTFORMEN) {
-      const an = (k.platforms || []).includes(pl.id);
-      const l = document.createElement("label");
-      l.className = "schalter" + (an ? " an" : "");
-      l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>${escape(pl.name)}</span>`;
-      l.querySelector("input").addEventListener("change", (e) => {
-        const liste = new Set(k.platforms || []);
-        e.target.checked ? liste.add(pl.id) : liste.delete(pl.id);
-        merke("platforms", [...liste], true);
-      });
-      plattformen.appendChild(l);
-    }
+    const plattformen = pillenReihe(PLATTFORMEN, k.platforms || [], {
+      mehrfach: true,
+      beiWahl: (liste) => merke("platforms", liste, true),
+    });
     const plWrap = feld("Plattformen", plattformen);
 
     const defaultPl = new Set(S.defaults.plattformen || []);
@@ -350,7 +364,7 @@ function blockStamm(k, merke) {
   }
   g.appendChild(box);
 
-  const { d, box: mehr } = klappe("Weitere Angaben");
+  const { d, box: mehr } = klappe("Weitere Angaben", offenFuer(k, "stamm-mehr", false), merkeKlapp(k, "stamm-mehr"));
   const reihe = document.createElement("div");
   reihe.className = "feld-reihe";
   const serie = eingabe(k.serie, { platzhalter: "z. B. ProjectOasis" });
@@ -376,22 +390,7 @@ function blockStamm(k, merke) {
 }
 
 // Single-Select Toggle-Buttons: klick waehlt, nochmal klick deselektiert.
-function einzelwahlReihe(optionen, aktuell, beiWahl) {
-  const reihe = document.createElement("div");
-  reihe.className = "schalterreihe";
-  for (const o of optionen) {
-    const an = aktuell === o.id;
-    const l = document.createElement("label");
-    l.className = "schalter" + (an ? " an" : "");
-    l.innerHTML = `<input type="radio" name="_ew" ${an ? "checked" : ""}><span>${escape(o.name)}</span>`;
-    l.querySelector("input").addEventListener("change", () => beiWahl(o.id));
-    l.addEventListener("click", (e) => {
-      if (an) { e.preventDefault(); beiWahl(""); }
-    });
-    reihe.appendChild(l);
-  }
-  return reihe;
-}
+const einzelwahlReihe = (optionen, aktuell, beiWahl) => pillenReihe(optionen, aktuell, { beiWahl });
 
 // P27 F2: die eingeklappte Zeile fuer vollstaendig gesetzte Stamm-Felder.
 function stammZusammenfassung(k) {
@@ -425,7 +424,7 @@ function blockTermine(k, merke) {
   if (istIdee) return blockTermineIdee(k, merke);
 
   const f = faelligkeit(k);
-  const g = gruppe("Termin", null, true);
+  const g = gruppeMitFarbe("termin", "Termin", null, offenFuer(k, "termin", true), merkeKlapp(k, "termin"));
   const box = document.createElement("div");
 
   const satz = document.createElement("div");
@@ -443,25 +442,7 @@ function blockTermine(k, merke) {
       const zeile = document.createElement("div");
       zeile.className = "termin-kompakt";
       zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatUpload)}</strong>${k.uploadTime ? ` · ${k.uploadTime}` : ""}</span>`;
-      const bearbeiten = knopf("bearbeiten", {
-        zeichen: "kalender",
-        klick: () => {
-          modalKalender(
-            "Upload-Datum aendern",
-            "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-            fensterFuerTyp(k.contenttyp || ""),
-            async (datum, zeit) => {
-              merke("dates", einfacherPlan(datum), false);
-              if (zeit) merke("uploadTime", zeit, false);
-              setStand(`Upload am ${deutschesDatum(datum)}.`);
-              await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
-              zeichne();
-            }
-          );
-        },
-      });
-      bearbeiten.classList.add("knopf-inline");
-      zeile.appendChild(bearbeiten);
+      zeile.appendChild(bearbeitenUploadKnopf(k, merke));
       box.appendChild(zeile);
     } else {
       const uZeile = document.createElement("div");
@@ -480,7 +461,7 @@ function blockTermine(k, merke) {
 
   g.appendChild(box);
 
-  const { d, box: details } = klappe("Termine verwalten");
+  const { d, box: details } = klappe("Termine verwalten", offenFuer(k, "termin-verwalten", false), merkeKlapp(k, "termin-verwalten"));
   details.appendChild(miniKalender(k));
 
   const plan = knopf("Restliche Termine rueckwaerts planen", {
@@ -528,7 +509,7 @@ function blockTermine(k, merke) {
 // Drehtermin-Zuordnung in der Karte. Erscheint nur bei fertigem Skript (ab Schritt
 // „Drehtermin festlegen"). Zugeordnet: Anzeige + Loesen; sonst: vorhandenen waehlen oder neuen anlegen.
 function blockDrehtermin(k) {
-  const g = gruppe("Drehtermin", null, true);
+  const g = gruppeMitFarbe("dreh", "Drehtermin", null, offenFuer(k, "dreh", true), merkeKlapp(k, "dreh"));
   const box = document.createElement("div");
   const heute = isoDatum(new Date());
   const kommend = (S.drehtermine || [])
@@ -580,7 +561,6 @@ function blockDrehtermin(k) {
           { zeichen: "kalender", klick: () => zuordnen(x.id) }
         );
         b.classList.add("knopf-breit");
-        b.style.marginBottom = "5px";
         wahl.appendChild(b);
       }
       box.appendChild(wahl);
@@ -600,8 +580,7 @@ function blockDrehtermin(k) {
           await zuordnen(nt.id);
         }),
     });
-    neu.classList.add("knopf-breit");
-    neu.style.marginTop = "7px";
+    neu.classList.add("knopf-breit", "dreh-neu");
     box.appendChild(neu);
   }
 
@@ -610,7 +589,7 @@ function blockDrehtermin(k) {
 }
 
 function blockTermineIdee(k, merke) {
-  const g = gruppe("Termin", null, true);
+  const g = gruppeMitFarbe("termin", "Termin", null, offenFuer(k, "termin", true), merkeKlapp(k, "termin"));
   const box = document.createElement("div");
 
   box.appendChild(floatSchalter(k, merke));
@@ -628,25 +607,7 @@ function blockTermineIdee(k, merke) {
     const zeile = document.createElement("div");
     zeile.className = "termin-kompakt";
     zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatDatum)}</strong></span>`;
-    const bearbeiten = knopf("bearbeiten", {
-      zeichen: "kalender",
-      klick: () => {
-        modalKalender(
-          "Upload-Datum aendern",
-          "Dreh wird automatisch 2 Wochen vorher gesetzt.",
-          fensterFuerTyp(k.contenttyp || ""),
-          async (datum, zeit) => {
-            merke("dates", einfacherPlan(datum), false);
-            if (zeit) merke("uploadTime", zeit, false);
-            setStand(`Upload am ${deutschesDatum(datum)}.`);
-            await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
-            zeichne();
-          }
-        );
-      },
-    });
-    bearbeiten.classList.add("knopf-inline");
-    zeile.appendChild(bearbeiten);
+    zeile.appendChild(bearbeitenUploadKnopf(k, merke));
     box.appendChild(zeile);
   } else {
     // 2 Kacheln: oben nächstes freies Datum, unten manuell.
@@ -719,13 +680,7 @@ function blockTermineIdee(k, merke) {
         "Wann soll das Video veroeffentlicht werden?",
         "Dreh wird automatisch 2 Wochen vorher gesetzt.",
         fensterFuerTyp(k.contenttyp || ""),
-        async (datum, zeit) => {
-          merke("dates", einfacherPlan(datum), false);
-          if (zeit) merke("uploadTime", zeit, false);
-          setStand(`Upload am ${deutschesDatum(datum)}.`);
-          await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
-          zeichne();
-        }
+        uploadDatumCallback(merke)
       );
     });
     kacheln.appendChild(manuellKachel);
@@ -734,6 +689,34 @@ function blockTermineIdee(k, merke) {
 
   g.appendChild(box);
   return g;
+}
+
+// Upload-Datum aendern/setzen: derselbe Callback stand bisher dreifach fast wortgleich an drei
+// Stellen (Termin-Block, Idee-Terminblock, manuelle Kachel) — jetzt einmal (v77).
+function uploadDatumCallback(merke) {
+  return async (datum, zeit) => {
+    merke("dates", einfacherPlan(datum), false);
+    if (zeit) merke("uploadTime", zeit, false);
+    setStand(`Upload am ${deutschesDatum(datum)}.`);
+    await schwebendeNeuBerechnen(); // kann eine schwebende Karte verdraengt haben (v30)
+    zeichne();
+  };
+}
+
+function bearbeitenUploadKnopf(k, merke) {
+  const bearbeiten = knopf("bearbeiten", {
+    zeichen: "kalender",
+    klick: () => {
+      modalKalender(
+        "Upload-Datum aendern",
+        "Dreh wird automatisch 2 Wochen vorher gesetzt.",
+        fensterFuerTyp(k.contenttyp || ""),
+        uploadDatumCallback(merke)
+      );
+    },
+  });
+  bearbeiten.classList.add("knopf-inline");
+  return bearbeiten;
 }
 
 // Ein Fristfeld setzen oder loeschen, ohne die anderen anzutasten.
@@ -751,20 +734,15 @@ function setzeTermin(k, key, wert, merke) {
 // berechnete Datum bleibt als expliziter Wert stehen (k.dates.upload wurde bereits beim
 // letzten Lauf von schwebendeNeuBerechnen() geschrieben) — die Karte steht nie ohne Datum da.
 function floatSchalter(k, merke) {
-  const reihe = document.createElement("div");
-  reihe.className = "schalterreihe";
-  const an = !!k.floatUpload;
-  const l = document.createElement("label");
-  l.className = "schalter" + (an ? " an" : "");
-  l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>Naechsten freien Upload-Termin</span>`;
-  l.querySelector("input").addEventListener("change", async (e) => {
-    const checked = e.target.checked;
-    merke("floatUpload", checked, false);
-    if (checked) await schwebendeNeuBerechnen();
-    zeichne();
-  });
-  reihe.appendChild(l);
-  return reihe;
+  return pillenSchalter([{
+    text: "Naechsten freien Upload-Termin",
+    an: !!k.floatUpload,
+    beiAenderung: async (checked) => {
+      merke("floatUpload", checked, false);
+      if (checked) await schwebendeNeuBerechnen();
+      zeichne();
+    },
+  }]);
 }
 
 // v30: Read-only-Zeile fuer eine schwebende Karte — kein Datumsfeld, sondern der live
@@ -787,11 +765,14 @@ function schwebendAnzeige(k) {
   return wrap;
 }
 
-// Aufklappbarer Unterblock — Sekundaeres ausblenden, ohne es zu verlieren.
-function klappe(titel) {
+// Aufklappbarer Unterblock — Sekundaeres ausblenden, ohne es zu verlieren. `offen`/`onToggle`
+// (v77) wie bei gruppe() — Default zu, wie bisher ueberall verwendet.
+function klappe(titel, offen = false, onToggle = null) {
   const d = document.createElement("details");
   d.className = "gruppe unterklappe";
+  d.open = offen;
   d.innerHTML = `<summary class="gruppe-kopf"><span class="gruppe-titel">${escape(titel)}</span></summary>`;
+  if (onToggle) d.addEventListener("toggle", () => onToggle(d.open));
   const box = document.createElement("div");
   d.appendChild(box);
   return { d, box };
@@ -918,38 +899,10 @@ function miniKalender(k) {
   return wrap;
 }
 
-function blockTore(k, toreListe, stand) {
-  const offen = toreListe.filter((t) => t.status !== "ok").length;
-  const g = gruppe("Was noch offen ist", offen, offen > 0);
-  const box = document.createElement("div");
-
-  if (!toreListe.length) {
-    const p = document.createElement("p");
-    p.className = "feld-hinweis";
-    p.textContent = "In dieser Phase gibt es nichts automatisch zu pruefen.";
-    box.appendChild(p);
-  } else {
-    const liste = document.createElement("ul");
-    liste.className = "befundliste";
-    for (const t of toreListe) liste.appendChild(befundZeile(t.status, t.satz, t.quelle));
-    box.appendChild(liste);
-  }
-
-  if (stand && !stand.driveOk) {
-    const p = document.createElement("p");
-    p.className = "feld-hinweis";
-    p.textContent = stand.satz;
-    box.appendChild(p);
-  }
-
-  g.appendChild(box);
-  return g;
-}
-
 // Die Arbeit der aktuellen Phase: KI-Aktionen, Auswahl, Felder.
 function blockPhase(k, toreListe, stand) {
   const p = phase(k.column);
-  const g = gruppe(`Arbeit in "${p.name}"`, null, true);
+  const g = gruppeMitFarbe("phase", `Arbeit in "${p.name}"`, null, offenFuer(k, "phase", true), merkeKlapp(k, "phase"));
   const box = document.createElement("div");
   // P5 (v37): vertikaler Abstand zwischen den gestapelten Elementen (Buttons, Felder,
   // Ergebniszeilen) — ohne Gap klebten sie aneinander.
@@ -1583,7 +1536,7 @@ function felderUpload(k, box, merke) {
 // --- Drive ----------------------------------------------------------------
 
 function blockDrive(k, stand) {
-  const g = gruppe("Google Drive", null, false);
+  const g = gruppeMitFarbe("drive", "Google Drive", null, offenFuer(k, "drive", false), merkeKlapp(k, "drive"));
   const box = document.createElement("div");
 
   if (!k.title) {
@@ -1613,7 +1566,7 @@ function blockDrive(k, stand) {
     z.innerHTML = statusChip("fehlt") + `<span class="befund-satz">${escape(stand.satz)}</span>`;
     box.appendChild(z);
     box.appendChild(
-      knopf("Projektordner in Drive anlegen", { zeichen: "drive",
+      knopf("Projektordner in Drive anlegen", {
         art: "haupt",
         zeichen: "ordner",
         klick: (e) => {
@@ -1700,7 +1653,7 @@ function blockDrive(k, stand) {
   }
 
   box.appendChild(
-    knopf("Drive erneut lesen", { zeichen: "drive",
+    knopf("Drive erneut lesen", {
       zeichen: "neuladen",
       klick: async () => {
         await driveScan(k, true).catch(() => {
@@ -1719,19 +1672,19 @@ function blockDrive(k, stand) {
 
 function blockArchiv(k) {
   const eintraege = Object.keys(k.ai);
-  const g = gruppe("Gespeicherte KI-Ergebnisse", eintraege.length, false);
+  const g = gruppeMitFarbe("archiv", "Gespeicherte KI-Ergebnisse", eintraege.length, offenFuer(k, "archiv", false), merkeKlapp(k, "archiv"));
   const box = document.createElement("div");
   for (const task of eintraege) {
     const text = k.ai[task] || "";
-    const d = document.createElement("details");
-    d.className = "gruppe";
     let name = KI_NAMEN[task] || task;
     if (task === "skript") name += ` — etwa ${sprechzeit(text)} Sekunden`;
-    d.innerHTML = `<summary class="gruppe-kopf"><span class="gruppe-titel">${escape(name)}</span></summary>`;
+    // v77: leichter verschachtelter Unterblock (wie "Weitere Angaben") statt einer zweiten
+    // vollgewichtigen .gruppe ineinander — zwei gleich schwere Rahmen sahen wie ein Fehler aus.
+    const { d, box: inhalt } = klappe(name, offenFuer(k, `archiv:${task}`, false), merkeKlapp(k, `archiv:${task}`));
     const pre = document.createElement("pre");
     pre.className = "textblock";
     pre.textContent = text;
-    d.appendChild(pre);
+    inhalt.appendChild(pre);
     const reihe = document.createElement("div");
     reihe.className = "knopfreihe";
     reihe.appendChild(
@@ -1747,7 +1700,7 @@ function blockArchiv(k) {
         },
       })
     );
-    d.appendChild(reihe);
+    inhalt.appendChild(reihe);
     box.appendChild(d);
   }
   g.appendChild(box);
@@ -1864,17 +1817,13 @@ function wahlgruppe(name, optionen, gewaehlt, beiWahl) {
 }
 
 function schalterFeld(k, box, merke, paare) {
-  const reihe = document.createElement("div");
-  reihe.className = "schalterreihe";
-  for (const [pfad, text] of paare) {
-    const an = !!leseTief(k, pfad);
-    const l = document.createElement("label");
-    l.className = "schalter" + (an ? " an" : "");
-    l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span>${escape(text)}</span>`;
-    l.querySelector("input").addEventListener("change", (e) => merke(pfad, e.target.checked, true));
-    reihe.appendChild(l);
-  }
-  return reihe;
+  return pillenSchalter(
+    paare.map(([pfad, text]) => ({
+      text,
+      an: !!leseTief(k, pfad),
+      beiAenderung: (checked) => merke(pfad, checked, true),
+    }))
+  );
 }
 
 async function rufeKi(task, k, knopfEl, box) {

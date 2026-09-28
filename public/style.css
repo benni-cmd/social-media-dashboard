@@ -51,9 +51,18 @@
      die direkt auf der Grundflaeche liegen (kpi, bester, rang, letzte-zeile, vergleich-karte,
      kanal, modal). --rund-klein OHNE Schatten fuer alles, was in einem bereits umrandeten
      Container sitzt (Board-Kachel .eintrag in .spalte, .drehkachel in .drehleiste,
-     .termin-kachel/.gruppe in .detail) — der Container traegt die Abgrenzung schon, ein
-     zweiter Schatten waere doppelt. .spalte selbst bleibt ohne Schatten: sie ist der
-     Container, keine Zusammenfassungs-Karte. */
+     .termin-kachel in .detail) — der Container traegt die Abgrenzung schon, ein zweiter
+     Schatten waere doppelt. .spalte selbst bleibt ohne Schatten: sie ist der Container, keine
+     Zusammenfassungs-Karte. AUSNAHME seit v77 (Owner 28.09.2026, "staerker an den Board-Look
+     angleichen"): .gruppe in der Detailspalte traegt jetzt bewusst denselben Fenster-Look wie
+     .eintrag (Rand/Radius/Schatten/farbiger Kopf) statt der schlichteren --rund-klein-Regel.
+
+     Abstands-Skala (v77): drei feste Werte statt Magic Numbers zwischen 4 und 14px — klein
+     zwischen enger verwandten Elementen (Label/Feld, Pille/Pille), mittel zwischen Feldern
+     einer Reihe, gross zwischen den grossen Abschnitten der Detailspalte. */
+  --sp-1: 6px;
+  --sp-2: 10px;
+  --sp-3: 14px;
 
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
@@ -800,6 +809,14 @@ body {
   gap: 6px;
   margin-top: 6px;
 }
+/* v77: .dreh-wahl hatte bisher gar keine eigene Regel — der Abstand zwischen den Knoepfen haengt
+   an js-Inline-styles gehangen (marginBottom je Knopf); jetzt ein echter gap. */
+.dreh-wahl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.dreh-neu { margin-top: var(--sp-2); }
 
 /* --- Board --- */
 
@@ -1314,11 +1331,24 @@ body {
   color: var(--text);
   background: var(--flaeche-hoch);
 }
+/* v77 (Owner 28.09.2026, "mehrspaltig ab genug Platz"): natives CSS-Mehrspalten-Layout statt
+   Flex-Spalte — bei 380px bleibt es bei einer Spalte (< 2*340px passt nicht), gezogen auf mehr
+   Breite verteilen sich die Abschnitte automatisch auf 2+ Spalten, ganz ohne Breakpoint-Logik in
+   JS. `break-inside:avoid` haelt jeden Abschnitt ganz in einer Spalte zusammen; der Abschluss-
+   Block (Weiter/Loeschen, immer der letzte Kindknoten) spannt bewusst ueber alle Spalten — die
+   wichtigste Aktion soll nicht in einer beliebigen Spalte "untergehen". */
 .detail-koerper {
   padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  column-width: 340px;
+  column-gap: var(--sp-3);
+}
+.detail-koerper > * {
+  break-inside: avoid;
+  margin-bottom: var(--sp-3);
+}
+.detail-koerper > *:last-child {
+  column-span: all;
+  margin-top: var(--sp-1);
 }
 
 .eigenschaft {
@@ -1342,7 +1372,7 @@ body {
 .feld {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-1);
 }
 .feld-label {
   font-size: 11.5px;
@@ -1357,7 +1387,7 @@ body {
 }
 .feld-reihe {
   display: flex;
-  gap: 9px;
+  gap: var(--sp-2);
 }
 .feld-reihe > * {
   flex: 1 1 0;
@@ -1399,20 +1429,26 @@ body {
   color: var(--befund);
 }
 
-/* Gruppen in der Detailspalte */
+/* Gruppen in der Detailspalte (v77: staerker an den Board-"Fenster"-Look angeglichen — Rand/
+   Radius/Schatten wie .eintrag, farbiger Kopf wie .spalte-kopf, siehe die vier .gruppe-c*-Farben
+   unten). overflow:hidden schneidet den eckigen <summary>-Kopf auf die runden Ecken zu, genau
+   wie .spalte es fuer .spalte-kopf tut. */
 .gruppe {
-  border: 1px solid var(--linie);
-  border-radius: var(--rund-klein);
+  border: 2px solid var(--linie);
+  border-radius: var(--rund);
   background: var(--flaeche-tief);
+  box-shadow: var(--schatten);
+  overflow: hidden;
 }
 .gruppe-kopf {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 11px;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
   cursor: var(--cursor-hand);
   list-style: none;
   user-select: none;
+  border-radius: calc(var(--rund) - 2px) calc(var(--rund) - 2px) 0 0;
 }
 .gruppe-kopf::-webkit-details-marker {
   display: none;
@@ -1430,18 +1466,51 @@ body {
   padding: 1px 8px;
 }
 .gruppe > *:not(summary) {
-  padding: 0 11px 11px;
+  padding: 0 var(--sp-3) var(--sp-3);
+  margin-top: var(--sp-3);
 }
 /* Phasen-Arbeit (v37, P5): gestapelte Buttons/Felder/Ergebniszeilen brauchen vertikalen
    Abstand — ohne Gap kleben sie aneinander. */
 .phasen-arbeit {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-2);
 }
 .gruppe[open] .gruppe-kopf {
   border-bottom: 1px solid var(--linie);
-  margin-bottom: 10px;
+}
+
+/* Farbige Koepfe je Abschnitt (v77) — feste Zuordnung aus detail.js (ABSCHNITT_FARBE), NICHT
+   nach DOM-Position gezaehlt (anders als .spalte:nth-of-type), weil nicht jeder Abschnitt bei
+   jeder Karte erscheint. */
+.gruppe-c1 > .gruppe-kopf { background: var(--chrome-a); }
+.gruppe-c2 > .gruppe-kopf { background: var(--chrome-b); }
+.gruppe-c3 > .gruppe-kopf { background: var(--chrome-c); }
+.gruppe-c4 > .gruppe-kopf { background: var(--chrome-d); }
+.gruppe-c1 > .gruppe-kopf .gruppe-titel,
+.gruppe-c2 > .gruppe-kopf .gruppe-titel,
+.gruppe-c3 > .gruppe-kopf .gruppe-titel,
+.gruppe-c4 > .gruppe-kopf .gruppe-titel {
+  color: #fff;
+}
+.gruppe-c1 > .gruppe-kopf .gruppe-anzahl,
+.gruppe-c2 > .gruppe-kopf .gruppe-anzahl,
+.gruppe-c3 > .gruppe-kopf .gruppe-anzahl,
+.gruppe-c4 > .gruppe-kopf .gruppe-anzahl {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.gruppe-c1 > .gruppe-kopf::after,
+.gruppe-c2 > .gruppe-kopf::after,
+.gruppe-c3 > .gruppe-kopf::after,
+.gruppe-c4 > .gruppe-kopf::after {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+.gruppe-c1 > .gruppe-kopf:hover::after,
+.gruppe-c2 > .gruppe-kopf:hover::after,
+.gruppe-c3 > .gruppe-kopf:hover::after,
+.gruppe-c4 > .gruppe-kopf:hover::after {
+  border-color: #fff;
 }
 
 /* Befundlisten */
@@ -1498,11 +1567,15 @@ body {
   background: var(--akzent-tief);
 }
 
-/* Wahlgruppen (Fokus, Hook, Caption) */
+/* Wahlgruppen (Fokus, Hook, Caption) — v77: Grid statt Flex-Spalte, damit sich die Karten bei
+   ausreichend Breite von selbst nebeneinander anordnen (auto-fit/minmax reagiert direkt auf die
+   verfuegbare Breite, ganz ohne eigene Breakpoints). In einer schmalen Spalte bleibt es bei
+   einer Karte pro Zeile, weil keine zweite mehr in eine 220px-Spur passt. */
 .wahl {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-1);
+  align-items: start;
 }
 .wahl-option {
   display: flex;
@@ -2145,10 +2218,18 @@ body {
    und der Mini-Kalender der Fristen.
    ============================================================ */
 
+/* v77: bleibt bewusst LEICHTER als die neue .gruppe-Fensteroptik (duenner Rand, kein Schatten,
+   gestrichelt, transparent) — zwei gleich schwere Rahmen ineinander sahen sonst wie ein
+   Verschachtelungs-Fehler aus (Bestandsbericht 28.09.2026), nicht wie ein Sekundaer-Block. */
 .unterklappe {
   margin-top: 4px;
   background: transparent;
-  border-style: dashed;
+  border: 1px dashed var(--linie);
+  border-radius: var(--rund-klein);
+  box-shadow: none;
+}
+.unterklappe > .gruppe-kopf {
+  border-radius: calc(var(--rund-klein) - 1px) calc(var(--rund-klein) - 1px) 0 0;
 }
 .unterklappe > .gruppe-kopf .gruppe-titel {
   color: var(--text-leise);
@@ -3122,7 +3203,7 @@ body {
   flex-direction: column;
   gap: 3px;
   padding: 10px 12px;
-  border: 1px solid var(--rand);
+  border: 1px solid var(--linie); /* v77: war var(--rand), eine nie definierte Variable (Tippfehler) */
   border-radius: var(--rund-klein);
   cursor: var(--cursor-hand);
   transition: border-color 0.15s, background 0.15s;

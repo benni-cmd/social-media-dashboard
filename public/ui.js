@@ -148,7 +148,10 @@ export function statusChip(code) {
 // --- Bloecke --------------------------------------------------------------
 
 // Benannter Block mit Anzahl. Bewusst ohne eigene Ueberschriften-Ebene.
-export function gruppe(titel, anzahl, offen = true) {
+// `onToggle(offen)` (v77): meldet jeden Auf-/Zuklapp-Wechsel zurueck — der Aufrufer (detail.js)
+// merkt sich den Zustand je Karte, sonst faellt jeder Abschnitt bei jedem Redraw auf `offen`
+// zurueck (Owner 28.09.2026: "aufklappbar" hielt bisher nicht ueber eine Aenderung hinweg).
+export function gruppe(titel, anzahl, offen = true, onToggle = null) {
   const el = document.createElement("details");
   el.className = "gruppe";
   el.open = offen;
@@ -156,6 +159,7 @@ export function gruppe(titel, anzahl, offen = true) {
     `<summary class="gruppe-kopf"><span class="gruppe-titel">${escape(titel)}</span>` +
     (anzahl != null ? `<span class="gruppe-anzahl">${anzahl}</span>` : "") +
     `</summary>`;
+  if (onToggle) el.addEventListener("toggle", () => onToggle(el.open));
   return el;
 }
 
@@ -171,7 +175,6 @@ export function leer({ zeichen = "kreis", titel, satz, handlung } = {}) {
   return el;
 }
 
-// Zeile mit Status und Satz — der Grundbaustein jeder Befundliste.
 // Der eine echte Schliessen-Knopf fuer einen ".modal-frage"-Kopf (v76, Owner 28.09.2026): vorher
 // gab es dort nur eine dekorative halbtransparente Flaeche (`.modal-frage::after`), die wie ein
 // Schliessen-Knopf aussah, aber nirgends einen Klick annahm — ausser im Redaktionsplan-Popup, das
@@ -188,6 +191,7 @@ export function modalX(klick, titel = "Schliessen") {
   return b;
 }
 
+// Zeile mit Status und Satz — der Grundbaustein jeder Befundliste.
 export function befundZeile(status, satz, quelle) {
   const li = document.createElement("li");
   li.className = "befund";
@@ -196,6 +200,56 @@ export function befundZeile(status, satz, quelle) {
     `<span class="befund-satz">${escape(satz)}</span>` +
     (quelle ? `<span class="befund-quelle">${escape(quelle)}</span>` : "");
   return li;
+}
+
+// --- Pillen (runde Toggle-Buttons) -----------------------------------------
+//
+// v77 (Owner 28.09.2026): vorher baute detail.js dieselbe Pillen-Optik (.schalterreihe/.schalter)
+// vierfach unabhaengig voneinander nach — einmal fuer Single-Select (einzelwahlReihe), einmal
+// inline fuer die Plattform-Mehrfachauswahl, einmal fuer einen einzelnen Boolean-Schalter
+// (floatSchalter) und einmal fuer mehrere unabhaengige Booleans (schalterFeld). Jetzt EIN
+// Baustein (`pille`) dahinter, zwei duenne Fassaden davor je nach Datenform.
+function pille(text, an, typ, name, beiAenderung) {
+  const l = document.createElement("label");
+  l.className = "schalter" + (an ? " an" : "");
+  l.innerHTML = `<input type="${typ}" ${name ? `name="${name}"` : ""} ${an ? "checked" : ""}><span>${escape(text)}</span>`;
+  l.querySelector("input").addEventListener("change", (e) => beiAenderung(e.target.checked));
+  return l;
+}
+
+let pillenZaehler = 0;
+
+// EIN gemeinsamer Wert: `wert` ist bei mehrfach=false eine ID (oder ""), bei mehrfach=true ein
+// Array von IDs. `beiWahl` bekommt die neue ID ("" beim Abwaehlen) bzw. die neue ID-Liste.
+export function pillenReihe(optionen, wert, { mehrfach = false, beiWahl } = {}) {
+  const reihe = document.createElement("div");
+  reihe.className = "schalterreihe";
+  const name = mehrfach ? null : `_pill${++pillenZaehler}`;
+  const ausgewaehlt = new Set(mehrfach ? wert || [] : []);
+  for (const o of optionen) {
+    const an = mehrfach ? ausgewaehlt.has(o.id) : wert === o.id;
+    const l = pille(o.name, an, mehrfach ? "checkbox" : "radio", name, (checked) => {
+      if (mehrfach) {
+        const neu = new Set(ausgewaehlt);
+        checked ? neu.add(o.id) : neu.delete(o.id);
+        beiWahl([...neu]);
+      } else if (checked) {
+        beiWahl(o.id);
+      }
+    });
+    if (!mehrfach) l.addEventListener("click", (e) => { if (an) { e.preventDefault(); beiWahl(""); } });
+    reihe.appendChild(l);
+  }
+  return reihe;
+}
+
+// Mehrere UNABHAENGIGE Ja/Nein-Pillen, jede mit eigenem Zustand und eigener Aktion (kein
+// gemeinsamer Wert wie bei pillenReihe) — z. B. mehrere unabhaengige Video-Eigenschaften.
+export function pillenSchalter(eintraege) {
+  const reihe = document.createElement("div");
+  reihe.className = "schalterreihe";
+  for (const e of eintraege) reihe.appendChild(pille(e.text, e.an, "checkbox", null, e.beiAenderung));
+  return reihe;
 }
 
 // Eigenschaft in der schmalen Spalte: festes Label, Wert daneben.
@@ -594,25 +648,6 @@ export function textfeld(wert, zeilen = 4, platzhalter = "") {
   t.value = wert ?? "";
   if (platzhalter) t.placeholder = platzhalter;
   return t;
-}
-
-export function auswahl(optionen, wert, { leerText = null } = {}) {
-  const s = document.createElement("select");
-  s.className = "eingabe";
-  if (leerText) {
-    const o = document.createElement("option");
-    o.value = "";
-    o.textContent = leerText;
-    s.appendChild(o);
-  }
-  for (const opt of optionen) {
-    const o = document.createElement("option");
-    o.value = opt.id ?? opt;
-    o.textContent = opt.name ?? opt;
-    s.appendChild(o);
-  }
-  s.value = wert ?? "";
-  return s;
 }
 
 // Unbestimmte Fortschritts-Leiste. Gibt die Entfern-Funktion zurueck.
