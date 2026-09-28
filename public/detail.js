@@ -70,6 +70,7 @@ import { modalDrehtermin } from "./drehtermine.js";
 import {
   icon,
   statusChip,
+  STATUS,
   escape,
   knopf,
   feld,
@@ -120,7 +121,6 @@ export function zeichneDetail(el) {
   const p = phase(k.column);
   const stand = S.driveStand.get(k.id);
   const toreListe = tore(k, stand);
-  const blockiert = sperren(toreListe);
 
   el.innerHTML = "";
 
@@ -143,6 +143,12 @@ export function zeichneDetail(el) {
   });
   kopf.appendChild(fokusKnopf);
 
+  // v75 (Owner 28.09.2026): Befunde stehen jetzt rechtsbuendig hier im Kopf statt in einer
+  // eigenen Zeile darunter — die Fortschritt-Zeile samt Phasenband entfaellt komplett. Der
+  // Indikator traegt den auto-margin, damit er sich (und alles danach, hier nur noch X) an
+  // den rechten Rand schiebt; .detail-fokus/.detail-phase bleiben links stehen.
+  kopf.appendChild(befundIndikator(toreListe));
+
   const zu = document.createElement("button");
   zu.className = "detail-schliessen";
   zu.setAttribute("aria-label", "Karte schliessen");
@@ -154,9 +160,6 @@ export function zeichneDetail(el) {
   });
   kopf.appendChild(zu);
   el.appendChild(kopf);
-
-  // --- Fortschritt: sofort sichtbar, ohne Scrollen (P27 F1) ---
-  el.appendChild(blockFortschritt(k, blockiert));
 
   const koerper = document.createElement("div");
   koerper.className = "detail-koerper";
@@ -206,36 +209,62 @@ export function zeichneDetail(el) {
 
 // --- Bloecke --------------------------------------------------------------
 
-// Fortschritt sofort sichtbar, ohne Scrollen (P27 F1): Phasenband + die wichtigste Frage
-// zuerst — was haelt die Karte auf. Bewusst kein `gruppe()`/details-Element: das hier soll
-// nicht wegklappbar sein, es ist die erste Antwort, nicht ein Nebenblock.
-function blockFortschritt(k, blockiert) {
-  const wrap = document.createElement("div");
-  wrap.className = "detail-fortschritt";
+// Befund-Indikator im Kopf (v75, Owner 28.09.2026, ersetzt die fruehere Fortschritt-Zeile samt
+// Phasenband): EIN Zeichen in der Farbe des schwersten offenen Punkts, rechtsbuendig neben dem
+// Schliessen-Knopf. Hover/Fokus oeffnet ein Popup darunter mit allen Punkten, nach Status
+// gruppiert (befund/fehlt/hinweis/unlesbar) — "ok"/"entfaellt" zaehlen nicht als offen.
+const BEFUND_REIHENFOLGE = ["befund", "fehlt", "hinweis", "unlesbar"];
+const BEFUND_GRUPPENNAME = { befund: "Befund", fehlt: "Fehlt", hinweis: "Hinweis", unlesbar: "Unlesbar" };
 
-  // Phasenband nur fuer die Arbeitsschritte (Idee..Upload) — "Fertig"/"Verworfen" sind
-  // Endzustaende, kein "Fortschritt" mehr im selben Sinn.
-  if (k.column !== "fertig" && k.column !== "verworfen") {
-    const arbeitsPhasen = PHASEN.filter((ph) => ph.id !== "fertig" && ph.id !== "verworfen");
-    const idx = phaseIndex(k.column);
-    const band = document.createElement("div");
-    band.className = "phasenband";
-    for (let i = 0; i < arbeitsPhasen.length; i++) {
-      const teil = document.createElement("span");
-      teil.className = "phasenband-teil" + (i < idx ? " erledigt" : i === idx ? " hier" : "");
-      band.appendChild(teil);
+function befundIndikator(toreListe) {
+  const offen = toreListe.filter((t) => t.status !== "ok" && t.status !== "entfaellt");
+  const schwerste = BEFUND_REIHENFOLGE.find((s) => offen.some((t) => t.status === s)) || "ok";
+
+  const wrap = document.createElement("span");
+  wrap.className = `befund-indikator chip-${schwerste}`;
+  wrap.tabIndex = 0;
+  wrap.setAttribute("role", "button");
+  wrap.setAttribute("aria-label", offen.length ? `${offen.length} Punkte offen — Details anzeigen` : "Nichts haelt die Karte auf");
+  wrap.innerHTML = icon((STATUS[schwerste] || STATUS.ok).icon) + (offen.length ? `<span class="befund-indikator-anzahl">${offen.length}</span>` : "");
+
+  const popup = document.createElement("div");
+  popup.className = "befund-popup";
+  if (!offen.length) {
+    popup.innerHTML = `<p class="feld-hinweis">Nichts haelt die Karte auf.</p>`;
+  } else {
+    for (const status of BEFUND_REIHENFOLGE) {
+      const gruppe = offen.filter((t) => t.status === status);
+      if (!gruppe.length) continue;
+      const g = document.createElement("div");
+      g.className = "befund-popup-gruppe";
+      g.innerHTML = `<div class="befund-popup-kopf">${BEFUND_GRUPPENNAME[status]} (${gruppe.length})</div>`;
+      const liste = document.createElement("ul");
+      liste.className = "befundliste";
+      for (const t of gruppe) liste.appendChild(befundZeile(t.status, t.satz, t.quelle));
+      g.appendChild(liste);
+      popup.appendChild(g);
     }
-    wrap.appendChild(band);
   }
+  wrap.appendChild(popup);
 
-  const zeile = document.createElement("div");
-  zeile.className = "befund";
-  zeile.innerHTML = blockiert.length
-    ? statusChip("befund") +
-      `<span class="befund-satz"><strong>${blockiert.length}</strong> Punkt${blockiert.length === 1 ? "" : "e"} halten die Karte auf.</span>`
-    : statusChip("ok") + `<span class="befund-satz">Nichts haelt die Karte auf.</span>`;
-  wrap.appendChild(zeile);
+  // Touch/Klick zusaetzlich zu Hover/Fokus (CSS traegt :hover/:focus-within). Schliessen bei
+  // Aussenklick laeuft ueber EINEN global delegierten Listener (siehe unten) statt je Indikator
+  // einen eigenen zu registrieren — die Detailspalte zeichnet bei jeder Aenderung neu, ein
+  // Listener pro Aufruf haette sich sonst bei jedem Redraw angehaeuft.
+  wrap.addEventListener("click", (e) => {
+    e.stopPropagation();
+    wrap.classList.toggle("offen");
+  });
+
   return wrap;
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".befund-indikator")) {
+      document.querySelectorAll(".befund-indikator.offen").forEach((w) => w.classList.remove("offen"));
+    }
+  });
 }
 
 // P27 F2: Karten-IDs, deren Stamm-Felder trotz vollstaendiger Wahl gerade zum Bearbeiten

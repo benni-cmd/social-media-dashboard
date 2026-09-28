@@ -1299,7 +1299,9 @@ body {
   color: var(--akzent);
 }
 .detail-schliessen {
-  margin-left: auto;
+  /* v75: der auto-margin sitzt jetzt am .befund-indikator davor (der immer im Kopf steht) —
+     zwei auto-margins in derselben Zeile wuerden sich den freien Platz teilen und eine
+     sichtbare Luecke vor X aufreissen, statt dass beide zusammen ganz rechts sitzen. */
   background: none;
   border: 0;
   color: var(--text-leise);
@@ -3280,17 +3282,9 @@ body {
    Zusammenfassung, "Naechster Schritt", Fokus-Ansicht.
    ============================================================ */
 
-/* F1: Fortschritt sofort sichtbar direkt unter dem Kopf, ohne Scrollen.
-   .phasenband/.phasenband-teil und .befund/.befund-satz sind vorhandene Bausteine
-   (Board-Kachel bzw. Termin-Block) — hier nur ein neuer Rahmen drumherum. */
-.detail-fortschritt {
-  padding: 12px 16px 13px;
-  border-bottom: 1px solid var(--linie);
-  flex: 0 0 auto;
-}
-.detail-fortschritt .phasenband {
-  margin-bottom: 9px;
-}
+/* F1 (bis v75): war eine eigene Fortschritt-Zeile mit Phasenband direkt unter dem Kopf.
+   Ersetzt durch den Befund-Indikator im Kopf selbst (siehe .befund-indikator unten) — Owner
+   28.09.2026: "so sparen wir uns eine Zeile, diese Progressbar kann raus". */
 
 /* F2: eingeklappte Stamm-Zusammenfassung, wenn Typ/Kategorie/Ziel/Plattform alle stehen. */
 .stamm-zusammenfassung {
@@ -3572,3 +3566,53 @@ body {
 .gruppe-kopf:has(.gruppe-anzahl)::after { margin-left: 4px; }
 .gruppe[open] > .gruppe-kopf::after { transform: translateY(2px) rotate(-135deg); }
 .gruppe-kopf:hover::after { border-color: var(--text); }
+
+/* v75: Befund-Indikator im Detailkopf — ein Zeichen in der Farbe des schwersten offenen
+   Punkts, rechtsbuendig neben dem Schliessen-Knopf; Hover/Fokus/Klick oeffnet die Liste
+   darunter, nach Status gruppiert. */
+.befund-indikator {
+  position: relative;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: var(--rund-klein);
+  cursor: var(--cursor-hand);
+}
+.befund-indikator .icon { width: 16px; height: 16px; }
+.befund-indikator-anzahl { font-size: 11px; font-weight: 650; }
+.befund-indikator:hover,
+.befund-indikator:focus-visible,
+.befund-indikator.offen { background: var(--flaeche-hoch); }
+.befund-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 10px 12px;
+  color: var(--text);
+  cursor: default;
+  text-align: left;
+}
+.befund-indikator:hover .befund-popup,
+.befund-indikator:focus-within .befund-popup,
+.befund-indikator.offen .befund-popup { display: block; }
+.befund-popup-gruppe + .befund-popup-gruppe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--linie); }
+.befund-popup-kopf {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-still);
+  margin-bottom: 4px;
+}
+.befund-popup .befundliste { margin: 0; padding: 0; }
