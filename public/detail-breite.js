@@ -8,7 +8,12 @@
 // von hier, kein Zyklus).
 
 const SCHLUESSEL = "cm-detail-breite";
-const MIN = 380;
+// v78 (Owner 28.09.2026): war 380 (v57) — bei diesem Wert brach der laengste Spaltenname
+// ("Drehtermin festlegen") im Kopf mitten im Wort um und machte den Kopf hoeher, sobald ein
+// Drive-Ordner-Knopf und der Befund-Indikator dazukamen. Nachgemessen (Browser, worst case:
+// laengster Phasenname + Drive-Knopf + Befund-Indikator): passt ab 444px in eine Zeile; 460
+// mit etwas Luft (z. B. ein zweistelliger Befund-Zaehler).
+const MIN = 460;
 
 const maxBreite = () => Math.round(window.innerWidth * 0.8);
 

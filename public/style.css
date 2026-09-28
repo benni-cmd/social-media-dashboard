@@ -1314,6 +1314,12 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--akzent);
+  /* v78 (Owner 28.09.2026): brach bei zu wenig Platz mitten im Wort um und machte den ganzen
+     Kopf hoeher — verwirrend, weil sich dabei nur DIESE eine Zeile aendert. Bricht jetzt nicht
+     mehr um; stattdessen ist die Mindestbreite der Detailspalte (detail-breite.js) so gesetzt,
+     dass der Kopf mit allen Symbolen IMMER in eine Zeile passt. */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .detail-schliessen {
   /* v75: der auto-margin sitzt jetzt am .befund-indikator davor (der immer im Kopf steht) —

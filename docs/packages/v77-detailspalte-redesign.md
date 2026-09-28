@@ -83,3 +83,18 @@ einspaltig.
   gegengeprueft, nicht als isolierte Unit-Tests; `.wahl`-Grid bei SEHR breiter Spalte (>1000px,
   >2 Detail-Koerper-Spalten) faellt pro Spalte wieder auf 1 Karte pro Zeile zurueck (kein Bug,
   aber nicht perfekt monoton) — im Test bei 900px nicht relevant geworden.
+
+## Nachtrag v78 — Kopf brach bei Mindestbreite um (28.09.2026)
+
+**Problem:** Bei 380px (bisherige Mindestbreite) brach der Spaltenname im Kopf mitten im Wort um
+("SKRIPT" / "SCHREIBEN" auf zwei Zeilen), sobald der Drive-Knopf und der Befund-Indikator
+dazukamen — der Kopf wurde dadurch hoeher, was "sehr verwirrend fuers Auge" ist (Owner).
+
+**Fix:** `.detail-phase` bricht nicht mehr um (`white-space:nowrap`). Die Mindestbreite der
+Detailspalte (`detail-breite.js`, `MIN`) ist von 380 auf **460px** angehoben — nachgemessen im
+Browser: der laengste Spaltenname ("Drehtermin festlegen") passt mit Drive-Knopf und
+Befund-Indikator ab 444px in eine Zeile, 460 mit etwas Luft fuer z. B. einen zweistelligen
+Befund-Zaehler.
+
+**Verify:** Detailspalte auf ihre neue Default-/Mindestbreite (460px) gesetzt, Karte im Schritt
+"Drehtermin festlegen" (laengster Name) geoeffnet — Kopf bleibt einzeilig, Screenshot bestaetigt.
