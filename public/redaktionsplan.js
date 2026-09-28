@@ -83,6 +83,7 @@ function defaultPlan() {
   return {
     plattformen: ["instagram", "linkedin"],
     kadenz: { postsProWoche: 3 },
+    maxAbstandTage: 0,
     typenmix: PLAN_TYPEN.map(({ id }) => ({
       typ: id,
       perWoche: { reel: 2, slider: 0.75, beitrag: 0.25, story: 0, langformat: 0 }[id] ?? 0,
@@ -229,6 +230,29 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   koerper.appendChild(freqGesamt);
   aktualisiereGesamt(freqGesamt, Object.values(freqGetters).map((f) => f()));
 
+  // ── Max. Abstand zwischen 2 Posts (v79) ───────────────────────────────
+  const abstandZeile = document.createElement("div");
+  abstandZeile.style.cssText = "display:flex;align-items:center;gap:10px;margin:8px 0 4px";
+  const abstandLabel = document.createElement("label");
+  abstandLabel.style.cssText = "font-size:13px;flex:1";
+  abstandLabel.textContent = "Max. Abstand zwischen 2 Posts (Tage)";
+  const abstandInput = document.createElement("input");
+  abstandInput.type = "number";
+  abstandInput.min = "0";
+  abstandInput.step = "1";
+  abstandInput.value = String(plan.maxAbstandTage ?? 0);
+  abstandInput.style.cssText = "width:70px;padding:4px 6px;font-size:13px;text-align:right";
+  abstandLabel.setAttribute("for", "");
+  abstandZeile.appendChild(abstandLabel);
+  abstandZeile.appendChild(abstandInput);
+  koerper.appendChild(abstandZeile);
+  const abstandHinweis = document.createElement("p");
+  abstandHinweis.className = "feld-hinweis";
+  abstandHinweis.style.marginBottom = "10px";
+  abstandHinweis.textContent = "0 = keine Grenze. Sonst wird kein Upload weiter als N Tage vom vorherigen entfernt geplant.";
+  koerper.appendChild(abstandHinweis);
+  const getMaxAbstand = () => Math.max(0, Math.floor(Number(abstandInput.value) || 0));
+
   // ── Inhaltskategorien ──────────────────────────────────────────────────
   sektionKopf("Inhaltskategorien", koerper, "14px 0 8px");
   const katStatus = {};
@@ -320,6 +344,7 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       ...(currentPlan || {}),
       plattformen: PLATTFORMEN.map((pl) => pl.id).filter((id) => plCheckboxen[id]?.checked),
       typenmix: PLAN_TYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
+      maxAbstandTage: getMaxAbstand(),
       kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
         id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
       })),
