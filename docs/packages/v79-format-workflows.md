@@ -61,14 +61,76 @@ KI (leicht format-abhängig zu machen) vs. Board-Phasen (teuer, Drive-gebunden).
 
 ## Recherche (läuft — Ergebnisse werden hier eingetragen)
 
-- **Strom A — Content-Best-Practices je Format** (LinkedIn primär, IG sekundär): ideale
-  KI-Schritt-Sequenz + Parameter je Format (Slide-Anzahl, Textlängen, Hook-Konventionen,
-  Langform-Storytelling-Struktur). Status: läuft.
-- **Strom B — Workflow-Builder Datenmodell + Visualisierung** unter Randbedingung „Vanilla
-  JS, keine Libs, Light/Dark": Format→Pipeline-Modell, leichtgewichtige Visualisierung.
-  Status: läuft.
+### Strom A — Content-Best-Practices je Format (zurück 28.09.2026, ≥2 Quellen je Format)
 
-*(Wird nach Rücklauf mit Quellen gefüllt; erst dann die Weichen unten final an den Owner.)*
+**Kritische Rahmen-Befunde (steuern W4):**
+- **LinkedIn hat KEIN Story-Format** (2021 eingestellt) → Story/Highlight ist reine
+  **Instagram**-Pipeline. Für LinkedIn-First heißt das: Story ist ein Nebenformat.
+- **„LinkedIn-Carousel" = Dokument/PDF-Post** (nicht Bilder-Slider wie IG). Organisch
+  8–15 Slides; die 2–10-Grenze gilt nur für bezahlte Carousel-*Ads*.
+- Hashtag-Cap „5 bei IG" ist ein Late-2025-Sekundärsignal, kein Meta-Wort → vor Hardcoding
+  gegen aktuelle Meta-Doku prüfen (steht schon differenziert in `pipeline.js` PLATTFORMEN).
+
+**Ideale KI-Schritt-Sequenz je Format (Default-Pipeline-Kandidaten):**
+
+| Format | Schritt-Sequenz | Kernparameter |
+|---|---|---|
+| **Slider/Carousel** | Botschaft/Slide → Slide-Zahl daraus ableiten → Hook-Cover (Neugierlücke) → 1 Botschaft + Visual je Slide (EIN Design-System) → CTA letzte Slide → erweiternde Caption | LinkedIn 8–15 / IG 8–10 (max 20); 6–8 Zeilen/Slide, ≥24 pt; IG 4:5 1080×1350; Caption 150–300 W |
+| **Beitrag+Visual** | Insight → Hook für mobile Fold → Body in kurzen Blöcken → CTA/Frage → 1 Visual-Konzept → Hashtags | LI-Hook ≤140 Z. / IG ≤125 Z.; LI-Ideallänge 1.200–1.600 Z.; Hashtags je 3–5; LI: Kommentare ~10× > Likes |
+| **Story/Highlight (IG)** | Micro-Ziel/Frame → Bild vs. Video wählen → sparsamer Text 9:16 → 1 Interaktions-Sticker/Frame → Frames zu Mini-Bogen | Foto 7 Sek / Video ≤15 Sek/Segment; Polls/Quiz/Fragen; 2–5/Tag |
+| **Langform-Video** | Narrative Struktur wählen (roter Faden) → Hook-Beat (30 Sek) → 6–8 Kapitel als Stichpunkte → Payoffs alle 2–4 Min → Ende+CTA → Chapter-Marker | KONZEPT statt Skript; 6 Struktur-Bögen; Dichte vor Dauer |
+| **Kurzform-Video (Baseline)** | 1 Idee → Hook 1–3 Sek → Value → Content → CTA → volles Skript + Drehplan | ≤60 Sek; 9:16; stumm-optimiert (= heutiger Ist-Zustand) |
+
+Belegt gegen je ≥2 unabhängige Quellen (LinkedIn/Instagram/YouTube-Best-Practices 2025/26),
+Erstresultate gegengeprüft. Quellen im Agenten-Bericht (usevisuals, Oktopost, Sprout,
+Metricool, Hootsuite, PrePublish, 1of10 u. a.).
+
+### Strom B — Workflow-Builder Datenmodell + Visualisierung (zurück 28.09.2026, ≥2 Quellen)
+
+**Empfehlung Datenmodell:** lineare Schritt-Liste **pro Format**, kein Graph. „Unterschiedlich
+je Format" heißt NICHT ein verzweigter Graph, sondern N bereits aufgelöste lineare Listen —
+eine je Format. Keyed über `contenttypFormat(card.contenttyp)` (5 Format-Werte, hält die
+Matrix klein). Fallback-Kette in `effektiveSchritte`: `perFormat[format] → Task-Default (eigen)
+→ standardPipeline(task)`. Abwärtskompatibel; fehlt `perFormat`, verhält sich alles wie heute.
+Schema-Skizze (additiv zum heutigen `aufgaben[task]`):
+```
+aufgaben[task] = {
+  schritte: [ {rolle, prompt} ],          // Default wie bisher
+  perFormat?: { "video": { schritte:[…] }, "carousel": { schritte:[…] } }  // nur wo abweichend
+}
+```
+Belege: APXML (sequenziell vor Graph, Graph erst bei Branch/Loop), Zapier Paths + G2
+Make-vs-Zapier (lineare Wege bevorzugen), Hootsuite/Filestage (Content-Tools parametrisieren
+Stages statt per-Format-Graphen), n8n-Docs (Voll-Graph = das schwergewichtige Gegenteil).
+
+**Empfehlung Visualisierung:** vertikaler **Schritt-Flow** (DOM-Karten oben→unten, dazwischen
+Konnektor-Pfeil = `{{vorschritt}}`-Datenfluss). Je Karte: Rollen-Badge (welches Modell), Prompt
+collapsible (Progressive Disclosure), I/O-Chip (`← Ausgabe Schritt N` / `→ JSON` bei nurJson).
+Reihenfolge per ▲/▼. Format-Umschaltung: Segmented-Control/Tabs (Formate) über dem Stepper;
+Badge „erbt Standard" vs „eigene Fassung" (das `eigen`-Flag liefert `uebersicht()` schon).
+SVG NUR für die kleinen Konnektor-Pfeile, KEIN Kanten-Editor/Canvas. Belege: Clarity Design +
+Eleken (Stepper/Timeline für lineare, revidierbare Flows). Kanban/Node-Canvas verworfen
+(falsche Metapher bzw. schwergewichtig).
+
+**Ausbaupfad:** Phase 1 `perFormat`-Fallback + Format-Tabs am bestehenden Editor. Phase 2 nur
+bei Bedarf „gemeinsame Schritte + Overrides" / `skipIf`. Phase 3 nur wenn echter Branch/Loop
+auftaucht (z. B. Qualitäts-Gate mit Rücksprung) → dann erst Knoten-Modell erwägen.
+
+---
+
+## Entscheidungen (Owner, 28.09.2026)
+
+- **W5 → Feintuning 1-3 ZUERST** (Agent-Entscheid, ausgeführt): klein, unabhängig vom
+  Format-Umbau, schneller Gewinn. Danach Format-Arbeit.
+- **W2 → perFormat-Datenmodell + Fallback-Kette** (aus Strom B übernommen, Standard-Empfehlung).
+- **W1 → Nur KI-Schritte format-abhängig; Board-Phasen bleiben global** (Owner 28.09.2026).
+  Video-Phasen (Drehtermin, Videodreh) werden für Nicht-Video-Formate zu nicht-sperrenden,
+  überspringbaren Toren. KEIN Drive-/Spalten-Umbau.
+- **W4 → Format-eigene Knopf-Sets + neue Tasks** (Owner 28.09.2026). Slider: „Slides aufbauen"
+  + „Visual je Slide"; Langform: „Storytelling-Konzept"; Story: „Story-Frames"; Beitrag:
+  „Visual-Konzept". Jeder Knopf hat eine format-eigene Pipeline.
+- **W3 → Sichtbar UND editierbar je Format** (Owner 28.09.2026). Vertikaler Schritt-Flow mit
+  Format-Tabs, Rolle/Modell-Badge, Datenfluss-Pfeilen, „erbt Standard" vs „eigene Fassung".
 
 ---
 
@@ -89,21 +151,63 @@ KI (leicht format-abhängig zu machen) vs. Board-Phasen (teuer, Drive-gebunden).
 
 ---
 
-## Plan (Phasen) — nach Weichen-Freigabe
+## Plan (Phasen) — freigegeben 28.09.2026
 
-*(Wird nach den Entscheidungen gefüllt. Grobskizze:)*
-- **v79-A — Feintuning 1-3** am bestehenden Pipeline-System (klein, unabhängig).
-- **v79-B — Format→Pipeline-Datenmodell** + Fallback + Migration.
-- **v79-C — Format-Tasks** (Default-Pipelines je Format aus Recherche A).
-- **v79-D — Board-Anpassung** (Phasen gaten/überspringen je Format, je nach W1).
-- **v79-E — Workflow-Visualisierung/Builder** im Einstellungs-Tab (aus Recherche B).
-- **v79-F — Verify:** node --check, E2E je Format, Screenshot-Abnahme Light/Dark,
-  Completeness + Fulfillment (echter Durchlauf je Format).
+- **v79-A — Feintuning 1-3** (zuerst, klein, unabhängig):
+  1. **Web-Suche pro Schritt:** Schritt-Modell `{rolle, prompt}` → `{rolle, prompt, websuche}`;
+     `laufePipeline` (server.js) nutzt `step.websuche` statt fester Recherche-Rollen-Bindung
+     (F2 aus v41 wird zurückgenommen); Editor bekommt Websuche-Checkbox je Schritt.
+     Abwärtskompatibel: fehlt `websuche`, gilt weiter „Recherche-Rolle sucht".
+  2. **Latenz sichtbar:** je Schritt die verstrichene Zeit im Status/Denk-Panel anzeigen
+     (Chaining ist nicht parallelisierbar → Kosten transparent machen statt verstecken).
+  3. **JSON nur letzter Schritt:** Editor markiert den End-Schritt; `{{nurJson}}` nur dort
+     sinnvoll; Server erzwingt JSON-Parse ausschließlich am letzten Schritt (ist schon so) +
+     Editor-Hinweis, damit kein Zwischenschritt versehentlich JSON liefert.
+- **v79-B — perFormat-Datenmodell:** `promptstore.effektiveSchritte/uebersicht/setze` um
+  `perFormat` + Fallback `perFormat[contenttypFormat(card.contenttyp)] → Task-Default → Standard`;
+  Migration/abwärtskompatibel; node-Probe.
+- **v79-C — Format-Tasks + Knopf-Sets:** neue Tasks mit Default-Pipelines aus Strom A
+  (slider: `slider_aufbau` + `slider_visual`; langform: `langform_konzept`; story:
+  `story_frames`; beitrag: `beitrag_visual`); je Format sichtbare Knopf-Menge auf der Karte.
+- **v79-D — Board:** `tore()` (pipeline.js) format-bewusst — Video-Phasen (Drehtermin,
+  Videodreh) für Nicht-Video-Formate nicht-sperrend/überspringbar; Regression-Check Video.
+- **v79-E — Workflow-Ansicht:** vertikaler Schritt-Flow + Format-Tabs im „System Prompts"-Tab
+  (editierbar je Format, Rolle/Modell-Badge, Datenfluss-Pfeile), Vanilla + CSS-Variablen.
+- **v79-F — Verify:** `node --check` je Datei, E2E je Format, Screenshot-Abnahme Light/Dark
+  gegen `docs/ui-standard.md`, Completeness-Audit + Fulfillment (echter Durchlauf je Format).
 
 ## Stand
 
-28.09.2026 — angelegt vor dem Bau. Bestandsaufnahme gemessen. Recherche läuft, Weichen offen.
+28.09.2026 — Plan freigegeben (W1/W2/W3/W4/W5 entschieden). Bestandsaufnahme gemessen,
+Recherche A+B eingetragen. Bau beginnt mit v79-A.
+
+**v79-A gebaut+verifiziert (28.09.2026):**
+- **Punkt 1 Websuche je Schritt:** Schritt-Modell trägt `websuche`; `server.js:laufePipeline`
+  nutzt `s.websuche` (Fallback: Recherche-Rolle sucht — abwärtskompatibel); `standardPipeline`
+  (ai.js) setzt es explizit; `promptstore` liest/schreibt es; Editor-Checkbox „im Web suchen".
+- **Punkt 2 Latenz sichtbar:** je Schritt `dauerSek` via `onStufe({stufe:"schritt-fertig"})` +
+  Status-Satz „fertig in Xs" (serielle Kette → Zeit benannt statt versteckt).
+- **Punkt 3 JSON nur Endschritt:** Server parst JSON schon nur am letzten Schritt (unverändert);
+  Editor markiert den letzten Schritt „· Ergebnis" + Warnung, wenn `{{nurJson}}` in einem
+  Zwischenschritt steht.
+- Verifiziert: `node --check` server.js/ai.js/promptstore.js/ui.js = grün; Probe
+  `standardPipeline('recherche')` → nur Recherche-Schritt `websuche:true`; **Screenshot** (Server
+  Port 4399, System-Prompts-Tab): Schritt 1 „im Web suchen" leer, Schritt 2 (Recherche) angehakt,
+  „Schritt 3 · Ergebnis" beim Recherche-Knopf, „Schritt 1 · Ergebnis" bei Ein-Schritt-Knöpfen.
+- Bewusst NICHT angefasst: `style.css` (Parallel-Session hält sie dirty) — Additionen nutzen
+  bestehende Klassen + `var(--rot)` inline. Dark-Mode-Screenshot offen (Additionen erben
+  vorhandene, getönte Klassen); Live-Latenz-Anzeige braucht echten KI-Lauf (Drive/CLI).
 
 ## DoD
 
-*(Wird mit dem Plan finalisiert.)*
+- [x] **v79-A:** Websuche je Schritt schaltbar (Editor + Server); Latenz je Schritt sichtbar;
+      JSON nur am letzten Schritt (Editor-Markierung + Server). node --check grün, Screenshot-Beleg.
+- [ ] **v79-B:** perFormat-Ablage + Fallback + Migration; node-Probe (Format-Override greift,
+      fehlend → Default).
+- [ ] **v79-C:** je Format die richtigen Knöpfe + sinnvolle Default-Pipeline; ein echter Lauf
+      je Format liefert format-passenden Output (Slider-Slides, Langform-Konzept …).
+- [ ] **v79-D:** Slider-/Beitrag-/Story-/Langform-Karte kommt ohne Drehtermin durchs Board;
+      Video-Karte unverändert (Regression-Beleg).
+- [ ] **v79-E:** Workflow je Format sichtbar + editierbar; Screenshot Light+Dark gegen
+      ui-standard.md.
+- [ ] Completeness + Fulfillment.

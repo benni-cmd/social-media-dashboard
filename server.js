@@ -321,6 +321,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   let vorschritt = "";
   for (let i = 0; i < schritte.length; i++) {
     const s = schritte[i];
+    const stepStart = Date.now();
     const rolle = s.rolle || "userkomm";
     const konf = rollen[rolle] || rollen.userkomm || fallback;
     const rolleName = ROLLE_NAME[rolle] || rolle;
@@ -331,8 +332,11 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
 
     // Web-Suche: nur fuer Recherche-Schritte. Query = die Zeilen des Vorschritts (bis 3, Nummerierung
     // entfernt), sonst das Kartenthema (Titel + Reihe).
+    // v79: Web-Suche pro Schritt schaltbar (`s.websuche`). Fehlt das Feld (aeltere Fassung),
+    // gilt weiter die v41-Regel „nur die Recherche-Rolle sucht" — abwaertskompatibel.
     let webBlock = "";
-    if (rolle === "recherche") {
+    const suchtImWeb = s.websuche !== undefined ? !!s.websuche : rolle === "recherche";
+    if (suchtImWeb) {
       onStatus(`${marke} · sucht im Web …`);
       onStufe({ ...basis, stufe: "web-suche" });
       const queries = vorschritt
@@ -400,6 +404,11 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
       }
     }
     vorschritt = text || "";
+    // v79: Latenz je Schritt sichtbar — die serielle Kette macht Zeit unvermeidbar, also wird sie
+    // benannt statt versteckt. Reitet auf den bestehenden Kanaelen (onStufe-Feld + Status-Satz).
+    const dauerSek = Math.round((Date.now() - stepStart) / 1000);
+    onStufe({ ...basis, stufe: "schritt-fertig", dauerSek });
+    if (!letzter) onStatus(`${marke} · fertig in ${dauerSek}s`);
   }
   onStufe({ stufe: "fertig", schritt: schritte.length, von: schritte.length });
   return vorschritt;

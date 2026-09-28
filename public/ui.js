@@ -202,6 +202,60 @@ export function befundZeile(status, satz, quelle) {
   return li;
 }
 
+// --- Kleines Klapp-Menue an einem Icon-Knopf --------------------------------
+//
+// v80 (Owner 28.09.2026): der Abschluss-Bereich einer Karte zeigte "Weiter" (Haupt-Pille),
+// "Verwerfen" (graue Flaeche) und "Loeschen" (nackter roter Text) als drei gleich praesente
+// Zeilen — Owner-Entscheidung: nur der Hauptweg bleibt prominent, die Nebenwege (verwerfen/
+// loeschen) wandern hinter einen kleinen Menue-Knopf. Bewusst ein einfacher eigener Baustein
+// statt kontextmenu.js wiederzuverwenden — das ist auf die Rechtsklick-Positionierung an einer
+// Board-Kachel zugeschnitten, hier reicht ein Dropdown direkt am Knopf.
+export function mehrMenu(eintraege) {
+  const wrap = document.createElement("div");
+  wrap.className = "mehr-menu";
+
+  const knopfEl = document.createElement("button");
+  knopfEl.type = "button";
+  knopfEl.className = "mehr-menu-knopf";
+  knopfEl.innerHTML = icon("mehr");
+  knopfEl.title = "Weitere Aktionen";
+  knopfEl.setAttribute("aria-label", "Weitere Aktionen");
+
+  const liste = document.createElement("div");
+  liste.className = "mehr-menu-liste";
+  liste.hidden = true;
+  for (const e of eintraege) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "mehr-menu-item" + (e.gefahr ? " mehr-menu-gefahr" : "");
+    item.textContent = e.text;
+    if (e.titel) item.title = e.titel;
+    item.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      schliessen();
+      e.klick();
+    });
+    liste.appendChild(item);
+  }
+
+  const aussen = (ev) => {
+    if (!wrap.contains(ev.target)) schliessen();
+  };
+  function schliessen() {
+    liste.hidden = true;
+    document.removeEventListener("click", aussen);
+  }
+  knopfEl.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    liste.hidden = !liste.hidden;
+    if (!liste.hidden) document.addEventListener("click", aussen);
+  });
+
+  wrap.appendChild(knopfEl);
+  wrap.appendChild(liste);
+  return wrap;
+}
+
 // --- Pillen (runde Toggle-Buttons) -----------------------------------------
 //
 // v77 (Owner 28.09.2026): vorher baute detail.js dieselbe Pillen-Optik (.schalterreihe/.schalter)
@@ -258,6 +312,22 @@ export function eigenschaft(label, wertHtml) {
     `<div class="eigenschaft"><span class="eigenschaft-label">${escape(label)}</span>` +
     `<span class="eigenschaft-wert">${wertHtml}</span></div>`
   );
+}
+
+// Kleine Icon-Kachel fuer eine Kennzahl (v80, Owner 28.09.2026: die Drive-Zahlen standen als
+// rohe "Label: Wert"-Liste, das wirkte wie eine Datenausgabe statt gestaltet — jetzt dieselbe
+// Icon-plus-Zahl-Sprache wie die KPI-Kacheln der Auswertung, nur kompakt fuer die Detailspalte).
+export function kennzahlKachel(zeichen, wert, label) {
+  return (
+    `<div class="kennzahl-kachel"><span class="kennzahl-kachel-icon">${icon(zeichen)}</span>` +
+    `<span class="kennzahl-kachel-wert">${escape(String(wert))}</span>` +
+    `<span class="kennzahl-kachel-label">${escape(label)}</span></div>`
+  );
+}
+
+// Reihe mehrerer Kennzahl-Kacheln.
+export function kennzahlReihe(kacheln) {
+  return `<div class="kennzahl-reihe">${kacheln.map((k) => kennzahlKachel(k.zeichen, k.wert, k.label)).join("")}</div>`;
 }
 
 // Icon-Zeichen, die als farbige Kachel erscheinen (v29, Owner-Grafikstil) statt als
@@ -1972,7 +2042,7 @@ function aufgabeBlock(eintrag, rollen) {
   box.appendChild(hinweis);
 
   // Arbeitskopie der Schritte.
-  let schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt }));
+  let schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt, websuche: !!s.websuche }));
 
   const liste = document.createElement("div");
   liste.className = "einst-schritt-liste";
@@ -1996,7 +2066,7 @@ function aufgabeBlock(eintrag, rollen) {
     const st = eintrag.standard || [];
     return (
       schritte.length === st.length &&
-      schritte.every((s, i) => s.rolle === st[i].rolle && s.prompt === st[i].prompt)
+      schritte.every((s, i) => s.rolle === st[i].rolle && s.prompt === st[i].prompt && !!s.websuche === !!st[i].websuche)
     );
   };
   const zeigeStand = () => {
@@ -2011,9 +2081,10 @@ function aufgabeBlock(eintrag, rollen) {
     wrap.className = "einst-schritt";
     const kopfZ = document.createElement("div");
     kopfZ.className = "einst-schritt-kopf";
+    const letzter = i === schritte.length - 1;
     const nr = document.createElement("span");
     nr.className = "einst-schritt-nr";
-    nr.textContent = `Schritt ${i + 1}`;
+    nr.textContent = letzter ? `Schritt ${i + 1} · Ergebnis` : `Schritt ${i + 1}`;
     const sel = document.createElement("select");
     sel.className = "einst-modell-select einst-schritt-rolle";
     for (const r of rollen) {
@@ -2023,13 +2094,21 @@ function aufgabeBlock(eintrag, rollen) {
       if (r.id === s.rolle) o.selected = true;
       sel.appendChild(o);
     }
-    const web = document.createElement("span");
+    // v79: Web-Suche je Schritt schaltbar (statt fest an die Recherche-Rolle gebunden).
+    const web = document.createElement("label");
     web.className = "einst-schritt-web";
-    web.textContent = "sucht automatisch im Web";
-    web.hidden = s.rolle !== "recherche";
+    const webBox = document.createElement("input");
+    webBox.type = "checkbox";
+    webBox.checked = !!s.websuche;
+    const webTxt = document.createElement("span");
+    webTxt.textContent = "im Web suchen";
+    web.append(webBox, webTxt);
+    webBox.addEventListener("change", () => {
+      s.websuche = webBox.checked;
+      zeigeStand();
+    });
     sel.addEventListener("change", () => {
       s.rolle = sel.value;
-      web.hidden = s.rolle !== "recherche";
       zeigeStand();
     });
     const knoepfe = document.createElement("span");
@@ -2059,11 +2138,26 @@ function aufgabeBlock(eintrag, rollen) {
     feld.rows = 6;
     feld.spellcheck = false;
     feld.value = s.prompt;
+    wrap.appendChild(feld);
+    // v79: „{{nurJson}}" gehoert nur in den letzten Schritt — dessen Ausgabe wird als JSON gelesen.
+    // In einem Zwischenschritt bricht es die Kette (der Schritt liefert JSON statt Text).
+    const warn = document.createElement("p");
+    warn.className = "einst-provider-sub";
+    warn.style.color = "var(--rot, #c0392b)";
+    const pruefeWarn = () => {
+      const problem = !letzter && /\{\{\s*nurJson\s*\}\}/.test(s.prompt || "");
+      warn.hidden = !problem;
+      warn.textContent = problem
+        ? "„{{nurJson}}“ steht in einem Zwischenschritt — nur der letzte Schritt sollte JSON liefern."
+        : "";
+    };
+    pruefeWarn();
+    wrap.appendChild(warn);
     feld.addEventListener("input", () => {
       s.prompt = feld.value;
+      pruefeWarn();
       zeigeStand();
     });
-    wrap.appendChild(feld);
     return wrap;
   }
 
@@ -2074,7 +2168,7 @@ function aufgabeBlock(eintrag, rollen) {
   }
 
   plus.addEventListener("click", () => {
-    schritte.push({ rolle: "userkomm", prompt: "" });
+    schritte.push({ rolle: "userkomm", prompt: "", websuche: false });
     zeichneSchritte();
   });
 
@@ -2096,7 +2190,7 @@ function aufgabeBlock(eintrag, rollen) {
         eintrag.standard = neu.standard;
         eintrag.eigen = neu.eigen;
       }
-      schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt }));
+      schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt, websuche: !!s.websuche }));
       zeichneSchritte();
       status.textContent = nutz.length ? "✅ Gespeichert — gilt ab dem naechsten Aufruf." : "✅ Zurueck auf den Standard.";
     } catch {
