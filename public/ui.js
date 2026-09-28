@@ -172,6 +172,22 @@ export function leer({ zeichen = "kreis", titel, satz, handlung } = {}) {
 }
 
 // Zeile mit Status und Satz — der Grundbaustein jeder Befundliste.
+// Der eine echte Schliessen-Knopf fuer einen ".modal-frage"-Kopf (v76, Owner 28.09.2026): vorher
+// gab es dort nur eine dekorative halbtransparente Flaeche (`.modal-frage::after`), die wie ein
+// Schliessen-Knopf aussah, aber nirgends einen Klick annahm — ausser im Redaktionsplan-Popup, das
+// sich seinen eigenen echten Knopf an dieselbe Stelle gebaut hatte. Jetzt EIN Baustein fuer alle
+// Modale mit ".modal-frage"-Kopf, damit „sieht klickbar aus" ueberall auch wirklich klickbar ist.
+export function modalX(klick, titel = "Schliessen") {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "modal-x";
+  b.title = titel;
+  b.setAttribute("aria-label", titel);
+  b.innerHTML = icon("schliessen");
+  b.addEventListener("click", klick);
+  return b;
+}
+
 export function befundZeile(status, satz, quelle) {
   const li = document.createElement("li");
   li.className = "befund";
@@ -450,6 +466,7 @@ export function modalKalender(frage, hinweis, fenster, onConfirm) {
     box.className = "modal modal-kalender";
     box.innerHTML = `<div class="modal-frage">${escape(frage)}</div>` +
       (hinweis ? `<p class="feld-hinweis">${escape(hinweis)}</p>` : "");
+    box.querySelector(".modal-frage").appendChild(modalX(zu));
 
     const kopf = document.createElement("div");
     kopf.className = "kal-kopf";

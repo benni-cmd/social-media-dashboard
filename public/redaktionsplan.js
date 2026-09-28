@@ -11,7 +11,7 @@ import {
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
 import { melde, setStand } from "./store.js";
-import { escape, knopf, sanduhr } from "./ui.js";
+import { escape, knopf, sanduhr, modalX } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
 const PLAN_TYP_NAME = {
@@ -120,13 +120,7 @@ export async function zeigeRedaktionsplan() {
   const frage = document.createElement("div");
   frage.className = "modal-frage";
   frage.textContent = "Redaktionsplan";
-  const xBtn = document.createElement("button");
-  xBtn.type = "button";
-  xBtn.className = "plan-schliessen";
-  xBtn.title = "Schliessen";
-  xBtn.textContent = "×";
-  xBtn.addEventListener("click", schliesseOverlay);
-  frage.appendChild(xBtn);
+  frage.appendChild(modalX(schliesseOverlay));
   box.appendChild(frage);
 
   const koerper = document.createElement("div");

@@ -2501,8 +2501,16 @@ body {
 }
 .modal-knoepfe {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
+}
+/* v76: ohne das haetten sich bei 4 Knoepfen (Drehtermin-Detail) alle gleichmaessig
+   zusammengequetscht (Text bricht haesslich um) statt in eine zweite Zeile zu gehen — der
+   letzte Knopf ragte sichtbar aus dem Modal heraus (Owner-Screenshot 28.09.2026). */
+.modal-knoepfe .knopf {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* Redaktionsplan-Popup (v47): breiter als das Standard-Modal, Koerper scrollt in sich. */
@@ -3396,17 +3404,29 @@ body {
 }
 .modal-dreh .modal-frage { background: var(--chrome-c); }
 .modal-kalender .modal-frage { background: var(--chrome-b); }
-.modal-frage::after {
-  content: "";
+/* v76: war eine rein dekorative Flaeche (::after) hier an dieser Stelle — sah wie ein
+   Schliessen-Knopf aus, war aber in 3 von 4 Modalen keiner (Owner 28.09.2026: "sieht aus wie
+   eine Schaltflaeche ..., aber die Funktion existiert nicht"). Ersetzt durch modalX() (ui.js),
+   einen ECHTEN Knopf an derselben Stelle, ueberall wo ein .modal-frage-Kopf steht. */
+.modal-x {
   position: absolute;
-  right: 14px;
+  right: 9px;
   top: 50%;
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.28);
   transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: var(--cursor-hand);
 }
+.modal-x .icon { width: 15px; height: 15px; }
+.modal-x:hover { background: rgba(255, 255, 255, 0.32); }
 .modal > *:not(.modal-frage) {
   margin-left: 18px;
   margin-right: 18px;

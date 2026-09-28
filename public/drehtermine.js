@@ -22,7 +22,7 @@ import {
   personMerken,
   kontoMail,
 } from "./store.js";
-import { knopf, icon, escape, eingabe, feld, bestaetigen, meldung } from "./ui.js";
+import { knopf, icon, escape, eingabe, feld, bestaetigen, meldung, modalX } from "./ui.js";
 import { deutschesDatum, tageBis, isoDatum } from "/lib/pipeline.js";
 
 let oeffneKarte = () => {};
@@ -125,6 +125,7 @@ function modalDrehtermin(onSave, vorgabe = {}) {
   const frage = document.createElement("div");
   frage.className = "modal-frage";
   frage.textContent = vorgabe.datum ? "Drehtermin bearbeiten" : "Neuer Drehtermin";
+  frage.appendChild(modalX(zu));
   box.appendChild(frage);
 
   const dat = eingabe(vorgabe.datum || "", { typ: "date" });
@@ -272,6 +273,7 @@ function detail(id) {
   const kopf = document.createElement("div");
   kopf.className = "modal-frage";
   kopf.textContent = `Drehtermin ${deutschesDatum(t.datum)}${t.zeit ? " · " + t.zeit : ""}`;
+  kopf.appendChild(modalX(zu));
   box.appendChild(kopf);
 
   const unter = document.createElement("p");
