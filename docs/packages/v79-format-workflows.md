@@ -215,8 +215,15 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
 - [ ] **v79-C2 (Karten-Knöpfe):** je Format die richtige Knopf-Menge auf der Karte — **blockiert**,
       bis Peer-Session `public/detail.js` freigibt. Danach: ein echter Lauf je Format liefert
       format-passenden Output.
-- [ ] **v79-D:** Slider-/Beitrag-/Story-/Langform-Karte kommt ohne Drehtermin durchs Board;
-      Video-Karte unverändert (Regression-Beleg).
+- [x] **v79-D:** Board-Tore format-bewusst (28.09.2026). Helfer `hatVideoProduktion(card)`
+      (Reel + Langformat = ja; Slider/Beitrag/Story = nein) + Post-Filter in `tore()`: die
+      video-spezifischen Sperr-Tore (`skript`, `hook`, `hook-bild`, `rohmaterial`, `final`,
+      `untertitel`, `wasserzeichen`, `skript-datei`) entfallen für Formate ohne Videoproduktion;
+      format-neutrale Tore (Thema, Kategorie, Ziel, Plattform, Caption) bleiben. Probe:
+      Slider `schnitt`/`videodreh` sperrfrei, Reel unverändert (`final`/`untertitel`/`wasserzeichen`
+      bzw. `rohmaterial`). node --check grün. **Offen/bewusst:** Langformat zählt als
+      Videoproduktion (behält Video-Tore) — die kurzform-spezifischen Tore (50s-Sprechzeit,
+      One-Screen-Hook) passen für Langform aber nicht; separate Regel-Verfeinerung, kein Rateschluss.
 - [ ] **v79-E:** Workflow je Format sichtbar + editierbar; Screenshot Light+Dark gegen
       ui-standard.md.
 - [ ] Completeness + Fulfillment.
