@@ -34,6 +34,7 @@ import * as gcal from "./lib/gcal.js";
 import * as zip from "./lib/zip.js";
 import * as prompts from "./lib/promptstore.js";
 import * as workflows from "./lib/workflowstore.js";
+import * as boardparam from "./lib/boardparamstore.js"; // v78: Kategorien/Ziele editierbar (Drive)
 import * as defaultsStore from "./lib/defaultsstore.js";
 import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
@@ -59,6 +60,7 @@ const BOARD_SICHERUNGEN = join(DATA_DIR, "board-sicherungen"); // v63: je Drive-
 const SPALTEN_FILE = join(DATA_DIR, "spalten.json");
 const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
 const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
+const BOARDPARAM_FILE = join(DATA_DIR, "boardparameter.json"); // v78: Cache fuer Kategorien/Ziele
 const KONTEXT_FILE = join(DATA_DIR, "kontext.json");
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
@@ -66,6 +68,7 @@ const LIB_DIR = join(__dirname, "lib");
 // Die beiden Ablagen kennen ihren Pfad nicht von selbst — hier bekommt jede ihren (v26).
 prompts.setzePfad(PROMPTS_FILE);
 workflows.setzePfad(WORKFLOWS_FILE);
+boardparam.setzePfad(BOARDPARAM_FILE); // v78: Drive-Wahrheit, data/boardparameter.json nur Cache
 defaultsStore.setzePfad(DEFAULTS_FILE); // v60: Defaults Drive-gestuetzt, data/defaults.json nur Cache
 unternehmen.setzePfad(KONTEXT_FILE); // v33: Unternehmens- und Projektkontext
 
@@ -450,7 +453,7 @@ async function fuehreAbgleichAus(onStufe = () => {}) {
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
 // Client versehentlich Anzeige-Felder (planAbgleich, quelle) zurueckschreibt und den
 // Fingerabdruck verfaelscht.
-const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen"];
+const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen", "maxAbstandTage"];
 function nurPlanConfig(o) {
   const c = {};
   for (const k of PLAN_ERLAUBT) if (o && o[k] !== undefined) c[k] = o[k];
@@ -855,6 +858,25 @@ async function handler(req, res) {
       const { id, an, params } = JSON.parse(await readBody(req));
       try {
         sendJson(res, 200, { workflows: await workflows.setze(id, { an, params }) });
+      } catch (e) {
+        sendJson(res, 400, { error: e.message });
+      }
+      return;
+    }
+
+    if (pfad === "/api/boardparameter" && req.method === "GET") {
+      // v78: editierbare Inhaltskategorien + Ziele. Wahrheit in Drive; fehlt die Datei, wird aus den
+      // pipeline.js-Konstanten geseedet und dabei plan.kategorienFokus (aktiv/prioritaet) verlustfrei
+      // uebernommen (Plan aus dem lokalen Cache — kein zusaetzlicher Drive-Read auf dem Lesepfad).
+      const plan = (await planCacheLesen()) || pipeline.defaultPlan();
+      sendJson(res, 200, await boardparam.seedFallsLeer(plan));
+      return;
+    }
+
+    if (pfad === "/api/boardparameter" && req.method === "PUT") {
+      const body = JSON.parse(await readBody(req));
+      try {
+        sendJson(res, 200, await boardparam.schreib(body));
       } catch (e) {
         sendJson(res, 400, { error: e.message });
       }
