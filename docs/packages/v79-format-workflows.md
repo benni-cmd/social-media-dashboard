@@ -131,6 +131,34 @@ auftaucht (z. B. Qualitäts-Gate mit Rücksprung) → dann erst Knoten-Modell er
   „Visual-Konzept". Jeder Knopf hat eine format-eigene Pipeline.
 - **W3 → Sichtbar UND editierbar je Format** (Owner 28.09.2026). Vertikaler Schritt-Flow mit
   Format-Tabs, Rolle/Modell-Badge, Datenfluss-Pfeilen, „erbt Standard" vs „eigene Fassung".
+- **C2 → Volle Parität je Format** (Owner 29.09.2026): bespoke reiche Editoren je Format
+  (Slides-Editor, Frames-Editor, Kapitel-Editor) analog zum Video-Multiple-Choice-Flow — großes
+  Folge-Paket, VOR dem Bau eigener Plan (siehe unten).
+- **Push → später gebündelt** (Owner 29.09.2026): erst pushen, wenn alle Parallel-Sessions ihren
+  Stand committet haben.
+
+## C2 — Plan (volle Parität je Format), VOR dem Bau
+
+**PIG.** *Problem:* Nicht-Video-Karten zeigen noch den Video-Flow (Skript/Dreh); die Format-Tasks
+(v79-C1) sind nicht per Karte erreichbar. *Intent:* Jede Karte zeigt den zu ihrem `contenttyp`
+passenden KI-Flow mit gleich hoher Bedien-Qualität wie der Video-Flow. *Goal:* Je Format bespoke
+Knöpfe + reiche Ergebnis-Editoren (Slider: Slides-Editor; Story: Frames-Editor; Langform:
+Kapitel-Editor; Beitrag: Hook/Body/Visual/Hashtags-Editor), Ergebnis speichert in die Karte/Drive.
+
+**Bestandsaufnahme (noch zu vertiefen vor Bau):** `public/detail.js` rendert den Karten-Flow
+phasenweise (`rufeKi(task,…)`, `rechercheKlappe`, Multiple-Choice-Auswahl, Save-zu-Drive). Der
+Video-Flow ist das Vorbild für die Parität. `detail.js` wird von mehreren Sessions bearbeitet →
+vor Eingriff `git status`/Peer-Ping.
+
+**Phasen (Vorschlag):**
+- C2-1: `detail.js` Flow-Routing nach `contenttypFormat` — Nicht-Video-Karten bekommen ihren
+  Format-Flow statt des Video-Flows (Video-Flow unverändert für Reel/Langform-Video).
+- C2-2: Slider-Flow (Slides-Editor: Slide-Liste mit Text+Visual je Slide, aus `slider_aufbau`/
+  `slider_visual`-JSON).
+- C2-3: Beitrag-Flow (Hook/Body/Visual/Hashtags-Editor aus `beitrag_visual`-JSON).
+- C2-4: Story-Flow (Frames-Editor aus `story_frames`-JSON).
+- C2-5: Langform-Flow (Kapitel-/Beat-Editor aus `langform_konzept`-JSON).
+- C2-6: Verify je Format (echter Lauf, Screenshot Light/Dark, Save-Round-Trip) + Completeness.
 
 ---
 
@@ -212,9 +240,9 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
       `slider_visual`, `beitrag_visual`, `story_frames`, `langform_konzept`; je Ein-Schritt-Default
       (userkomm), in `JSON_AUFGABEN`, LinkedIn-primär, Parameter aus Strom A. Probe 5/5 grün
       (1 Schritt, JSON-Flag, Prompt baut ohne offene Platzhalter).
-- [ ] **v79-C2 (Karten-Knöpfe):** je Format die richtige Knopf-Menge auf der Karte — **blockiert**,
-      bis Peer-Session `public/detail.js` freigibt. Danach: ein echter Lauf je Format liefert
-      format-passenden Output.
+- [ ] **v79-C2 (Karten-UI, volle Parität):** Owner-Entscheid 29.09.2026 = bespoke Editoren je
+      Format. Eigenes Folge-Paket mit Plan (siehe „C2 — Plan" oben), Phasen C2-1…C2-6. `detail.js`
+      jetzt frei, aber mehrfach umkämpft → vor Bau `git status`/Peer-Ping. **Offen.**
 - [x] **v79-D:** Board-Tore format-bewusst (28.09.2026). Helfer `hatVideoProduktion(card)`
       (Reel + Langformat = ja; Slider/Beitrag/Story = nein) + Post-Filter in `tore()`: die
       video-spezifischen Sperr-Tore (`skript`, `hook`, `hook-bild`, `rohmaterial`, `final`,
