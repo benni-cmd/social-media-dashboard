@@ -202,8 +202,12 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
 
 - [x] **v79-A:** Websuche je Schritt schaltbar (Editor + Server); Latenz je Schritt sichtbar;
       JSON nur am letzten Schritt (Editor-Markierung + Server). node --check grün, Screenshot-Beleg.
-- [ ] **v79-B:** perFormat-Ablage + Fallback + Migration; node-Probe (Format-Override greift,
-      fehlend → Default).
+- [x] **v79-B:** perFormat-Ablage + Fallback + Migration (28.09.2026). `promptstore.effektiveSchritte`
+      (jetzt exportiert, rein) löst `perFormat[format] → Task-Default → Standard` auf; `pipeline(task,
+      format)` + `setze(id, value, format)` (perFormat-Zweig erhält den anderen); `server.js`
+      übergibt `contenttypFormat(card.contenttyp)` an die Pipeline, PUT `/api/prompts` reicht `format`
+      durch. node --check grün; Probe 6/6 (leer→Standard, String-Migration, Format-Treffer,
+      Format-Fehltreffer→Base, ohne Format→Base, recherche-Websuche `[false,true,false]`).
 - [ ] **v79-C:** je Format die richtigen Knöpfe + sinnvolle Default-Pipeline; ein echter Lauf
       je Format liefert format-passenden Output (Slider-Slides, Langform-Konzept …).
 - [ ] **v79-D:** Slider-/Beitrag-/Story-/Langform-Karte kommt ohne Drehtermin durchs Board;

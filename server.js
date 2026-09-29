@@ -299,7 +299,10 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   // vom 17.09.2026 allein 12,4 s, bevor ueberhaupt die erste Status-Zeile kam — bis dahin war
   // die Anzeige leer. Deshalb hier die erste Stufe, noch vor jeder Datei- und Drive-Leserei.
   onStufe({ stufe: "kontext", schritt: 0, von: 0 });
-  const schritte = await prompts.pipeline(task);
+  // v79: format-spezifische Pipeline (contenttypFormat der Karte). Fehlt eine, greift der Fallback
+  // Task-Default -> Standard (in promptstore.effektiveSchritte).
+  const format = pipeline.contenttypFormat(c.contenttyp || "reel");
+  const schritte = await prompts.pipeline(task, format);
   if (!schritte.length) throw new Error(`Kein Prompt fuer die Aufgabe ${task}.`);
   const firmenKontext = await unternehmen
     .sammle({ serie: c.serie ? pipeline.slug(c.serie) : "" })
@@ -832,11 +835,12 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/prompts" && req.method === "PUT") {
-      const { id, text, schritte } = JSON.parse(await readBody(req));
+      const { id, text, schritte, format } = JSON.parse(await readBody(req));
       // System = Text; Aufgabe = Schritt-Liste (v41). Faellt schritte weg, gilt text (alt/Migration).
       const wert = id === "system" ? text : schritte !== undefined ? schritte : text;
       try {
-        await prompts.setze(id, wert);
+        // v79: `format` (optional) speichert die format-spezifische Fassung unter perFormat.
+        await prompts.setze(id, wert, format);
         sendJson(res, 200, await prompts.uebersicht());
       } catch (e) {
         sendJson(res, 400, { error: e.message });
