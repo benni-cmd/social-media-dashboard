@@ -3239,6 +3239,37 @@ body {
 .einst-schritt-plus {
   margin-top: 8px;
 }
+/* v79: Workflow-Ansicht — Format-Tabs, Rollen-Rand, Datenfluss-Verbinder */
+.einst-format-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+.einst-format-tab {
+  padding: 3px 11px;
+  border: 1px solid var(--linie-hell);
+  border-radius: 999px;
+  background: var(--flaeche);
+  color: var(--text-still);
+  cursor: var(--cursor-hand, pointer);
+  font-size: 12px;
+  font-weight: 600;
+}
+.einst-format-tab.an {
+  background: var(--akzent);
+  border-color: var(--akzent);
+  color: var(--flaeche);
+}
+.einst-schritt.rolle-userkomm { border-left: 3px solid var(--chrome-c); }
+.einst-schritt.rolle-recherche { border-left: 3px solid var(--ok); }
+.einst-schritt.rolle-kontext { border-left: 3px solid var(--saeule-mythos); }
+.einst-schritt-verbinder {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-leise);
+  margin: -4px 0;
+}
 .einst-prompt-legende { margin: 10px 0; }
 .einst-prompt-platzhalter {
   display: flex;

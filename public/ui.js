@@ -2032,7 +2032,7 @@ function systemBlock(eintrag) {
 
 // Ein KI-Knopf als Schritt-Editor: Liste aus Schritten {rolle, prompt}, jede Rolle waehlbar,
 // Schritte hinzufuegen/entfernen/ordnen. Recherche-Schritte suchen automatisch im Web.
-function aufgabeBlock(eintrag, rollen) {
+function aufgabeBlock(eintrag, rollen, formate = []) {
   const box = document.createElement("details");
   box.className = "einst-prompt";
   const kopf = document.createElement("summary");
@@ -2052,8 +2052,14 @@ function aufgabeBlock(eintrag, rollen) {
     "steht im naechsten als {{vorschritt}}. Der letzte Schritt ist das Ergebnis des Knopfes.";
   box.appendChild(hinweis);
 
-  // Arbeitskopie der Schritte.
-  let schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt, websuche: !!s.websuche }));
+  // v79: Fassungen — "Standard" (Task-Default) plus je Content-Format eine eigene Fassung.
+  // Die aktive Fassung bestimmt, welche Schritt-Liste bearbeitet und gespeichert wird.
+  let aktivesFormat = null; // null = Standard/Task-Default
+  let schritte = [];
+
+  const tabs = document.createElement("div");
+  tabs.className = "einst-format-tabs";
+  box.appendChild(tabs);
 
   const liste = document.createElement("div");
   liste.className = "einst-schritt-liste";
@@ -2073,23 +2079,37 @@ function aufgabeBlock(eintrag, rollen) {
   zeile.append(speichern, zuruecksetzen, status);
   box.appendChild(zeile);
 
-  const gleichStandard = () => {
-    const st = eintrag.standard || [];
-    return (
-      schritte.length === st.length &&
-      schritte.every((s, i) => s.rolle === st[i].rolle && s.prompt === st[i].prompt && !!s.websuche === !!st[i].websuche)
-    );
+  // Die effektiv aufgeloesten Schritte einer Fassung (Standard = Task-Default, sonst perFormat).
+  const quelleFuer = (fmt) => {
+    if (fmt == null) return eintrag.schritte || [];
+    const pf = (eintrag.perFormat || {})[fmt];
+    return (pf && pf.schritte) || [];
   };
+  const hatOverride = (fmt) =>
+    fmt == null ? !!eintrag.eigen : !!(((eintrag.perFormat || {})[fmt]) || {}).eigen;
+
   const zeigeStand = () => {
-    const geaendert = !gleichStandard();
-    marke.textContent = geaendert ? "geaendert" : "Standard";
-    marke.classList.toggle("aktiv", geaendert);
-    zuruecksetzen.disabled = !geaendert;
+    if (aktivesFormat == null) {
+      const st = eintrag.standard || [];
+      const gleich =
+        schritte.length === st.length &&
+        schritte.every((s, i) => s.rolle === st[i].rolle && s.prompt === st[i].prompt && !!s.websuche === !!st[i].websuche);
+      marke.textContent = gleich ? "Standard" : "geaendert";
+      marke.classList.toggle("aktiv", !gleich);
+      zuruecksetzen.disabled = gleich;
+      zuruecksetzen.textContent = "Auf Standard zuruecksetzen";
+    } else {
+      const eigen = hatOverride(aktivesFormat);
+      marke.textContent = eigen ? "eigene Fassung" : "erbt Standard";
+      marke.classList.toggle("aktiv", eigen);
+      zuruecksetzen.disabled = !eigen;
+      zuruecksetzen.textContent = "Format-Fassung entfernen";
+    }
   };
 
   function schrittZeile(s, i) {
     const wrap = document.createElement("div");
-    wrap.className = "einst-schritt";
+    wrap.className = "einst-schritt rolle-" + s.rolle;
     const kopfZ = document.createElement("div");
     kopfZ.className = "einst-schritt-kopf";
     const letzter = i === schritte.length - 1;
@@ -2120,6 +2140,7 @@ function aufgabeBlock(eintrag, rollen) {
     });
     sel.addEventListener("change", () => {
       s.rolle = sel.value;
+      wrap.className = "einst-schritt rolle-" + s.rolle;
       zeigeStand();
     });
     const knoepfe = document.createElement("span");
@@ -2154,7 +2175,7 @@ function aufgabeBlock(eintrag, rollen) {
     // In einem Zwischenschritt bricht es die Kette (der Schritt liefert JSON statt Text).
     const warn = document.createElement("p");
     warn.className = "einst-provider-sub";
-    warn.style.color = "var(--rot, #c0392b)";
+    warn.style.color = "var(--befund, #c0392b)";
     const pruefeWarn = () => {
       const problem = !letzter && /\{\{\s*nurJson\s*\}\}/.test(s.prompt || "");
       warn.hidden = !problem;
@@ -2172,10 +2193,42 @@ function aufgabeBlock(eintrag, rollen) {
     return wrap;
   }
 
+  // v79: Datenfluss-Verbinder zwischen den Schritt-Karten — macht die Kette sichtbar.
+  function verbinder() {
+    const c = document.createElement("div");
+    c.className = "einst-schritt-verbinder";
+    c.textContent = "↓ {{vorschritt}}";
+    return c;
+  }
+
   function zeichneSchritte() {
     liste.innerHTML = "";
-    schritte.forEach((s, i) => liste.appendChild(schrittZeile(s, i)));
+    schritte.forEach((s, i) => {
+      if (i > 0) liste.appendChild(verbinder());
+      liste.appendChild(schrittZeile(s, i));
+    });
     zeigeStand();
+  }
+
+  const tabEls = [];
+  function ladeFassung(fmt) {
+    aktivesFormat = fmt;
+    schritte = quelleFuer(fmt).map((s) => ({ rolle: s.rolle, prompt: s.prompt, websuche: !!s.websuche }));
+    tabEls.forEach((t) => t.el.classList.toggle("an", t.id === fmt));
+    zeichneSchritte();
+  }
+
+  for (const def of [{ id: null, name: "Standard" }, ...(formate || [])]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "einst-format-tab";
+    b.textContent = def.name;
+    b.addEventListener("click", () => {
+      status.textContent = "";
+      ladeFassung(def.id);
+    });
+    tabs.appendChild(b);
+    tabEls.push({ id: def.id, el: b });
   }
 
   plus.addEventListener("click", () => {
@@ -2188,10 +2241,12 @@ function aufgabeBlock(eintrag, rollen) {
     zuruecksetzen.disabled = true;
     status.textContent = "Speichere …";
     try {
+      const body = { id: eintrag.id, schritte: nutz };
+      if (aktivesFormat != null) body.format = aktivesFormat;
       const res = await fetch("/api/prompts", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: eintrag.id, schritte: nutz }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
@@ -2200,10 +2255,10 @@ function aufgabeBlock(eintrag, rollen) {
         eintrag.schritte = neu.schritte;
         eintrag.standard = neu.standard;
         eintrag.eigen = neu.eigen;
+        eintrag.perFormat = neu.perFormat || eintrag.perFormat;
       }
-      schritte = (eintrag.schritte || []).map((s) => ({ rolle: s.rolle, prompt: s.prompt, websuche: !!s.websuche }));
-      zeichneSchritte();
-      status.textContent = nutz.length ? "✅ Gespeichert — gilt ab dem naechsten Aufruf." : "✅ Zurueck auf den Standard.";
+      ladeFassung(aktivesFormat);
+      status.textContent = nutz.length ? "✅ Gespeichert — gilt ab dem naechsten Aufruf." : "✅ Zurueckgesetzt.";
     } catch {
       status.textContent = "❌ Speichern fehlgeschlagen — laeuft der Server?";
     } finally {
@@ -2214,7 +2269,7 @@ function aufgabeBlock(eintrag, rollen) {
   speichern.addEventListener("click", () => schicke(schritte));
   zuruecksetzen.addEventListener("click", () => schicke([]));
 
-  zeichneSchritte();
+  ladeFassung(null);
   return box;
 }
 
@@ -2239,7 +2294,7 @@ async function zeichnePrompts(ziel) {
   t1.className = "einst-label";
   t1.textContent = `Knoepfe mit KI-Funktion (${mitKnopf.length})`;
   ziel.appendChild(t1);
-  for (const a of mitKnopf) ziel.appendChild(aufgabeBlock(a, rollen));
+  for (const a of mitKnopf) ziel.appendChild(aufgabeBlock(a, rollen, d.formate));
 
   if (ohneKnopf.length) {
     const t2 = document.createElement("div");
@@ -2250,7 +2305,7 @@ async function zeichnePrompts(ziel) {
     h.className = "einst-provider-sub";
     h.textContent = "Diese Prompts sind fertig, es gibt im UI aber noch keinen Knopf dafuer.";
     ziel.appendChild(h);
-    for (const a of ohneKnopf) ziel.appendChild(aufgabeBlock(a, rollen));
+    for (const a of ohneKnopf) ziel.appendChild(aufgabeBlock(a, rollen, d.formate));
   }
 }
 

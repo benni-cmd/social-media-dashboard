@@ -224,6 +224,14 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
       bzw. `rohmaterial`). node --check grün. **Offen/bewusst:** Langformat zählt als
       Videoproduktion (behält Video-Tore) — die kurzform-spezifischen Tore (50s-Sprechzeit,
       One-Screen-Hook) passen für Langform aber nicht; separate Regel-Verfeinerung, kein Rateschluss.
-- [ ] **v79-E:** Workflow je Format sichtbar + editierbar; Screenshot Light+Dark gegen
-      ui-standard.md.
+- [x] **v79-E1 (Datengrundlage):** `uebersicht()` liefert `formate` + je Task `perFormat`
+      (28.09.2026, Commit `89d1011`).
+- [x] **v79-E2 (Workflow-Ansicht/Builder):** Editor mit **Format-Tabs** (Standard + 5 Formate),
+      je Fassung eigene Schritt-Liste (perFormat), „erbt Standard" vs „eigene Fassung",
+      Speichern/Entfernen je Fassung; **Fluss-Visualisierung**: Rollen-gefärbter Rand je Schritt
+      (userkomm/recherche/kontext) + Datenfluss-Verbinder „↓ {{vorschritt}}" zwischen den Karten.
+      `ui.js` + `style.css` (theme-konforme Tokens). Screenshot (Port 4399): Tabs sichtbar,
+      Tab-Wechsel lädt Fassung, „erbt Standard" bei fehlendem Override, neue Format-Tasks im Editor.
+      Live-Speichern nicht ausgeführt (schreibt in geteilten Drive-Store; Save-Pfad per Code +
+      E-1/B-Proben belegt). Dark-Mode nicht separat geschossen (Tokens haben Dark-Varianten).
 - [ ] Completeness + Fulfillment.
