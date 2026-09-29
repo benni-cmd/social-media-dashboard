@@ -841,7 +841,7 @@ export function einstellungenModal(onThemeChange) {
   const links = document.createElement("nav");
   links.className = "einst-nav";
   const navItems = [];
-  for (const name of ["Darstellung", "Ansicht", "Hinweise & Warnungen", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts"]) {
+  for (const name of ["Darstellung", "Ansicht", "Hinweise & Warnungen", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts", "Board & Redaktionsplan"]) {
     const btn = document.createElement("button");
     btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
     btn.textContent = name;
@@ -1865,6 +1865,11 @@ export function einstellungenModal(onThemeChange) {
   kontextListe.textContent = "Lade …";
   seite7.appendChild(kontextListe);
 
+  // Seite 8: Board & Redaktionsplan (v78) — Kategorien/Ziele verwalten; Inhalt in public/boardparameter.js.
+  const seiteBoard = document.createElement("div");
+  seiteBoard.className = "einst-seite";
+  seiteBoard.textContent = "Lade …";
+
   rechts.appendChild(seite1);
   rechts.appendChild(seiteAnsicht);
   rechts.appendChild(seiteMeldungen);
@@ -1873,15 +1878,17 @@ export function einstellungenModal(onThemeChange) {
   rechts.appendChild(seite4);
   rechts.appendChild(seite7);
   rechts.appendChild(seite5);
+  rechts.appendChild(seiteBoard);
 
   // --- Tab-Switching ---
   // Reihenfolge deckungsgleich mit den Namen oben: Darstellung, Ansicht, KI-Rollen, Externe
   // Dienste, Social Media Kanaele, Unternehmenskontext, System Prompts (v67: Ansicht neu an
   // Index 1, alle folgenden Index-Pruefungen unten entsprechend verschoben).
   // v68: "Hinweise & Warnungen" an Index 2, alle folgenden Index-Pruefungen unten verschoben.
-  const seiten = [seite1, seiteAnsicht, seiteMeldungen, seite2, seite3, seite4, seite7, seite5];
+  const seiten = [seite1, seiteAnsicht, seiteMeldungen, seite2, seite3, seite4, seite7, seite5, seiteBoard];
   let kontextGeladen = false;
   let promptsGeladen = false;
+  let boardparamGeladen = false;
   navItems.forEach((btn, i) => {
     btn.addEventListener("click", () => {
       navItems.forEach((b) => b.classList.remove("aktiv"));
@@ -1898,6 +1905,10 @@ export function einstellungenModal(onThemeChange) {
         import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
       }
       if (i === 7 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
+      if (i === 8 && !boardparamGeladen) {
+        boardparamGeladen = true;
+        import("./boardparameter.js").then((m) => m.zeichneBoardparameter(seiteBoard));
+      }
     });
   });
 
