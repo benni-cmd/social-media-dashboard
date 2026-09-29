@@ -80,6 +80,7 @@ import {
   gruppe,
   befundZeile,
   eigenschaft,
+  kennzahlReihe,
   fortschritt,
   terminalAn,
   knopfLaeuft,
@@ -91,6 +92,7 @@ import {
   driveOrt,
   pillenReihe,
   pillenSchalter,
+  mehrMenu,
 } from "./ui.js";
 import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
@@ -393,20 +395,26 @@ function blockStamm(k, merke) {
 const einzelwahlReihe = (optionen, aktuell, beiWahl) => pillenReihe(optionen, aktuell, { beiWahl });
 
 // P27 F2: die eingeklappte Zeile fuer vollstaendig gesetzte Stamm-Felder.
+// v80 (Owner 28.09.2026): war ein Fliesstext, der mit "…" mitten im Wort abgeschnitten wurde —
+// jetzt ein Chip je Wert, umbricht bei Bedarf in eine zweite Zeile statt etwas zu verschlucken.
 function stammZusammenfassung(k) {
   const wrap = document.createElement("div");
   wrap.className = "stamm-zusammenfassung";
-  const teile = [
+  const chips = document.createElement("div");
+  chips.className = "stamm-chips";
+  const werte = [
     contenttypName(k.contenttyp),
     saeuleName(k.kategorie),
     zielInfo(k.goal).name,
-    (k.platforms || []).map(plattformName).join(", "),
+    ...(k.platforms || []).map(plattformName),
   ].filter(Boolean);
-  const text = document.createElement("span");
-  text.className = "stamm-zusammenfassung-text";
-  text.textContent = teile.join(" · ");
-  text.title = text.textContent;
-  wrap.appendChild(text);
+  for (const text of werte) {
+    const c = document.createElement("span");
+    c.className = "stamm-chip";
+    c.textContent = text;
+    chips.appendChild(c);
+  }
+  wrap.appendChild(chips);
   const bearbeiten = knopf("bearbeiten", {
     klick: () => {
       stammOffenIds.add(k.id);
@@ -432,10 +440,14 @@ function blockTermine(k, merke) {
   satz.innerHTML = statusChip(f.status) + `<span class="befund-satz">${escape(f.satz)}</span>`;
   box.appendChild(satz);
 
-  box.appendChild(floatSchalter(k, merke));
+  // v80 (Owner 28.09.2026): Schalter und Datumszeile standen als zwei lose Elemente
+  // untereinander, wirkten wie zwei unabhaengige Bedienteile — jetzt EIN umrandeter Block.
+  const schaltBlock = document.createElement("div");
+  schaltBlock.className = "termin-schalter-block";
+  schaltBlock.appendChild(floatSchalter(k, merke));
 
   if (k.floatUpload) {
-    box.appendChild(schwebendAnzeige(k));
+    schaltBlock.appendChild(schwebendAnzeige(k));
   } else {
     const hatUpload = (k.dates || {}).upload;
     if (hatUpload) {
@@ -443,7 +455,7 @@ function blockTermine(k, merke) {
       zeile.className = "termin-kompakt";
       zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatUpload)}</strong>${k.uploadTime ? ` · ${k.uploadTime}` : ""}</span>`;
       zeile.appendChild(bearbeitenUploadKnopf(k, merke));
-      box.appendChild(zeile);
+      schaltBlock.appendChild(zeile);
     } else {
       const uZeile = document.createElement("div");
       uZeile.className = "feld-reihe";
@@ -455,9 +467,10 @@ function blockTermine(k, merke) {
       const zf = feld("Uhrzeit", uZeit);
       zf.classList.add("feld-schmal");
       uZeile.appendChild(zf);
-      box.appendChild(uZeile);
+      schaltBlock.appendChild(uZeile);
     }
   }
+  box.appendChild(schaltBlock);
 
   g.appendChild(box);
 
@@ -592,10 +605,15 @@ function blockTermineIdee(k, merke) {
   const g = gruppeMitFarbe("termin", "Termin", null, offenFuer(k, "termin", true), merkeKlapp(k, "termin"));
   const box = document.createElement("div");
 
-  box.appendChild(floatSchalter(k, merke));
+  // v80: Schalter und der Rest (Anzeige/Datumszeile/Kacheln) als EIN umrandeter Block, siehe
+  // dieselbe Begruendung in blockTermine().
+  const schaltBlock = document.createElement("div");
+  schaltBlock.className = "termin-schalter-block";
+  schaltBlock.appendChild(floatSchalter(k, merke));
+  box.appendChild(schaltBlock);
 
   if (k.floatUpload) {
-    box.appendChild(schwebendAnzeige(k));
+    schaltBlock.appendChild(schwebendAnzeige(k));
     g.appendChild(box);
     return g;
   }
@@ -608,7 +626,7 @@ function blockTermineIdee(k, merke) {
     zeile.className = "termin-kompakt";
     zeile.innerHTML = `<span>Uploaddatum: <strong>${deutschesDatum(hatDatum)}</strong></span>`;
     zeile.appendChild(bearbeitenUploadKnopf(k, merke));
-    box.appendChild(zeile);
+    schaltBlock.appendChild(zeile);
   } else {
     // 2 Kacheln: oben nächstes freies Datum, unten manuell.
     const kacheln = document.createElement("div");
@@ -1591,10 +1609,11 @@ function blockDrive(k, stand) {
     box.appendChild(z);
 
     const zahlen = document.createElement("div");
-    zahlen.innerHTML =
-      eigenschaft("Rohmaterial", `${stand.rohmaterial} Dateien`) +
-      eigenschaft("Fertiges Video", `${stand.final} Videos`) +
-      eigenschaft("Skript und Caption", `${(stand.skriptDateien || []).length} Dateien`);
+    zahlen.innerHTML = kennzahlReihe([
+      { zeichen: "clip", wert: stand.rohmaterial, label: "Rohmaterial" },
+      { zeichen: "video", wert: stand.final, label: "Fertiges Video" },
+      { zeichen: "papier", wert: (stand.skriptDateien || []).length, label: "Skript/Caption" },
+    ]);
     box.appendChild(zahlen);
 
     const links = document.createElement("div");
@@ -1709,22 +1728,20 @@ function blockArchiv(k) {
 
 // --- Abschluss ------------------------------------------------------------
 
+// v80 (Owner 28.09.2026): "Weiter" ist der einzige Weg, den die meisten Karten gehen — Verwerfen
+// und Loeschen sind seltene Nebenwege, standen bisher aber als drei gleich gewichtete Zeilen
+// untereinander (Pille/Flaeche/nackter Text, drei verschiedene Stile). Jetzt: EIN Hauptknopf
+// plus ein kleiner Menue-Knopf fuer die Nebenwege (mehrMenu(), ui.js).
 function blockAbschluss(k, toreListe) {
   const box = document.createElement("div");
-  box.style.display = "flex";
-  box.style.flexDirection = "column";
-  box.style.gap = "10px";
+  box.className = "abschluss-reihe";
 
-  // Verworfene Karten: nur zurueckholen und loeschen.
+  // Verworfene Karten: nur zurueckholen oder loeschen.
   if (k.column === "verworfen") {
-    const zurueck = knopf("Zurueck zu Idee holen", {
-      art: "haupt",
-      zeichen: "zurueck",
-      klick: async () => await schiebe(k, "idee"),
-    });
+    const zurueck = knopf("Zurueck zu Idee holen", { art: "haupt", zeichen: "zurueck", klick: async () => await schiebe(k, "idee") });
     zurueck.classList.add("knopf-breit");
     box.appendChild(zurueck);
-    box.appendChild(loeschenKnopf(k));
+    box.appendChild(mehrMenu([loeschenEintrag(k)]));
     return box;
   }
 
@@ -1736,10 +1753,7 @@ function blockAbschluss(k, toreListe) {
       zeichen: "weiter",
       klick: async () => {
         if (blockiert.length) {
-          await melde(
-            "befund",
-            `Die Karte kann noch nicht weiter: ${blockiert.map((b) => b.satz).join(" ")}`
-          );
+          await melde("befund", `Die Karte kann noch nicht weiter: ${blockiert.map((b) => b.satz).join(" ")}`);
           return;
         }
         await schiebe(k, ziel);
@@ -1755,22 +1769,24 @@ function blockAbschluss(k, toreListe) {
     // sichtbar direkt unter dem Kopf — hier keine zweite, redundante Zeile mehr.
   }
 
-  // Verwerfen: parkt die Karte in „Verworfen", die KI schlaegt sie nicht mehr vor.
   box.appendChild(
-    knopf("Diese Idee verwerfen", {
-      zeichen: "muell",
-      titel: "Parkt die Karte in „Verworfen“ — sie taucht in der Ideensuche nicht mehr auf.",
-      klick: async () => await schiebe(k, "verworfen"),
-    })
+    mehrMenu([
+      {
+        text: "Diese Idee verwerfen",
+        titel: "Parkt die Karte in „Verworfen“ — sie taucht in der Ideensuche nicht mehr auf.",
+        klick: async () => await schiebe(k, "verworfen"),
+      },
+      loeschenEintrag(k),
+    ])
   );
-  box.appendChild(loeschenKnopf(k));
   return box;
 }
 
-function loeschenKnopf(k) {
-  return knopf("Diese Karte loeschen", {
-    art: "gefahr",
-    zeichen: "muell",
+// Menue-Eintrag statt eigenem Knopf (v80) — derselbe Bestaetigen-Dialog wie bisher.
+function loeschenEintrag(k) {
+  return {
+    text: "Diese Karte loeschen",
+    gefahr: true,
     klick: () => {
       bestaetigen(
         `"${k.title}" loeschen? Der Drive-Ordner wandert in den Papierkorb (wiederherstellbar).`,
@@ -1785,7 +1801,7 @@ function loeschenKnopf(k) {
         }
       );
     },
-  });
+  };
 }
 
 // --- Hilfen ---------------------------------------------------------------

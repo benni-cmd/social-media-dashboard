@@ -563,6 +563,70 @@ body {
   justify-content: center;
 }
 
+/* v80: Abschluss-Zeile der Detailspalte — der Hauptweg ("Weiter"/"Zurueck zu Idee") nimmt die
+   Breite, die Nebenwege (verwerfen/loeschen) sitzen als kleiner Menue-Knopf daneben statt als
+   eigene Zeilen in drei verschiedenen Stilen. */
+.abschluss-reihe {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: stretch;
+}
+.abschluss-reihe > .knopf-breit {
+  flex: 1 1 auto;
+  width: auto;
+}
+.mehr-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.mehr-menu-knopf {
+  height: 100%;
+  min-width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-hoch);
+  color: var(--text-still);
+  cursor: var(--cursor-hand);
+}
+.mehr-menu-knopf:hover { border-color: var(--linie-hell); color: var(--text); }
+.mehr-menu-liste[hidden] {
+  display: none;
+}
+.mehr-menu-liste {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  min-width: 200px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund);
+  box-shadow: var(--schatten);
+}
+.mehr-menu-item {
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--rund-klein);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: var(--cursor-hand);
+  white-space: nowrap;
+}
+.mehr-menu-item:hover { background: var(--akzent-tief); border-color: var(--akzent); }
+.mehr-menu-gefahr { color: var(--befund); }
+.mehr-menu-gefahr:hover { background: none; border-color: var(--befund); }
+
 /* --- Status-Chips: Wort plus Zeichen, nie Farbe allein --- */
 
 .chip {
@@ -1289,7 +1353,11 @@ body {
   background: var(--flaeche);
   /* v57: kein eigener border-left mehr — .detail-griff (der Zieh-Balken) uebernimmt die
      optische Trennung, ein zweiter Strich direkt daneben waere doppelt gemoppelt. */
-  overflow-y: auto;
+  /* v79 (Owner 28.09.2026): die Scrollleiste soll den Platz IMMER reservieren, sonst wird der
+     Inhalt minimal schmaler, sobald er laenger als die Spalte wird (Scrollbar erscheint) und
+     wieder breiter, sobald er kuerzer wird — ein staendiges kleines Ruckeln der Breite. */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   padding: 0 0 28px;
   display: flex;
   flex-direction: column;
@@ -1373,6 +1441,43 @@ body {
   color: var(--text-still);
   min-width: 0;
   word-break: break-word;
+}
+
+/* Kennzahl-Kacheln (v80) — kompakte Fassung der KPI-Kacheln (Auswertung) fuer die
+   Detailspalte: Icon-Chip + Zahl + Label statt einer rohen "Label: Wert"-Liste. */
+.kennzahl-reihe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--sp-1);
+  margin: var(--sp-1) 0;
+}
+.kennzahl-kachel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+}
+.kennzahl-kachel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--flaeche-tief);
+  border: 1px solid var(--linie);
+  color: var(--text-still);
+}
+.kennzahl-kachel-icon .icon { width: 12px; height: 12px; }
+.kennzahl-kachel-wert { font-size: 15px; font-weight: 700; color: var(--text); }
+.kennzahl-kachel-label {
+  font-size: 10.5px;
+  color: var(--text-leise);
+  line-height: 1.3;
 }
 
 .feld {
@@ -3242,6 +3347,19 @@ body {
   gap: 8px;
   font-size: 13px;
 }
+
+/* v80 (Owner 28.09.2026): Schalter "Naechsten freien Upload-Termin" und das, was danach
+   folgt (Datumszeile/Anzeige/Kacheln), standen als zwei lose Elemente untereinander — wirkte
+   wie zwei unabhaengige Bedienteile statt einem. Jetzt ein gemeinsamer umrandeter Block. */
+.termin-schalter-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund-klein);
+}
 .knopf-inline {
   font-size: 11px;
   padding: 2px 8px;
@@ -3384,20 +3502,28 @@ body {
 /* F2: eingeklappte Stamm-Zusammenfassung, wenn Typ/Kategorie/Ziel/Plattform alle stehen. */
 .stamm-zusammenfassung {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 10px;
   background: var(--flaeche-tief);
   border: 1px solid var(--linie);
   border-radius: var(--rund-klein);
 }
-.stamm-zusammenfassung-text {
+.stamm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 12.5px;
+}
+.stamm-chip {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
   color: var(--text-still);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

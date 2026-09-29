@@ -98,3 +98,48 @@ Befund-Zaehler.
 
 **Verify:** Detailspalte auf ihre neue Default-/Mindestbreite (460px) gesetzt, Karte im Schritt
 "Drehtermin festlegen" (laengster Name) geoeffnet — Kopf bleibt einzeilig, Screenshot bestaetigt.
+
+## Nachtrag v80 — Karten-Inhalt: weniger "generisch", stabile Scrollleiste (28.-29.09.2026)
+
+**Problem:** Nach v77/v78 sah das Rahmenwerk gut aus, aber der INHALT der Bloecke wirkte laut
+Owner weiter "generisch nach KI" — rohe Label:Wert-Listen (Drive-Kennzahlen), eine mitten im
+Wort abgeschnittene Zusammenfassungs-Zeile, drei verschiedene Knopf-Stile im Abschluss-Bereich
+fuer verwandte Aktionen, und ein Schalter, der lose ueber einer Datumszeile schwebte. Zusaetzlich:
+die Scrollleiste der Detailspalte blendete nur bei Bedarf ein und liess den Inhalt dabei minimal
+schmaler werden.
+
+**Owner-Antworten (28.09.2026):**
+1. Drive-Kennzahlen: **kleine Icon-Kacheln** (wie die KPI-Kacheln der Auswertung, kompakter).
+2. Stamm-Zusammenfassung: **Chips statt Fliesstext** (kein Abschneiden mehr).
+3. Abschluss-Knoepfe: **Loeschen/Verwerfen erst hinter einem kleinen Menue**, nur der Hauptweg
+   ("Weiter"/"Zurueck zu Idee") bleibt prominent.
+4. Termin-Schalter + Datumszeile: **ein gemeinsamer umrandeter Block**.
+
+**Umsetzung:**
+- `public/ui.js`: `kennzahlKachel()`/`kennzahlReihe()` (Icon+Zahl+Label, HTML-String wie
+  `eigenschaft()`); `mehrMenu()` (kleiner Klapp-Menue-Knopf, eigenes CSS, schliesst bei
+  Aussenklick) — beide Bausteine wurden durch eine parallele Sitzung ungewollt mit in deren
+  Commit `d03acca` ("v79-A: KI-Pipeline-Feintuning") gezogen (gleiche Datei, geteilter Index);
+  Code ist korrekt und unveraendert, nur die Commit-Zuordnung ist historisch ungenau.
+- `public/detail.js`: `blockDrive()` nutzt `kennzahlReihe()` statt drei `eigenschaft()`-Zeilen;
+  `stammZusammenfassung()` baut Chips (`.stamm-chip`) statt eines truncated Strings;
+  `blockAbschluss()` zeigt nur noch den Hauptweg + `mehrMenu([...])` fuer Verwerfen/Loeschen;
+  `blockTermine()`/`blockTermineIdee()` wickeln `floatSchalter()` + die Datums-Anzeige in einen
+  gemeinsamen `.termin-schalter-block`.
+- `public/style.css`: `.kennzahl-reihe/-kachel`, `.stamm-chips/-chip`, `.abschluss-reihe`,
+  `.mehr-menu*`, `.termin-schalter-block`. Bugfix unterwegs: `.mehr-menu-liste[hidden]` fehlte —
+  die Basisregel `display:flex` hatte dieselbe Spezifitaet wie `[hidden]` und gewann durch
+  spaetere Position im Stylesheet, das Menue liess sich nicht mehr zuklappen.
+- `.detail`: `overflow-y:scroll` + `scrollbar-gutter:stable` statt `auto` — die Scrollleiste
+  reserviert jetzt immer ihren Platz, der Inhalt wird nicht mehr schmaler/breiter je nachdem ob
+  gerade gescrollt werden kann.
+
+**Verify (Browser, 29.09.2026):** Chips in der Stamm-Zusammenfassung sichtbar (kein Abschneiden);
+Termin-Schalter + Datumszeile in einem sichtbaren Rahmen; Abschluss-Bereich zeigt nur noch
+"Weiter zu X" + einen kleinen "⋯"-Knopf, der per Klick das Menue oeffnet/schliesst (Bug mit dem
+haengengebliebenen offenen Menue gefunden und behoben); Drive-Kennzahlen als drei Icon-Kacheln
+nach Abschluss des Drive-Scans sichtbar.
+
+**Stand:** [x] Owner-Antworten, Bau, Verify — OFFEN: die drei genannten Elemente nur an EINER
+Testkarte gesehen, nicht an allen Phasen/Sonderfaellen (z. B. "verworfen"-Spalte mit nur
+"Zurueck"+Menue); Dark Mode fuer diese vier neuen Bausteine nicht einzeln angesehen.
