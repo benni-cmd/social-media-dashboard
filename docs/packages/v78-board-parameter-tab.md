@@ -54,15 +54,35 @@ Einstellungs-Tab; Redaktionsplan zeigt nur noch die %-Verteilung + Links.
 - `public/redaktionsplan.js` (Kategorie-%, Links, Priorität/Aktiv raus) — **andere Session (v66/v74)** → abstimmen.
 - `lib/ai.js`, `lib/kpi-tabellen.js` (nutzen kategorieName/zielInfo) — prüfen, dass sie die editierte Liste sehen.
 
-## Stand
+## Stand (28.09.2026, Opus 4.8)
 - [x] Bestand + Modell verstanden (SAEULEN=Legacy; INHALTSKATEGORIEN/ZIELE live; Fokus/Gewichte im Plan)
 - [x] Owner-Spec (5 Fragen) geklärt
-- [ ] Umsetzungsreihenfolge/Besitz mit Owner + Sessions abgestimmt
-- [ ] Store + Endpoints (Phase A)
-- [ ] pipeline.js/store.js Lookups store-fähig (Phase B, Peer)
-- [ ] ui.js Tab (Phase A/C, diese Session)
-- [ ] redaktionsplan.js %+Links (Phase C, andere Session)
-- [ ] Verify (Browser) + Migration verlustfrei
+- [x] **Store gebaut** `lib/boardparamstore.js` (Phase A, Teil 1): planstore/workflowstore-Muster,
+      Wahrheit `System (AI only)/boardparameter.json`, Seed aus Konstanten, `seed(plan)` migriert
+      `kategorienFokus` (aktiv/prioritaet) verlustfrei, 20s-Timeout, Cache-Fallback, `seedFallsLeer`.
+      node-Test: 5 Kat/4 Ziele, Migration korrekt. Commit 8f86eac, gepusht.
+- [x] **Server-Endpunkte (Phase A Teil 2), Commit be2f211:** GET/PUT `/api/boardparameter` am Store;
+      GET seedet fehlende Datei + migriert `plan.kategorienFokus` aus dem Plan-Cache. Import + Cache-Pfad
+      (`data/boardparameter.json`) verdrahtet. Live (PORT=4399) belegt: GET liefert 5 Kat/4 Ziele, aktiv-Muster
+      = Owner-Plan (bildung/spendenaufruf/umfrage=true); PUT persistiert (TESTKAT ueber PUT->GET), Baseline
+      danach wiederhergestellt.
+- [x] **Einstellungs-Tab (Phase C), Commit 069c6af:** `public/boardparameter.js` (neu) + Nav-Tab in ui.js
+      (Index 8, lazy import). Live belegt: Tab rendert im echten Modal-Pfad (5 Kat/4 Ziele, 9 Aktiv-Boxen,
+      22 Felder, +Kategorie/+Ziel/Speichern); Edit persistiert ueber PUT->GET.
+- [ ] **OFFEN — Phase B (Lookups store-fähig) + Phase D (Redaktionsplan %+Links) haengen an EINER
+      Architektur-Entscheidung, die der Plan offenliess ("Genaue Strategie beim Bau festlegen"):**
+      Woher nimmt der SCHEDULER (`generiereWoche`, waehleKategorie) aktiv/prioritaet, wenn Phase D sie aus
+      dem Redaktionsplan entfernt? Heute liest er `plan.kategorienFokus`. Optionen:
+      (A) Tab schreibt boardparameter UND synct aktiv/prioritaet in `plan.kategorienFokus` -> Scheduler
+          unveraendert, geringstes Risiko; dafuer zwei Ablageorte fuer aktiv/prio.
+      (B) boardparameter ist alleinige Wahrheit; Scheduler + server-seitige Nutzer (ai.js, kpi-tabellen.js,
+          planstore) bekommen die Liste injiziert (setzeBoardparameter-Override, Konstanten als Fallback).
+          Sauberer, aber cross-cutting und aendert Board-Scheduling -> braucht Board-Verify.
+      Empfehlung: (B), weil der Plan boardparameter ausdruecklich als "Wahrheit" definiert. Vor Bau abklaeren,
+      weil es sichtbares Board-Verhalten aendert.
+- [ ] Phase B: kategorieName/zielInfo/Listen store-fähig (Override + Fallback); store.js laedt in S; ai.js/kpi einspeisen.
+- [ ] Phase D: redaktionsplan.js — Priorität/Aktiv RAUS, kategorienAnteil % (Summe 100) REIN, Ziel-% bleibt, Rücksprung-Links.
+- [ ] Verify (Board zeigt Edits) + Migration verlustfrei (bestehende Karten behalten Zuordnung).
 
 ## DoD
 - Kategorien/Ziele im Einstellungs-Tab add/entfernen(=deaktivieren)/Priorität/Aktiv; persistent in Drive.

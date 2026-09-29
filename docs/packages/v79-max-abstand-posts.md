@@ -35,10 +35,27 @@ Kadenz; `slotsForMonth` erzwingt die Obergrenze — kein erzeugter Slot-Abstand 
 - `lib/scheduler.js` — Slot-Logik → Besitzer klären (Redaktionsplan-Ecke).
 - `public/redaktionsplan.js` — andere Session (v66/v74) → abstimmen.
 
-## Stand
+## Stand (28.09.2026, Opus 4.8)
 - [x] Slot-Erzeugung lokalisiert (scheduler.slotsForMonth, redaktionsplan.js:424)
-- [ ] Bau + Verify
+- [x] Bau: `deckleAbstand()` in `lib/scheduler.js`; `slotsForMonth` sammelt chronologisch
+      ueber Wochen-/Monatsgrenzen, deckelt, filtert dann. `maxAbstandTage:0` in beiden
+      `defaultPlan()` (pipeline.js, redaktionsplan.js). Zahlenfeld bei der Kadenz +
+      Getter in `neuerPlan` (redaktionsplan.js). Commit 424cd8e, gepusht.
+- [x] Verify Logik (node): Owner-Beispiel Mo+Fr(11 Tage) -> 9; seltener Post 12/15/16 -> alle <=9.
+- [x] Verify UI: Feld rendert im Redaktionsplan-Modal (type=number, Label, Wert=Owner-Stand 0)
+      — per DOM-Query in der Browser-Pane belegt.
+- [x] Drive-Persistenz gefixt: `PLAN_ERLAUBT += "maxAbstandTage"` (server.js:453, Commit be2f211).
+      Vorher verwarf `nurPlanConfig` das Feld (belegt: PUT 200, Read-back undefined). Live gegen eigene
+      Instanz (PORT=4399) verifiziert: PUT 9 -> GET 9 (quelle=drive), PUT 0 -> GET 0. Owner-Plan danach
+      auf maxAbstandTage=0 zurueckgesetzt, alle uebrigen Stellschrauben identisch zum Original.
+      Hinweis: rclone-Drive-Schreiben laeuft sporadisch ins 20s-Timeout (bekanntes Problem, planstore.js:58);
+      dann Retry noetig, bis der Schreibvorgang durchlaeuft.
 
 ## DoD
-- Feld im Redaktionsplan setzbar (0 = aus), im Plan (Drive) persistent.
-- Erzeugte Slots halten den max. Abstand ein (Owner-Beispiel verifiziert).
+- Feld im Redaktionsplan setzbar (0 = aus) [x] — im Plan (Drive) persistent [x] (live belegt).
+- Erzeugte Slots halten den max. Abstand ein (Owner-Beispiel verifiziert) [x].
+
+## Fertig-Meldung
+Geprueft gegen: node-Test deckleAbstand (11->9; 12/15/16 -> <=9), DOM-Query Feld-Render,
+curl PUT/GET /api/plan gegen PORT=4399 (9 und 0 persistieren, quelle=drive). Commits 424cd8e, be2f211.
+Offen: nichts (v79 abgeschlossen). Anmerkung: v78 ist ein separates Paket.
