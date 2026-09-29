@@ -28,6 +28,7 @@ import {
   saeuleName,
   plattformName,
   contenttypName,
+  contenttypFormat,
   zielInfo,
   projektName,
   deutschesDatum,
@@ -106,7 +107,22 @@ const KI_NAMEN = {
   skript: "Skript schreiben",
   caption: "Captions je Plattform",
   ideen: "Ideen-Nachschub",
+  // v79 C2: format-spezifische Tasks
+  slider_aufbau: "Slider aufbauen",
+  slider_visual: "Visual je Slide",
+  beitrag_visual: "Text-Beitrag bauen",
+  story_frames: "Story-Frames bauen",
+  langform_konzept: "Storytelling-Konzept",
 };
+
+// v79 C2: Tasks, deren JSON-Ergebnis unter k.formate[task] landet und format-eigen editiert wird.
+const FORMAT_TASKS = new Set([
+  "slider_aufbau",
+  "slider_visual",
+  "beitrag_visual",
+  "story_frames",
+  "langform_konzept",
+]);
 
 // Nur Phasen mit einer generischen Knopfreihe. Idee und Skript haben eigene, gefuehrte Abläufe.
 const PHASEN_KI = {
@@ -958,10 +974,17 @@ function blockPhase(k, toreListe, stand) {
   // Schritt 1 „Skript schreiben" (idee): Recherche-/Hook-Loop und — sobald die Hooks stehen —
   // der Skript-Loop im selben Schritt (v16c). Kein Auto-Sprung mehr.
   if (k.column === "idee") {
-    guidedIdee(k, box);
-    const ideeFertig =
-      k.recherche && k.chosenFokus != null && k.chosenVerbal != null && k.chosenVisuell != null;
-    if (ideeFertig) skriptLoop(k, box);
+    // v79 C2: Kurzvideo (reel/leer) laeuft den Video-Skript-Flow; alle anderen Formate ihren
+    // eigenen KI-Flow (Slider/Beitrag/Story/Langform) mit bespoke Ergebnis-Editoren.
+    const kurzvideo = !k.contenttyp || k.contenttyp === "reel";
+    if (kurzvideo) {
+      guidedIdee(k, box);
+      const ideeFertig =
+        k.recherche && k.chosenFokus != null && k.chosenVerbal != null && k.chosenVisuell != null;
+      if (ideeFertig) skriptLoop(k, box);
+    } else {
+      guidedFormat(k, box);
+    }
   }
   // Schritt 2 „Drehtermin festlegen" (skript): keine Skript-Werkzeuge mehr — die Zuordnung
   // steht im eigenen Drehtermin-Block darueber.
@@ -1284,6 +1307,210 @@ function skriptLoop(k, box) {
       },
     })
   );
+}
+
+// --- v79 C2: Format-spezifische KI-Flows (volle Paritaet) --------------------
+// Nicht-Kurzvideo-Formate durchlaufen in der Erstell-Phase ihren eigenen Flow: Format-Knopf →
+// rufeKi → strukturiertes Ergebnis (k.formate[task]) → bespoke, editierbarer Editor → nach Drive.
+
+const FORMAT_DATEINAME = {
+  Carousel: "10_slider.md",
+  Bildpost: "10_beitrag.md",
+  Story: "10_story.md",
+  Video: "10_konzept.md",
+};
+
+const fmtDaten = (k, task) => (k.formate || {})[task] || null;
+
+// Editierbares Textfeld, an einen Pfad in der Karte gebunden (speichert bei Aenderung, ohne
+// die Box neu zu zeichnen — sonst verliert das Feld den Fokus mitten im Tippen).
+function fmtFeld(k, pfad, wert, rows, ph) {
+  const ta = textfeld(wert || "", rows || 2, ph || "");
+  ta.addEventListener("change", () => {
+    setzeTief(k, pfad, ta.value);
+    speichere();
+  });
+  return ta;
+}
+
+function rohBlock(d) {
+  const pre = document.createElement("pre");
+  pre.className = "textblock";
+  pre.textContent = d.raw || JSON.stringify(d, null, 2);
+  return pre;
+}
+
+function guidedFormat(k, box) {
+  const fmt = contenttypFormat(k.contenttyp || "reel");
+  const hinweis = document.createElement("p");
+  hinweis.className = "feld-hinweis";
+  hinweis.textContent =
+    `Die KI laeuft lokal ueber deine Claude-CLI. Dieser Flow ist auf „${contenttypName(k.contenttyp)}“ zugeschnitten.`;
+  box.appendChild(hinweis);
+
+  const flows = {
+    Carousel: { tasks: [["slider_aufbau", "Slider aufbauen"], ["slider_visual", "Visual je Slide"]], render: rendereSlider },
+    Bildpost: { tasks: [["beitrag_visual", "Text-Beitrag bauen"]], render: rendereBeitrag },
+    Story: { tasks: [["story_frames", "Story-Frames bauen"]], render: rendereStory },
+    Video: { tasks: [["langform_konzept", "Storytelling-Konzept"]], render: rendereLangform },
+  };
+  const flow = flows[fmt];
+  if (!flow) {
+    const p = document.createElement("p");
+    p.className = "feld-hinweis";
+    p.textContent = "Fuer dieses Format gibt es noch keinen eigenen KI-Flow.";
+    box.appendChild(p);
+    return;
+  }
+
+  const reihe = document.createElement("div");
+  reihe.className = "knopfreihe";
+  for (const [task, name] of flow.tasks) {
+    const fertig = !!fmtDaten(k, task);
+    reihe.appendChild(
+      knopf(fertig ? `${name} — neu` : name, {
+        art: "haupt",
+        zeichen: "funken",
+        klick: (e) => rufeKi(task, k, e.currentTarget, box),
+      })
+    );
+  }
+  box.appendChild(reihe);
+
+  flow.render(k, box);
+
+  if (flow.tasks.some(([task]) => fmtDaten(k, task))) {
+    box.appendChild(
+      knopf("Inhalt nach Drive speichern", {
+        art: "haupt",
+        zeichen: "ordner",
+        klick: (e) => nachDrive(k, FORMAT_DATEINAME[fmt] || "10_inhalt.md", formatAlsText(k, fmt), e.currentTarget, box),
+      })
+    );
+  }
+}
+
+function rendereSlider(k, box) {
+  const d = fmtDaten(k, "slider_aufbau");
+  if (!d) return;
+  if (d.raw || !Array.isArray(d.slides)) return void box.appendChild(rohBlock(d));
+  const vis = fmtDaten(k, "slider_visual");
+  const visSlides = vis && Array.isArray(vis.slides) ? vis.slides : [];
+  d.slides.forEach((s, i) => {
+    const karte = document.createElement("div");
+    karte.className = "format-slide";
+    const titel = document.createElement("div");
+    titel.className = "format-slide-nr";
+    titel.textContent = `Slide ${s.nr || i + 1}${s.rolle ? " · " + s.rolle : ""}`;
+    karte.appendChild(titel);
+    karte.appendChild(feld("Text", fmtFeld(k, `formate.slider_aufbau.slides.${i}.text`, s.text, 3)));
+    karte.appendChild(feld("Visual", fmtFeld(k, `formate.slider_aufbau.slides.${i}.visual`, s.visual, 2)));
+    const v = visSlides[i];
+    if (v && v.bildprompt) karte.appendChild(feld("Bild-Prompt", fmtFeld(k, `formate.slider_visual.slides.${i}.bildprompt`, v.bildprompt, 2)));
+    box.appendChild(karte);
+  });
+  if (d.cta != null) box.appendChild(feld("CTA (letzte Slide)", fmtFeld(k, "formate.slider_aufbau.cta", d.cta, 2)));
+  if (d.caption != null) box.appendChild(feld("Caption", fmtFeld(k, "formate.slider_aufbau.caption", d.caption, 3)));
+}
+
+function rendereBeitrag(k, box) {
+  const d = fmtDaten(k, "beitrag_visual");
+  if (!d) return;
+  if (d.raw) return void box.appendChild(rohBlock(d));
+  if (d.hook != null) box.appendChild(feld("Hook", fmtFeld(k, "formate.beitrag_visual.hook", d.hook, 2)));
+  if (d.body != null) box.appendChild(feld("Body", fmtFeld(k, "formate.beitrag_visual.body", d.body, 6)));
+  if (d.cta != null) box.appendChild(feld("CTA / Frage", fmtFeld(k, "formate.beitrag_visual.cta", d.cta, 2)));
+  if (d.visual != null) box.appendChild(feld("Visual-Konzept", fmtFeld(k, "formate.beitrag_visual.visual", d.visual, 2)));
+  const tags = d.hashtags_text != null ? d.hashtags_text : Array.isArray(d.hashtags) ? d.hashtags.join(" ") : "";
+  box.appendChild(feld("Hashtags", fmtFeld(k, "formate.beitrag_visual.hashtags_text", tags, 1)));
+}
+
+function rendereStory(k, box) {
+  const d = fmtDaten(k, "story_frames");
+  if (!d) return;
+  if (d.raw || !Array.isArray(d.frames)) return void box.appendChild(rohBlock(d));
+  d.frames.forEach((f, i) => {
+    const karte = document.createElement("div");
+    karte.className = "format-slide";
+    const titel = document.createElement("div");
+    titel.className = "format-slide-nr";
+    titel.textContent = `Frame ${f.nr || i + 1}${f.medium ? " · " + f.medium : ""}${f.sticker ? " · " + f.sticker : ""}`;
+    karte.appendChild(titel);
+    karte.appendChild(feld("Text", fmtFeld(k, `formate.story_frames.frames.${i}.text`, f.text, 2)));
+    if (f.warum != null) karte.appendChild(feld("Bild oder Video?", fmtFeld(k, `formate.story_frames.frames.${i}.warum`, f.warum, 1)));
+    box.appendChild(karte);
+  });
+}
+
+function rendereLangform(k, box) {
+  const d = fmtDaten(k, "langform_konzept");
+  if (!d) return;
+  if (d.raw || !Array.isArray(d.kapitel)) return void box.appendChild(rohBlock(d));
+  if (d.struktur != null) box.appendChild(feld("Struktur (roter Faden)", fmtFeld(k, "formate.langform_konzept.struktur", d.struktur, 2)));
+  if (d.hook != null) box.appendChild(feld("Hook-Beat (erste ~30 s)", fmtFeld(k, "formate.langform_konzept.hook", d.hook, 2)));
+  d.kapitel.forEach((kap, i) => {
+    const karte = document.createElement("div");
+    karte.className = "format-slide";
+    const titel = document.createElement("div");
+    titel.className = "format-slide-nr";
+    titel.textContent = `Kapitel ${kap.nr || i + 1}`;
+    karte.appendChild(titel);
+    karte.appendChild(feld("Titel", fmtFeld(k, `formate.langform_konzept.kapitel.${i}.titel`, kap.titel, 1)));
+    const beats = kap.beats_text != null ? kap.beats_text : Array.isArray(kap.beats) ? kap.beats.join("\n") : kap.beats || "";
+    karte.appendChild(feld("Beats (Stichpunkte)", fmtFeld(k, `formate.langform_konzept.kapitel.${i}.beats_text`, beats, 3)));
+    if (kap.payoff != null) karte.appendChild(feld("Payoff", fmtFeld(k, `formate.langform_konzept.kapitel.${i}.payoff`, kap.payoff, 1)));
+    box.appendChild(karte);
+  });
+  if (d.schluss != null) box.appendChild(feld("Schluss + CTA", fmtFeld(k, "formate.langform_konzept.schluss", d.schluss, 2)));
+}
+
+// Kompiliert das aktuelle Format-Ergebnis zu einer menschenlesbaren Markdown-Datei fuer Drive.
+function formatAlsText(k, fmt) {
+  const z = [];
+  if (fmt === "Carousel") {
+    const d = fmtDaten(k, "slider_aufbau") || {};
+    const vis = fmtDaten(k, "slider_visual") || {};
+    z.push(`# Slider: ${k.title || ""}`);
+    (d.slides || []).forEach((s, i) => {
+      z.push(`\n## Slide ${s.nr || i + 1}${s.rolle ? " (" + s.rolle + ")" : ""}`);
+      if (s.text) z.push(s.text);
+      if (s.visual) z.push(`Visual: ${s.visual}`);
+      const v = (vis.slides || [])[i];
+      if (v && v.bildprompt) z.push(`Bild-Prompt: ${v.bildprompt}`);
+    });
+    if (d.cta) z.push(`\n**CTA:** ${d.cta}`);
+    if (d.caption) z.push(`\n**Caption:** ${d.caption}`);
+  } else if (fmt === "Bildpost") {
+    const d = fmtDaten(k, "beitrag_visual") || {};
+    z.push(`# Beitrag: ${k.title || ""}`);
+    if (d.hook) z.push(`**Hook:** ${d.hook}`);
+    if (d.body) z.push(`\n${d.body}`);
+    if (d.cta) z.push(`\n**CTA:** ${d.cta}`);
+    if (d.visual) z.push(`\n**Visual:** ${d.visual}`);
+    const tags = d.hashtags_text || (Array.isArray(d.hashtags) ? d.hashtags.join(" ") : "");
+    if (tags) z.push(`\n${tags}`);
+  } else if (fmt === "Story") {
+    const d = fmtDaten(k, "story_frames") || {};
+    z.push(`# Story: ${k.title || ""}`);
+    (d.frames || []).forEach((f, i) => {
+      z.push(`\n## Frame ${f.nr || i + 1}${f.medium ? " (" + f.medium + ")" : ""}`);
+      if (f.text) z.push(f.text);
+      if (f.sticker) z.push(`Sticker: ${f.sticker}`);
+    });
+  } else if (fmt === "Video") {
+    const d = fmtDaten(k, "langform_konzept") || {};
+    z.push(`# Langform-Konzept: ${k.title || ""}`);
+    if (d.struktur) z.push(`**Struktur:** ${d.struktur}`);
+    if (d.hook) z.push(`**Hook:** ${d.hook}`);
+    (d.kapitel || []).forEach((kap, i) => {
+      z.push(`\n## Kapitel ${kap.nr || i + 1}: ${kap.titel || ""}`);
+      const beats = kap.beats_text || (Array.isArray(kap.beats) ? kap.beats.map((b) => "- " + b).join("\n") : "");
+      if (beats) z.push(beats);
+      if (kap.payoff) z.push(`Payoff: ${kap.payoff}`);
+    });
+    if (d.schluss) z.push(`\n**Schluss:** ${d.schluss}`);
+  }
+  return z.join("\n");
 }
 
 function felderDreh(k, box, merke) {
@@ -1868,7 +2095,10 @@ async function rufeKi(task, k, knopfEl, box) {
     else if (task === "hooks_verbal") setzeTief(k, "hooksVerbal", antwort.data || { raw: antwort.text || "" });
     else if (task === "hooks_visuell") setzeTief(k, "hooksVisuell", antwort.data || { raw: antwort.text || "" });
     else if (task === "caption") setzeTief(k, "captionVorschlag", antwort.data || { raw: antwort.text || "" });
-    else {
+    else if (FORMAT_TASKS.has(task)) {
+      // v79 C2: strukturiertes Format-Ergebnis (JSON) fuer den format-eigenen Editor.
+      setzeTief(k, "formate." + task, antwort.data || { raw: antwort.text || "" });
+    } else {
       k.ai = k.ai || {};
       k.ai[task] = antwort.text || "";
       if (task === "skript" && !k.skriptFinal) k.skriptFinal = antwort.text || "";

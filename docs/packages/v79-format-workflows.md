@@ -240,9 +240,16 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
       `slider_visual`, `beitrag_visual`, `story_frames`, `langform_konzept`; je Ein-Schritt-Default
       (userkomm), in `JSON_AUFGABEN`, LinkedIn-primär, Parameter aus Strom A. Probe 5/5 grün
       (1 Schritt, JSON-Flag, Prompt baut ohne offene Platzhalter).
-- [ ] **v79-C2 (Karten-UI, volle Parität):** Owner-Entscheid 29.09.2026 = bespoke Editoren je
-      Format. Eigenes Folge-Paket mit Plan (siehe „C2 — Plan" oben), Phasen C2-1…C2-6. `detail.js`
-      jetzt frei, aber mehrfach umkämpft → vor Bau `git status`/Peer-Ping. **Offen.**
+- [x] **v79-C2 (Karten-UI, volle Parität):** gebaut 29.09.2026 (`detail.js` + `style.css`).
+      Routing in `blockPhase`: Kurzvideo (reel/leer) → Video-Skript-Flow; alle anderen Formate →
+      `guidedFormat` mit format-eigenem Flow. `rufeKi` speichert Format-JSON unter `k.formate[task]`.
+      Bespoke editierbare Renderer je Format (Slider: Slides mit Text/Visual/Bild-Prompt + CTA +
+      Caption; Beitrag: Hook/Body/CTA/Visual/Hashtags; Story: Frames mit Medium/Text/Sticker;
+      Langform: Struktur/Hook/Kapitel-Beats/Payoff/Schluss), Bearbeitung persistiert (change→setzeTief),
+      „Inhalt nach Drive speichern" kompiliert Markdown. `.format-slide`-Styles theme-konform.
+      **Verifiziert:** `node --check detail.js` grün; Screenshots (Port 4399, Test-Daten in-memory):
+      Slider-Editor (3 Slides, Text+Visual, „— neu") und Langform-Editor (Struktur, Hook, Kapitel
+      mit Beats) rendern statt des Video-Flows. Beitrag/Story = gleiche Maschinerie.
 - [x] **v79-D:** Board-Tore format-bewusst (28.09.2026). Helfer `hatVideoProduktion(card)`
       (Reel + Langformat = ja; Slider/Beitrag/Story = nein) + Post-Filter in `tore()`: die
       video-spezifischen Sperr-Tore (`skript`, `hook`, `hook-bild`, `rohmaterial`, `final`,

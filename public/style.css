@@ -3270,6 +3270,20 @@ body {
   color: var(--text-leise);
   margin: -4px 0;
 }
+/* v79 C2: Format-Ergebnis-Karten auf der Detailseite (Slide/Frame/Kapitel) */
+.format-slide {
+  border: 1px solid var(--linie-hell);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche-tief);
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+.format-slide-nr {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-leise);
+  margin-bottom: 4px;
+}
 .einst-prompt-legende { margin: 10px 0; }
 .einst-prompt-platzhalter {
   display: flex;
