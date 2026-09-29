@@ -208,8 +208,13 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
       übergibt `contenttypFormat(card.contenttyp)` an die Pipeline, PUT `/api/prompts` reicht `format`
       durch. node --check grün; Probe 6/6 (leer→Standard, String-Migration, Format-Treffer,
       Format-Fehltreffer→Base, ohne Format→Base, recherche-Websuche `[false,true,false]`).
-- [ ] **v79-C:** je Format die richtigen Knöpfe + sinnvolle Default-Pipeline; ein echter Lauf
-      je Format liefert format-passenden Output (Slider-Slides, Langform-Konzept …).
+- [x] **v79-C1 (Tasks/Defaults):** 5 Format-Tasks in `lib/ai.js` (28.09.2026) — `slider_aufbau`,
+      `slider_visual`, `beitrag_visual`, `story_frames`, `langform_konzept`; je Ein-Schritt-Default
+      (userkomm), in `JSON_AUFGABEN`, LinkedIn-primär, Parameter aus Strom A. Probe 5/5 grün
+      (1 Schritt, JSON-Flag, Prompt baut ohne offene Platzhalter).
+- [ ] **v79-C2 (Karten-Knöpfe):** je Format die richtige Knopf-Menge auf der Karte — **blockiert**,
+      bis Peer-Session `public/detail.js` freigibt. Danach: ein echter Lauf je Format liefert
+      format-passenden Output.
 - [ ] **v79-D:** Slider-/Beitrag-/Story-/Langform-Karte kommt ohne Drehtermin durchs Board;
       Video-Karte unverändert (Regression-Beleg).
 - [ ] **v79-E:** Workflow je Format sichtbar + editierbar; Screenshot Light+Dark gegen
