@@ -51,10 +51,14 @@ Nicht geprüft: Abgleich-Fehler mitten im Lauf (bereits gelesene Spalten bleiben
 3. Start-Abgleich parallel: startet jetzt ~0,5 s nach dem Laden. Messung: die erste Stufe („Spalten abgleichen") dauerte unter Last durch Plan-/Workflow-Lesezugriffe ~115 s statt 33 s allein, „live" nach ~150 s; einzelne rclone-Aufrufe bis 36 s. Der Gewinn ist NICHT belegt (Drive-Latenz schwankt); Alternative wäre, Plan-Zugriffe bis zum Abgleich-Ende zurückzustellen.
 4. `data/boardparameter.json` steht in `.gitignore`.
 
+30.09.2026 (Rundgang der übrigen Ansichten, hell + dunkel gesehen): Auswertung war schon Retro (nur Abkürzung „ggue. 30 T." → ausgeschrieben, `auswertung.js`); Redaktionsplan-Fenster hatte Standard-Muster per Inline-Stil (Versalien-Titel, iOS-Schalter, runde Punkte, weiche Regler) → per Attributwähler auf Retro (Schalter eckig gelb, Regler mit eckigem Griff, Punkte quadratisch, Titel mit 2-px-Linie); Einstellungen „Social Media Kanäle", „System Prompts": 2-px-Kanten, `.eingabe` überall creme mit Tintenkante. Skript-Inventar aller Einstellungsseiten: „Externe Dienste", „Unternehmenskontext", „Board & Redaktionsplan" ohne Befund außer den behobenen 1-px-Kanten.
+Texte gestrichen bzw. gekürzt (Kriterium: bleibt, wenn er eine Handlung oder einen Zustand erklärt, den man sonst nicht sieht): „Helles oder dunkles Erscheinungsbild …" (Überschrift + Optionen sagen es), Cursor-Text auf einen Satz, Kanäle-Einleitung (steht schon unter „Externe Dienste"). Nicht gestrichen: Anleitungen, KI-Rollen-Optionstexte, Prompt-Platzhalter.
+Bekannt: Der parallele Abgleich-Start belegt Drive; andere Drive-Seiten (System Prompts) brauchten 13–31 s zum Laden.
+
 ## Definition of Done
 
 Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`
 Offen:
-1. Ansichten Auswertung, Redaktionsplan, Modale und übrige Einstellungsseiten (Social Media Kanäle, System Prompts, Board & Redaktionsplan) nicht im Retro-Rundgang gesehen — ICH
-2. Erklärtexte je Phase auf Wichtigkeit sichten und streichen — DEINE ENTSCHEIDUNG (Kriterium?)
-3. Abgleich-Fehler mitten im Lauf: bereits gelesene Spalten bleiben live-markiert — ICH
+1. Erklärtexte im Detail je Phase (nur Einstellungen gesichtet) — ICH
+2. Parallel-Start vs. Drive-Auslastung — DEINE ENTSCHEIDUNG
+3. Weitere Modale (Drehtermin, Kalender) nicht im Retro-Rundgang — ICH

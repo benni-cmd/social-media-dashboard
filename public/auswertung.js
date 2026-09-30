@@ -356,7 +356,7 @@ function kpiReihe(ig, li, igOn, liOn) {
   const rd = (r30.davor || {}).reichweite;
   const rTrend =
     igOn && rj != null && rd != null && rd > 0
-      ? { richtung: rj >= rd ? "hoch" : "runter", text: `${rj >= rd ? "+" : ""}${Math.round(((rj - rd) / rd) * 100)} % ggue. 30 T. davor` }
+      ? { richtung: rj >= rd ? "hoch" : "runter", text: `${rj >= rd ? "+" : ""}${Math.round(((rj - rd) / rd) * 100)} % gegenüber den 30 Tagen davor` }
       : null;
 
   wrap.innerHTML =
@@ -440,7 +440,7 @@ function besterKarte(m, medianViews) {
     `<div class="bester-wert-label">Views im Beitrag</div>` +
     (vergleich != null
       ? `<div class="kpi-trend ${vergleich >= 0 ? "hoch" : "runter"}">${icon(vergleich >= 0 ? "pfeil-hoch" : "pfeil-runter")}` +
-        `<span>${vergleich >= 0 ? "+" : ""}${String(vergleich).replace(".", ",")} % ggue. Median</span></div>`
+        `<span>${vergleich >= 0 ? "+" : ""}${String(vergleich).replace(".", ",")} % gegenüber dem Median</span></div>`
       : "") +
     `</div>` +
     `<div class="bester-metriken">` +

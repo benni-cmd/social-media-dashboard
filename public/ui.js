@@ -897,10 +897,7 @@ export function einstellungenModal(onThemeChange) {
   themeLabel.className = "einst-label";
   themeLabel.textContent = "Farbschema";
   themeKachel.appendChild(themeLabel);
-  const themeHinweis = document.createElement("p");
-  themeHinweis.className = "einst-provider-sub einst-kachel-sub";
-  themeHinweis.textContent = "Helles oder dunkles Erscheinungsbild der ganzen Oberflaeche.";
-  themeKachel.appendChild(themeHinweis);
+  // v83: kein Erklaersatz — Ueberschrift „Farbschema" und die zwei Optionen sagen dasselbe.
   themeKachel.appendChild(themeReihe);
   seite1.appendChild(themeKachel);
 
@@ -922,8 +919,7 @@ export function einstellungenModal(onThemeChange) {
   const cursorHinweis = document.createElement("p");
   cursorHinweis.className = "einst-provider-sub einst-kachel-sub";
   cursorHinweis.textContent =
-    "Ein eigener Pfeil im Haus-Stil ersetzt den System-Cursor ueberall, auch an Knoepfen und an " +
-    "der Zieh-Kante der Detailspalte. Ausgeschaltet zeigt die Oberflaeche wieder den System-Cursor.";
+    "Eigener Pfeil im Haus-Stil statt System-Cursor. Aus = System-Cursor."; // v83 gekuerzt
   cursorAbschnitt.appendChild(cursorHinweis);
   cursorAbschnitt.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
 
@@ -1757,10 +1753,7 @@ export function einstellungenModal(onThemeChange) {
   titel4.className = "einst-titel";
   titel4.textContent = "Social Media Kanäle";
   seite4.appendChild(titel4);
-  const hint4 = document.createElement("p");
-  hint4.className = "einst-provider-sub";
-  hint4.textContent = "APIs der Kanaele verbinden — App-ID/Secret bleiben lokal in .env.";
-  seite4.appendChild(hint4);
+  // v83: kein Einleitungssatz — „bleiben lokal in .env" steht schon auf der Seite „Externe Dienste".
 
   // Datenquelle der Auswertung (v24-2): live von den APIs oder aus den Drive-CSVs.
   {

@@ -4289,3 +4289,105 @@ summary.gruppe-kopf,
 
 /* v83: laufende Aktion im Log — Dauer tickt, hebt sich vom Endwert ab */
 .anschluss-dauer-laeuft { color: var(--akzent); font-weight: 650; white-space: nowrap; }
+
+/* ============================================================
+   v83 — Redaktionsplan-Fenster: das Fenster baut seine Elemente mit Inline-Stilen
+   (redaktionsplan.js); die Retro-Regeln greifen deshalb ueber Attributwaehler.
+   Standard-Muster dort: Versalien-Titel, iOS-Schalter, runde Punkte, weiche Regler.
+   ============================================================ */
+.modal-plan-koerper h4 {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  margin: 18px 0 10px !important;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--linie);
+}
+.modal-plan-koerper h4:first-child { margin-top: 0 !important; }
+/* Schalter: Rechteck mit Tintenkante, an = gelb */
+.modal-plan-koerper label[style*="width: 36px"] > span:first-of-type {
+  border-radius: 4px !important;
+  border: 2px solid var(--linie);
+  box-sizing: border-box;
+  background: var(--flaeche-tief) !important;
+}
+.modal-plan-koerper label[style*="width: 36px"] input:checked + span { background: var(--chrome-b) !important; }
+.modal-plan-koerper label[style*="width: 36px"] .thumb {
+  width: 12px !important;
+  height: 12px !important;
+  top: 2px !important;
+  left: 2px !important;
+  border-radius: 2px !important;
+  background: var(--linie) !important;
+  box-shadow: none !important;
+}
+/* Farbpunkte als Quadrate */
+.modal-plan-koerper span[style*="border-radius: 50%"][style*="width: 10px"] {
+  border-radius: 2px !important;
+  border: 2px solid var(--linie);
+  box-sizing: border-box;
+}
+/* Regler: dicke Schiene, eckiger Griff */
+.modal-plan-koerper input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border: 2px solid var(--linie);
+  border-radius: 3px;
+  background: var(--flaeche-tief);
+}
+.modal-plan-koerper input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 18px;
+  border: 2px solid var(--linie);
+  border-radius: 3px;
+  background: var(--chrome-b);
+}
+.modal-plan-koerper input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 14px;
+  border: 2px solid var(--linie);
+  border-radius: 3px;
+  background: var(--chrome-b);
+}
+.modal-plan-koerper input[type="number"],
+.modal-plan-koerper input[type="text"] {
+  border: 2px solid var(--linie) !important;
+  border-radius: var(--rund-klein) !important;
+  background: var(--flaeche) !important;
+}
+
+/* v83: Eingabefelder überall gleich — Creme-Fläche, Tintenkante, bei Fokus warmer Ton */
+.eingabe, select.eingabe, textarea.eingabe {
+  border-color: var(--linie);
+  background: var(--flaeche);
+}
+.eingabe:focus { background: var(--akzent-tief); outline: none; }
+
+/* v83: Einstellungen, restliche Kacheln — 2-px-Tintenkante statt 1 px und Orange-Rand */
+.verb-zeile,
+.einst-prompt,
+.einst-prompt-feld {
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+}
+.einst-prompt[open] { border-color: var(--linie); background: var(--flaeche-hoch); }
+.einst-schritt {
+  border-top: 2px solid var(--linie);
+  border-right: 2px solid var(--linie);
+  border-bottom: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+}
+.einst-prompt-marke.aktiv { background: var(--chrome-b); border-color: var(--linie); color: #201e1a; font-weight: 650; }
+.einst-schritt-web {
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+  padding: 1px 8px;
+  color: var(--text);
+  background: var(--flaeche);
+}
+.einst-schritt-web:has(input:checked) { background: var(--chrome-b); color: #201e1a; }
+a.drive-ort, .drive-ort { border-color: var(--linie); }
