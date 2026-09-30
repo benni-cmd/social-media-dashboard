@@ -154,17 +154,17 @@ function zeichneLiveStand() {
   if (L.board) return;
   const zeit = cacheZeit(L.cacheStand);
   const was = L.laeuft
-    ? "Live-Abgleich läuft …"
+    ? "Abgleich läuft …"
     : L.fehler
-      ? "Live-Abgleich fehlgeschlagen — erneut versuchen"
-      : "noch nicht live — jetzt abgleichen";
+      ? "Abgleich fehlgeschlagen"
+      : "noch nicht live";
   liveEl.classList.toggle("live-plakette-laeuft", L.laeuft);
   liveEl.classList.toggle("live-plakette-fehler", !L.laeuft && !!L.fehler);
   liveEl.disabled = L.laeuft;
-  liveEl.innerHTML = icon("cache") + `<span class="live-plakette-text"><b>Cache-Stand${zeit ? " " + zeit : ""}</b> · ${was}</span>`;
+  liveEl.innerHTML = icon("cache") + `<span class="live-plakette-text"><b>Cache${zeit ? " " + zeit : ""}</b> · ${was}</span>`;
   liveEl.title = L.fehler && !L.laeuft
     ? `Das Board zeigt den lokalen Cache. Der Abgleich mit Drive schlug fehl: ${L.fehler}`
-    : "Das Board zeigt den lokalen Cache. Karten, Spalten und Detail-Abschnitte mit gestricheltem Rand bzw. Uhr-Zeichen sind noch nicht mit Drive abgeglichen.";
+    : "Klick startet den Abgleich mit Drive. Das Board zeigt den lokalen Cache. Karten, Spalten und Detail-Abschnitte mit gestricheltem Rand bzw. Uhr-Zeichen sind noch nicht mit Drive abgeglichen.";
 }
 liveEl.addEventListener("click", () => {
   if (!abgleichLaeuft()) driveAbgleich().catch(() => {});

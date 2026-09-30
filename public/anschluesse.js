@@ -203,7 +203,45 @@ function neuesteAktion() {
   // Ist die neueste Aktion eine von Drive und der Stufenstrom hat einen fertigen Satz, gewinnt
   // der: „Liest Drive-Ordner 4/8: Schnitt" liest sich besser als der nackte rclone-Befehl.
   if (beste.id === "drive" && driveStufe) return driveStufe;
+  if (beste.id === "drive") return klartextRclone(beste.e.text);
   return `${beste.name} · ${beste.e.text}`;
+}
+
+// v82: In der Kopfzeile steht nie ein roher rclone-Befehl („cat gdrive:System (AI only)/…json"),
+// sondern was er tut. Das Terminal der Sektion zeigt den Befehl weiter unveraendert.
+const DATEI_NAMEN = {
+  redaktionsplan: "Redaktionsplan",
+  workflows: "Workflows",
+  board: "Board",
+  boardparameter: "Board-Einstellungen",
+  defaults: "Vorgaben",
+};
+function letzterTeil(pfad) {
+  const teil = String(pfad || "").replace(/^gdrive:/, "").split("/").filter(Boolean).pop() || "";
+  return teil.replace(/\.json$/i, "");
+}
+export function klartextRclone(text) {
+  const [verb, ...rest] = String(text || "").trim().split(/\s+/);
+  const ziel = rest.filter((a) => !a.startsWith("-")).join(" ");
+  const name = letzterTeil(ziel);
+  const datei = DATEI_NAMEN[name] || name;
+  switch (verb) {
+    case "cat": return datei ? `Liest ${datei} aus Drive …` : "Liest aus Drive …";
+    case "lsjson":
+    case "lsf":
+    case "ls": return datei ? `Liest Ordner ${datei} …` : "Liest einen Drive-Ordner …";
+    case "copy":
+    case "copyto":
+    case "rcat": return datei ? `Speichert ${datei} in Drive …` : "Speichert in Drive …";
+    case "move":
+    case "moveto": return datei ? `Verschiebt ${datei} in Drive …` : "Verschiebt in Drive …";
+    case "mkdir": return datei ? `Legt Ordner ${datei} an …` : "Legt einen Ordner an …";
+    case "delete":
+    case "deletefile":
+    case "purge":
+    case "rmdir": return datei ? `Löscht ${datei} in Drive …` : "Löscht in Drive …";
+    default: return "Arbeitet mit Drive …";
+  }
 }
 
 function zeichneKopf() {
@@ -212,7 +250,9 @@ function zeichneKopf() {
   if (laeuftWas) {
     warAktiv = true;
     standEl.innerHTML = "";
-    standEl.appendChild(sanduhr(neuesteAktion()));
+    const satz = neuesteAktion();
+    standEl.appendChild(sanduhr(satz));
+    standEl.title = satz;
   } else if (warAktiv) {
     warAktiv = false;
     standEl.textContent = "Bereit.";

@@ -3942,3 +3942,88 @@ body {
 }
 .cache-marke .icon { width: 13px; height: 13px; }
 .gruppe-kopf .cache-marke { margin-left: 8px; }
+
+/* ============================================================
+   v82 (Owner 30.09.2026): Kopfzeile im Retro-Look, ohne Ueberlauf.
+   Vorher: 1507 px Inhalt bei 1440 px Fenster, Titel dreizeilig
+   abgeschnitten, Beenden-Schieber ausserhalb des Bildes.
+   ============================================================ */
+
+.kopf {
+  gap: 12px;
+  padding: 0 14px;
+  min-width: 0;
+}
+.kopf-titel {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.kopf > .ansichten,
+.kopf .knopf-haupt#naechster-schritt,
+.kopf-menu { flex: 0 0 auto; }
+/* Der Satz im Kopf weicht als Einziges: er nimmt den Rest und kuerzt mit Auslassung. */
+.kopf-rechts {
+  flex: 1 1 0;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.kopf-anschluesse { flex: 0 0 auto; }
+.kopf-stand {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 320px;
+  text-align: right;
+}
+.kopf-stand > * { max-width: 100%; }
+
+/* Retro-Bausteine im Kopf: dicke Tinten-Kante + harter Versatz-Schatten, wie Spalten und Karten */
+.ansichten {
+  border: 2px solid var(--linie);
+  background: var(--flaeche-tief);
+  box-shadow: 2px 2px 0 var(--linie);
+}
+.ansicht-knopf[aria-pressed="true"] {
+  background: var(--chrome-b);
+  color: #201e1a;
+  font-weight: 650;
+}
+.anschluss {
+  width: 118px;
+  border: 2px solid var(--linie);
+  box-shadow: 2px 2px 0 var(--linie);
+  font-size: 11.5px;
+}
+.kopf .knopf-haupt#naechster-schritt,
+.kopf .knopf-symbol {
+  box-shadow: 2px 2px 0 var(--linie);
+}
+.kopf .knopf-haupt#naechster-schritt:active,
+.kopf .knopf-symbol:active,
+.live-plakette:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--linie);
+}
+.live-plakette {
+  max-width: 250px;
+  box-shadow: 2px 2px 0 var(--cache);
+}
+.shutdown-slider {
+  width: 130px;
+  border: 2px solid var(--linie);
+  background: var(--akzent-tief);
+  box-shadow: 2px 2px 0 var(--linie);
+}
+.shutdown-handle {
+  border: 2px solid var(--linie);
+  box-sizing: border-box;
+}
+/* Feinschliff Kopfbreite: bei 1440 px muessen Plakette und Anschluss-Namen ungekuerzt passen. */
+.kopf { gap: 10px; }
+.ansicht-knopf { padding: 5px 9px; }
+.kopf .knopf-haupt#naechster-schritt { padding: 6px 10px; gap: 5px; }
+.anschluss { width: 124px; padding: 2px 5px; }
+.live-plakette { max-width: 310px; }
+.shutdown-slider { width: 116px; }
