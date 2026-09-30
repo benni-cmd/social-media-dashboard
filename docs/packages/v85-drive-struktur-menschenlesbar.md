@@ -95,6 +95,25 @@ Blumenfreunde", „World Eden EP03 – Boden wie ein Schwamm", Sonderzeichen-Tit
 „Was Warum Kompost Tee 1 100", leerer Titel → „Ohne Titel", langer Titel an Wortgrenze auf 55
 Zeichen; alle `pfadstueckOk`; Karte mit driveName behält ihn.
 
+30.09.2026 — Vollständigkeits-Prüfung (Skill `completeness`, inline) vor der Übergabe:
+- **Behoben:** Der Steckbrief-Abgleich hätte zu einer Karte, deren Ordner in Drive fehlt, einen
+  neuen Ordner (nur mit Steckbrief) angelegt und den Befund „kein Ordner mehr" überdeckt.
+  Jetzt schreibt er nur in Ordner, die der Abgleich gerade gesehen hat (`abgleich()` liefert
+  `ordnerDa`).
+- **Belegt:** MD5 eines hochgeladenen Steckbriefs (Umlaute, „ “) = lokal berechneter MD5
+  (`md5probe.mjs`, rcat wie `drive.writeFile`) — sonst schriebe jeder Abgleich alle neu.
+- **Fehlerfall Umbenennung:** Scheitert ein `moveDir` mitten in der Nummerierung, bleibt der
+  Server beim alten Spaltenstand; der nächste Abgleich findet die Marker am neuen Ort und heilt
+  (Umbenennung nur der Nummer = kein Namenswechsel, Test 3 im Mock).
+- **Restrisiko (einmalig):** Speichert jemand GENAU während der ersten Nummerierung eine Karte,
+  kann der alte Spaltenordner (z. B. „Idee") mit nur dieser Karte neu entstehen. Deshalb nach
+  dem Neustart ~1 Minute nicht bearbeiten; die Live-Prüfung sucht gezielt nach alten
+  Spaltenordnern.
+- **Einmalige Last:** Der erste Steckbrief-Abgleich schreibt ~17 Dateien (~40 s) und hält so
+  lange die Drive-Warteschlange; danach 3 md5sum-Aufrufe je Abgleich.
+- **Aufräumen:** Wegwerf-Ordner `Papierkorb/_v85test umbenannt` (2 Testdateien) bleibt im
+  Papierkorb-Ordner des Boards — löschen kann Ben ihn in Drive, wenn gewünscht.
+
 ## Definition of Done
 
 Geprueft gegen: `rclone lsf -R` Vorher/Nachher, Abgleich-Zeit live, Board-Screenshot

@@ -460,7 +460,7 @@ async function abgleichEinmal(onStufe) {
   spaltenResolverSetzen(spalten);
 
   const aktuell = await leseBoard();
-  const { cards, befunde, geaendert } = await projekte.abgleich(aktuell.cards, { onStufe });
+  const { cards, befunde, geaendert, ordnerDa } = await projekte.abgleich(aktuell.cards, { onStufe });
   let version = aktuell.version;
   if (geaendert) {
     version = aktuell.version + 1;
@@ -469,7 +469,7 @@ async function abgleichEinmal(onStufe) {
   // v85-B: Steckbriefe (menschenlesbarer Stand je Projektordner) im Hintergrund nachziehen — die
   // Antwort wartet nicht darauf. Im Ruhezustand 3 md5sum-Aufrufe, geschrieben wird nur Abweichendes.
   projekte
-    .steckbriefeAbgleichen(cards)
+    .steckbriefeAbgleichen(cards, ordnerDa)
     .then((r) => { if (r.geschrieben) console.log(`Steckbriefe: ${r.geschrieben} von ${r.geprueft} geschrieben.`); })
     .catch((e) => console.log(`Steckbrief-Abgleich fehlgeschlagen: ${e.message}`));
   return { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten };
