@@ -52,6 +52,7 @@ import {
   kiStream,
   melde,
   setStand,
+  spalteLive,
   speichereDefaults,
   ladePlan,
   drehtermin,
@@ -220,7 +221,7 @@ export function zeichneDetail(el) {
   // v81: Solange das Board den Cache zeigt, tragen Kopf und jeder Abschnitt, dessen Inhalt aus
   // den Kartenfeldern kommt, das Cache-Zeichen. Der Drive-Abschnitt nicht: er liest die Ordner
   // der Karte selbst frisch aus Drive (Sanduhr, solange er liest).
-  if (!S.live.board) {
+  if (!spalteLive(k.column)) {
     kopf.insertBefore(cacheMarke("Cache"), kopf.querySelector(".detail-fokus"));
     for (const g of koerper.querySelectorAll(":scope > .gruppe:not(.gruppe-drive)")) {
       const kopfZeile = g.querySelector(":scope > summary.gruppe-kopf");
@@ -1794,7 +1795,11 @@ function felderUpload(k, box, merke) {
 
 function blockDrive(k, stand) {
   const g = gruppeMitFarbe("drive", "Google Drive", null, offenFuer(k, "drive", false), merkeKlapp(k, "drive"));
-  g.classList.add("gruppe-drive"); // v81: liest selbst frisch aus Drive, traegt kein Cache-Zeichen
+  g.classList.add("gruppe-drive"); // v81: liest selbst frisch aus Drive; v83: markiert sich nur, solange nicht gelesen
+  if (k.title && !stand) {
+    const kopfZeile = g.querySelector(":scope > summary.gruppe-kopf");
+    if (kopfZeile) kopfZeile.appendChild(cacheMarke("noch nicht gelesen", "Der Drive-Ordner dieser Karte wurde noch nicht gelesen."));
+  }
   const box = document.createElement("div");
 
   if (!k.title) {

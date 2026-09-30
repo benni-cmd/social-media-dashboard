@@ -154,7 +154,7 @@ function zeichneLiveStand() {
   if (L.board) return;
   const zeit = cacheZeit(L.cacheStand);
   const was = L.laeuft
-    ? "Abgleich läuft …"
+    ? `Abgleich läuft (${L.spalten.size}/${(S.spalten && S.spalten.length) || 8} Spalten)`
     : L.fehler
       ? "Abgleich fehlgeschlagen"
       : "noch nicht live";

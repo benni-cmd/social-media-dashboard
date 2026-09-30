@@ -28,7 +28,7 @@ export const S = {
   // v81: Stammt das Gezeigte schon aus Drive? Bis der Abgleich durch ist, zeigt das Board den
   // lokalen Cache — Kopf, Spalten, Karten und Detail kennzeichnen das. `fehler` = letzter
   // gescheiterter Abgleich (Kennzeichnung bleibt dann stehen, mit Grund).
-  live: { board: false, laeuft: false, fehler: null, cacheStand: null },
+  live: { board: false, laeuft: false, fehler: null, cacheStand: null, spalten: new Set() }, // spalten: Phase-IDs, deren Drive-Ordner im laufenden Abgleich schon gelesen sind (v83)
 };
 
 // --- Workflows (v26) ------------------------------------------------------
@@ -190,6 +190,11 @@ async function hole(pfad, optionen) {
     throw fehler;
   }
   return daten;
+}
+
+// v83: Ist diese Spalte schon mit Drive abgeglichen (ganzer Abgleich durch ODER ihr Ordner gelesen)?
+export function spalteLive(id) {
+  return S.live.board || S.live.spalten.has(id);
 }
 
 export async function ladeBoard() {
@@ -427,6 +432,7 @@ export function driveAbgleich() {
   if (abgleichInFlight) return abgleichInFlight;
   abgleichInFlight = (async () => {
     S.live.laeuft = true;
+    S.live.spalten = new Set();
     zeichne();
     try {
       const ergebnis = await abgleichStream();
@@ -474,7 +480,10 @@ async function abgleichStream() {
       if (!zeile) continue;
       let o;
       try { o = JSON.parse(zeile); } catch { continue; }
-      if (o.t === "stufe") setzeAbgleichStufe(abgleichSatz(o));
+      if (o.t === "stufe" && o.stufe === "drive-ordner-fertig") {
+        S.live.spalten.add(o.phase);
+        zeichne();
+      } else if (o.t === "stufe") setzeAbgleichStufe(abgleichSatz(o));
       else if (o.t === "done") ergebnis = o;
       else if (o.t === "error") fehler = o;
     }

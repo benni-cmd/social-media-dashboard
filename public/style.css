@@ -4141,3 +4141,16 @@ summary.gruppe-kopf,
 }
 .mehr-menu-item { border-width: 0; }
 .mehr-menu-item + .mehr-menu-item { border-top: 2px solid var(--linie-hell); }
+
+/* ============================================================
+   v83 — Cache-Marke als lesbare Plakette (auf farbigen Titelleisten war Violett auf Orange
+   kaum lesbar); Detail markiert nur ungelesene Teile.
+   ============================================================ */
+.cache-marke {
+  padding: 1px 7px;
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--cache-tief);
+  color: var(--text);
+}
+.cache-marke .icon { color: var(--cache); }

@@ -16,7 +16,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
+import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { holeIdee } from "./nachschub.js";
@@ -44,9 +44,9 @@ function pruefungen(k) {
 // v81: Solange das Board den Cache zeigt, traegt JEDE Spalte das Cache-Zeichen; nach dem
 // Drive-Abgleich ist die Spalte live (Haken), auch ohne dass eine ihrer Karten gescannt wurde —
 // der Abgleich hat Spaltenliste und Kartenzuordnung aus Drive gelesen.
-function spalteDriveStatus(karten) {
+function spalteDriveStatus(karten, id) {
   if (karten.some((k) => S.driveScanLaeuft.has(k.id))) return "laedt";
-  if (!S.live.board) return "cache";
+  if (!spalteLive(id)) return "cache";
   return "live";
 }
 
@@ -54,8 +54,8 @@ function spalteDriveStatus(karten) {
 
 export function kachel(k) {
   const el = document.createElement("article");
-  el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "") + (S.live.board ? "" : " eintrag-cache");
-  if (!S.live.board) el.title = CACHE_SATZ;
+  el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "") + (spalteLive(k.column) ? "" : " eintrag-cache");
+  if (!spalteLive(k.column)) el.title = CACHE_SATZ;
   el.draggable = true;
   el.dataset.saeule = k.kategorie || "";
 
@@ -194,7 +194,7 @@ export function zeichneBoard(boardEl, lastEl) {
     const spalte = document.createElement("section");
     spalte.className = "spalte";
 
-    const driveStatus = spalteDriveStatus(karten);
+    const driveStatus = spalteDriveStatus(karten, p.id);
     const driveStatusHtml =
       driveStatus === "laedt"
         ? `<span class="spalte-drive-status spalte-drive-status-laedt" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
