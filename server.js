@@ -425,7 +425,25 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
 // Rueckruf verhaelt sie sich exakt wie der Abgleich vor v51.
 // Zuerst die Spalten (Drive fuehrt): Marker lesen, Hand-Umbenennungen erkennen, Seed
 // sicherstellen. Danach steht der dynamische Ordner-Resolver fuer den Karten-Abgleich.
-async function fuehreAbgleichAus(onStufe = () => {}) {
+//
+// v84: Laeuft schon ein Abgleich (zweites Fenster, Start + Knopf), haengt sich ein weiterer
+// Aufrufer an DENSELBEN Lauf — seine Stufen-Meldungen bekommt er ab dem Einstieg mit. Vorher
+// liefen beide komplett hintereinander durch die rclone-Kette (doppelte Zeit, doppelte Drosselung).
+let abgleichLauf = null;
+const abgleichHoerer = new Set();
+function fuehreAbgleichAus(onStufe = () => {}) {
+  abgleichHoerer.add(onStufe);
+  if (!abgleichLauf) {
+    const alle = (o) => { for (const h of abgleichHoerer) { try { h(o); } catch {} } };
+    abgleichLauf = abgleichEinmal(alle).finally(() => {
+      abgleichLauf = null;
+      abgleichHoerer.clear();
+    });
+  }
+  return abgleichLauf.finally(() => abgleichHoerer.delete(onStufe));
+}
+
+async function abgleichEinmal(onStufe) {
   onStufe({ stufe: "drive-spalten" });
   let spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
   const spaltenBefunde = [];
