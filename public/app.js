@@ -6,7 +6,7 @@ import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
 import { zeichneDetail, beiSchieben } from "./detail.js";
-import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, gecachterCursorModus, ladeCursorModusVomServer } from "./ui.js";
+import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, gecachterCursorModus, ladeCursorModusVomServer, icon, cacheZeit } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
@@ -144,6 +144,32 @@ for (const [name, knopf] of Object.entries(knoepfe)) knopf.addEventListener("cli
 // mehr am Zeichnen (siehe verdrahteShutdownSlider), und ein transienter Zeichenfehler heilt
 // sich selbst durch einen kurzen erneuten Zeichenlauf — kein Ansichtswechsel von Hand noetig.
 
+// Kopf-Plakette (v81, Owner 30.09.2026): solange das Board den Cache zeigt, steht das im Kopf —
+// mit Zeitpunkt des Caches und dem Stand des Live-Abgleichs. Klick startet den Abgleich neu,
+// wenn er gescheitert ist oder noch nicht lief. Nach erfolgreichem Abgleich verschwindet sie.
+const liveEl = el("live-stand");
+function zeichneLiveStand() {
+  const L = S.live;
+  liveEl.hidden = L.board;
+  if (L.board) return;
+  const zeit = cacheZeit(L.cacheStand);
+  const was = L.laeuft
+    ? "Live-Abgleich läuft …"
+    : L.fehler
+      ? "Live-Abgleich fehlgeschlagen — erneut versuchen"
+      : "noch nicht live — jetzt abgleichen";
+  liveEl.classList.toggle("live-plakette-laeuft", L.laeuft);
+  liveEl.classList.toggle("live-plakette-fehler", !L.laeuft && !!L.fehler);
+  liveEl.disabled = L.laeuft;
+  liveEl.innerHTML = icon("cache") + `<span class="live-plakette-text"><b>Cache-Stand${zeit ? " " + zeit : ""}</b> · ${was}</span>`;
+  liveEl.title = L.fehler && !L.laeuft
+    ? `Das Board zeigt den lokalen Cache. Der Abgleich mit Drive schlug fehl: ${L.fehler}`
+    : "Das Board zeigt den lokalen Cache. Karten, Spalten und Detail-Abschnitte mit gestricheltem Rand bzw. Uhr-Zeichen sind noch nicht mit Drive abgeglichen.";
+}
+liveEl.addEventListener("click", () => {
+  if (!abgleichLaeuft()) driveAbgleich().catch(() => {});
+});
+
 let zeichnetGerade = false;
 let zeichenFehlerRetries = 0;
 
@@ -152,6 +178,7 @@ beiAenderung(() => {
   zeichnetGerade = true;
   let fehler = null;
   try {
+    try { zeichneLiveStand(); } catch (e) { fehler = e; }
     try {
       if (S.ansicht === "board") zeichneBoard(boardEl, lastEl);
       else if (S.ansicht === "auswertung") zeichneAuswertung(auswertungEl);
@@ -383,9 +410,8 @@ try {
     boardEl.appendChild(ladeMarke);
   } catch {}
   try {
-    // Der Workflow-Stand muss VOR dem Board stehen: das Laden setzt ggf. selbst einen
-    // Drehtermin, und dieser Griff ist einer der abschaltbaren Workflows (v26).
-    await ladeWorkflows();
+    // v81: ladeBoard() zeichnet den Cache sofort und holt die Workflows selbst nach (vorher
+    // wartete der Start hier zusaetzlich auf sie — bis 14 s leeres Board, gemessen 30.09.2026).
     await Promise.all([ladeBoard(), ladeDefaults(), ladeCursorModusVomServer(), ladeKartenHinweise()]);
     setStand(`${S.cards.length} Karten geladen.`);
   } catch (e) {

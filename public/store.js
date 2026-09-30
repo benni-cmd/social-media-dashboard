@@ -25,6 +25,10 @@ export const S = {
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
   defaults: { plattformen: STANDARD_PLATTFORMEN, personen: [] }, // personen: Team-Mailliste (v44)
   workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
+  // v81: Stammt das Gezeigte schon aus Drive? Bis der Abgleich durch ist, zeigt das Board den
+  // lokalen Cache — Kopf, Spalten, Karten und Detail kennzeichnen das. `fehler` = letzter
+  // gescheiterter Abgleich (Kennzeichnung bleibt dann stehen, mit Grund).
+  live: { board: false, laeuft: false, fehler: null, cacheStand: null },
 };
 
 // --- Workflows (v26) ------------------------------------------------------
@@ -189,15 +193,18 @@ async function hole(pfad, optionen) {
 }
 
 export async function ladeBoard() {
-  // Erst die Workflows, dann das Board: `pruefeAutoDreh()` unten fragt schon `an(...)`, und die
-  // selbstgebauten Workflows (v27) muessen stehen, bevor das erste Ereignis feuert. Faellt der
-  // Aufruf aus, gelten die Standards des Registers — das Board laedt trotzdem.
-  await ladeWorkflows();
+  // v81: Erst der Cache, SOFORT gezeichnet (/api/board ~10 ms), dann die Workflows (bis 20 s,
+  // Drive-gestuetzt). `pruefeAutoDreh()` fragt `an(...)` und laeuft deshalb erst danach —
+  // vorher zeichnet das Board mit den Standards des Registers. Faellt der Workflow-Aufruf aus,
+  // gelten diese Standards weiter.
   const daten = await hole("/api/board");
   S.version = daten.version;
   S.cards = (daten.cards || []).map(migriere);
   S.spalten = Array.isArray(daten.spalten) ? daten.spalten : [];
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
+  S.live.cacheStand = daten.cacheStand || null;
+  zeichne();
+  await ladeWorkflows();
   pruefeAutoDreh();
   await schwebendeNeuBerechnen(); // v30: schwebende Karten bei jedem Laden neu verteilen
   zeichne();
@@ -419,6 +426,8 @@ function abgleichSatz(o) {
 export function driveAbgleich() {
   if (abgleichInFlight) return abgleichInFlight;
   abgleichInFlight = (async () => {
+    S.live.laeuft = true;
+    zeichne();
     try {
       const ergebnis = await abgleichStream();
       S.cards = (ergebnis.cards || []).map(migriere);
@@ -428,9 +437,15 @@ export function driveAbgleich() {
       if (Array.isArray(ergebnis.spalten)) S.spalten = ergebnis.spalten;
       S.version = ergebnis.version;
       S.driveStand.clear();
-      zeichne();
+      S.live.board = true;
+      S.live.fehler = null;
       return ergebnis;
+    } catch (e) {
+      S.live.fehler = e.message || String(e);
+      throw e;
     } finally {
+      S.live.laeuft = false;
+      zeichne();
       abgleichInFlight = null;
       setzeAbgleichStufe("");
     }

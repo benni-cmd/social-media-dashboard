@@ -17,7 +17,7 @@ import {
   MASSE,
 } from "/lib/pipeline.js";
 import { S, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
-import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS } from "./ui.js";
+import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
@@ -41,17 +41,21 @@ function pruefungen(k) {
 // Drive-Stand traegt und nichts mehr laeuft (die Spalte ist mit Drive abgeglichen). Hat noch
 // keine Karte der Spalte je einen Scan gesehen, bleibt der Indikator weg — sonst wuerde er
 // einen Abgleich behaupten, der nie stattgefunden hat.
+// v81: Solange das Board den Cache zeigt, traegt JEDE Spalte das Cache-Zeichen; nach dem
+// Drive-Abgleich ist die Spalte live (Haken), auch ohne dass eine ihrer Karten gescannt wurde —
+// der Abgleich hat Spaltenliste und Kartenzuordnung aus Drive gelesen.
 function spalteDriveStatus(karten) {
   if (karten.some((k) => S.driveScanLaeuft.has(k.id))) return "laedt";
-  if (karten.some((k) => S.driveStand.has(k.id))) return "live";
-  return null;
+  if (!S.live.board) return "cache";
+  return "live";
 }
 
 // --- Kachel ---------------------------------------------------------------
 
 export function kachel(k) {
   const el = document.createElement("article");
-  el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "");
+  el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "") + (S.live.board ? "" : " eintrag-cache");
+  if (!S.live.board) el.title = CACHE_SATZ;
   el.draggable = true;
   el.dataset.saeule = k.kategorie || "";
 
@@ -194,6 +198,8 @@ export function zeichneBoard(boardEl, lastEl) {
     const driveStatusHtml =
       driveStatus === "laedt"
         ? `<span class="spalte-drive-status spalte-drive-status-laedt" title="Drive-Daten werden geladen …" aria-label="Drive-Daten werden geladen …">${icon("sanduhr")}</span>`
+        : driveStatus === "cache"
+          ? `<span class="spalte-drive-status spalte-drive-status-cache" title="${escape(CACHE_SATZ)}" aria-label="${escape(CACHE_SATZ)}">${icon("cache")}</span>`
         : driveStatus === "live"
           ? `<span class="spalte-drive-status spalte-drive-status-live" title="Mit Drive abgeglichen" aria-label="Mit Drive abgeglichen">${icon("check")}</span>`
           : "";

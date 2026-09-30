@@ -29,6 +29,8 @@
   --befund: #ff5a5a;
   --unlesbar: #3aa8d8;
   --entfaellt: #d8c78f;
+  --cache: #7c5cd6; /* v81: Cache-Stand, noch nicht mit Drive abgeglichen — eigene Farbe, keine Ampel */
+  --cache-tief: #ece6fb;
 
   /* Chrome-Palette der Fenster-Titelleisten (v28), rotiert per :nth-of-type */
   --chrome-a: #ff6b3d;
@@ -98,6 +100,8 @@
 
   --akzent: #ff8256;
   --akzent-tief: #4a2a1a;
+  --cache: #b49cf5;
+  --cache-tief: #2e2645;
 
   --ok: #6bc267;
   --hinweis: #ffc857;
@@ -244,11 +248,13 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 .kopf-stand {
   color: var(--text-still);
   font-size: 12.5px;
   max-width: 380px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3894,3 +3900,45 @@ body {
   margin-bottom: 4px;
 }
 .befund-popup .befundliste { margin: 0; padding: 0; }
+
+/* --- v81: Cache-Stand sichtbar, bis der Drive-Abgleich durch ist ---------------------------
+   Eine Farbe (--cache), ein Zeichen (Uhr mit Rueckwaerts-Pfeil) auf allen Ebenen: Plakette im
+   Kopf, Zeichen im Spaltenkopf, gestrichelter Rand an der Kachel, Zeichen an Detail-Abschnitten. */
+.live-plakette {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto; /* nie auf das Icon schrumpfen; im Kopf weicht .kopf-stand */
+  max-width: 440px;
+  padding: 4px 10px;
+  border: 2px dashed var(--cache);
+  border-radius: var(--rund-klein);
+  background: var(--cache-tief);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: var(--cursor-hand);
+}
+.live-plakette[hidden] { display: none; }
+.live-plakette:disabled { cursor: default; }
+.live-plakette .icon { width: 15px; height: 15px; flex: 0 0 auto; color: var(--cache); }
+.live-plakette-text { overflow: hidden; text-overflow: ellipsis; }
+.live-plakette-text b { font-weight: 650; color: var(--cache); }
+.live-plakette-laeuft .icon { animation: sanduhr-dreht 2.4s linear infinite; }
+.live-plakette-fehler { border-style: solid; border-color: var(--befund); }
+@media (prefers-reduced-motion: reduce) {
+  .live-plakette-laeuft .icon { animation: none; }
+}
+.spalte-drive-status-cache { color: var(--cache); }
+.eintrag.eintrag-cache { border-style: dashed; border-color: var(--cache); }
+.cache-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cache);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cache-marke .icon { width: 13px; height: 13px; }
+.gruppe-kopf .cache-marke { margin-left: 8px; }

@@ -72,6 +72,8 @@ export const ICONS = {
   bild: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
   story:
     '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>',
+  // Cache-Stand (v81): Uhr mit Rueckwaerts-Pfeil = aelterer, noch nicht mit Drive abgeglichener Stand.
+  cache: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
   // Sanduhr (v29, Owner-Vorlage: rotierende Sanduhr statt Punkte, solange die KI arbeitet).
   sanduhr:
     '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
@@ -2412,4 +2414,27 @@ export function bestaetigen(text, jaText, onJa) {
   el.appendChild(reihe);
 
   st.appendChild(el);
+}
+
+// --- Cache-Kennzeichnung (v81) ----------------------------------------------
+//
+// Bis der Drive-Abgleich durch ist, zeigt das Board den lokalen Cache. Ein Zeichen, eine Farbe
+// (--cache) auf allen Ebenen: Kopf-Plakette, Spaltenkopf, Kachel-Rand, Detail-Abschnitte.
+export const CACHE_SATZ = "Cache-Stand — noch nicht mit Drive abgeglichen";
+
+export function cacheZeit(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}. ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+export function cacheMarke(text = "Cache", titel = CACHE_SATZ) {
+  const el = document.createElement("span");
+  el.className = "cache-marke";
+  el.title = titel;
+  el.setAttribute("aria-label", titel);
+  el.innerHTML = icon("cache") + (text ? `<span>${escape(text)}</span>` : "");
+  return el;
 }

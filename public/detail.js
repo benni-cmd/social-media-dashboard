@@ -94,6 +94,7 @@ import {
   pillenReihe,
   pillenSchalter,
   mehrMenu,
+  cacheMarke,
 } from "./ui.js";
 import { springeZuMaximum, istMaximal, verlasseMaximumFallsAktiv } from "./detail-breite.js";
 
@@ -215,6 +216,17 @@ export function zeichneDetail(el) {
 
   // --- Weiter und Loeschen ---
   koerper.appendChild(blockAbschluss(k, toreListe));
+
+  // v81: Solange das Board den Cache zeigt, tragen Kopf und jeder Abschnitt, dessen Inhalt aus
+  // den Kartenfeldern kommt, das Cache-Zeichen. Der Drive-Abschnitt nicht: er liest die Ordner
+  // der Karte selbst frisch aus Drive (Sanduhr, solange er liest).
+  if (!S.live.board) {
+    kopf.insertBefore(cacheMarke("Cache"), kopf.querySelector(".detail-fokus"));
+    for (const g of koerper.querySelectorAll(":scope > .gruppe:not(.gruppe-drive)")) {
+      const kopfZeile = g.querySelector(":scope > summary.gruppe-kopf");
+      if (kopfZeile) kopfZeile.appendChild(cacheMarke(""));
+    }
+  }
 
   // Drive-Stand nachladen, falls noch nicht geschehen.
   if (!stand && k.title) {
@@ -1782,6 +1794,7 @@ function felderUpload(k, box, merke) {
 
 function blockDrive(k, stand) {
   const g = gruppeMitFarbe("drive", "Google Drive", null, offenFuer(k, "drive", false), merkeKlapp(k, "drive"));
+  g.classList.add("gruppe-drive"); // v81: liest selbst frisch aus Drive, traegt kein Cache-Zeichen
   const box = document.createElement("div");
 
   if (!k.title) {

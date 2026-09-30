@@ -9,7 +9,7 @@
 //   social.js    Instagram- und LinkedIn-Zahlen
 
 import { createServer as createHttpsServer } from "node:https";
-import { readFile, writeFile, mkdir, rename, mkdtemp, rm, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rename, mkdtemp, rm, readdir, stat } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { pipeline as streamPipeline } from "node:stream/promises";
 import { tmpdir } from "node:os";
@@ -563,7 +563,11 @@ async function handler(req, res) {
       // Spalten kommen aus dem schnellen Cache (Drive fuehrt beim Abgleich). Fehlt der Cache,
       // liefert mischeSpalten die Defaults (= PHASEN mit den aktuellen Anzeigenamen).
       const spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
-      sendJson(res, 200, { ...board, spalten, phasen: spalten });
+      // v81: Wann der Cache zuletzt geschrieben wurde — die Oberflaeche zeigt bis zum
+      // Drive-Abgleich „Cache-Stand von <Zeit>" statt so zu tun, als sei das der Live-Stand.
+      let cacheStand = null;
+      try { cacheStand = (await stat(BOARD_FILE)).mtime.toISOString(); } catch {}
+      sendJson(res, 200, { ...board, spalten, phasen: spalten, cacheStand });
       return;
     }
 
