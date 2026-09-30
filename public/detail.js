@@ -131,6 +131,14 @@ const PHASEN_KI = {
   caption: ["caption"],
 };
 
+// v85: Projektpfad aus dem Drive-Stand der Spalten (S.spalten, z. B. "In Bearbeitung/1 Idee"),
+// nicht aus den festen Standard-Ordnern — sonst zeigt „In Drive öffnen" nach einer Umbenennung
+// oder der Nummerierung ins Leere.
+function drivePfadKarte(k) {
+  const sp = (S.spalten || []).find((s) => s.id === k.column);
+  return sp && sp.ordner ? `${sp.ordner}/${projektName(k)}` : projektPfad(k);
+}
+
 export function zeichneDetail(el) {
   const k = aktiveKarte();
   if (!k) {
@@ -149,7 +157,7 @@ export function zeichneDetail(el) {
   const kopf = document.createElement("div");
   kopf.className = "detail-kopf";
   kopf.innerHTML = `<span class="detail-phase">${escape(p.name)}</span>` +
-    (k.driveName ? driveOrt(projektPfad(k), "In Drive öffnen", "Ordner dieser Karte in Google Drive öffnen: " + k.driveName) : "");
+    (k.driveName ? driveOrt(drivePfadKarte(k), "In Drive öffnen", "Ordner dieser Karte in Google Drive öffnen: " + k.driveName) : "");
 
   // Breiten-Shortcut (v57, vorher Fokus-Ansicht P27 F4): zieht die Detailspalte auf maximale
   // Breite (80vw) statt Board auszublenden — dieselbe Variable wie manuelles Ziehen am Griff.

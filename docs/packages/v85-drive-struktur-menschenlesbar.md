@@ -33,15 +33,52 @@ Abgleich bleibt ≤ 10 s.
 
 Empfehlung: A + B + D. C nur für neue Projekte, falls gewünscht. E nicht.
 
+## Entscheidung (Owner, 30.09.2026)
+
+A, B und C. D nicht, E nicht. C nur für NEUE Projekte; bestehende Ordner bleiben.
+
 ## Plan
 
-1. [ ] Owner-Entscheidung zu A–E
-2. [ ] Bau je gewählter Option, einzeln verifiziert (Drive-Ansicht per `rclone lsf` + Board-Screenshot)
-3. [ ] `docs/drive-convention.md` Strukturbild nachführen
+1. [x] **A Nummerierung** (`lib/spalten.js`): Spaltenordner unter „In Bearbeitung" heißen
+   `<Nr> <bisheriger Ordnername>` in Board-Reihenfolge (1 Idee … 6 Upload). Der Abgleich zieht
+   fehlende/falsche Nummern selbst nach (`moveDir`, Inhalt wandert mit, Marker bleibt) und meldet
+   es als Satz; im Ruhezustand kein Zusatz-Aufruf (Marker am Soll-Ort gefunden = fertig).
+   Umbenennung im Board behält die Nummer; Hand-Umbenennung in Drive: Anzeigename ohne Nummer.
+   Wurzel-Phasen (Videoauswertung, Verworfen) bleiben ohne Nummer.
+2. [x] **A Folgefehler beheben:** zwei Stellen bauen den Projektpfad aus den FESTEN
+   Standard-Ordnern statt aus dem Drive-Stand (`server.js` Kalender-Link-Liste,
+   `public/detail.js` „In Drive öffnen") — nach A zeigten sie ins Leere. Auf den
+   Spalten-Stand umstellen.
+3. [ ] **B Steckbrief** (`lib/projects.js`): `Steckbrief.md` im Projektordner, geschrieben
+   überall dort, wo `projekt.json` geschrieben wird (Anlegen, Verschieben, Speichern, Abgleich),
+   nur wenn sich der Inhalt geändert hat. Inhalt: Titel, Phase + was zu tun ist, Format,
+   Kategorie, Ziel, Plattformen, Termine. Kopfzeile: Datei wird vom Board geschrieben; Phase
+   ändern = Ordner verschieben.
+4. [ ] **C Klartext-Namen** (`lib/pipeline.js` `projektNameNeu`): Leerzeichen und Umlaute
+   bleiben, nur in Windows/Drive unzulässige Zeichen fallen weg, Kürzung an Wortgrenze
+   (≤ 60 Zeichen); mit Reihe: `<Reihe> EP<NN> – <Thema>`.
+5. [ ] Verify: Drive-Baum per `rclone lsf` vorher/nachher, Abgleich-Zeit live, Board-Screenshot
+   (Spaltennamen ohne Nummer, „In Drive öffnen" trifft), Steckbrief einer Karte gelesen.
+6. [ ] `docs/drive-convention.md` Strukturbild + Namensregel nachführen.
 
 ## Status
 
 30.09.2026 — Bestand gemessen, Grundsatz verankert, Optionen aufgestellt.
+
+30.09.2026 — A gebaut (`lib/spalten.js` `sollOrdner`/`ohneNummer`, Nummerierung im Abgleich,
+`benenneUm` behält die Nummer; `server.js` + `public/detail.js` bauen Pfade aus dem
+Spalten-Stand, `projects.js` exportiert `projektPfadDyn`).
+- Vorab gemessen an einem Wegwerf-Ordner (`Papierkorb/_v85test umbenannt`, bleibt dort liegen):
+  `rclone move` benennt den ganzen Ordner in EINEM Schritt um (2,9 s), Unterordner und Dateien
+  wandern mit, der alte Ordner ist danach weg.
+- Logik-Test mit nachgebautem Drive (`node --experimental-test-module-mocks --test`, Skript im
+  Session-Scratchpad `spalten-mock.test.mjs`): **5/5** — Erstlauf nummeriert 1–6 und behält die
+  Anzeigenamen; Zweitlauf nur 1 Drive-Aufruf (Marker lesen), nichts geschrieben; Nummer von Hand
+  entfernt → kommt zurück, Anzeigename bleibt; Ordner von Hand umbenannt → Board folgt, Nummer
+  bleibt; Umbenennen im Board → `6 Veroeffentlichen`.
+- Bewusst NICHT gegen das echte Drive ausgeführt: Bens laufender Server kennt die alten Pfade und
+  würde beim Speichern die alten Ordner neu anlegen. Die Umbenennung macht Bens Server beim
+  ersten Abgleich nach dem Neustart selbst.
 
 ## Definition of Done
 

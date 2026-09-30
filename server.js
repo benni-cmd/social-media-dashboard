@@ -1467,7 +1467,8 @@ async function handler(req, res) {
         for (const c of karten || []) {
           const titelC = (c && (c.title || c.titel)) || String(c);
           let link = "";
-          try { if (c && c.column) link = await drive.link(pipeline.projektPfad(c)); } catch { link = ""; }
+          // v85: Pfad aus dem Drive-Stand der Spalten (nummerierte/umbenannte Ordner), nicht aus den Standards.
+          try { if (c && c.column) link = await drive.link(projekte.projektPfadDyn(c)); } catch { link = ""; }
           zeilen.push(link ? `• ${titelC}\n  ${link}` : `• ${titelC}`);
         }
         const liste = zeilen.join("\n");
