@@ -8,6 +8,8 @@ aus der das Video kam.
 
 **Board.** Sieben Phasen: Idee › Skript › Videodreh › Schnitt › Caption › Upload › Fertig.
 Jede Phase ist ein Ordner in Google Drive; wandert die Karte, wandert der Ordner mit.
+**Grundsatz:** Drive ist die Wahrheit, und ohne Board muss man direkt in Drive weiterarbeiten
+können — Details und Prüfsatz in [`docs/drive-convention.md`](docs/drive-convention.md).
 
 **Termine.** Sechs Meilensteine je Karte statt eines Upload-Datums: Idee, Skript, Dreh,
 Schnitt, Freigabe, Veroeffentlichung mit Uhrzeit. Ein Knopf rechnet den Rueckwaertsplan aus

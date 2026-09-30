@@ -41,7 +41,7 @@ jeder rclone-Aufruf zeigt im Drive-Terminal Wartezeit und Laufzeit getrennt.
 5b. [x] Spalten-Abgleich (`lib/spalten.js`): Marker in EINEM `md5sum`-Aufruf statt list + cat je
    Ordner; Wurzel-Spalten nicht mehr bei jedem Lauf neu beschrieben; `spalten.json` nur bei
    Änderung schreiben (`server.js` übergibt den gelesenen Stand).
-6. [ ] Verify: Abgleich- und Plan-Zeiten vorher/nachher mit Befehl im Paket; `node --check`.
+6. [x] Verify: Abgleich- und Plan-Zeiten vorher/nachher mit Befehl im Paket; `node --check`.
 
 ## Status
 
@@ -88,9 +88,11 @@ Messung danach:
   im Speicher); beim nächsten Board-Start auf Bens Rechner schreibt er die Datei aus der echten
   rclone.conf neu.
 
+30.09.2026 13:15 — Ben hat das Board neu gestartet (Server 13:12:49, `.gdrive-env.json` wieder
+mit client_id). Live: `curl -sk -X POST -w "%{time_total}" https://localhost:4321/api/drive/reconcile`
+→ **9,8 s und 8,8 s** (vorher 46 s bzw. > 200 s). Ziel ≤ 10 s erreicht.
+
 ## Definition of Done
 
 Geprueft gegen: Zeitmessung Abgleich/Plan vorher-nachher, Drive-Terminal-Zeiten, `node --check`
-Offen:
-1. Board auf Bens Rechner neu starten (lädt Schritt 5b + schreibt `.gdrive-env.json` neu) — Ben
-2. Danach Abgleich live messen, Ziel ≤ 10 s (Schritt 6) — Agent
+Offen: nichts (Folgearbeit Drive-Struktur → Paket v85)

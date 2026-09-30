@@ -1,8 +1,20 @@
 # Datei- und Ordner-Konvention (der Vertrag)
 
-> Kernprinzip [Owner, 27.08.2026]: Die Inhalte leben als **menschenlesbare Dateien** in einer
-> Ordnerstruktur. Die Software erkennt und setzt sie **deterministisch an Dateiname und Pfad**
-> ein — ohne Token, ohne KI-Abfrage. Der Board-Zustand ist eine Spiegelung der Drive-Struktur.
+## Grundsatz — gilt vor jeder anderen Regel [Owner, 30.09.2026]
+
+1. **Drive ist die Wahrheit.** Was in Drive steht, gilt. Das Board ist Anzeige und Werkzeug;
+   `data/` ist nur Cache. Bei Widerspruch gewinnt Drive.
+2. **Ohne Board arbeitsfähig.** Fällt das Board aus, muss ein Mensch direkt in Google Drive
+   weiterarbeiten können: den Stand jedes Projekts erkennen, Projekte weiterschieben, Inhalte
+   finden und ablegen — ohne Code, ohne JSON lesen zu müssen.
+3. **Prüfsatz für jede Änderung** an Ordnerstruktur, Namen oder Ablage: *Versteht ein Mensch,
+   der nur Drive öffnet, was er sieht und was als Nächstes zu tun ist?* Eine Optimierung für
+   die Software (schnellere Abfragen, weniger Dateien) ist nur zulässig, wenn die Antwort
+   danach ein Ja bleibt. Speed ist nie ein Grund, Stand oder Inhalt aus Drive herauszunehmen.
+
+Kernprinzip [Owner, 27.08.2026]: Die Inhalte leben als **menschenlesbare Dateien** in einer
+Ordnerstruktur. Die Software erkennt und setzt sie **deterministisch an Dateiname und Pfad**
+ein — ohne Token, ohne KI-Abfrage. Der Board-Zustand ist eine Spiegelung der Drive-Struktur.
 
 ## Struktur: Phasen SIND Ordner, Projekte wandern
 
@@ -11,19 +23,25 @@ wandert der Projektordner physisch mit. So sehen Menschen den Stand direkt in Dr
 Dashboard kann ihn von dort zurueckholen.
 
 ```
-<Drive-Wurzel>/
+<Drive-Wurzel>/                           (Stand gemessen 30.09.2026, `rclone lsf -R`)
   In Bearbeitung/
     Idee/  Skript/  Videodreh/  Schnitt/  Caption/  Upload/     (die sechs Arbeitsphasen)
+      .phase                              Marker: stabile Phasen-ID des Spaltenordners
       <Projektordner>/                    liegt in GENAU einer Phase
-        projekt.json                      Maschinen-Index (Phase, Titel, Termine, Ziel)
+        (AI only)/projekt.json            Maschinen-Index (Phase, Titel, Termine, Ziel)
         Skript und Caption/               00_recherche.md · 10_skript.md · 20_regieplan.md · 30_caption.md
         Rohmaterial/                      Rohclips
         Fertiges Video/                   geschnittenes Video
-  Videoauswertung/                        = Phase "Fertig"
+  Videoauswertung/                        = Phase "Fertig" (+ .phase, KPI-Tabellen)
     <Projektordner>/
+  Verworfen/                              = Phase "Verworfen" (+ .phase)
+  Papierkorb/                             geloeschte Projekte, mit Zeitstempel im Namen
   Kontext/
     _global/                              markenweite Infos, fliessen in jeden KI-Aufruf
     <Reihe>/                              reihenspezifische Infos
+  System (AI only)/                       spalten.json, redaktionsplan(.slots).json,
+                                          workflows.json, defaults.json, prompts.json,
+                                          boardparameter.json
 ```
 
 Die eine Quelle fuer Phasen und Ordnernamen ist `lib/pipeline.js` (`PHASEN`). Server und
@@ -117,6 +135,11 @@ Follower-Gesamtstand und Demografie sind API-seitig **nicht** rueckwirkend holba
 LinkedIn-Zuwachs, einmalig 12 Monate) — die Kurven wachsen ab dem ersten Lauf.
 
 ## Zugang: eigene rclone-client_id ist Pflicht geworden
+
+> **Erneut eingerichtet 30.09.2026** (Paket v84): Die Config trug wieder KEINE eigene
+> client_id — Google drosselte die geteilte ID mit `403 Quota exceeded` (bis 20 s je Aufruf).
+> Ben hat die client_id neu eingetragen und die OAuth-App **veröffentlicht** (im Modus „Test"
+> laufen Anmeldungen nach 7 Tagen ab, rclone.org/drive). Danach 0/12 Drosselungen.
 
 > **Erledigt 02.09.2026:** Eigene client_id eingerichtet (Google-Cloud-Projekt
 > `1041532493098`, Drive-API aktiviert, OAuth-App als *Test* mit Testnutzer — Veröffentlichung
