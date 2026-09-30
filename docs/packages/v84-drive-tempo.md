@@ -32,11 +32,15 @@ jeder rclone-Aufruf zeigt im Drive-Terminal Wartezeit und Laufzeit getrennt.
 2. [x] Abgleich: die Spaltenordner in einem rekursiven Aufruf je Hauptordner lesen
    (`lsf -R --dirs-only --fast-list`) statt 8 Einzelaufrufen.
 3. [x] Server: gleichzeitige Abgleich-Anfragen teilen sich einen Lauf.
-4. [ ] Eigene client_id: Anleitung für Ben (Google-Cloud-Projekt, Drive API, OAuth-Client
+4. [x] Eigene client_id: Anleitung für Ben (Google-Cloud-Projekt, Drive API, OAuth-Client
    „Desktop"), Board liest `client_id`/`client_secret` aus der rclone.conf, einmal neu
    anmelden. **DEINE HANDLUNG (Ben)** — Zugänge nie in Dateien im Repo.
-5. [ ] Warteschlange auf 2–3 parallele Aufrufe öffnen — ERST nach Schritt 4 und Messung,
-   weil mehr Parallelität mit der geteilten client_id mehr 403-Drosselung erzeugt.
+5. [~] Warteschlange öffnen — ENTFÄLLT nach Messung: im Drive-Terminal warteten Aufrufe nur
+   1,1–2,5 s; der Abgleich braucht jetzt ~5 statt ~25 Aufrufe. Der Gewinn rechtfertigt das
+   Risiko der Config-Race (Grund der Warteschlange) nicht.
+5b. [x] Spalten-Abgleich (`lib/spalten.js`): Marker in EINEM `md5sum`-Aufruf statt list + cat je
+   Ordner; Wurzel-Spalten nicht mehr bei jedem Lauf neu beschrieben; `spalten.json` nur bei
+   Änderung schreiben (`server.js` übergibt den gelesenen Stand).
 6. [ ] Verify: Abgleich- und Plan-Zeiten vorher/nachher mit Befehl im Paket; `node --check`.
 
 ## Status
@@ -62,10 +66,31 @@ nach einer Woche ab → App auf „Publish" stellen (keine Google-Prüfung nöti
 Das Board liest `client_id`/`client_secret` schon heute aus der `[gdrive]`-Sektion der
 rclone.conf (`drive.js` `parseConfig`) — kein Code nötig, nur die Einrichtung durch Ben.
 
+30.09.2026 — Ben: eigene client_id eingerichtet, App veröffentlicht, `rclone config` erledigt.
+Messung danach:
+- Drosselung weg: `rclone cat redaktionsplan.json -vv` ×12 mit neuer client_id → 0/12 Hinweis
+  „shared client_id", 0/12 403, je 2,1–3,3 s (Skript `messe5.mjs`).
+- Live-Server (PID 15256, gestartet 12:58 mit v84-Code 1–3 und neuer client_id),
+  `curl -sk -w "%{time_total}"`: `/api/plan` 5,7 s (vorher 49,6 s), `/api/workflows` 3,1 s
+  (13,4), `/api/defaults` 2,5 s (11,5), `/api/boardparameter` 2,3 s, Abgleich 46,0–46,4 s,
+  17 Karten, „Board und Drive stimmen ueberein".
+- Abgleich zerlegt über `/api/ereignisse?sektion=drive`: Karten-Ordner 3,5 s (3 Aufrufe);
+  der Rest ist der Spalten-Abgleich davor: `cat .phase` je Spalte (~3 s ×6), bei
+  Videoauswertung/Verworfen JEDES MAL `lsjson --stat`+`mkdir`+`rcat .phase`, dazu immer
+  `mkdir`+`rcat spalten.json` → Schritt 5b.
+- Schritt 5b per Skript (`spaltentest.mjs`, echter Drive): 2 rclone-Aufrufe statt ~16, keine
+  Schreibvorgänge, identische 8 Spalten-Ordner, 4,5 s (erster Lauf 38,6 s = Sandbox läuft über
+  die alte geteilte ID, s. u.). Beim Bau lief einmal eine zu geringe Suchtiefe durch: dabei
+  wurden die 6 Marker unter „In Bearbeitung" mit identischem Inhalt neu geschrieben (kein Schaden).
+- **Nebenwirkung, von mir verursacht:** Test-Skripte, die `lib/drive.js` importieren, lesen die
+  rclone.conf aus der Sandbox-Sicht (alter Stand ohne client_id) und haben `data/.gdrive-env.json`
+  um 12:59:38 damit überschrieben. Der laufende Server ist nicht betroffen (hält die Zugangsdaten
+  im Speicher); beim nächsten Board-Start auf Bens Rechner schreibt er die Datei aus der echten
+  rclone.conf neu.
+
 ## Definition of Done
 
 Geprueft gegen: Zeitmessung Abgleich/Plan vorher-nachher, Drive-Terminal-Zeiten, `node --check`
 Offen:
-1. Eigene client_id einrichten (Schritt 4) — Ben
-2. Board-Server neu starten und Abgleich/Plan-Zeiten live messen (Schritt 6) — Agent
-3. Warteschlange öffnen (Schritt 5) — Agent, erst nach 1 und 2
+1. Board auf Bens Rechner neu starten (lädt Schritt 5b + schreibt `.gdrive-env.json` neu) — Ben
+2. Danach Abgleich live messen, Ziel ≤ 10 s (Schritt 6) — Agent

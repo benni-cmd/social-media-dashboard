@@ -450,7 +450,7 @@ async function abgleichEinmal(onStufe) {
   try {
     const driveConfig = await spaltenStore.leseVonDrive();
     const gemischt = pipeline.mischeSpalten(driveConfig);
-    const r = await spaltenStore.reconcile(gemischt);
+    const r = await spaltenStore.reconcile(gemischt, driveConfig); // v84: schreibt die Config nur bei Aenderung
     spalten = r.spalten;
     spaltenBefunde.push(...r.befunde);
     await spaltenCacheSchreiben(spaltenStore.alsConfig(spalten));
