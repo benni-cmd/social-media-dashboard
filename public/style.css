@@ -4112,3 +4112,32 @@ body {
 
 /* Status-Chips: dicke Kante wie bei den Fenstern */
 .chip { border-width: 2px; }
+
+/* ============================================================
+   v82, Element 6 — Detailansicht im Retro-Look: die verbliebenen
+   1-px-Standardkanten (Kopf, Zusammenfassung, Chips, Unterklappen,
+   Termin-Kacheln, Menue, Popups) tragen dieselbe 2-3-px-Tintenkante
+   wie Board und Kopf. Gemessen per Skript: 15 Elementklassen der
+   offenen Karte hatten vorher 1 px.
+   ============================================================ */
+
+.detail-kopf { border-bottom-width: 3px; }
+.stamm-zusammenfassung,
+.stamm-chip,
+details.gruppe.unterklappe,
+.termin-schalter-block,
+.termin-kachel,
+label.schalter,
+a.drive-ort,
+summary.gruppe-kopf,
+.mehr-menu-knopf { border-width: 2px; }
+.stamm-zusammenfassung,
+.termin-kachel,
+.termin-schalter-block { box-shadow: var(--schatten-klein); }
+.mehr-menu-liste,
+.befund-popup {
+  border-width: 3px;
+  box-shadow: var(--schatten);
+}
+.mehr-menu-item { border-width: 0; }
+.mehr-menu-item + .mehr-menu-item { border-top: 2px solid var(--linie-hell); }

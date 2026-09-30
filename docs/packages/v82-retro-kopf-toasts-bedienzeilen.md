@@ -27,7 +27,7 @@ dieselbe Retro-Formsprache wie Spalten und Karten. Ampel-Farben und Schwellen bl
 3. [x] Kopfzeile insgesamt: kein Überlauf bei 1440 px, Beenden-Schieber sichtbar, Retro-Formen (dicke Kante, harter Schatten).
 4. [x] Toasts: Retro-Karte, Klartext statt technischer Meldung, gleiche Meldungen zusammenfassen, Ort so, dass der Kopf frei bleibt.
 5. [x] Bedienzeilen (Board-Leiste, Drehtermin-Leiste, Wochenlast, Knöpfe): Rundgang, dann auf Retro ziehen.
-6. [ ] Detailansichten: Rundgang, verbleibende Standard-Elemente auf Retro ziehen.
+6. [x] Detailansichten: Rundgang, verbleibende Standard-Elemente auf Retro ziehen.
 
 ## Status
 
@@ -43,7 +43,12 @@ Bekannt: Solange die Cache-Plakette steht, bleibt für den Kopf-Satz kein Platz 
 
 30.09.2026 — Element 5 (Bedienzeilen) gebaut, hell + dunkel geprüft (Screenshot Board + offene Karte): Board-Leiste tönt `--flaeche-hoch` mit 3-px-Unterkante, Drehtermin-Kacheln 2 px + harter Schatten, Wochenlast mit 3-px-Trenner, alle `.knopf` mit Schatten und Druck-Effekt, Status-Chips 2 px. Angleichung: die v82-Schatten fielen nach rechts unten, der Bestand (`--schatten`) fällt nach links unten → neue Tokens `--schatten-klein` / `--schatten-klein-druck` (hell + dunkel), Kopf und Toasts darauf umgestellt. Hinweis: Nach Theme-Wechsel per Attribut zeigt ein Screenshot direkt danach halbe Übergänge (Knöpfe kurz hell) — erst nach 0,2 s prüfen.
 
+30.09.2026 — Element 6 (Detailansicht) gebaut, hell + dunkel geprüft (Karte offen, „Mehr"-Menü offen): Skript maß vorher 15 Elementklassen mit 1-px-Kante in der offenen Karte; jetzt 2–3 px mit Schatten an Kopf, Zusammenfassung, Chips, Unterklappen, Termin-Kacheln, Menü, Popup.
+
 ## Definition of Done
 
-Geprueft gegen: Screenshots je Element hell + dunkel bei 1440x900, `node --check`
-Offen: alles (Bau steht aus)
+Geprueft gegen: Screenshots je Element hell + dunkel bei 1440x900 (Kopf, Toasts, Board-Leiste, Detail mit Menü), Kopf-Überlauf per Skript (scrollWidth 1440 = Fensterbreite), Toast-Zähler und Klartext mit echten `hinweisToast`-Aufrufen, `node --check`
+Offen:
+1. Die Ansichten Auswertung, Redaktionsplan, Einstellungen und Modale nicht im Rundgang gesehen (Drive war träge, Zahlen luden nicht) — ICH, nächster Schritt
+2. Fehlerfall des Abgleichs (Plakette „fehlgeschlagen") aus v81 ungeprüft — ICH
+3. Platz für den Kopf-Satz, solange die Cache-Plakette steht — DEINE ENTSCHEIDUNG
