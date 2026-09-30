@@ -4154,3 +4154,121 @@ summary.gruppe-kopf,
   color: var(--text);
 }
 .cache-marke .icon { color: var(--cache); }
+
+/* ============================================================
+   v83, Schritte 4+5 — Standard-Muster auf Retro
+   Inventar (Skript ueber Kopf, Leiste, Detail, Einstellungen, 30.09.2026): runde Pillen
+   (.chip, .schalter, .stamm-chip, .drive-ort, .dreh-chip, .einst-format-tab, Zaehler-Badges),
+   1-px-Kanten, Versalien-Labels (.einst-label, .meldung-gruppenkopf, .termin-kachel-label),
+   gestrichelte Nicht-Cache-Flaechen (.unterklappe, .einst-rolle-zusatz). Regel danach:
+   Rechteck-Marken (--rund-klein) mit 2-px-Tintenkante; Auswahl = gelbe Fuellung, nie Pfirsich
+   mit duenner Orange-Kante; gestrichelt bedeutet nur noch „Cache" (oder Ablegen-Zone).
+   ============================================================ */
+
+/* Alle Marken/Pillen: Rechteck, 2-px-Kante */
+.chip, .schalter, .stamm-chip, .dreh-chip, .einst-format-tab, .drive-link,
+.detail-kopf .drive-ort, .einst-prompt-marke, .kontext-marke, .vergleich-badge,
+.marke, .gruppe-anzahl, .spalte-anzahl, .meldung-zaehler {
+  border-radius: var(--rund-klein);
+}
+.schalter, .stamm-chip, .dreh-chip, .einst-format-tab, .drive-link,
+.detail-kopf .drive-ort, .einst-prompt-marke, .kontext-marke {
+  border-width: 2px;
+  border-color: var(--linie);
+}
+
+/* Status-Chips: getoente Flaeche in der Statusfarbe, Text und Glyphe in Tinte (Wort bleibt) */
+.chip-ok { --c: var(--ok); }
+.chip-hinweis { --c: var(--hinweis); }
+.chip-fehlt { --c: var(--fehlt); }
+.chip-befund { --c: var(--befund); }
+.chip-unlesbar { --c: var(--unlesbar); }
+.chip-entfaellt { --c: var(--entfaellt); }
+.chip[class*="chip-"] {
+  color: var(--text);
+  border-color: var(--linie);
+  background: color-mix(in srgb, var(--c) 38%, var(--flaeche));
+}
+.chip .icon { color: var(--text); }
+/* In den schmalen Anschluss-Markern zaehlt die Glyphe in Statusfarbe, ohne Kasten */
+.anschluss-marker .chip { background: none; border: 0; }
+.anschluss-marker .chip .icon { color: var(--c); }
+
+/* Auswahl-Pillen und Optionen: aus = Flaeche, an = gelbe Fuellung + Tinte */
+.schalter { background: var(--flaeche); color: var(--text-still); }
+.schalter:hover { background: var(--akzent-tief); color: var(--text); }
+.schalter.an, .einst-format-tab.an, .einst-theme-option.aktiv {
+  background: var(--chrome-b);
+  border-color: var(--linie);
+  color: #201e1a;
+  font-weight: 650;
+}
+.einst-format-tab { background: var(--flaeche); }
+
+/* Gestrichelt gehoert dem Cache: Unterklappe und Einstellungs-Trenner werden durchgezogen */
+.unterklappe {
+  border: 2px solid var(--linie);
+  background: var(--flaeche-tief);
+}
+.einst-rolle-zusatz { border-top: 2px solid var(--linie); }
+.drehkachel.auto { border-style: dotted; }
+
+/* Einstellungen: schlicht, aber Retro — flache Kacheln mit Tintenkante, Namen statt Versalien */
+.einst-nav { border-right: 3px solid var(--linie); }
+.einstellungen-modal .einst-nav { border-right: 3px solid var(--linie); }
+.einst-nav-item { font-weight: 600; }
+.einst-nav-item:hover { background: var(--flaeche-hoch); }
+.einst-nav-item.aktiv {
+  background: var(--chrome-b);
+  color: #201e1a;
+  box-shadow: inset 4px 0 0 var(--linie);
+}
+.einst-titel { font-size: 16px; font-weight: 700; }
+.einst-rolle {
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+}
+.einst-theme-option {
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text);
+}
+.einst-theme-option:hover { background: var(--akzent-tief); border-color: var(--linie); }
+.einst-label,
+.meldung-gruppenkopf,
+.termin-kachel-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.meldung-gruppenkopf { border-bottom: 2px solid var(--linie); }
+.einst-nav-item .icon, .einst-nav-item .chip { flex: 0 0 auto; }
+/* Einstellungsfenster: Titelstreifen wie die anderen Fenster; Drive-Marke aus der Liste (jede Seite
+   nennt ihren Speicherort selbst: „Gespeichert in …") */
+.einstellungen-modal { border-top: 12px solid var(--chrome-c); }
+.einst-nav-item .drive-marke { display: none; }
+/* Einstellungen, Rest: Provider-Auswahl, Modell-Feld, Hilfe- und Befehlskasten */
+.einst-provider-option {
+  border: 2px solid var(--linie);
+  background: var(--flaeche);
+  color: var(--text);
+}
+.einst-provider-option:hover { background: var(--akzent-tief); }
+.einst-provider-option.aktiv {
+  background: var(--chrome-b);
+  border-color: var(--linie);
+  color: #201e1a;
+}
+.einst-provider-option.aktiv .einst-provider-sub { color: #3a3226; }
+.einst-modell-select {
+  border: 2px solid var(--linie);
+  background: var(--flaeche);
+}
+.einst-ollama-hilfe,
+.einst-befehl,
+.verb-detail { border-width: 2px; }
+.einst-ollama-hilfe { border-color: var(--linie); }
