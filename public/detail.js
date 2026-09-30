@@ -528,7 +528,8 @@ function blockTermine(k, merke) {
       // Drehtermin unbemerkt ueberschreiben, ohne ihn zu loesen oder zu syncen. Zugeordnet:
       // das Datum steht schon oben im Block "Drehtermin", hier keine eigene Zeile. Sonst ein
       // Hinweis statt eines Feldes — genau EINE Stelle im UI kann ein Dreh-Datum erzeugen.
-      if (!k.drehterminId) {
+      // v83: Auf veroeffentlichten/verworfenen Karten ist ein fehlender Drehtermin kein Thema mehr.
+      if (!k.drehterminId && k.column !== "fertig" && k.column !== "verworfen") {
         const hinweis = document.createElement("p");
         hinweis.className = "feld-hinweis";
         hinweis.textContent = "Kein Drehtermin zugeordnet — im Block „Drehtermin“ oben zuordnen oder neu anlegen.";

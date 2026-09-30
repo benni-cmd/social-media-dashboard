@@ -55,10 +55,14 @@ Nicht geprüft: Abgleich-Fehler mitten im Lauf (bereits gelesene Spalten bleiben
 Texte gestrichen bzw. gekürzt (Kriterium: bleibt, wenn er eine Handlung oder einen Zustand erklärt, den man sonst nicht sieht): „Helles oder dunkles Erscheinungsbild …" (Überschrift + Optionen sagen es), Cursor-Text auf einen Satz, Kanäle-Einleitung (steht schon unter „Externe Dienste"). Nicht gestrichen: Anleitungen, KI-Rollen-Optionstexte, Prompt-Platzhalter.
 Bekannt: Der parallele Abgleich-Start belegt Drive; andere Drive-Seiten (System Prompts) brauchten 13–31 s zum Laden.
 
+30.09.2026 (Nachtrag 2, Owner: „offene Punkte nach deiner Empfehlung"):
+1. Parallel-Start: Meine Plan-Zurückstellung ist verworfen (nie committet). Grund: v84 (andere Session) hat die Ursache belegt — Google drosselt die geteilte rclone-client_id (403 Quota) — und den Abgleich auf 3 rclone-Aufrufe gebündelt. Gemessen danach: „live" nach 7 s (vorher 100–150 s). Meine Deutung „Parallelität ist schuld" war damit nur teilweise richtig. Parallel-Start bleibt.
+2. Detail-Texte: Alle Hinweistexte je Phase gelesen (5 Karten, 5 Spalten). Eine sichere Streichung: „Kein Drehtermin zugeordnet …" erscheint nicht mehr auf veröffentlichten/verworfenen Karten (`detail.js`), im Browser geprüft. Übrige Texte sind Regel-Begründungen oder Belege („belegt wirksam", „Beides sperrt") und bleiben. Nicht geändert, aber auffällig: auf Karten in „Drehtermin festlegen" steht derselbe Hinweis zweimal (Liste + am Weiter-Knopf).
+3. Modale: Drehtermin-Fenster war bereits Retro; Kalender-Fenster: Tage als Kacheln mit Tintenkante, empfohlene Tage gelb, heute mit 3 px (`style.css`), hell + dunkel gesehen.
+
 ## Definition of Done
 
 Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`
 Offen:
-1. Erklärtexte im Detail je Phase (nur Einstellungen gesichtet) — ICH
-2. Parallel-Start vs. Drive-Auslastung — DEINE ENTSCHEIDUNG
-3. Weitere Modale (Drehtermin, Kalender) nicht im Retro-Rundgang — ICH
+1. Doppelter Hinweis „Drehtermin zuordnen“ auf Karten in „Drehtermin festlegen“ — DEINE ENTSCHEIDUNG
+2. Eigene Google-client_id einrichten (v84 Schritt 4) — DEINE HANDLUNG

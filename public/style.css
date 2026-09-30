@@ -4391,3 +4391,18 @@ summary.gruppe-kopf,
 }
 .einst-schritt-web:has(input:checked) { background: var(--chrome-b); color: #201e1a; }
 a.drive-ort, .drive-ort { border-color: var(--linie); }
+
+/* v83: Kalender-Fenster — Tage als Kacheln mit Tintenkante; empfohlene Tage gelb, heute mit dicker Kante */
+.kal-nav { border: 2px solid var(--linie); border-radius: var(--rund-klein); color: var(--text); }
+.kal-nav:hover { background: var(--akzent-tief); }
+.kal-tag {
+  border: 2px solid var(--linie);
+  border-radius: var(--rund-klein);
+  background: var(--flaeche);
+  color: var(--text-still);
+}
+.kal-tag:hover { background: var(--akzent-tief); border-color: var(--linie); }
+.kal-tag.fremd { border-color: var(--linie-hell); opacity: 0.4; }
+.kal-tag.heute { border-width: 3px; }
+.kal-tag.slot { background: var(--chrome-b); color: #201e1a; font-weight: 700; }
+.kal-tag.slot:hover { background: var(--akzent); color: #201e1a; }
