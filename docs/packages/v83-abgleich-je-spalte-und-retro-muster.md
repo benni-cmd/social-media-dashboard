@@ -60,9 +60,14 @@ Bekannt: Der parallele Abgleich-Start belegt Drive; andere Drive-Seiten (System 
 2. Detail-Texte: Alle Hinweistexte je Phase gelesen (5 Karten, 5 Spalten). Eine sichere Streichung: „Kein Drehtermin zugeordnet …" erscheint nicht mehr auf veröffentlichten/verworfenen Karten (`detail.js`), im Browser geprüft. Übrige Texte sind Regel-Begründungen oder Belege („belegt wirksam", „Beides sperrt") und bleiben. Nicht geändert, aber auffällig: auf Karten in „Drehtermin festlegen" steht derselbe Hinweis zweimal (Liste + am Weiter-Knopf).
 3. Modale: Drehtermin-Fenster war bereits Retro; Kalender-Fenster: Tage als Kacheln mit Tintenkante, empfohlene Tage gelb, heute mit 3 px (`style.css`), hell + dunkel gesehen.
 
+30.09.2026 (Nachtrag 3, Owner: Drosselung technisch bestätigen, doppelten Hinweis lösen, Beenden-Griff zentrieren, Log per Außenklick einklappen):
+1. **Drosselung bestätigt** (Skripte im Session-Scratchpad `drossel.mjs`, `drossel2.mjs`; `rclone cat … -vv` gegen `System (AI only)/redaktionsplan.json`, 16 Läufe): (a) `data/.gdrive-env.json` enthält nur `TYPE`/`SCOPE`/`TOKEN`, keine `CLIENT_ID` → rclone nutzt die geteilte ID; rclone meldet selbst „uses rclone's shared Google Drive client_id, which is being retired and will stop working during 2026". (b) Google antwortet sporadisch `Error 403: Quota exceeded for quota metric 'Queries' … 'Requests per minute'`, Verbraucher-Projekt 202264815644 (das gemeinsame rclone-Projekt, nicht deins), rclone wiederholt mit wachsender Pause (1,5 s → 2,6 s …, bis 9 Wiederholungen). Wirkung: gleicher Befehl 36,3 s bzw. 44,0 s mit 403, sonst 2,1–2,4 s. Grenze: sporadisch, ~3 von 16 Läufen; die Zahl im Fehlertext (840000/min) ist das Projektlimit, es wird von allen rclone-Nutzern geteilt.
+2. Doppelter Drehtermin-Hinweis: Zeile in der Hinweisliste entfernt, der Satz am Weiter-Knopf bleibt (er erklärt die Handlung); im Browser: Liste 0×, Knopf 1×.
+3. Beenden-Griff: `top/left` 3 px → 1 px (2-px-Kante der Schiene, border-box); gemessen 1/1/1 px Abstand links/oben/unten.
+4. Log klappt bei Klick außerhalb der eigenen Sektion zu (`pointerdown`-Hörer, `anschluesse.js`); echter Mausklick aufs Board geprüft, Klick im Log selbst lässt es offen, Wechsel auf eine andere Sektion funktioniert.
+
 ## Definition of Done
 
 Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`
 Offen:
-1. Doppelter Hinweis „Drehtermin zuordnen“ auf Karten in „Drehtermin festlegen“ — DEINE ENTSCHEIDUNG
-2. Eigene Google-client_id einrichten (v84 Schritt 4) — DEINE HANDLUNG
+1. Eigene Google-client_id einrichten (v84 Schritt 4) — DEINE HANDLUNG

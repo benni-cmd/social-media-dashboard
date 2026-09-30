@@ -4406,3 +4406,7 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .kal-tag.heute { border-width: 3px; }
 .kal-tag.slot { background: var(--chrome-b); color: #201e1a; font-weight: 700; }
 .kal-tag.slot:hover { background: var(--akzent); color: #201e1a; }
+
+/* v83: Beenden-Schieber — der Griff sass 1-2 px zu tief/zu weit rechts: die 2-px-Kante der Schiene
+   (border-box) verkleinert die Innenflaeche auf 112x30, der Griff (28 px) lag bei 3/3 px. */
+.shutdown-handle { top: 1px; left: 1px; }

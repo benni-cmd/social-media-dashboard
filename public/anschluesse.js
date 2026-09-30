@@ -383,6 +383,14 @@ export async function verdrahteAnschluesse(el, stand) {
   leiste.innerHTML = "";
   for (const s of SEKTIONEN) leiste.appendChild(baueSektion(s));
 
+  // v83: Ein geoeffnetes Log klappt wieder zu, sobald man irgendwo anders hinklickt (Owner
+  // 30.09.2026). Klicks innerhalb der eigenen Sektion (Terminal, Knoepfe) zaehlen nicht.
+  document.addEventListener("pointerdown", (e) => {
+    if (!offeneSektion) return;
+    const sektion = leiste.querySelector(`.anschluss[data-sektion="${offeneSektion}"]`);
+    if (sektion && !sektion.contains(e.target)) schalteTerminal(offeneSektion);
+  });
+
   // Was vor dem Laden der Seite passiert ist, steht schon im Server-Ringpuffer — ohne das
   // waere das Terminal nach jedem Neuladen leer, obwohl der Server durchgearbeitet hat.
   try {
