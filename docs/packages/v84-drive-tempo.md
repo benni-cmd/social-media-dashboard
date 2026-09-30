@@ -33,7 +33,7 @@ jeder rclone-Aufruf zeigt im Drive-Terminal Wartezeit und Laufzeit getrennt.
    (`lsf -R --dirs-only --fast-list`) statt 8 Einzelaufrufen.
 3. [x] Server: gleichzeitige Abgleich-Anfragen teilen sich einen Lauf.
 4. [ ] Eigene client_id: Anleitung für Ben (Google-Cloud-Projekt, Drive API, OAuth-Client
-   „Desktop"), Board liest `client_id`/`client_secret` aus Umgebungsvariablen, einmal neu
+   „Desktop"), Board liest `client_id`/`client_secret` aus der rclone.conf, einmal neu
    anmelden. **DEINE HANDLUNG (Ben)** — Zugänge nie in Dateien im Repo.
 5. [ ] Warteschlange auf 2–3 parallele Aufrufe öffnen — ERST nach Schritt 4 und Messung,
    weil mehr Parallelität mit der geteilten client_id mehr 403-Drosselung erzeugt.
@@ -65,4 +65,7 @@ rclone.conf (`drive.js` `parseConfig`) — kein Code nötig, nur die Einrichtung
 ## Definition of Done
 
 Geprueft gegen: Zeitmessung Abgleich/Plan vorher-nachher, Drive-Terminal-Zeiten, `node --check`
-Offen: alles (Bau steht aus)
+Offen:
+1. Eigene client_id einrichten (Schritt 4) — Ben
+2. Board-Server neu starten und Abgleich/Plan-Zeiten live messen (Schritt 6) — Agent
+3. Warteschlange öffnen (Schritt 5) — Agent, erst nach 1 und 2
