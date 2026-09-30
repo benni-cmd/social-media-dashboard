@@ -26,7 +26,7 @@ dieselbe Retro-Formsprache wie Spalten und Karten. Ampel-Farben und Schwellen bl
 2. [x] Kopf-Satz: rohe Drive-Befehle als Klartext („Liest Redaktionsplan …"), Breite begrenzt, voller Text im Tooltip.
 3. [x] Kopfzeile insgesamt: kein Überlauf bei 1440 px, Beenden-Schieber sichtbar, Retro-Formen (dicke Kante, harter Schatten).
 4. [x] Toasts: Retro-Karte, Klartext statt technischer Meldung, gleiche Meldungen zusammenfassen, Ort so, dass der Kopf frei bleibt.
-5. [ ] Bedienzeilen (Board-Leiste, Drehtermin-Leiste, Wochenlast, Knöpfe): Rundgang, dann auf Retro ziehen.
+5. [x] Bedienzeilen (Board-Leiste, Drehtermin-Leiste, Wochenlast, Knöpfe): Rundgang, dann auf Retro ziehen.
 6. [ ] Detailansichten: Rundgang, verbleibende Standard-Elemente auf Retro ziehen.
 
 ## Status
@@ -40,6 +40,8 @@ dieselbe Retro-Formsprache wie Spalten und Karten. Ampel-Farben und Schwellen bl
 Bekannt: Solange die Cache-Plakette steht, bleibt für den Kopf-Satz kein Platz (Breite 0); die Sanduhr in den Anschluss-Sektionen zeigt die Aktivität weiter, der Satz kommt zurück, sobald die Plakette verschwindet.
 
 30.09.2026 — Element 4 (Toasts) gebaut und geprüft (hell + dunkel, echte Toasts per `hinweisToast`/`meldung` ausgelöst): unten rechts statt oben (Kopf-Knöpfe frei), Retro-Fenster mit Statusstreifen oben, dicke Kante, harter Schatten; gleiche Meldung erscheint einmal mit Zähler „×3" statt dreifach; `verstaendlich()` in `public/ui.js` macht aus „Redaktionsplan: Drive-Zugriff fehlgeschlagen (?): rclone antwortet seit 20 Sekunden nicht." den Satz „Redaktionsplan: Drive antwortet nicht (nach 20 Sekunden). Das Board arbeitet mit dem lokalen Stand weiter." Fund beim Verify: Erfolgs-Toast war leer (weißer Text auf Creme) → Füllung nach `.meldung` neu gesetzt.
+
+30.09.2026 — Element 5 (Bedienzeilen) gebaut, hell + dunkel geprüft (Screenshot Board + offene Karte): Board-Leiste tönt `--flaeche-hoch` mit 3-px-Unterkante, Drehtermin-Kacheln 2 px + harter Schatten, Wochenlast mit 3-px-Trenner, alle `.knopf` mit Schatten und Druck-Effekt, Status-Chips 2 px. Angleichung: die v82-Schatten fielen nach rechts unten, der Bestand (`--schatten`) fällt nach links unten → neue Tokens `--schatten-klein` / `--schatten-klein-druck` (hell + dunkel), Kopf und Toasts darauf umgestellt. Hinweis: Nach Theme-Wechsel per Attribut zeigt ein Screenshot direkt danach halbe Übergänge (Knöpfe kurz hell) — erst nach 0,2 s prüfen.
 
 ## Definition of Done
 

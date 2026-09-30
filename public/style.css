@@ -48,6 +48,8 @@
   --rund: 9px;
   --rund-klein: 6px;
   --schatten: -3px 3px 0 rgba(51, 41, 28, 0.9);
+  --schatten-klein: -2px 2px 0 rgba(51, 41, 28, 0.9); /* v82: Knoepfe, Kopf-Bausteine */
+  --schatten-klein-druck: -1px 1px 0 rgba(51, 41, 28, 0.9);
 
   /* Regel Schatten/Radius (v23-2): --rund + --schatten fuer kompakte Zusammenfassungs-Karten,
      die direkt auf der Grundflaeche liegen (kpi, bester, rang, letzte-zeile, vergleich-karte,
@@ -123,6 +125,8 @@
   --saeule-ohne: #4d4127;
 
   --schatten: -4px 4px 0 rgba(0, 0, 0, 0.55);
+  --schatten-klein: -2px 2px 0 rgba(0, 0, 0, 0.55);
+  --schatten-klein-druck: -1px 1px 0 rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
@@ -3983,7 +3987,7 @@ body {
 .ansichten {
   border: 2px solid var(--linie);
   background: var(--flaeche-tief);
-  box-shadow: 2px 2px 0 var(--linie);
+  box-shadow: var(--schatten-klein);
 }
 .ansicht-knopf[aria-pressed="true"] {
   background: var(--chrome-b);
@@ -3993,28 +3997,28 @@ body {
 .anschluss {
   width: 118px;
   border: 2px solid var(--linie);
-  box-shadow: 2px 2px 0 var(--linie);
+  box-shadow: var(--schatten-klein);
   font-size: 11.5px;
 }
 .kopf .knopf-haupt#naechster-schritt,
 .kopf .knopf-symbol {
-  box-shadow: 2px 2px 0 var(--linie);
+  box-shadow: var(--schatten-klein);
 }
 .kopf .knopf-haupt#naechster-schritt:active,
 .kopf .knopf-symbol:active,
 .live-plakette:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--linie);
+  transform: translate(-1px, 1px);
+  box-shadow: var(--schatten-klein-druck);
 }
 .live-plakette {
   max-width: 250px;
-  box-shadow: 2px 2px 0 var(--cache);
+  box-shadow: -2px 2px 0 var(--cache);
 }
 .shutdown-slider {
   width: 130px;
   border: 2px solid var(--linie);
   background: var(--akzent-tief);
-  box-shadow: 2px 2px 0 var(--linie);
+  box-shadow: var(--schatten-klein);
 }
 .shutdown-handle {
   border: 2px solid var(--linie);
@@ -4039,11 +4043,11 @@ body {
   border: 3px solid var(--linie);
   border-left-width: 3px;
   border-radius: var(--rund-klein);
-  box-shadow: 4px 4px 0 rgba(51, 41, 28, 0.9);
+  box-shadow: -4px 4px 0 rgba(51, 41, 28, 0.9);
   background: var(--flaeche);
   max-width: 380px;
 }
-[data-theme="dark"] .meldung { box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6); }
+[data-theme="dark"] .meldung { box-shadow: -4px 4px 0 rgba(0, 0, 0, 0.6); }
 .meldung-hinweis { border-top: 8px solid var(--linie); }
 .meldung-s-befund { border-top-color: var(--befund); }
 .meldung-s-hinweis { border-top-color: var(--hinweis); }
@@ -4067,3 +4071,44 @@ body {
 /* Farbige Toasts behalten ihre Fuellung (weisser Text) — steht nach .meldung, damit sie gewinnt. */
 .meldung.meldung-erfolg { background: var(--ok); }
 .meldung.meldung-fehler { background: var(--befund); }
+
+/* ============================================================
+   v82, Element 5 — Bedienzeilen im Retro-Look: Board-Leiste,
+   Drehtermin-Kacheln, Wochenlast, Knoepfe und Status-Chips tragen
+   dieselbe dicke Tintenkante + harten Schatten wie Spalten und Karten.
+   ============================================================ */
+
+.board-leiste {
+  background: var(--flaeche-hoch);
+  border-bottom: 3px solid var(--linie);
+}
+.wochenlast { border-left: 3px solid var(--linie); }
+.drehkachel {
+  border: 2px solid var(--linie);
+  box-shadow: var(--schatten-klein);
+}
+.drehkachel:hover {
+  border-color: var(--linie);
+  background: var(--akzent-tief);
+}
+.drehkachel-datum { font-weight: 700; }
+.drehleiste-label { font-weight: 700; color: var(--text); }
+
+/* Alle Knoepfe: harter Schatten, druckbar; Hover faerbt statt nur den Rand zu tauschen. */
+.knopf {
+  border-color: var(--linie);
+  box-shadow: var(--schatten-klein);
+}
+.knopf:hover:not(:disabled) {
+  border-color: var(--linie);
+  background: var(--akzent-tief);
+}
+.knopf-haupt:hover:not(:disabled) { background: var(--akzent); }
+.knopf:active:not(:disabled) {
+  transform: translate(-1px, 1px);
+  box-shadow: var(--schatten-klein-druck);
+}
+.knopf:disabled { box-shadow: none; }
+
+/* Status-Chips: dicke Kante wie bei den Fenstern */
+.chip { border-width: 2px; }
