@@ -466,6 +466,12 @@ async function abgleichEinmal(onStufe) {
     version = aktuell.version + 1;
     await schreibeBoard(cards, version);
   }
+  // v85-B: Steckbriefe (menschenlesbarer Stand je Projektordner) im Hintergrund nachziehen — die
+  // Antwort wartet nicht darauf. Im Ruhezustand 3 md5sum-Aufrufe, geschrieben wird nur Abweichendes.
+  projekte
+    .steckbriefeAbgleichen(cards)
+    .then((r) => { if (r.geschrieben) console.log(`Steckbriefe: ${r.geschrieben} von ${r.geprueft} geschrieben.`); })
+    .catch((e) => console.log(`Steckbrief-Abgleich fehlgeschlagen: ${e.message}`));
   return { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten };
 }
 
