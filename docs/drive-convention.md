@@ -25,10 +25,14 @@ Dashboard kann ihn von dort zurueckholen.
 ```
 <Drive-Wurzel>/                           (Stand gemessen 30.09.2026, `rclone lsf -R`)
   In Bearbeitung/
-    Idee/  Skript/  Videodreh/  Schnitt/  Caption/  Upload/     (die sechs Arbeitsphasen)
+    1 Idee/  2 Skript/  3 Videodreh/  4 Schnitt/  5 Caption/  6 Upload/
+                                          (die sechs Arbeitsphasen; Nummer = Board-Reihenfolge,
+                                          seit v85 — Drive sortiert sonst alphabetisch)
       .phase                              Marker: stabile Phasen-ID des Spaltenordners
       <Projektordner>/                    liegt in GENAU einer Phase
-        (AI only)/projekt.json            Maschinen-Index (Phase, Titel, Termine, Ziel)
+        Steckbrief.md                     Klartext fuer Menschen: Phase, Zu tun, Termine (v85,
+                                          vom Board geschrieben — Aenderungen hier ueberschrieben)
+        (AI only)/projekt.json            Maschinen-Index (Phase, Titel, Termine, Ziel) = Wahrheit
         Skript und Caption/               00_recherche.md · 10_skript.md · 20_regieplan.md · 30_caption.md
         Rohmaterial/                      Rohclips
         Fertiges Video/                   geschnittenes Video
@@ -49,7 +53,16 @@ Browser lesen dieselbe Datei — vorher stand die Reihenfolge vierfach im Code.
 
 ## Der Ordnername wird EINMAL vergeben und dann eingefroren
 
-Projektname: `<Reihe>_EP<NN>_<Thema>`, bei Einzelvideos nur `<Thema>`.
+Projektname seit v85 im Klartext: `<Reihe> EP<NN> – <Thema>`, bei Einzelvideos nur `<Thema>`
+(z. B. „Bienen und ihre Blumenfreunde"; `klartext()` in `lib/pipeline.js`: Leerzeichen und
+Umlaute bleiben, nur `\ / : * ? " < > | # %` fallen weg, Kuerzung an Wortgrenze bei 60 Zeichen).
+Bis v84: `<Reihe>_EP<NN>_<Thema>` als Slug ohne Leerzeichen, max. 32 Zeichen — bestehende
+Ordner behalten diesen Namen.
+
+**Spaltenordner** tragen die Board-Position vorn (`1 Idee`). Der Abgleich zieht die Nummer
+selbst nach, wenn sie fehlt oder nicht mehr zur Reihenfolge passt; der Anzeigename im Board
+bleibt ohne Nummer. Wer in Drive einen Spaltenordner umbenennt, benennt die Spalte im Board
+mit (der `.phase`-Marker haelt die Identitaet).
 
 **Wichtig:** Der Name entsteht beim Anlegen und lebt danach als `card.driveName` weiter. Er
 wird **nicht** bei jedem Zugriff neu aus dem Titel abgeleitet.

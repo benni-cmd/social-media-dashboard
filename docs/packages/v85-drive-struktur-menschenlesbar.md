@@ -49,17 +49,17 @@ A, B und C. D nicht, E nicht. C nur für NEUE Projekte; bestehende Ordner bleibe
    Standard-Ordnern statt aus dem Drive-Stand (`server.js` Kalender-Link-Liste,
    `public/detail.js` „In Drive öffnen") — nach A zeigten sie ins Leere. Auf den
    Spalten-Stand umstellen.
-3. [ ] **B Steckbrief** (`lib/projects.js`): `Steckbrief.md` im Projektordner, geschrieben
+3. [x] **B Steckbrief** (`lib/projects.js`): `Steckbrief.md` im Projektordner, geschrieben
    überall dort, wo `projekt.json` geschrieben wird (Anlegen, Verschieben, Speichern, Abgleich),
    nur wenn sich der Inhalt geändert hat. Inhalt: Titel, Phase + was zu tun ist, Format,
    Kategorie, Ziel, Plattformen, Termine. Kopfzeile: Datei wird vom Board geschrieben; Phase
    ändern = Ordner verschieben.
-4. [ ] **C Klartext-Namen** (`lib/pipeline.js` `projektNameNeu`): Leerzeichen und Umlaute
+4. [x] **C Klartext-Namen** (`lib/pipeline.js` `projektNameNeu`): Leerzeichen und Umlaute
    bleiben, nur in Windows/Drive unzulässige Zeichen fallen weg, Kürzung an Wortgrenze
    (≤ 60 Zeichen); mit Reihe: `<Reihe> EP<NN> – <Thema>`.
 5. [ ] Verify: Drive-Baum per `rclone lsf` vorher/nachher, Abgleich-Zeit live, Board-Screenshot
    (Spaltennamen ohne Nummer, „In Drive öffnen" trifft), Steckbrief einer Karte gelesen.
-6. [ ] `docs/drive-convention.md` Strukturbild + Namensregel nachführen.
+6. [x] `docs/drive-convention.md` Strukturbild + Namensregel nachführen.
 
 ## Status
 
@@ -80,7 +80,26 @@ Spalten-Stand, `projects.js` exportiert `projektPfadDyn`).
   würde beim Speichern die alten Ordner neu anlegen. Die Umbenennung macht Bens Server beim
   ersten Abgleich nach dem Neustart selbst.
 
+30.09.2026 — B gebaut (`lib/projects.js` `steckbrief()`, `schreibeSteckbrief()`,
+`steckbriefeAbgleichen()`; `server.js` startet den Steckbrief-Abgleich nach jedem Drive-Abgleich
+im Hintergrund). Geschrieben wird nur bei geändertem Inhalt (MD5 gegen Drive bzw. letzten
+Schreibstand); kein Zeitstempel in der Datei. Probe mit echter Karte aus `data/board.json`
+(„Oberflächenspannung von Wasser", Phase Schnitt) erzeugt: Phase + Ordner, Zu tun, Danach,
+Format, Kategorie, Ziel, Plattformen, vier Termine.
+Erstlauf nach Neustart: 17 Steckbriefe à ~2,5 s ≈ 40 s im Hintergrund (einmalig); danach nur
+3 md5sum-Aufrufe je Abgleich.
+
+30.09.2026 — C gebaut (`lib/pipeline.js` `klartext()`, `projektNameNeu`; Alt-Migration in
+`migriere()` nutzt die alte Regel `projektNameAlt`). Probe `node -e`: „Bienen und ihre
+Blumenfreunde", „World Eden EP03 – Boden wie ein Schwamm", Sonderzeichen-Titel →
+„Was Warum Kompost Tee 1 100", leerer Titel → „Ohne Titel", langer Titel an Wortgrenze auf 55
+Zeichen; alle `pfadstueckOk`; Karte mit driveName behält ihn.
+
 ## Definition of Done
 
 Geprueft gegen: `rclone lsf -R` Vorher/Nachher, Abgleich-Zeit live, Board-Screenshot
-Offen: Owner-Entscheidung zu A–E
+Offen:
+1. Board neu starten (Ben) — der erste Abgleich nummeriert die Spaltenordner, danach schreibt
+   der Hintergrund-Abgleich die Steckbriefe
+2. Live-Prüfung danach (Agent): `rclone lsf` Drive-Baum, Steckbrief lesen, Abgleich-Zeit,
+   Board-Screenshot (Spaltennamen ohne Nummer, „In Drive öffnen")
