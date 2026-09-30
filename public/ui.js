@@ -2351,14 +2351,43 @@ export function meldung(text, typ = "erfolg") {
   el.dataset.timer = String(setTimeout(() => _schliesseMeldung(el), 10000));
 }
 
+// v82: Meldungen an Menschen schreiben, nicht an Entwickler — der rohe Dienst-Text
+// („rclone antwortet seit 20 Sekunden nicht.", „(?)" als fehlender Fehlercode) wird ein Satz.
+export function verstaendlich(satz) {
+  return String(satz ?? "")
+    .replace(/\s*\(\?\)/g, "")
+    .replace(/rclone antwortet seit (\d+) Sekunden nicht\.?/g, "Drive antwortet nicht (nach $1 Sekunden). Das Board arbeitet mit dem lokalen Stand weiter.")
+    .replace(/Drive-Zugriff fehlgeschlagen:\s*(?=Drive antwortet)/g, "")
+    .replace(/Zeitueberschreitung nach (\d+) s/g, "Keine Antwort nach $1 Sekunden")
+    .replace(/Drive-Zugriff fehlgeschlagen/g, "Drive ist nicht erreichbar");
+}
+
 // Persistenter Hinweis-Toast (v52): wie meldung(), aber mit statusChip() (die sechs
 // Status-Woerter) statt nur gruen/rot, und OHNE Auto-Timeout — verschwindet erst durch
 // aktives Wegklicken. Fuer Hinweise/Fehlermeldungen, die vorher in der festen Kopf-Zeile
 // standen und dort leicht uebersehen wurden oder von der naechsten Meldung ueberschrieben.
 export function hinweisToast(status, satz) {
+  satz = verstaendlich(satz);
   const st = _bekommStapel();
+  // v82: Dieselbe Meldung nicht mehrfach stapeln (drei gleiche Drive-Fehler = eine Ursache) —
+  // stattdessen zaehlt ein Zaehler am vorhandenen Toast hoch.
+  const vorhanden = [...st.querySelectorAll(".meldung-hinweis")].find((m) => m.dataset.satz === satz && !m.classList.contains("meldung-weg"));
+  if (vorhanden) {
+    const n = Number(vorhanden.dataset.anzahl || 1) + 1;
+    vorhanden.dataset.anzahl = String(n);
+    let z = vorhanden.querySelector(".meldung-zaehler");
+    if (!z) {
+      z = document.createElement("span");
+      z.className = "meldung-zaehler";
+      vorhanden.querySelector(".meldung-text").after(z);
+    }
+    z.textContent = `×${n}`;
+    z.title = `Diese Meldung kam ${n}-mal.`;
+    return;
+  }
   const el = document.createElement("div");
-  el.className = "meldung meldung-hinweis";
+  el.className = `meldung meldung-hinweis meldung-s-${status}`;
+  el.dataset.satz = satz;
   el.innerHTML =
     statusChip(status) +
     `<span class="meldung-text">${escape(satz)}</span>` +

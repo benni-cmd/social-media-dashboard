@@ -25,7 +25,7 @@ dieselbe Retro-Formsprache wie Spalten und Karten. Ampel-Farben und Schwellen bl
 1. [x] Titel: einzeilig, nicht abgeschnitten.
 2. [x] Kopf-Satz: rohe Drive-Befehle als Klartext („Liest Redaktionsplan …"), Breite begrenzt, voller Text im Tooltip.
 3. [x] Kopfzeile insgesamt: kein Überlauf bei 1440 px, Beenden-Schieber sichtbar, Retro-Formen (dicke Kante, harter Schatten).
-4. [ ] Toasts: Retro-Karte, Klartext statt technischer Meldung, gleiche Meldungen zusammenfassen, Ort so, dass der Kopf frei bleibt.
+4. [x] Toasts: Retro-Karte, Klartext statt technischer Meldung, gleiche Meldungen zusammenfassen, Ort so, dass der Kopf frei bleibt.
 5. [ ] Bedienzeilen (Board-Leiste, Drehtermin-Leiste, Wochenlast, Knöpfe): Rundgang, dann auf Retro ziehen.
 6. [ ] Detailansichten: Rundgang, verbleibende Standard-Elemente auf Retro ziehen.
 
@@ -38,6 +38,8 @@ dieselbe Retro-Formsprache wie Spalten und Karten. Ampel-Farben und Schwellen bl
 
 30.09.2026 — Elemente 1–3 gebaut und im Browser geprüft (1440x900, hell + dunkel): Kopf-Inhalt 1440 px = Fensterbreite (`.kopf` scrollWidth 1440, vorher 1507), Beenden-Schieber rechts bei 1426 px sichtbar, Titel einzeilig (20 px hoch), „Weitere" ungekürzt. Rohe Befehle: `klartextRclone()` in `public/anschluesse.js`, geprüft mit vier Beispielbefehlen; im Kopf erscheint „Liest Redaktionsplan aus Drive …". Retro-Formen (2-px-Tintenkante, harter 2-px-Schatten) an Ansichten-Umschalter, Anschluss-Sektionen, Knöpfen, Schieber, Plakette. Plakette gekürzt („Cache 29.09. 12:11 · noch nicht live").
 Bekannt: Solange die Cache-Plakette steht, bleibt für den Kopf-Satz kein Platz (Breite 0); die Sanduhr in den Anschluss-Sektionen zeigt die Aktivität weiter, der Satz kommt zurück, sobald die Plakette verschwindet.
+
+30.09.2026 — Element 4 (Toasts) gebaut und geprüft (hell + dunkel, echte Toasts per `hinweisToast`/`meldung` ausgelöst): unten rechts statt oben (Kopf-Knöpfe frei), Retro-Fenster mit Statusstreifen oben, dicke Kante, harter Schatten; gleiche Meldung erscheint einmal mit Zähler „×3" statt dreifach; `verstaendlich()` in `public/ui.js` macht aus „Redaktionsplan: Drive-Zugriff fehlgeschlagen (?): rclone antwortet seit 20 Sekunden nicht." den Satz „Redaktionsplan: Drive antwortet nicht (nach 20 Sekunden). Das Board arbeitet mit dem lokalen Stand weiter." Fund beim Verify: Erfolgs-Toast war leer (weißer Text auf Creme) → Füllung nach `.meldung` neu gesetzt.
 
 ## Definition of Done
 

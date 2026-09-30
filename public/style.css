@@ -4027,3 +4027,43 @@ body {
 .anschluss { width: 124px; padding: 2px 5px; }
 .live-plakette { max-width: 310px; }
 .shutdown-slider { width: 116px; }
+
+/* v82: Toasts im Retro-Look — Fenster mit Titelstreifen in der Statusfarbe, dicke Tintenkante,
+   harter Schatten; unten rechts, damit sie die Knoepfe im Kopf nie verdecken. */
+.meldung-stapel {
+  top: auto;
+  bottom: 16px;
+  flex-direction: column-reverse;
+}
+.meldung {
+  border: 3px solid var(--linie);
+  border-left-width: 3px;
+  border-radius: var(--rund-klein);
+  box-shadow: 4px 4px 0 rgba(51, 41, 28, 0.9);
+  background: var(--flaeche);
+  max-width: 380px;
+}
+[data-theme="dark"] .meldung { box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6); }
+.meldung-hinweis { border-top: 8px solid var(--linie); }
+.meldung-s-befund { border-top-color: var(--befund); }
+.meldung-s-hinweis { border-top-color: var(--hinweis); }
+.meldung-s-unlesbar { border-top-color: var(--unlesbar); }
+.meldung-s-fehlt { border-top-color: var(--fehlt); }
+.meldung-s-ok { border-top-color: var(--ok); }
+.meldung-erfolg,
+.meldung-fehler { border: 3px solid var(--linie); }
+.meldung-hinweis .meldung-text { font-weight: 550; }
+.meldung-zaehler {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 0 7px;
+  border: 2px solid var(--linie);
+  border-radius: 20px;
+  background: var(--chrome-b);
+  color: #201e1a;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+/* Farbige Toasts behalten ihre Fuellung (weisser Text) — steht nach .meldung, damit sie gewinnt. */
+.meldung.meldung-erfolg { background: var(--ok); }
+.meldung.meldung-fehler { background: var(--befund); }
