@@ -30,7 +30,7 @@ mehr; Einstellungen schlicht im Retro-Look; Abstände in Aufklapp-Boxen einheitl
 3. [x] Detail: Kopf-/Abschnitts-Marken nur solange die Spalte der Karte nicht live ist; Drive-Teil markiert, solange nicht gelesen.
 4. [x] Standard-Muster inventarisieren (Skript über alle Ansichten) und auf Retro ziehen: Status-Chips, Auswahl-Pillen, gestrichelte Flächen.
 5. [x] Einstellungen: schlicht, Retro-Kanten, ohne Versalien-Karten und Pfirsich-Auswahl.
-6. [ ] Abstände und Texte: einheitliche Innenabstände in Aufklapp-Boxen, Erklärtexte nach Wichtigkeit sortieren.
+6. [x] Abstände und Texte: einheitliche Innenabstände in Aufklapp-Boxen, Erklärtexte nach Wichtigkeit sortieren.
 
 ## Status
 
@@ -43,7 +43,12 @@ Nicht geprüft: Abgleich-Fehler mitten im Lauf (bereits gelesene Spalten bleiben
 
 30.09.2026 — Schritte 4+5 gebaut und geprüft (hell + dunkel, Einstellungen Darstellung + KI-Rollen, Board, Detail). Inventar per Skript: runde Pillen `.chip`, `.schalter`, `.stamm-chip`, `.drive-ort`, `.dreh-chip`, `.einst-format-tab`, Zähler-Badges; Versalien `.einst-label`, `.meldung-gruppenkopf`, `.termin-kachel-label`; gestrichelte Nicht-Cache-Flächen `.unterklappe`, `.einst-rolle-zusatz`. Regel: Rechteck-Marken mit 2-px-Tintenkante, Auswahl = gelbe Füllung (`--chrome-b`), Status-Chips getönt in Statusfarbe mit Tintentext (Wort bleibt), gestrichelt nur noch „Cache" (Drehtermin „auto" jetzt gepunktet). Einstellungen schlicht: flache Kacheln 2 px, Namen statt Versalien, blauer Titelstreifen, Nav-Auswahl gelb mit Tintenbalken, Drive-Icon aus der Nav entfernt (jede Seite nennt „Gespeichert in …" selbst).
 
+30.09.2026 — Schritt 6 gebaut, hell + dunkel geprüft (Karte „Videodreh"): eine Regel für Aufklapp-Boxen — Farbkopf, 14 px Innenrand, Blöcke 10 px Abstand, nur die äußerste Box mit Schatten (Boxen in Boxen: 2-px-Kante, kein Schatten), „In Drive öffnen" einzeilig, Detail-Kopf bricht um statt zu quetschen. Textauswahl: nur eine Streichung ist sicher (Drive-Icon in der Einstellungs-Liste, weil jede Seite ihren Speicherort selbst nennt); weitere Erklärtexte nicht gestrichen, weil ich nicht jede Phase und Einstellungsseite gelesen habe.
+
 ## Definition of Done
 
-Geprueft gegen: Screenshots je Element hell + dunkel, Abgleich-Lauf mit Zwischenständen
-Offen: alles (Bau steht aus)
+Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`
+Offen:
+1. Ansichten Auswertung, Redaktionsplan, Modale und übrige Einstellungsseiten (Social Media Kanäle, System Prompts, Board & Redaktionsplan) nicht im Retro-Rundgang gesehen — ICH
+2. Erklärtexte je Phase auf Wichtigkeit sichten und streichen — DEINE ENTSCHEIDUNG (Kriterium?)
+3. Abgleich-Fehler mitten im Lauf: bereits gelesene Spalten bleiben live-markiert — ICH

@@ -4272,3 +4272,17 @@ summary.gruppe-kopf,
 .einst-befehl,
 .verb-detail { border-width: 2px; }
 .einst-ollama-hilfe { border-color: var(--linie); }
+
+/* ============================================================
+   v83, Schritt 6 — Aufklapp-Boxen: eine Regel fuer Abstand und Verschachtelung.
+   Kopfleiste in Farbe · Inhalt mit 14 px Innenrand · Bloecke darin 10 px Abstand ·
+   nur die aeusserste Box traegt Schatten (Boxen in Boxen: Kante 2 px, kein Schatten).
+   ============================================================ */
+.detail .gruppe > div:not(.gruppe-kopf) > * + * { margin-top: var(--sp-2); }
+.detail .gruppe .stamm-zusammenfassung,
+.detail .gruppe .termin-kachel,
+.detail .gruppe .termin-schalter-block { box-shadow: none; }
+.detail .gruppe .unterklappe { margin-bottom: 0; }
+.detail .gruppe .unterklappe > summary { font-weight: 600; }
+.detail-kopf .drive-ort { white-space: nowrap; }
+.detail-kopf { flex-wrap: wrap; row-gap: 6px; }
