@@ -454,6 +454,8 @@ export function driveAbgleich() {
     } catch (e) {
       S.live.fehler = e.message || String(e);
       S.live.spalten = new Set(); // v83: Abgleich unvollstaendig -> die Kartendaten sind nicht bestaetigt, alles wieder als Cache zeigen
+      // v87: Falsche Ordnerstruktur in Drive -> der Grund als Meldung, nicht nur im Tooltip.
+      if (/Ordnerstruktur nicht stimmt/.test(S.live.fehler)) melde("befund", S.live.fehler);
       throw e;
     } finally {
       S.live.laeuft = false;
@@ -497,25 +499,6 @@ async function abgleichStream() {
   if (fehler) throw new Error(fehler.error);
   if (!ergebnis) throw new Error("Der Abgleich hat kein Ergebnis geliefert.");
   return ergebnis;
-}
-
-// Spalte umbenennen (v17b): benennt den Drive-Ordner mit und aktualisiert die Spalten-Wahrheit.
-export async function spaltenUmbenennen(id, name) {
-  const r = await hole("/api/spalten/rename", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id, name }),
-  });
-  if (Array.isArray(r.spalten)) S.spalten = r.spalten;
-  zeichne();
-  return r;
-}
-
-// Setzt den Anzeigenamen einer Spalte lokal — fuer das optimistische Umbenennen (v55). Nichts,
-// wenn die Spalte nicht in S.spalten liegt (PHASEN-Fallback); dann fuehrt erst die Server-Antwort.
-export function setzeSpaltenName(id, name) {
-  const s = S.spalten.find((x) => x.id === id);
-  if (s) s.name = name;
 }
 
 export async function driveStatus() {

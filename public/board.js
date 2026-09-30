@@ -16,7 +16,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, spaltenUmbenennen, setzeSpaltenName, optimistisch, an, drehtermin } from "./store.js";
+import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { holeIdee } from "./nachschub.js";
@@ -132,53 +132,6 @@ export function kachel(k) {
   return el;
 }
 
-// --- Spalte umbenennen (v17b): Inline-Edit -> benennt den Drive-Ordner mit ------
-let umbenennenLaeuft = false;
-function starteUmbenennen(nameEl, p) {
-  if (umbenennenLaeuft) return;
-  const alt = p.name;
-  nameEl.contentEditable = "true";
-  nameEl.style.outline = "2px solid var(--akzent, #6a8dff)";
-  nameEl.style.borderRadius = "3px";
-  nameEl.style.padding = "0 3px";
-  nameEl.focus();
-  const range = document.createRange();
-  range.selectNodeContents(nameEl);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-
-  let fertig = false;
-  const beenden = async (speichern) => {
-    if (fertig) return;
-    fertig = true;
-    nameEl.contentEditable = "false";
-    nameEl.style.outline = ""; nameEl.style.borderRadius = ""; nameEl.style.padding = "";
-    const neu = nameEl.textContent.trim();
-    if (!speichern || !neu || neu === alt) {
-      nameEl.textContent = alt;
-      return;
-    }
-    umbenennenLaeuft = true;
-    // Optimistisch (v55): der neue Name steht sofort (lokal in S.spalten), der Drive-Ordner wird
-    // im Hintergrund mit umbenannt; scheitert das, geht der Name zurueck und ist wiederholbar.
-    // `sichern:null` — Spalten stehen nicht in board.json, der Rename-Endpoint ist die Wahrheit.
-    optimistisch({
-      anwenden: () => setzeSpaltenName(p.id, neu),
-      zuruecknehmen: () => setzeSpaltenName(p.id, alt),
-      extern: () => spaltenUmbenennen(p.id, neu),
-      was: `Spalte „${neu}" umbenennen`,
-      sichern: null,
-    }).finally(() => { umbenennenLaeuft = false; });
-  };
-
-  nameEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); nameEl.blur(); }
-    else if (e.key === "Escape") { e.preventDefault(); fertig = true; nameEl.contentEditable = "false"; nameEl.classList.remove("spalte-name-edit"); nameEl.textContent = alt; }
-  });
-  nameEl.addEventListener("blur", () => beenden(true), { once: true });
-}
-
 // --- Spalten --------------------------------------------------------------
 
 export function zeichneBoard(boardEl, lastEl) {
@@ -207,10 +160,9 @@ export function zeichneBoard(boardEl, lastEl) {
     const kopf = document.createElement("div");
     kopf.className = "spalte-kopf";
     kopf.innerHTML =
-      `<div class="spalte-kopf-zeile"><span class="spalte-name" title="Doppelklick zum Umbenennen (benennt den Drive-Ordner mit)">${escape(p.name)}</span>` +
+      `<div class="spalte-kopf-zeile"><span class="spalte-name">${escape(p.name)}</span>` +
       `<span class="spalte-kopf-rechts">${driveStatusHtml}<span class="spalte-anzahl">${karten.length}</span></span></div>` +
       `<p class="spalte-satz">${escape(p.satz || "")}</p>`;
-    kopf.querySelector(".spalte-name").addEventListener("dblclick", (e) => starteUmbenennen(e.currentTarget, p));
     // v50: Die Phasen-Erklaerung (.spalte-satz) ist seit v29 fuer einheitliche Kopfhoehe
     // ausgeblendet — als Header-Tooltip bleibt sie erreichbar, ohne die Hoehe zu brechen.
     if (p.satz) kopf.title = p.satz;

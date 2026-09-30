@@ -25,7 +25,6 @@ import * as driveSetup from "./lib/drivesetup.js"; // v63: Ordner/Konto wechseln
 import * as ereignisse from "./lib/ereignisse.js"; // v58: was das Board nach aussen tut
 import * as projekte from "./lib/projects.js";
 import * as planstore from "./lib/planstore.js";
-import * as spaltenStore from "./lib/spalten.js";
 import * as ki from "./lib/ai.js";
 import * as social from "./lib/social.js";
 import * as kpi from "./lib/kpi.js";
@@ -99,18 +98,16 @@ async function wechsleDriveOrdner(neuId) {
     const alt = drive.aktuellerRoot();
     if (neuId === alt) return { unveraendert: true, art: "aktuell" };
     const pruef = await driveSetup.pruefeOrdner(neuId);
-    if (pruef.art === "fremd") {
-      throw Object.assign(
-        new Error("Der Ordner ist nicht leer und wurde nicht vom Board angelegt. Bitte einen leeren Ordner waehlen."),
-        { status: 400 }
-      );
+    if (pruef.art === "fremd" || pruef.art === "falsch") {
+      // v87: Nur leer (Struktur wird angelegt) oder vollstaendige Struktur (wird geladen).
+      if (pruef.art === "falsch") ereignisse.melde({ sektion: "drive", dienst: "Struktur", text: driveSetup.pruefSatz(pruef), status: "befund" });
+      throw Object.assign(new Error(driveSetup.pruefSatz(pruef)), { status: 400 });
     }
     await sichereBoardFuerRoot(alt);
     const aktuell = await leseBoard();
     drive.setzeRoot(neuId);
     // Alles, was am alten Ordner hing, ist ueberholt (die Caches regenerieren aus dem neuen Drive).
     for (const f of [SPALTEN_FILE, PLAN_FILE]) { try { await rm(f, { force: true }); } catch { /* egal */ } }
-    projekte.setSpalten(null);
     projekte.scanCacheLeeren();
     driveSetup.kontoCacheLeeren();
     const sicherung = await ladeBoardSicherung(neuId);
@@ -444,20 +441,20 @@ function fuehreAbgleichAus(onStufe = () => {}) {
 }
 
 async function abgleichEinmal(onStufe) {
+  // v87 (Owner 30.09.2026): Die Struktur steht fest (PHASEN). Statt die Spalten aus Drive zu
+  // uebernehmen, wird die Struktur GEPRUEFT (ein rclone-Aufruf). Passt sie nicht, laedt das Board
+  // nichts aus Drive: der Abgleich bricht mit dem Grund ab, das Board bleibt beim Cache (v81:
+  // „Cache-Stand"), das Drive-Log nennt den Grund.
   onStufe({ stufe: "drive-spalten" });
-  let spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
-  const spaltenBefunde = [];
-  try {
-    const driveConfig = await spaltenStore.leseVonDrive();
-    const gemischt = pipeline.mischeSpalten(driveConfig);
-    const r = await spaltenStore.reconcile(gemischt, driveConfig); // v84: schreibt die Config nur bei Aenderung
-    spalten = r.spalten;
-    spaltenBefunde.push(...r.befunde);
-    await spaltenCacheSchreiben(spaltenStore.alsConfig(spalten));
-  } catch (e) {
-    spaltenBefunde.push({ status: "befund", satz: `Spalten-Abgleich mit Drive fehlgeschlagen: ${e.message}` });
+  const spalten = pipeline.spaltenDefault();
+  const liste = await drive.ordnerBaum("", 2);
+  const struktur = pipeline.pruefeStruktur(liste);
+  if (!struktur.ok) {
+    const satz = `Das Board lädt nichts aus Drive, weil die Ordnerstruktur nicht stimmt: ${struktur.fehler.join(" ")}`;
+    ereignisse.melde({ sektion: "drive", dienst: "Struktur", text: satz, status: "befund" });
+    throw new Error(satz);
   }
-  spaltenResolverSetzen(spalten);
+  const spaltenBefunde = [];
 
   const aktuell = await leseBoard();
   const { cards, befunde, geaendert, ordnerDa } = await projekte.abgleich(aktuell.cards, { onStufe });
@@ -491,18 +488,6 @@ async function planCacheLesen() {
 }
 async function planCacheSchreiben(config) {
   try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(PLAN_FILE, JSON.stringify(config, null, 2), "utf8"); } catch { /* Cache ist Absicherung */ }
-}
-
-// --- Spalten: Drive ist Wahrheit, data/spalten.json nur Cache (v17b) ---------
-async function spaltenCacheLesen() {
-  try { return JSON.parse(await readFile(SPALTEN_FILE, "utf8")); } catch { return null; }
-}
-async function spaltenCacheSchreiben(config) {
-  try { await mkdir(DATA_DIR, { recursive: true }); await writeFile(SPALTEN_FILE, JSON.stringify(config, null, 2), "utf8"); } catch { /* Cache ist Absicherung */ }
-}
-// Den dynamischen Ordner-Resolver in projects.js mit dem aktuellen (gemischten) Spaltenstand fuettern.
-function spaltenResolverSetzen(gemischt) {
-  projekte.setSpalten(spaltenStore.ordnerMap(gemischt));
 }
 
 // --- kleine Helfer --------------------------------------------------------
@@ -584,9 +569,8 @@ async function handler(req, res) {
 
     if (pfad === "/api/board" && req.method === "GET") {
       const board = await leseBoard();
-      // Spalten kommen aus dem schnellen Cache (Drive fuehrt beim Abgleich). Fehlt der Cache,
-      // liefert mischeSpalten die Defaults (= PHASEN mit den aktuellen Anzeigenamen).
-      const spalten = pipeline.mischeSpalten(await spaltenCacheLesen());
+      // v87: Die Spalten stehen fest (PHASEN) — nicht mehr aus Drive/Cache.
+      const spalten = pipeline.spaltenDefault();
       // v81: Wann der Cache zuletzt geschrieben wurde — die Oberflaeche zeigt bis zum
       // Drive-Abgleich „Cache-Stand von <Zeit>" statt so zu tun, als sei das der Live-Stand.
       let cacheStand = null;
@@ -952,10 +936,8 @@ async function handler(req, res) {
       if (!id) { sendJson(res, 400, { error: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID.", satz: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID." }); return; }
       try {
         const p = await driveSetup.pruefeOrdner(id);
-        const satz = p.art === "leer" ? "Der Ordner ist leer — die Board-Struktur wird darin angelegt."
-          : p.art === "board" ? "Der Ordner enthaelt bereits eine Board-Struktur — sie wird uebernommen."
-          : "Der Ordner ist nicht leer und wurde nicht vom Board angelegt — bitte einen leeren Ordner waehlen.";
-        sendJson(res, 200, { id, art: p.art, ok: p.art !== "fremd", satz });
+        // v87: „falsch" = Board-Ordner mit unvollstaendiger/falscher Struktur -> abgelehnt, mit Grund.
+        sendJson(res, 200, { id, art: p.art, ok: p.art === "leer" || p.art === "board", satz: driveSetup.pruefSatz(p), fehler: p.fehler });
       } catch (e) {
         sendJson(res, 200, { id, art: "unerreichbar", ok: false, satz: e.message });
       }
@@ -1149,25 +1131,6 @@ async function handler(req, res) {
         schreib({ t: "error", error: e.message });
       }
       res.end();
-      return;
-    }
-
-    if (pfad === "/api/spalten/rename" && req.method === "POST") {
-      const { id, name } = JSON.parse(await readBody(req));
-      if (!id || !name || !name.trim()) {
-        sendJson(res, 400, { error: "id und name sind noetig." });
-        return;
-      }
-      try {
-        const driveConfig = await spaltenStore.leseVonDrive();
-        const gemischt = pipeline.mischeSpalten(driveConfig || (await spaltenCacheLesen()));
-        const neu = await spaltenStore.benenneUm(gemischt, id, name.trim());
-        await spaltenCacheSchreiben(spaltenStore.alsConfig(neu));
-        spaltenResolverSetzen(neu);
-        sendJson(res, 200, { ok: true, spalten: neu });
-      } catch (e) {
-        sendJson(res, 502, { error: e.message, satz: `Umbenennen fehlgeschlagen: ${e.message}` });
-      }
       return;
     }
 
@@ -1735,11 +1698,6 @@ setInterval(async () => {
 
 server.listen(PORT, async () => {
   console.log(`WEE Social Media Suit laeuft auf https://localhost:${PORT}`);
-  // Spalten-Resolver aus dem Cache setzen, damit Karten-Operationen schon vor dem ersten
-  // Abgleich die (evtl. umbenannten) Drive-Ordner treffen. Fehlt der Cache, greifen die Defaults.
-  try {
-    spaltenResolverSetzen(pipeline.mischeSpalten(await spaltenCacheLesen()));
-  } catch { /* Defaults greifen ohnehin */ }
   // v72: Ordner-Links der Drive-Marken vorwaermen (nacheinander, ein Aufruf je Ordner), damit der Klick sofort oeffnet
   (async () => { for (const rel of ["System (AI only)", "Kontext", "Videoauswertung/Auswertung-Tabellen"]) { try { await ordnerLinkId(rel); } catch { /* Beiwerk */ } } })();
   driveSetup.konto().catch(() => {}); // v63: Drive-Konto vorwaermen, damit "Externe Dienste" sofort den Stand zeigt

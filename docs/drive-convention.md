@@ -26,9 +26,8 @@ Dashboard kann ihn von dort zurueckholen.
 <Drive-Wurzel>/                           (Stand gemessen 30.09.2026, `rclone lsf -R`)
   In Bearbeitung/
     1 Idee/  2 Skript/  3 Videodreh/  4 Schnitt/  5 Caption/  6 Upload/
-                                          (die sechs Arbeitsphasen; Nummer = Board-Reihenfolge,
-                                          seit v85 — Drive sortiert sonst alphabetisch)
-      .phase                              Marker: stabile Phasen-ID des Spaltenordners
+                                          (die sechs Arbeitsphasen, FEST seit v87; Nummer =
+                                          Arbeitsreihenfolge — Drive sortiert sonst alphabetisch)
       <Projektordner>/                    liegt in GENAU einer Phase
         Steckbrief.md                     Klartext fuer Menschen: Phase, Zu tun, Termine (v85,
                                           vom Board geschrieben — Aenderungen hier ueberschrieben)
@@ -36,14 +35,14 @@ Dashboard kann ihn von dort zurueckholen.
         Skript und Caption/               00_recherche.md · 10_skript.md · 20_regieplan.md · 30_caption.md
         Rohmaterial/                      Rohclips
         Fertiges Video/                   geschnittenes Video
-  Videoauswertung/                        = Phase "Fertig" (+ .phase, KPI-Tabellen)
+  Videoauswertung/                        = Phase "Fertig" (+ KPI-Tabellen)
     <Projektordner>/
-  Verworfen/                              = Phase "Verworfen" (+ .phase)
+  Verworfen/                              = Phase "Verworfen"
   Papierkorb/                             geloeschte Projekte, mit Zeitstempel im Namen
   Kontext/
     _global/                              markenweite Infos, fliessen in jeden KI-Aufruf
     <Reihe>/                              reihenspezifische Infos
-  System (AI only)/                       spalten.json, redaktionsplan(.slots).json,
+  System (AI only)/                       LIESMICH.md, redaktionsplan(.slots).json,
                                           workflows.json, defaults.json, prompts.json,
                                           boardparameter.json
 ```
@@ -59,10 +58,25 @@ Umlaute bleiben, nur `\ / : * ? " < > | # %` fallen weg, Kuerzung an Wortgrenze 
 Bis v84: `<Reihe>_EP<NN>_<Thema>` als Slug ohne Leerzeichen, max. 32 Zeichen — bestehende
 Ordner behalten diesen Namen.
 
-**Spaltenordner** tragen die Board-Position vorn (`1 Idee`). Der Abgleich zieht die Nummer
-selbst nach, wenn sie fehlt oder nicht mehr zur Reihenfolge passt; der Anzeigename im Board
-bleibt ohne Nummer. Wer in Drive einen Spaltenordner umbenennt, benennt die Spalte im Board
-mit (der `.phase`-Marker haelt die Identitaet).
+## Die Struktur ist FEST [Owner, 30.09.2026, Paket v87]
+
+Anzahl, Funktion, Namen und Ordner der Spalten stehen in `PHASEN` (`lib/pipeline.js`) und
+passen sich NICHT an Drive an. Pflicht-Ordner: `In Bearbeitung/1 Idee` … `6 Upload`,
+`Videoauswertung`, `Verworfen`, `System (AI only)`. Die Nummer vorn ist die Arbeitsreihenfolge
+(Drive sortiert alphabetisch); im Board steht der Spaltenname ohne Nummer. Umbenennen von
+Spalten gibt es nicht mehr — weder im Board noch aus Drive heraus.
+
+- **Ordner wählen** (Einstellungen → Externe Dienste → Google Drive): leer → das Board legt die
+  Struktur an (mit `System (AI only)/LIESMICH.md`, die sie Menschen erklärt); vollständig →
+  wird geladen; ein Board-Ordner mit falscher Struktur → abgelehnt mit Satz, was fehlt oder
+  falsch heißt; fremder Ordner → abgelehnt.
+- **Jeder Abgleich** prüft die Struktur zuerst (`pruefeStruktur`, ein rclone-Aufruf). Passt sie
+  nicht (Ordner fehlt, umbenannt, unbekannter Ordner in „In Bearbeitung"), lädt das Board nichts
+  aus Drive, bleibt beim Cache („Cache-Stand" im Kopf) und nennt den Grund als Meldung und im
+  Drive-Protokoll. Das Board repariert die Struktur nicht selbst.
+- Liegt ein Projektordner in zwei Spalten zugleich, meldet der Abgleich das als Befund.
+- Übrig aus v17b–v85 und ohne Funktion: `.phase`-Marker in den Spaltenordnern und
+  `System (AI only)/spalten.json` — schadlos, dürfen gelöscht werden.
 
 **Wichtig:** Der Name entsteht beim Anlegen und lebt danach als `card.driveName` weiter. Er
 wird **nicht** bei jedem Zugriff neu aus dem Titel abgeleitet.

@@ -57,7 +57,7 @@ A, B und C. D nicht, E nicht. C nur für NEUE Projekte; bestehende Ordner bleibe
 4. [x] **C Klartext-Namen** (`lib/pipeline.js` `projektNameNeu`): Leerzeichen und Umlaute
    bleiben, nur in Windows/Drive unzulässige Zeichen fallen weg, Kürzung an Wortgrenze
    (≤ 60 Zeichen); mit Reihe: `<Reihe> EP<NN> – <Thema>`.
-5. [ ] Verify: Drive-Baum per `rclone lsf` vorher/nachher, Abgleich-Zeit live, Board-Screenshot
+5. [x] Verify: Drive-Baum per `rclone lsf` vorher/nachher, Abgleich-Zeit live, Board-Screenshot
    (Spaltennamen ohne Nummer, „In Drive öffnen" trifft), Steckbrief einer Karte gelesen.
 6. [x] `docs/drive-convention.md` Strukturbild + Namensregel nachführen.
 
@@ -114,11 +114,18 @@ Zeichen; alle `pfadstueckOk`; Karte mit driveName behält ihn.
 - **Aufräumen:** Wegwerf-Ordner `Papierkorb/_v85test umbenannt` (2 Testdateien) bleibt im
   Papierkorb-Ordner des Boards — löschen kann Ben ihn in Drive, wenn gewünscht.
 
+30.09.2026 16:1x — Live-Prüfung nach Bens Neustart (rclone direkt, nur lesend): In Bearbeitung
+= `1 Idee … 6 Upload`, kein alter Spaltenordner neu entstanden; 14 von 19 Projektordnern mit
+Steckbrief — die 5 ohne waren DOPPELTE Projektordner (Altlast, vor v85 entstanden): 3 leere
+Kopien in `1 Idee`, „Oberflächenspannung von Wasser" dreifach. Auf Owner-Entscheid aufgeräumt:
+Skript aus der Kopie in `2 Skript` in den aktuellen Ordner `4 Schnitt` verschoben, die 5 Kopien
+in den Drive-Papierkorb (30 Tage wiederherstellbar). Den Papierkorb-Ordner des Boards (11
+Einträge, ~60 KB, inkl. `_v85test umbenannt`) ebenfalls in den Drive-Papierkorb geleert.
+
+**Abgelöst durch v87:** Das „Nachziehen" der Nummern und das Folgen auf Umbenennungen aus
+Drive (Plan-Punkt 1) gibt es nicht mehr — die Struktur ist fest, der Abgleich prüft nur.
+
 ## Definition of Done
 
 Geprueft gegen: `rclone lsf -R` Vorher/Nachher, Abgleich-Zeit live, Board-Screenshot
-Offen:
-1. Board neu starten (Ben) — der erste Abgleich nummeriert die Spaltenordner, danach schreibt
-   der Hintergrund-Abgleich die Steckbriefe
-2. Live-Prüfung danach (Agent): `rclone lsf` Drive-Baum, Steckbrief lesen, Abgleich-Zeit,
-   Board-Screenshot (Spaltennamen ohne Nummer, „In Drive öffnen")
+Offen: nichts (Folgearbeit feste Struktur → Paket v87)
