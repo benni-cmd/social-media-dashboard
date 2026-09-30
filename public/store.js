@@ -209,6 +209,11 @@ export async function ladeBoard() {
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   S.live.cacheStand = daten.cacheStand || null;
   zeichne();
+  // v83: Der Drive-Abgleich startet sofort nach dem ersten Zeichnen und laeuft PARALLEL zu
+  // Workflows/Plan — vorher begann er erst nach dem ganzen Start (ueber 60 s gemessen) und die
+  // Kopf-Plakette stand solange auf „noch nicht live". Nach einem Fehlschlag nicht von selbst
+  // wiederholen (Klick auf die Plakette).
+  if (!S.live.board && !S.live.laeuft && !S.live.fehler) driveAbgleich().catch(() => {});
   await ladeWorkflows();
   pruefeAutoDreh();
   await schwebendeNeuBerechnen(); // v30: schwebende Karten bei jedem Laden neu verteilen
@@ -448,6 +453,7 @@ export function driveAbgleich() {
       return ergebnis;
     } catch (e) {
       S.live.fehler = e.message || String(e);
+      S.live.spalten = new Set(); // v83: Abgleich unvollstaendig -> die Kartendaten sind nicht bestaetigt, alles wieder als Cache zeigen
       throw e;
     } finally {
       S.live.laeuft = false;

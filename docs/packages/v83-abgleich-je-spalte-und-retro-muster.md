@@ -45,6 +45,12 @@ Nicht geprüft: Abgleich-Fehler mitten im Lauf (bereits gelesene Spalten bleiben
 
 30.09.2026 — Schritt 6 gebaut, hell + dunkel geprüft (Karte „Videodreh"): eine Regel für Aufklapp-Boxen — Farbkopf, 14 px Innenrand, Blöcke 10 px Abstand, nur die äußerste Box mit Schatten (Boxen in Boxen: 2-px-Kante, kein Schatten), „In Drive öffnen" einzeilig, Detail-Kopf bricht um statt zu quetschen. Textauswahl: nur eine Streichung ist sicher (Drive-Icon in der Einstellungs-Liste, weil jede Seite ihren Speicherort selbst nennt); weitere Erklärtexte nicht gestrichen, weil ich nicht jede Phase und Einstellungsseite gelesen habe.
 
+30.09.2026 (Nachtrag, Owner: „alles Offene nach deinen Empfehlungen") —
+1. Log im Kopf: laufende Aktion zeigt „läuft seit N s" (tickt jede Sekunde, `public/anschluesse.js`); im Browser gesehen („läuft seit 5 s", orange).
+2. Abgleich-Fehler: Fehlerfall über das geteilte Store-Modul provoziert — Plakette „Abgleich fehlgeschlagen", `S.live.spalten` leer, alle 8 Spaltenköpfe wieder Cache.
+3. Start-Abgleich parallel: startet jetzt ~0,5 s nach dem Laden. Messung: die erste Stufe („Spalten abgleichen") dauerte unter Last durch Plan-/Workflow-Lesezugriffe ~115 s statt 33 s allein, „live" nach ~150 s; einzelne rclone-Aufrufe bis 36 s. Der Gewinn ist NICHT belegt (Drive-Latenz schwankt); Alternative wäre, Plan-Zugriffe bis zum Abgleich-Ende zurückzustellen.
+4. `data/boardparameter.json` steht in `.gitignore`.
+
 ## Definition of Done
 
 Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`

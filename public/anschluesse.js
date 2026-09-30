@@ -114,6 +114,18 @@ function dauer(ms) {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`;
 }
 
+// v83: Eine noch laufende Aktion zeigt, wie lange sie schon laeuft — vorher stand die Dauer erst
+// nach dem Ende da. Der Takt unten aktualisiert nur den Text, baut die Liste nicht neu auf.
+function laufDauer(start) {
+  return `laeuft seit ${Math.max(0, Math.floor((Date.now() - start) / 1000))} s`;
+}
+setInterval(() => {
+  if (typeof document === "undefined") return;
+  for (const el of document.querySelectorAll(".anschluss-dauer-laeuft")) {
+    el.textContent = laufDauer(Number(el.dataset.start));
+  }
+}, 1000);
+
 function zeileHtml(e) {
   const links = e.laeuft
     ? `<span class="anschluss-zeile-icon">${icon("sanduhr")}</span>`
@@ -125,7 +137,9 @@ function zeileHtml(e) {
     `<span class="anschluss-dienst">${escape(e.dienst || "")}</span>` +
     `<span class="anschluss-text">${escape(e.text || "")}</span>` +
     `<span class="anschluss-ergebnis">${escape(e.ergebnis || "")}</span>` +
-    `<span class="anschluss-dauer">${escape(dauer(e.dauerMs))}</span>` +
+    (e.laeuft
+      ? `<span class="anschluss-dauer anschluss-dauer-laeuft" data-start="${e.zeit}">${escape(laufDauer(e.zeit))}</span>`
+      : `<span class="anschluss-dauer">${escape(dauer(e.dauerMs))}</span>`) +
     `</li>`
   );
 }
