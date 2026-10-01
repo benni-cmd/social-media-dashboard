@@ -275,7 +275,7 @@ function rollenAusBody(body) {
   if (body.rollenModelle && typeof body.rollenModelle === "object") return body.rollenModelle;
   const eine = {
     provider: body.provider || "ollama",
-    ollamaModel: body.ollamaModel || "llama3.2",
+    ollamaModel: body.ollamaModel || "qwen2.5",
     claudeModell: body.claudeModell || ki.CLAUDE_MODELL_STANDARD,
   };
   return { userkomm: eine, recherche: eine, kontext: eine };
@@ -307,7 +307,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
     .catch(() => ({ firmenkontext: "", projektkontext: "" }));
   const systemVorspann = await prompts.systemPrompt(firmenKontext);
   const rollen = rollenModelle || {};
-  const fallback = { provider: "ollama", ollamaModel: "llama3.2", claudeModell: ki.CLAUDE_MODELL_STANDARD };
+  const fallback = { provider: "ollama", ollamaModel: "qwen2.5", claudeModell: ki.CLAUDE_MODELL_STANDARD }; // v91: wird per loeseOllamaModell auf die installierte Groesse aufgeloest
 
   // v51: Waehrend ein kaltes Ollama-Modell laedt, kommt sekundenweise dieselbe Stufe mit
   // wachsender Sekundenzahl. Ohne das steht die Anzeige bis zu einer halben Minute still und

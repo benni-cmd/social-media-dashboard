@@ -596,7 +596,7 @@ export const ROLLEN_META = {
 
 // Defaults laut Owner (12.09.2026): Nutzer-Ausgabe ueber Claude/Abo, Recherche + Abgleich lokal.
 export const ROLLEN_DEFAULT = {
-  userkomm:  { provider: "claude", ollamaModel: "llama3.2",    claudeModell: "haiku" },
+  userkomm:  { provider: "claude", ollamaModel: "qwen2.5",     claudeModell: "haiku" }, // v91: llama3.2 war nie installiert
   recherche: { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
   kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
 };
