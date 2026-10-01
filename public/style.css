@@ -4498,3 +4498,12 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .einr-log-ok { color: var(--ok); font-weight: 700; }
 .einr-log-fehler { color: var(--befund); font-weight: 700; }
 .einr-log-zeit { margin-left: auto; font-size: 11px; color: var(--text-leise); }
+
+/* v97 — Veroeffentlicht: zugeordnete Posts und Vorschlaege an der Karte */
+.veroeff { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.veroeff-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.veroeff-zeile .icon { width: 14px; height: 14px; color: var(--ok); }
+.veroeff-zeile a, .veroeff-vorschlag a { color: var(--akzent); }
+.veroeff-art { color: var(--text-leise); font-size: 12px; margin-left: 4px; }
+.veroeff-vorschlag { border: 1px solid var(--hinweis); border-radius: var(--rund); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.veroeff-knoepfe { display: flex; gap: 8px; }

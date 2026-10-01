@@ -751,11 +751,22 @@ export async function slotBelegen(slotId, karteId) {
 // es bei jedem anderen Termin auch tun) — faelligkeit(), tore(), wochenlast(), Kalender und
 // KPI-Planung lesen dieselben Felder und brauchen keinen Sonderfall.
 export async function schwebendeNeuBerechnen() {
+  // v97: Ab der Spalte „Upload" oder wenn das Datum erreicht ist, steht der Termin fest — er darf nicht mehr
+  // wegrutschen, sonst passt die spaetere Zuordnung des echten Posts (Zeitvergleich) nicht mehr.
+  const heuteIso = isoDatum(new Date());
+  let festgeschrieben = false;
+  for (const c of S.cards) {
+    if (!c.floatUpload) continue;
+    const fest = phaseIndex(c.column) >= phaseIndex("upload") || ((c.dates || {}).upload && c.dates.upload <= heuteIso);
+    if (fest) { c.floatUpload = false; festgeschrieben = true; }
+  }
   const schwebend = S.cards
     .filter((c) => c.floatUpload && c.column !== "fertig" && c.column !== "verworfen")
     .sort((a, b) => phaseIndex(a.column) - phaseIndex(b.column)); // stabiler Sort (Array#sort)
-
-  if (!schwebend.length) return false;
+  if (!schwebend.length) {
+    if (festgeschrieben) speichere();
+    return festgeschrieben;
+  }
 
   const plan = await ladePlan();
 
@@ -768,15 +779,15 @@ export async function schwebendeNeuBerechnen() {
     // v89: Format der Karte + machbarer Vorlauf, dieselbe Regel wie Kachel und Kontextmenue.
     const { slot: frei } = naechsterFreierUpload({ plan, card: k, drehtermine: S.drehtermine, belegt });
     if (!frei) continue; // kein passender Slot — Datum bleibt stehen
-    belegt.add(slotSchluessel(frei.datum, frei.uhrzeit));
+    belegt.add(slotSchluessel(frei.datum, frei.typ));
     if (k.dates.upload !== frei.datum || (k.uploadTime || "") !== (frei.uhrzeit || "")) {
       k.dates = { ...terminplan(frei.datum), upload: frei.datum };
       k.uploadTime = frei.uhrzeit || "";
       geaendert = true;
     }
   }
-  if (geaendert) speichere();
-  return geaendert;
+  if (geaendert || festgeschrieben) speichere();
+  return geaendert || festgeschrieben;
 }
 
 // --- Drehtermine ----------------------------------------------------------

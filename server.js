@@ -39,6 +39,7 @@ import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as websuche from "./lib/websuche.js";
 import * as claudeAuth from "./lib/claudeauth.js"; // v86: Claude-CLI im Board anmelden
+import * as zuordnung from "./lib/zuordnung.js"; // v97: Posts -> Karten
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -190,6 +191,44 @@ async function envSchreiben(key, wert) {
 // Cache und spiegelt geaenderte Karten nach Drive.
 // Geschrieben wird ueber eine Zwischendatei und mit Versionsnummer: zwei offene Tabs
 // koennen sich damit nicht mehr gegenseitig ueberschreiben (Befund B12).
+
+// v97: Posts von Instagram/LinkedIn holen und den Karten zuordnen. Eindeutige Treffer (Format passt, hoechstens
+// 3 Std. neben dem geplanten Upload, keine Konkurrenz) werden eingetragen; alles andere wird ein Vorschlag an der
+// Karte, den der Mensch bestaetigt oder ablehnt. Geaenderte Karten gehen auch in ihre projekt.json (Drive-Wahrheit).
+async function zuordnungPruefen() {
+  const tokens = await leseTokens();
+  const posts = [];
+  if (tokens.instagram && tokens.instagram.accessToken)
+    posts.push(...zuordnung.postsAusInstagram(await social.instagramMedienListe(tokens.instagram)));
+  if (tokens.linkedin && tokens.linkedin.accessToken) {
+    try { posts.push(...zuordnung.postsAusLinkedin((await social.linkedinZahlen(tokens.linkedin)).posts || [])); } catch { /* LinkedIn optional */ }
+  }
+  if (!posts.length) return { auto: 0, vorschlaege: 0, posts: 0 };
+  const board = await leseBoard();
+  const { auto, vorschlaege } = zuordnung.ordneZu(board.cards, posts);
+  const geaendert = new Set();
+  for (const a of auto) {
+    const k = board.cards.find((c) => c.id === a.cardId);
+    k.published = { ...(k.published || {}), [a.plattform]: zuordnung.postEintrag(a.post, "auto", a.abweichungStunden) };
+    k.floatUpload = false; // veroeffentlicht = Datum steht fest
+    geaendert.add(k);
+  }
+  // Vorschlaege werden je Lauf neu gesetzt (alte, inzwischen zugeordnete fallen weg).
+  for (const k of board.cards) {
+    const neu = vorschlaege
+      .filter((v) => v.cardId === k.id && !((k.published || {})[v.plattform] || {}).id)
+      .map((v) => ({ plattform: v.plattform, post: zuordnung.postEintrag(v.post, "vorschlag"), grund: v.grund }));
+    if (JSON.stringify(neu) !== JSON.stringify(k.zuordnungVorschlag || [])) {
+      k.zuordnungVorschlag = neu;
+      geaendert.add(k);
+    }
+  }
+  if (geaendert.size) {
+    await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
+    for (const k of geaendert) if (k.driveName) projekte.spiegeleKarte(k).catch(() => {});
+  }
+  return { auto: auto.length, vorschlaege: vorschlaege.length, posts: posts.length };
+}
 
 async function leseBoard() {
   try {
@@ -1774,7 +1813,39 @@ async function handler(req, res) {
       return;
     }
 
+    // v97: veroeffentlichte Posts den Karten zuordnen (eindeutig -> automatisch, sonst Vorschlag).
+    if (pfad === "/api/zuordnung/pruefen" && req.method === "POST") {
+      try {
+        sendJson(res, 200, await zuordnungPruefen());
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+    // v97: Vorschlag bestaetigen (ja) oder ablehnen (nein — der Post wird dieser Karte nie wieder angeboten).
+    if (pfad === "/api/zuordnung/entscheiden" && req.method === "POST") {
+      const { cardId, plattform, postId, ja } = JSON.parse(await readBody(req));
+      const board = await leseBoard();
+      const k = board.cards.find((c) => c.id === cardId);
+      const v = k && (k.zuordnungVorschlag || []).find((x) => x.plattform === plattform && x.post.id === postId);
+      if (!v) { sendJson(res, 404, { error: "Vorschlag nicht gefunden." }); return; }
+      if (ja) {
+        k.published = { ...(k.published || {}), [plattform]: { ...v.post, zuordnung: "bestaetigt" } };
+        k.floatUpload = false;
+        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
+        // derselbe Post darf keiner anderen Karte mehr vorgeschlagen werden
+        for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
+      } else {
+        k.zuordnungAbgelehnt = [...new Set([...(k.zuordnungAbgelehnt || []), postId])];
+        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.post.id !== postId);
+      }
+      await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (pfad === "/api/kpi/collect" && req.method === "POST") {
+      await zuordnungPruefen().catch(() => {}); // v97: erst zuordnen, dann messen
       const board = await leseBoard();
       const tokens = await leseTokens();
       const ergebnis = await kpi.sammle(board.cards, tokens);
@@ -1894,6 +1965,9 @@ server.listen(PORT, async () => {
   // Faelligkeits-Logik steckt in kpi.sammle — der Aufruf ist selbst-gated und schreibt
   // Drive nur, wenn wirklich etwas erfasst wurde. Blockiert den Serverstart nicht.
   try {
+    // v97: erst Posts den Karten zuordnen — sonst hat keine Karte eine Post-ID und es wird nichts gemessen.
+    const z = await zuordnungPruefen().catch((e) => ({ fehler: e.message }));
+    if (z.auto || z.vorschlaege) console.log(`Zuordnung beim Start: ${z.auto} automatisch, ${z.vorschlaege} Vorschlag/Vorschlaege.`);
     const board = await leseBoard();
     const tokens = await leseTokens();
     const ergebnis = await kpi.sammle(board.cards, tokens);

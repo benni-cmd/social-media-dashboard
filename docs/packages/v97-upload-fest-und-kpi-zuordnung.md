@@ -47,11 +47,12 @@ vorhandene KPI-Messung startet ab der echten Post-Zeit.
 8. **Verify:** echte Daten — Bens Instagram hat 21 Posts (letzter 04.08.2026); Testkarte mit Datum eines echten Posts → automatische
    Zuordnung; zwei Karten am selben Tag → Vorschlag statt Automatik.
 
-## Offene Fragen an den Owner
+## Entscheidungen (Owner 01.10.2026)
 
-- **Q1 Toleranz:** Ab welchem Abstand zwischen geplantem und tatsächlichem Upload soll das Board NICHT mehr automatisch
-  zuordnen? Vorschlag: 36 Stunden (deckt „einen Tag später gepostet" ab, trennt Wochen-Rhythmus sicher).
-- **Q2 Automatik:** Eindeutige Treffer automatisch eintragen (Vorschlag) oder immer erst bestätigen lassen?
+- **Q1 Toleranz:** „nur wenige Stunden" → **3 Stunden**; das Format muss passen, damit Reel und Story am selben Tag unterscheidbar sind.
+- **Q2 Automatik:** eindeutige Treffer automatisch; „im Zweifel soll das Board nach Bestätigung der Zuordnung fragen".
+- **Redaktionsplan:** feste beste Tage und Uhrzeit; „darf variiert werden, um langfristig Daten zu sammeln und zu vergleichen" →
+  Wochentage fest, Uhrzeit wechselt wöchentlich zwischen den beiden belegten Fenstern der Hauptplattform (`lib/scheduler.js`).
 
 ## Berücksichtigt in
 
@@ -60,10 +61,21 @@ vorhandene KPI-Messung startet ab der echten Post-Zeit.
 
 ## Stand
 
-01.10.2026 — Befund belegt, Plan angelegt, noch nichts gebaut (Owner: „mindestens vormerken").
+01.10.2026 — gebaut und belegt.
+- `lib/zuordnung.js` (rein): Probe mit 25 echten Instagram-Posts — Reel-Karte 04.08. 13:00 ↔ Post 13:25 → automatisch (0,4 Std.);
+  Story-Karte am selben Tag bekommt den Reel-Post nicht (Format); zwei Reel-Karten 08:00/08:30 am 23.07. → beide Vorschlag;
+  Karte ohne Uhrzeit → Vorschlag; 3,5 Std. daneben → Vorschlag.
+- Server: `zuordnungPruefen()` (Start nach 60 s, vor dem KPI-Lauf; `/api/kpi/collect`; Knopf an der Karte), `/api/zuordnung/entscheiden`;
+  geänderte Karten auch in ihre `projekt.json`. Kopie :4399 mit Testkarten: `{"auto":1,"vorschlaege":1,"posts":21}`; „Ja, das ist er" → „von dir bestätigt".
+- Festschreiben: schwebende Karten ab Spalte „Upload" oder erreichtem Datum werden fest (`floatUpload=false`); zugeordnete ebenso.
+- KPI: `pruefeKarten` misst ab der echten Post-Zeit — Testkarten fällig 24h…1m bzw. 24h…2m (2-Monats-Messung beim 04.08. korrekt noch nicht fällig).
+- Belegt-Regel: ein Termin ist belegt nach Datum + Format (nicht Uhrzeit), damit die Uhrzeit-Variation keine Doppelbelegung erzeugt.
+
+Offen: Zuordnung von Hand aus einer Postliste (für Posts, die zeitlich zu keiner Karte passen); Wochenstatistik zählt „veröffentlicht"
+noch je Post statt je Karte; Bens echte Karten liegen alle nach dem letzten Instagram-Post (04.08.) — erste echte Zuordnung beim nächsten Upload.
 
 ## DoD
 
-- [ ] Karten ab „Upload" schweben nicht mehr; geplantes Datum unveränderlich gespeichert
-- [ ] Echte Instagram-Posts werden passenden Karten automatisch zugeordnet; Mehrdeutiges als Vorschlag
-- [ ] KPI-Messung läuft für zugeordnete Karten (erste Messung belegt)
+- [x] Karten ab „Upload" schweben nicht mehr; geplantes Datum unveränderlich gespeichert
+- [x] Echte Instagram-Posts werden passenden Karten automatisch zugeordnet; Mehrdeutiges als Vorschlag
+- [~] KPI-Messung läuft für zugeordnete Karten (erste Messung belegt)

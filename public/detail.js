@@ -67,6 +67,7 @@ import {
   stellschraube,
   terminplan,
   schwebendeNeuBerechnen,
+  ladeBoard,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -217,6 +218,10 @@ export function zeichneDetail(el) {
   const arbeit = blockPhase(k, toreListe, stand);
   if (arbeit && (!istIdee || (stammFertig && terminFertig))) koerper.appendChild(arbeit);
 
+  // --- Veroeffentlicht (v97): zugeordnete Posts und offene Vorschlaege ---
+  if (["upload", "fertig"].includes(k.column) || Object.keys(k.published || {}).length || (k.zuordnungVorschlag || []).length)
+    koerper.appendChild(blockVeroeffentlicht(k));
+
   // --- Drive ---
   koerper.appendChild(blockDrive(k, stand));
 
@@ -327,7 +332,7 @@ const merkeKlapp = (k, abschnitt) => (offen) => klappZustand.set(`${k.id}:${absc
 // bei einer Karte ueberhaupt erscheinen, haengt vom Kartenstand ab (z. B. "Termin" fehlt bei
 // einer frischen Idee) — nach Position gezaehlt haette derselbe Abschnitt je nach Karte eine
 // andere Farbe getragen.
-const ABSCHNITT_FARBE = { stamm: 1, termin: 2, dreh: 3, phase: 4, drive: 1, archiv: 2 };
+const ABSCHNITT_FARBE = { stamm: 1, termin: 2, dreh: 3, phase: 4, drive: 1, archiv: 2, veroeffentlicht: 3 };
 const gruppeMitFarbe = (abschnitt, ...args) => {
   const g = gruppe(...args);
   g.classList.add(`gruppe-c${ABSCHNITT_FARBE[abschnitt]}`);
@@ -470,6 +475,79 @@ function stammZusammenfassung(k) {
   bearbeiten.classList.add("knopf-inline");
   wrap.appendChild(bearbeiten);
   return wrap;
+}
+
+// v97: Welcher echte Post gehoert zu dieser Karte? Eindeutige Treffer traegt das Board selbst ein (hoechstens
+// 3 Std. neben dem geplanten Upload, Format passt); im Zweifel fragt es hier nach. Ab der Zuordnung laufen die
+// KPI-Messungen ab der echten Post-Zeit. Paket: docs/packages/v97-upload-fest-und-kpi-zuordnung.md
+function blockVeroeffentlicht(k) {
+  const g = gruppeMitFarbe("veroeffentlicht", "Veröffentlicht", null, offenFuer(k, "veroeffentlicht", true), merkeKlapp(k, "veroeffentlicht"));
+  const box = document.createElement("div");
+  box.className = "veroeff";
+  const zeit = (iso) => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+  const name = (pl) => ({ instagram: "Instagram", linkedin: "LinkedIn" }[pl] || pl);
+  const ART = { auto: "automatisch zugeordnet", bestaetigt: "von dir bestätigt", manuell: "von Hand" };
+
+  const eintraege = Object.entries(k.published || {}).filter(([, v]) => v && v.id);
+  for (const [pl, v] of eintraege) {
+    const messungen = ((k.kpiMessungen || {})[pl] || []).length;
+    const z = document.createElement("div");
+    z.className = "veroeff-zeile";
+    z.innerHTML =
+      `${icon("check")} <b>${escape(name(pl))}</b> · ${escape(zeit(v.zeit))}` +
+      (v.url ? ` · <a href="${escape(v.url)}" target="_blank" rel="noopener">Post öffnen</a>` : "") +
+      `<span class="veroeff-art">${escape(ART[v.zuordnung] || v.zuordnung || "")}` +
+      (v.abweichungStunden != null ? `, ${String(v.abweichungStunden).replace(".", ",")} Std. neben dem Plan` : "") +
+      ` · Messungen ${messungen}</span>`;
+    box.appendChild(z);
+  }
+
+  for (const v of k.zuordnungVorschlag || []) {
+    const z = document.createElement("div");
+    z.className = "veroeff-vorschlag";
+    z.innerHTML =
+      `<div><b>Ist das dieser Post?</b> ${escape(name(v.plattform))} · ${escape(zeit(v.post.zeit))}` +
+      (v.post.url ? ` · <a href="${escape(v.post.url)}" target="_blank" rel="noopener">ansehen</a>` : "") +
+      `<br><span class="veroeff-art">${escape(v.grund || "")}</span></div>`;
+    const entscheide = (ja) => async (e) => {
+      e.currentTarget.disabled = true;
+      await fetch("/api/zuordnung/entscheiden", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ cardId: k.id, plattform: v.plattform, postId: v.post.id, ja }),
+      });
+      await ladeBoard();
+      zeichne();
+    };
+    const reihe = document.createElement("div");
+    reihe.className = "veroeff-knoepfe";
+    reihe.appendChild(knopf("Ja, das ist er", { art: "haupt", klick: entscheide(true) }));
+    reihe.appendChild(knopf("Nein", { klick: entscheide(false) }));
+    z.appendChild(reihe);
+    box.appendChild(z);
+  }
+
+  if (!eintraege.length && !(k.zuordnungVorschlag || []).length) {
+    const leerSatz = document.createElement("p");
+    leerSatz.className = "veroeff-art";
+    leerSatz.textContent = "Noch kein Post zugeordnet. Das Board sucht beim Start und beim Zahlen-Holen selbst danach.";
+    box.appendChild(leerSatz);
+  }
+  const jetzt = knopf("Jetzt nach Posts suchen", {
+    zeichen: "neuladen",
+    klick: async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      b.textContent = "Sucht …";
+      const r = await (await fetch("/api/zuordnung/pruefen", { method: "POST" })).json().catch(() => ({}));
+      meldung(r.error ? `Suche fehlgeschlagen: ${r.error}` : `${r.posts || 0} Posts geprüft: ${r.auto || 0} zugeordnet, ${r.vorschlaege || 0} zum Bestätigen.`, r.error ? "fehler" : "erfolg");
+      await ladeBoard();
+      zeichne();
+    },
+  });
+  jetzt.classList.add("knopf-inline");
+  box.appendChild(jetzt);
+  g.appendChild(box);
+  return g;
 }
 
 function blockTermine(k, merke) {
