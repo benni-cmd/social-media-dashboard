@@ -1,4 +1,4 @@
-// Einstellungs-Tab „Board & Redaktionsplan" (v78): Inhaltskategorien und Ziele verwalten.
+// Einstellungs-Tab „Kategorien & Ziele" (v78, Name seit v99): Inhaltskategorien und Ziele verwalten.
 //
 // Wahrheit ist der Drive-Store (server: GET/PUT /api/boardparameter, lib/boardparamstore.js).
 // Hier nur die Verwaltung der LISTEN (Name/Beschreibung/Aktiv/Prioritaet bzw. Kennzahl); die
@@ -116,7 +116,7 @@ export async function zeichneBoardparameter(container) {
 
   const titel = document.createElement("div");
   titel.className = "einst-titel";
-  titel.textContent = "Board & Redaktionsplan";
+  titel.textContent = "Kategorien & Ziele";
   container.appendChild(titel);
 
   const hint = document.createElement("p");

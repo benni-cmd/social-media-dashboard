@@ -371,7 +371,7 @@ export async function zeichneKontext(ziel) {
     erklaerung.innerHTML =
       "Zwei Platzhalter stehen in jedem Prompt zur Verfuegung: <code>{{firmenkontext}}</code> und " +
       "<code>{{projektkontext}}</code>. Beide haengen ohne Zutun am Ende des System-Vorspanns; " +
-      "wer sie woanders haben will, schreibt sie im Tab „System Prompts“ an die gewuenschte " +
+      "wer sie woanders haben will, schreibt sie im Tab „Prompts“ an die gewuenschte " +
       `Stelle. Hoechstens ${(stand.zeichenMax || 0).toLocaleString("de-DE")} Zeichen je Block.`;
     fuss.appendChild(erklaerung);
 

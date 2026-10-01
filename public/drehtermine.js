@@ -184,7 +184,7 @@ function teilnehmerSektion(t, refresh) {
   org.className = "feld-hinweis";
   org.textContent = "Kalender: wird geladen …";
   kontoMail()
-    .then((m) => { org.textContent = m ? `Kalender von: ${m}` : "Kein Google-Konto verbunden — unter Einstellungen verbinden."; })
+    .then((m) => { org.textContent = m ? `Kalender von: ${m}` : "Kein Google-Konto verbunden — unter Einstellungen → Google verbinden."; })
     .catch(() => { org.textContent = ""; });
   wrap.appendChild(org);
 

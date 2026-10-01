@@ -290,3 +290,14 @@
   color: var(--text-still);
   font-size: 11px;
 }
+
+/* v99 — Gruppen-Ueberschriften in der Navigation (Board · Inhalte & KI · Verbindungen · System) */
+.einstellungen-modal .einst-nav-gruppe {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  padding: 14px 16px 4px;
+}
+.einstellungen-modal .einst-nav-gruppe:first-child { padding-top: 4px; }

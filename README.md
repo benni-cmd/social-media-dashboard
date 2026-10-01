@@ -58,12 +58,12 @@ Herkunft jeder Regel: [`docs/best-practices.md`](docs/best-practices.md).
 **Ampel an der Karte:** Punkt = Zeit bis zur dringlichsten Frist (rot ≤ 2 Tage oder überfällig, gelb
 3–5, grün ab 6; fest). Rotes **„!"** = Warnung (etwas ist falsch oder verstößt gegen eine Regel);
 gelber Kreis = Hinweis (etwas fehlt oder eine Empfehlung greift). Einzeln abschaltbar unter
-Einstellungen → Hinweise & Warnungen.
+Einstellungen → Mitteilungen.
 
 ## 3. Termine
 
 **Eine zentrale Deadline je Karte: das Upload-Datum.** Alle anderen Fristen hängen als Kette davor
-(Einstellungen → Ansicht → Deadline-Vorlauf; Standard):
+(Einstellungen → Termine & Fristen → Deadline-Vorlauf; Standard):
 
 | Schritt | liegt vor … | Standard |
 |---|---|---|
@@ -138,7 +138,7 @@ Die Rolle bestimmt das Modell:
 | Ollama | lokale KI | bleibt auf dem Rechner | Ollama-Dienst `localhost:11434` |
 | Instagram / LinkedIn | Quelle nur für Zahlen | Plattform → Board (lesen) | eigene Meta- bzw. LinkedIn-App |
 
-Einstellungen → Externe Dienste zeigt je Anbindung **Konto, Datenfluss, Anbindung und Zustand** (live /
+Einstellungen → Google, → Social Media und → KI-Rollen (Claude) zeigen je Anbindung **Konto, Datenfluss, Anbindung und Zustand** (live /
 gestört / abgelaufen, mit Grund und „zuletzt erfolgreich"). Eine von Google abgelehnte Anmeldung
 erscheint als „Anmeldung abgelaufen", nie als grün. Claude lässt sich dort direkt anmelden.
 

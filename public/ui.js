@@ -827,9 +827,9 @@ export async function ladeCursorModusVomServer() {
 
 // Tab -> Drive-Ordner, in dem seine Daten liegen (die Marke im Menue oeffnet ihn per Klick).
 const DRIVE_TABS = new Map([
-  ["Hinweise & Warnungen", "System (AI only)"],
+  ["Mitteilungen", "System (AI only)"],
   ["Unternehmenskontext", "Kontext"],
-  ["System Prompts", "System (AI only)"],
+  ["Prompts", "System (AI only)"],
 ]);
 
 // Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
@@ -842,16 +842,7 @@ export function einstellungenModal(onThemeChange) {
   // --- Navigation (links) ---
   const links = document.createElement("nav");
   links.className = "einst-nav";
-  const navItems = [];
-  for (const name of ["Darstellung", "Ansicht", "Hinweise & Warnungen", "KI-Rollen", "Externe Dienste", "Social Media Kanäle", "Unternehmenskontext", "System Prompts", "Board & Redaktionsplan"]) {
-    const btn = document.createElement("button");
-    btn.className = "einst-nav-item" + (name === "Darstellung" ? " aktiv" : "");
-    btn.textContent = name;
-    // Tabs, deren Inhalt in Drive liegt (Kontext, Prompts, Kartenmeldungen in defaults.json)
-    if (DRIVE_TABS.has(name)) btn.insertAdjacentHTML("beforeend", driveMarke(`Ordner „${DRIVE_TABS.get(name)}" in Google Drive öffnen`, DRIVE_TABS.get(name)));
-    links.appendChild(btn);
-    navItems.push(btn);
-  }
+  // v99: Die Tabs entstehen am Ende aus TABS (Gruppe, Name, Seite) — siehe „Tab-Switching".
 
   // --- Inhalt (rechts) ---
   const rechts = document.createElement("div");
@@ -859,7 +850,7 @@ export function einstellungenModal(onThemeChange) {
 
   // Seite 1: Darstellung
   const seite1 = document.createElement("div");
-  seite1.className = "einst-seite aktiv";
+  seite1.className = "einst-seite";
   const titel1 = document.createElement("div");
   titel1.className = "einst-titel";
   titel1.textContent = "Darstellung";
@@ -907,7 +898,7 @@ export function einstellungenModal(onThemeChange) {
   seiteAnsicht.className = "einst-seite";
   const titelAnsicht = document.createElement("div");
   titelAnsicht.className = "einst-titel";
-  titelAnsicht.textContent = "Ansicht";
+  titelAnsicht.textContent = "Termine & Fristen";
   seiteAnsicht.appendChild(titelAnsicht);
 
   const cursorAbschnitt = document.createElement("div");
@@ -1060,6 +1051,7 @@ export function einstellungenModal(onThemeChange) {
     "liegender Drehtermin ist nicht zuweisbar.";
   offsetKachel.appendChild(offsetPuffer);
   seiteAnsicht.appendChild(offsetKachel);
+  seiteAnsicht.appendChild(ampelAbschnitt); // v99: Einstellbares (Vorlauf) zuerst, feste Ampel-Regeln darunter
 
   // Seite Hinweise & Warnungen (v68): zwei Kacheln mit Checkbox-Listen; jeder Haken speichert
   // sofort (kein "Speichern"-Knopf) und die Karten zeichnen sich neu.
@@ -1067,7 +1059,7 @@ export function einstellungenModal(onThemeChange) {
   seiteMeldungen.className = "einst-seite";
   const titelMeldungen = document.createElement("div");
   titelMeldungen.className = "einst-titel";
-  titelMeldungen.textContent = "Hinweise & Warnungen";
+  titelMeldungen.textContent = "Mitteilungen";
   seiteMeldungen.appendChild(titelMeldungen);
   seiteMeldungen.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
 
@@ -1419,12 +1411,25 @@ export function einstellungenModal(onThemeChange) {
   seite3.className = "einst-seite";
   const titel3 = document.createElement("div");
   titel3.className = "einst-titel";
-  titel3.textContent = "Externe Dienste";
+  titel3.textContent = "Google";
   seite3.appendChild(titel3);
   const hint3 = document.createElement("p");
   hint3.className = "einst-provider-sub";
   hint3.textContent = "Alle Zugaenge bleiben lokal in .env — nichts davon landet auf GitHub.";
   seite3.appendChild(hint3);
+  // v99: Einrichtung + Zuruecksetzen haben eine eigene Seite (Gruppe „System") statt unter den Google-Diensten.
+  const seiteSystem = document.createElement("div");
+  seiteSystem.className = "einst-seite";
+  {
+    const t = document.createElement("div");
+    t.className = "einst-titel";
+    t.textContent = "Einrichtung";
+    seiteSystem.appendChild(t);
+    const p = document.createElement("p");
+    p.className = "einst-provider-sub";
+    p.textContent = "Der Assistent führt durch alles, was noch fehlt — er öffnet sich auch beim Start von selbst, solange etwas offen ist.";
+    seiteSystem.appendChild(p);
+  }
   // v91: der gefuehrte Durchlauf (Name, Google, Claude, lokale KI, Rollen, Kontext, Prompts, Plan).
   const einrKnopf = knopf("Einrichtung Schritt für Schritt starten", {
     zeichen: "weiter",
@@ -1434,7 +1439,7 @@ export function einstellungenModal(onThemeChange) {
     },
   });
   einrKnopf.classList.add("knopf-inline");
-  seite3.appendChild(einrKnopf);
+  seiteSystem.appendChild(einrKnopf);
 
   // v93: Board zuruecksetzen (Owner 01.10.2026) — fuer ein neues Projekt oder um die Einrichtung
   // sauber zu pruefen. Loest das Board vom Ordner; der Drive-Ordner selbst bleibt unberuehrt.
@@ -1474,7 +1479,7 @@ export function einstellungenModal(onThemeChange) {
     });
     k.classList.add("knopf-inline", "knopf-gefahr");
     ab.appendChild(k);
-    seite3.appendChild(ab);
+    seiteSystem.appendChild(ab);
   }
 
   const dienstRender = [];
@@ -1899,7 +1904,11 @@ export function einstellungenModal(onThemeChange) {
       "2. Redirect URI: <code>https://localhost:4321/api/auth/google/callback</code>. " +
       "3. Client-ID + Secret unten eintragen, Speichern, dann Verbinden. Scopes: Kalender + Tasks.",
   });
-  baueVerbindungsZeile(seite3, {
+  // v99: Claude-Anmeldung gehoert zu den KI-Rollen (oben), nicht zu den Google-Diensten.
+  const claudeHalter = document.createElement("div");
+  claudeHalter.className = "einst-abschnitt";
+  seite2.insertBefore(claudeHalter, titel2.nextSibling);
+  baueVerbindungsZeile(claudeHalter, {
     name: "Claude (KI-Texte)",
     statusKey: "claude", kontoFeld: "email", kontoLabel: "Konto",
     trennenPfad: "/api/auth/claude/trennen",
@@ -1910,7 +1919,7 @@ export function einstellungenModal(onThemeChange) {
   seite4.className = "einst-seite";
   const titel4 = document.createElement("div");
   titel4.className = "einst-titel";
-  titel4.textContent = "Social Media Kanäle";
+  titel4.textContent = "Social Media";
   seite4.appendChild(titel4);
   // v83: kein Einleitungssatz — „bleiben lokal in .env" steht schon auf der Seite „Externe Dienste".
 
@@ -1984,7 +1993,7 @@ export function einstellungenModal(onThemeChange) {
   seite5.className = "einst-seite";
   const titel5 = document.createElement("div");
   titel5.className = "einst-titel";
-  titel5.textContent = "System Prompts";
+  titel5.textContent = "Prompts";
   seite5.appendChild(titel5);
   seite5.appendChild(driveOrtZeile("Gespeichert in", "System (AI only)", "System (AI only)"));
   const hint5 = document.createElement("p");
@@ -2024,47 +2033,71 @@ export function einstellungenModal(onThemeChange) {
   seiteBoard.className = "einst-seite";
   seiteBoard.textContent = "Lade …";
 
-  rechts.appendChild(seite1);
-  rechts.appendChild(seiteAnsicht);
-  rechts.appendChild(seiteMeldungen);
-  rechts.appendChild(seite2);
-  rechts.appendChild(seite3);
-  rechts.appendChild(seite4);
-  rechts.appendChild(seite7);
-  rechts.appendChild(seite5);
-  rechts.appendChild(seiteBoard);
 
-  // --- Tab-Switching ---
-  // Reihenfolge deckungsgleich mit den Namen oben: Darstellung, Ansicht, KI-Rollen, Externe
-  // Dienste, Social Media Kanaele, Unternehmenskontext, System Prompts (v67: Ansicht neu an
-  // Index 1, alle folgenden Index-Pruefungen unten entsprechend verschoben).
-  // v68: "Hinweise & Warnungen" an Index 2, alle folgenden Index-Pruefungen unten verschoben.
-  const seiten = [seite1, seiteAnsicht, seiteMeldungen, seite2, seite3, seite4, seite7, seite5, seiteBoard];
+  // --- Tabs (v99) ---
+  // Owner 01.10.2026: „die Zuordnung links an die Tabs ist sinnlos". Gruppiert nach Thema, benannt nach Inhalt.
+  // Vorher hingen Tab und Seite an Positionsnummern (drei Umbauten verschoben „alle folgenden Index-Pruefungen").
   let kontextGeladen = false;
   let promptsGeladen = false;
   let boardparamGeladen = false;
-  navItems.forEach((btn, i) => {
-    btn.addEventListener("click", () => {
-      navItems.forEach((b) => b.classList.remove("aktiv"));
-      seiten.forEach((s) => s.classList.remove("aktiv"));
-      btn.classList.add("aktiv");
-      seiten[i].classList.add("aktiv");
-      // v29: Das Fenster hat fuer jeden Tab dieselbe Groesse (public/einstellungen.css).
-      // v41: Die Ollama-Modelle laedt jeder Rollen-Block selbst (baueRollenKonfig) — kein
-      // modal-weites ladeModelle mehr.
-      // Externe Dienste / Social Media Kanaele: Verbindungsstatus frisch holen
-      if (i === 4 || i === 5) ladeVerbStatus();
-      if (i === 6 && !kontextGeladen) {
-        kontextGeladen = true;
-        import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
-      }
-      if (i === 7 && !promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); }
-      if (i === 8 && !boardparamGeladen) {
+  const TABS = [
+    { gruppe: "Board", name: "Termine & Fristen", seite: seiteAnsicht },
+    { gruppe: "Board", name: "Mitteilungen", seite: seiteMeldungen },
+    {
+      gruppe: "Board", name: "Kategorien & Ziele", seite: seiteBoard,
+      beimOeffnen: () => {
+        if (boardparamGeladen) return;
         boardparamGeladen = true;
         import("./boardparameter.js").then((m) => m.zeichneBoardparameter(seiteBoard));
-      }
-    });
-  });
+      },
+    },
+    {
+      gruppe: "Inhalte & KI", name: "Unternehmenskontext", seite: seite7,
+      beimOeffnen: () => {
+        if (kontextGeladen) return;
+        kontextGeladen = true;
+        import("./kontext.js").then((m) => m.zeichneKontext(kontextListe));
+      },
+    },
+    {
+      gruppe: "Inhalte & KI", name: "Prompts", seite: seite5,
+      beimOeffnen: () => { if (!promptsGeladen) { promptsGeladen = true; zeichnePrompts(promptListe); } },
+    },
+    { gruppe: "Inhalte & KI", name: "KI-Rollen", seite: seite2, beimOeffnen: () => ladeVerbStatus() },
+    { gruppe: "Verbindungen", name: "Google", seite: seite3, beimOeffnen: () => ladeVerbStatus() },
+    { gruppe: "Verbindungen", name: "Social Media", seite: seite4, beimOeffnen: () => ladeVerbStatus() },
+    { gruppe: "System", name: "Darstellung", seite: seite1 },
+    { gruppe: "System", name: "Einrichtung", seite: seiteSystem },
+  ];
+  const navItems = [];
+  let gruppeVorher = null;
+  for (const tab of TABS) {
+    if (tab.gruppe !== gruppeVorher) {
+      const kopf = document.createElement("div");
+      kopf.className = "einst-nav-gruppe";
+      kopf.textContent = tab.gruppe;
+      links.appendChild(kopf);
+      gruppeVorher = tab.gruppe;
+    }
+    const btn = document.createElement("button");
+    btn.className = "einst-nav-item";
+    btn.textContent = tab.name;
+    // Tabs, deren Inhalt in Drive liegt (Kontext, Prompts, Kartenmeldungen in defaults.json)
+    if (DRIVE_TABS.has(tab.name)) btn.insertAdjacentHTML("beforeend", driveMarke(`Ordner „${DRIVE_TABS.get(tab.name)}" in Google Drive öffnen`, DRIVE_TABS.get(tab.name)));
+    links.appendChild(btn);
+    navItems.push(btn);
+    btn.addEventListener("click", () => zeigeTab(tab, btn));
+  }
+  function zeigeTab(tab, btn) {
+    navItems.forEach((b) => b.classList.remove("aktiv"));
+    TABS.forEach((t) => t.seite.classList.remove("aktiv"));
+    btn.classList.add("aktiv");
+    tab.seite.classList.add("aktiv");
+    // v29: Das Fenster hat fuer jeden Tab dieselbe Groesse (public/einstellungen.css).
+    if (tab.beimOeffnen) tab.beimOeffnen();
+  }
+  for (const tab of TABS) rechts.appendChild(tab.seite);
+  zeigeTab(TABS[0], navItems[0]);
 
   box.appendChild(links);
   box.appendChild(rechts);
