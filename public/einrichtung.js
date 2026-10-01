@@ -109,16 +109,24 @@ export async function leseStand() {
   ]);
   const ordnerOk = !!(driveE.root && driveE.erreichbar);
   // Was im Ordner liegt, nur lesen, wenn der Ordner erreichbar ist (sonst haengen die Aufrufe).
-  const [kontext, prompts] = ordnerOk
-    ? await Promise.all([sicher(holeJson("/api/kontext")), sicher(holeJson("/api/prompts"))])
-    : [{}, {}];
-  return { drive: driveE, verb, ollama, defaults, name, kontext, prompts, ordnerOk };
+  const [kontext, prompts, plan] = ordnerOk
+    ? await Promise.all([sicher(holeJson("/api/kontext")), sicher(holeJson("/api/prompts")), sicher(holeJson("/api/plan"))])
+    : [{}, {}, {}];
+  return { drive: driveE, verb, ollama, defaults, name, kontext, prompts, plan, ordnerOk };
 }
 
 const bestaetigtePrompts = (st) => (st.defaults && st.defaults.promptsBestaetigt) || {};
+// v96 (Owner 01.10.2026): erledigt ist ein Prompt, wenn sein Vorschlag einmal bestaetigt wurde ODER es eine eigene
+// Fassung gibt — nur dann kommt der Assistent nach einer sauberen Einrichtung nicht wieder.
+const hatEigenePrompt = (st, id) =>
+  id === "system" ? !!(st.prompts.system && st.prompts.system.eigen) : !!((st.prompts.aufgaben || []).find((a) => a.id === id) || {}).eigen;
 const offenePrompts = (st) => {
   const ids = new Set((st.prompts.aufgaben || []).map((a) => a.id));
-  return PROMPT_REIHE.filter(([id]) => (id === "system" || ids.has(id)) && !bestaetigtePrompts(st)[id]);
+  return PROMPT_REIHE.filter(([id]) => (id === "system" || ids.has(id)) && !bestaetigtePrompts(st)[id] && !hatEigenePrompt(st, id));
+};
+// Rollen: im Board gespeichert ODER schon einmal in Einstellungen → KI-Rollen gewaehlt (Browser-Speicher).
+const hatEigeneRollen = () => {
+  try { return Object.keys(localStorage).some((k) => k.startsWith("cm-rolle-")); } catch { return false; }
 };
 const modellDa = (st, m) => (st.ollama.modelle || []).some((x) => x.name === m || x.name.startsWith(m + ":"));
 
@@ -150,7 +158,7 @@ const SCHRITTE = [
     id: "name",
     titel: "Wie heißt dieses Board?",
     satz: "Der Name ist der Name des Drive-Ordners — beides ist dasselbe. Er steht oben links und im Browser-Tab.",
-    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.nameBestaetigt }),
+    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.nameBestaetigt && !(st.name && st.name.name) }),
     baue: baueName,
   },
   {
@@ -169,8 +177,9 @@ const SCHRITTE = [
     titel: "Lokale KI (Ollama)",
     satz: "Recherche und Kontextabgleich laufen kostenlos auf diesem Rechner. Dafür braucht es Ollama und die passenden Modelle.",
     pruefe: (st) => {
-      const lokal = st.defaults.kiRollen
-        ? Object.values(st.defaults.kiRollen).filter((r) => r && r.provider === "ollama")
+      const rollen = st.defaults.kiRollen || (hatEigeneRollen() ? Object.fromEntries(["userkomm", "recherche", "kontext"].map((r) => [r, rolleKonfig(r)])) : null);
+      const lokal = rollen
+        ? Object.values(rollen).filter((r) => r && r.provider === "ollama")
         : Object.values(EMPFEHLUNG).map((e) => ({ ollamaModel: e.modell }));
       return { fehlt: lokal.length > 0 && (!st.ollama.laeuft || lokal.some((r) => !modellDa(st, r.ollamaModel))) };
     },
@@ -181,7 +190,7 @@ const SCHRITTE = [
     id: "rollen",
     titel: "KI-Rollen verteilen",
     satz: "Jede KI-Aufgabe läuft über das Modell ihrer Rolle. Der Vorschlag ist vorausgewählt; gespeichert wird im Board.",
-    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.kiRollen }),
+    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.kiRollen && !hatEigeneRollen() }),
     baue: baueRollen,
   },
   {
@@ -202,7 +211,8 @@ const SCHRITTE = [
     id: "plan",
     titel: "Redaktionsplan",
     satz: "Wie oft soll was erscheinen? Danach richten sich die vorgeschlagenen Upload-Termine und die Wochenprüfung oben im Board.",
-    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.planBestaetigt }),
+    // Plan: bestaetigt ODER vom Standard abweichend (= eigene Eingabe; /api/plan liefert istStandard).
+    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.planBestaetigt && !(st.plan && st.plan.istStandard === false) }),
     baue: bauePlan,
   },
   {
@@ -741,7 +751,6 @@ function bauePrompts(el, { st, setzeWeiter }) {
     const [id, wozu] = reihe[i];
     const a = id === "system" ? p.system : nachId[id];
     const vorschlag = id === "system" ? [a.vorlage || ""] : (a.standard || []).map((s) => s.prompt || "");
-    const eigen = id === "system" ? (a.eigen ? [a.eigen] : null) : a.eigen ? (a.schritte || []).map((s) => s.prompt || "") : null;
     const schritteInfo = id === "system" ? [{ rolle: "userkomm" }] : (a.standard || []);
 
     el.appendChild(absatz(
@@ -749,20 +758,8 @@ function bauePrompts(el, { st, setzeWeiter }) {
       `<b class="einr-prompt-name">${escape(a.name || id)}</b><br>${escape(wozu)}` +
       (a.knopf || a.ort ? `<br><span class="einr-feld-hilfe">Knopf: ${escape(a.knopf || "—")} · Ort: ${escape(a.ort || "—")}</span>` : "")));
 
-    // Eigene Fassung vorhanden → sie ist vorausgewaehlt; ein schnelles „Weiter" ueberschreibt nichts.
-    const texte = vorschlag.map((v, j) => textfeld(eigen ? eigen[j] ?? eigen[0] ?? v : v, id === "system" ? 12 : 9));
-    if (eigen) {
-      const wahl = document.createElement("div");
-      wahl.className = "einr-wahl";
-      wahl.innerHTML =
-        `<label><input type="radio" name="pw" value="e" checked> Meine bisherige Fassung</label>` +
-        `<label><input type="radio" name="pw" value="v"> Vorschlag übernehmen</label>`;
-      wahl.addEventListener("change", (e) => {
-        const quelle = e.target.value === "e" ? eigen : vorschlag;
-        texte.forEach((t, j) => (t.value = quelle[j] ?? quelle[0] ?? ""));
-      });
-      el.appendChild(feldBlock("Du hast diesen Prompt schon angepasst", wahl, "Wähle, womit du weitermachst — beides lässt sich im Feld noch ändern."));
-    }
+    // Hier landen nur Prompts ohne eigene Fassung (v96) — das Feld zeigt den Vorschlag zum Uebernehmen oder Anpassen.
+    const texte = vorschlag.map((v) => textfeld(v, id === "system" ? 12 : 9));
     texte.forEach((t, j) => {
       const s = schritteInfo[j] || {};
       const label = id === "system" ? "System-Vorspann (Vorschlag)" : `${texte.length > 1 ? `Schritt ${j + 1} · ` : ""}${rolleName[s.rolle] || s.rolle || ""}${s.websuche ? " · mit Web-Suche" : ""}`;
@@ -776,16 +773,12 @@ function bauePrompts(el, { st, setzeWeiter }) {
     el.appendChild(warn);
 
     setzeWeiter(async () => {
-      // v94: Entwurf. Geschrieben wird nur, was sich gegenueber dem Gespeicherten aendert:
-      // Vorschlag ohne eigene Fassung = nichts zu schreiben; unveraenderte eigene Fassung = nichts zu schreiben.
+      // v94: Entwurf. Unveraenderter Vorschlag = nichts zu schreiben (nur bestaetigen); angepasst = eigene Fassung.
       const istVorschlag = texte.every((t, j) => t.value === vorschlag[j]);
-      const istEigen = !!eigen && texte.every((t, j) => t.value === (eigen[j] ?? eigen[0]));
       const e = leseEntwurf();
       const promptsNeu = { ...(e.prompts || {}) };
-      if (istVorschlag && eigen) promptsNeu[id] = id === "system" ? "" : []; // eigene Fassung -> zurueck auf Standard
-      else if (!istVorschlag && !istEigen)
-        promptsNeu[id] = id === "system" ? texte[0].value : (a.standard || []).map((s, j) => ({ ...s, prompt: texte[j].value }));
-      else delete promptsNeu[id];
+      if (istVorschlag) delete promptsNeu[id];
+      else promptsNeu[id] = id === "system" ? texte[0].value : (a.standard || []).map((s, j) => ({ ...s, prompt: texte[j].value }));
       setzeEntwurf({ prompts: promptsNeu, promptsBestaetigt: { ...(e.promptsBestaetigt || {}), [id]: true } });
       if (i < reihe.length - 1) { i++; zeichneEinen(); return false; } // naechster Prompt, Schritt bleibt
       return true;

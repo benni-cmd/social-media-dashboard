@@ -691,13 +691,17 @@ async function handler(req, res) {
         planAbgleich.hinweis = `Drive war nicht erreichbar — Redaktionsplan aus dem lokalen Cache. (${driveFehler.code ?? "?"}: ${driveFehler.message})`;
         planAbgleich.fehler = driveFehler;
       }
-      sendJson(res, 200, { ...config, planAbgleich, quelle });
+      // v96: Einrichtung — ein Plan, der vom Standard abweicht, ist eine eigene Eingabe (Schritt erledigt).
+      const vergleich = (p) => JSON.stringify({ t: p.typenmix, pl: p.plattformen, k: p.kadenz, m: p.maxAbstandTage || 0 });
+      const istStandard = vergleich(config) === vergleich(pipeline.defaultPlan());
+      sendJson(res, 200, { ...config, planAbgleich, quelle, istStandard });
       return;
     }
 
     if (pfad === "/api/plan" && req.method === "PUT") {
       const config = nurPlanConfig(JSON.parse(await readBody(req)));
       await planCacheSchreiben(config); // Cache zuerst — der Speichern-Weg haengt nie an Drive
+      defaultsStore.mische({ planBestaetigt: true }).catch(() => {}); // v96: Speichern = bestaetigt (Einrichtung)
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
       try {
         await planstore.schreibeConfigNachDrive(config);
