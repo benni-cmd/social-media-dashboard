@@ -116,7 +116,7 @@ Die Rolle bestimmt das Modell:
   gewählter Fokus, gesprochener und Bild-Hook, recherchierte Fakten und Suchbegriffe, das aktuelle Skript und
   bisherige Format-Ergebnisse (z. B. bekommt „Visual je Slide" die Slides aus „Slider aufbauen"; Caption und
   Regieplan bekommen das Skript).
-- **Firmenkontext** (Einstellungen → Unternehmenskontext): Text + Dateien aus `Kontext/_global/`; geht
+- **Firmenkontext** (Einstellungen → Unternehmenskontext, gespeichert in Drive `System (AI only)/kontext.json`): Text + Dateien aus `Kontext/_global/`; geht
   in jeden Prompt. Kein Standard — die Einrichtung fragt ihn ab.
 - **Web-Suche:** DuckDuckGo ohne Schlüssel; optional Tavily (`TAVILY_API_KEY`).
 - Lokale Modellnamen ohne Größe (`deepseek-r1`) löst das Board auf das installierte Modell auf.

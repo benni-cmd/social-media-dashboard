@@ -9,11 +9,53 @@
 // Jeder Schritt hat pruefe(stand) → { fehlt, gesperrt } und baue(el, ctx). Der Stand wird vor dem
 // Start und nach jedem Schritt frisch gelesen, damit „fehlt" immer der Wirklichkeit entspricht.
 
-import { S, rolleKonfig, setzeRolleKonfig, speichereDefaults } from "./store.js";
+import { rolleKonfig } from "./store.js";
 import { knopf, eingabe, textfeld, escape, sanduhr, modalX } from "./ui.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 
 const MERKER = "cm-einrichtung-schritt"; // Rueckkehr nach Google-Anmeldung oder Ordnerwechsel (Neuladen)
+
+// v94 (Owner 01.10.2026): Eingaben landen erst im ENTWURF (Browser-Zwischenspeicher) — „Weiter" ist sofort.
+// Am Ende schreibt „Speichern und loslegen" alles in einem Durchgang nach Drive, mit Log je Teil.
+// Form: { name?, nameBestaetigt?, kiRollen?, firma?, prompts?: {id: wert}, promptsBestaetigt?: {id: true}, planBestaetigt? }
+const ENTWURF = "cm-einrichtung-entwurf";
+export function leseEntwurf() {
+  try { return JSON.parse(localStorage.getItem(ENTWURF) || "{}") || {}; } catch { return {}; }
+}
+function setzeEntwurf(teil) {
+  const e = { ...leseEntwurf(), ...teil };
+  try { localStorage.setItem(ENTWURF, JSON.stringify(e)); } catch {}
+  return e;
+}
+function entwurfOhne(keys) {
+  const e = leseEntwurf();
+  for (const k of keys) delete e[k];
+  try {
+    if (Object.keys(e).length) localStorage.setItem(ENTWURF, JSON.stringify(e));
+    else localStorage.removeItem(ENTWURF);
+  } catch {}
+}
+const entwurfTeile = (e = leseEntwurf()) => [
+  e.name ? `Name „${e.name}“` : null,
+  e.kiRollen ? "KI-Rollen" : null,
+  typeof e.firma === "string" ? "Firmenkontext" : null,
+  e.prompts && Object.keys(e.prompts).length ? `${Object.keys(e.prompts).length} ${Object.keys(e.prompts).length === 1 ? "geänderter Prompt" : "geänderte Prompts"}` : null,
+  e.promptsBestaetigt && Object.keys(e.promptsBestaetigt).length ? `${Object.keys(e.promptsBestaetigt).length} ${Object.keys(e.promptsBestaetigt).length === 1 ? "Prompt" : "Prompts"} bestätigt` : null,
+  e.planBestaetigt ? "Redaktionsplan bestätigt" : null,
+].filter(Boolean);
+
+// Gespeicherter Stand + Entwurf = was der Assistent als erledigt zaehlt.
+function wirksam(st) {
+  const e = leseEntwurf();
+  const defaults = { ...(st.defaults || {}) };
+  if (e.nameBestaetigt) defaults.nameBestaetigt = true;
+  if (e.kiRollen) defaults.kiRollen = e.kiRollen;
+  if (e.planBestaetigt) defaults.planBestaetigt = true;
+  if (e.promptsBestaetigt) defaults.promptsBestaetigt = { ...(defaults.promptsBestaetigt || {}), ...e.promptsBestaetigt };
+  const kontext = typeof e.firma === "string" ? { ...st.kontext, firma: { ...((st.kontext || {}).firma || {}), text: e.firma } } : st.kontext;
+  const name = e.name ? { ...st.name, name: e.name } : st.name;
+  return { ...st, defaults, kontext, name };
+}
 
 const EMPFEHLUNG = {
   recherche: { modell: "deepseek-r1:14b", warum: "denkt gruendlich nach, bevor es antwortet — gut fuer Recherche, dafuer langsamer" },
@@ -78,7 +120,6 @@ const offenePrompts = (st) => {
   const ids = new Set((st.prompts.aufgaben || []).map((a) => a.id));
   return PROMPT_REIHE.filter(([id]) => (id === "system" || ids.has(id)) && !bestaetigtePrompts(st)[id]);
 };
-const lokaleRollen = () => ["userkomm", "recherche", "kontext"].map((r) => rolleKonfig(r)).filter((x) => x.provider === "ollama");
 const modellDa = (st, m) => (st.ollama.modelle || []).some((x) => x.name === m || x.name.startsWith(m + ":"));
 
 // --- Schritte (Reihenfolge = Abhaengigkeiten) ---------------------------------
@@ -92,6 +133,11 @@ const SCHRITTE = [
     satz: "Das Board speichert alles in einem Google-Drive-Ordner. Dafür braucht es eine Verbindung zu deinem Drive-Konto (über das Programm rclone).",
     pruefe: (st) => ({ fehlt: !st.drive.rclone || !st.drive.verbindung || (!!st.drive.root && !st.drive.erreichbar) }),
     baue: baueDrive,
+    // v94: nach „Weiter" nur das neu pruefen, was dieser Schritt aendern kann — nicht den ganzen Stand.
+    nachpruefen: async (st) => {
+      st.drive = await holeJson("/api/drive/einrichtung");
+      st.ordnerOk = !!(st.drive.root && st.drive.erreichbar);
+    },
   },
   {
     id: "ordner",
@@ -113,16 +159,23 @@ const SCHRITTE = [
     satz: "Claude schreibt die Texte, die du später siehst (Hooks, Skript, Caption) — über dein Claude-Abo auf diesem Rechner, ohne API-Kosten.",
     pruefe: (st) => ({ fehlt: !(st.verb.claude && st.verb.claude.verbunden) }),
     baue: baueClaude,
+    nachpruefen: async (st) => {
+      const c = await holeJson("/api/auth/claude/status");
+      st.verb = { ...st.verb, claude: { ...(st.verb.claude || {}), verbunden: !!c.loggedIn, email: c.email || "" } };
+    },
   },
   {
     id: "ollama",
     titel: "Lokale KI (Ollama)",
     satz: "Recherche und Kontextabgleich laufen kostenlos auf diesem Rechner. Dafür braucht es Ollama und die passenden Modelle.",
     pruefe: (st) => {
-      const lokal = st.defaults.kiRollen ? lokaleRollen() : Object.values(EMPFEHLUNG).map((e) => ({ ollamaModel: e.modell }));
+      const lokal = st.defaults.kiRollen
+        ? Object.values(st.defaults.kiRollen).filter((r) => r && r.provider === "ollama")
+        : Object.values(EMPFEHLUNG).map((e) => ({ ollamaModel: e.modell }));
       return { fehlt: lokal.length > 0 && (!st.ollama.laeuft || lokal.some((r) => !modellDa(st, r.ollamaModel))) };
     },
     baue: baueOllama,
+    nachpruefen: async (st) => { st.ollama = await holeJson("/api/ai/ollama"); },
   },
   {
     id: "rollen",
@@ -158,20 +211,22 @@ const SCHRITTE = [
     satz: "Das Board trägt jeden Drehtermin als Termin in deinen Google-Kalender und als Aufgabe in Google Tasks ein. Es liest nichts zurück.",
     pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !(st.verb.google && st.verb.google.zustand === "live") }),
     baue: baueGoogle,
+    nachpruefen: async (st) => { st.verb = await holeJson("/api/verbindungen/status"); },
   },
 ];
 
-// Welche Schritte sind offen? (fuer den Start-Check in app.js)
+// Welche Schritte sind offen? (Stand + Entwurf)
 export function offeneSchritte(st) {
-  return SCHRITTE.map((s) => ({ s, ...s.pruefe(st) })).filter((x) => x.fehlt || x.gesperrt);
+  const w = wirksam(st);
+  return SCHRITTE.map((s) => ({ s, ...s.pruefe(w) })).filter((x) => x.fehlt || x.gesperrt);
 }
 
-// Beim Start: Stand lesen; fehlt etwas, Assistent oeffnen (ab dem ersten offenen Schritt).
+// Beim Start: Stand lesen; fehlt etwas ODER liegt ein ungespeicherter Entwurf vor, Assistent oeffnen.
 export async function einrichtungBeimStart() {
   let merker = null;
   try { merker = localStorage.getItem(MERKER); } catch {}
   const st = await leseStand();
-  if (merker === null && !offeneSchritte(st).length) return;
+  if (merker === null && !offeneSchritte(st).length && !entwurfTeile().length) return;
   starteEinrichtung(st);
 }
 
@@ -198,12 +253,13 @@ export async function starteEinrichtung(stand = null) {
   const spaeter = new Set(); // in DIESER Sitzung uebersprungen
   let st = stand;
   let weiterAktion = null;
+  const eff = () => wirksam(st);
   const schliessen = () => {
     try { localStorage.removeItem(MERKER); } catch {}
     overlay.remove();
   };
-  // Schliessen = fuer diese Sitzung. Beim naechsten Start kommt der Assistent wieder, solange etwas fehlt.
-  box.appendChild(modalX(() => schliessen(), "Für diese Sitzung schließen — beim nächsten Start geht es hier weiter"));
+  // Schliessen = fuer diese Sitzung; der Entwurf bleibt erhalten, beim naechsten Start geht es weiter.
+  box.appendChild(modalX(() => schliessen(), "Für diese Sitzung schließen — Eingaben bleiben im Entwurf, beim nächsten Start geht es weiter"));
 
   async function neuLesen(text = "Prüfe, was schon eingerichtet ist …") {
     inhalt.innerHTML = "";
@@ -214,27 +270,39 @@ export async function starteEinrichtung(stand = null) {
 
   // Naechster offener, nicht gesperrter, nicht uebersprungener Schritt ab Index `ab`.
   function naechster(ab = 0) {
+    const w = eff();
     for (let i = ab; i < SCHRITTE.length; i++) {
-      const p = SCHRITTE[i].pruefe(st);
+      const p = SCHRITTE[i].pruefe(w);
       if (p.fehlt && !p.gesperrt && !spaeter.has(SCHRITTE[i].id)) return i;
     }
     return -1;
   }
 
   function zeichneLeiste(aktiv) {
+    const w = eff();
     leiste.innerHTML = SCHRITTE.map((x, j) => {
-      const p = x.pruefe(st);
+      const p = x.pruefe(w);
       const art = j === aktiv ? "aktiv" : p.gesperrt ? "gesperrt" : !p.fehlt ? "ok" : spaeter.has(x.id) ? "weg" : "";
       const titel = `${x.titel}${p.gesperrt ? ` — ${p.gesperrt}` : !p.fehlt ? " — erledigt" : ""}`;
       return `<span class="einr-punkt ${art}" title="${escape(titel)}"></span>`;
     }).join("");
   }
 
+  // Links in der Fusszeile: was im Entwurf liegt (noch nicht in Drive).
+  function entwurfHinweis() {
+    const t = entwurfTeile();
+    const d = document.createElement("div");
+    d.className = "einr-entwurf";
+    d.textContent = t.length ? `Im Entwurf: ${t.join(" · ")} — wird am Ende gespeichert` : "";
+    return d;
+  }
+
   async function zeige(i) {
     if (i < 0) return zeigeAbschluss();
     const s = SCHRITTE[i];
     try { localStorage.setItem(MERKER, s.id); } catch {}
-    const offen = SCHRITTE.filter((x) => x.pruefe(st).fehlt).length;
+    const w = eff();
+    const offen = SCHRITTE.filter((x) => x.pruefe(w).fehlt).length;
     kopf.innerHTML =
       `<div class="einr-zaehler">Einrichtung · Schritt ${i + 1} von ${SCHRITTE.length} · noch ${offen} offen</div>` +
       `<div class="einr-titel">${escape(s.titel)}</div>` +
@@ -242,9 +310,10 @@ export async function starteEinrichtung(stand = null) {
     zeichneLeiste(i);
     inhalt.innerHTML = "";
     weiterAktion = null;
-    s.baue(inhalt, { st, setzeWeiter: (f) => (weiterAktion = f), schliessen });
+    s.baue(inhalt, { st: w, setzeWeiter: (f) => (weiterAktion = f), schliessen });
 
     fuss.innerHTML = "";
+    fuss.appendChild(entwurfHinweis());
     const rechts = document.createElement("div");
     rechts.className = "einr-fuss-rechts";
     rechts.appendChild(knopf("Später", {
@@ -259,9 +328,12 @@ export async function starteEinrichtung(stand = null) {
         try {
           const ok = weiterAktion ? await weiterAktion() : true;
           if (ok === false) return;
-          await neuLesen();
-          // Ist der Schritt immer noch offen (z. B. Anmeldung nicht abgeschlossen), bleibt man dort.
-          const nochOffen = s.pruefe(st).fehlt && !spaeter.has(s.id);
+          // Live-Schritte (Drive, Claude, Ollama, Google) pruefen nur sich selbst, sichtbar am Knopf.
+          if (s.nachpruefen) {
+            b.textContent = "Prüfe …";
+            await s.nachpruefen(st).catch(() => {});
+          }
+          const nochOffen = s.pruefe(eff()).fehlt && !spaeter.has(s.id);
           zeige(nochOffen ? i : naechster(0));
         } finally { b.disabled = false; }
       },
@@ -269,32 +341,57 @@ export async function starteEinrichtung(stand = null) {
     fuss.appendChild(rechts);
   }
 
-  function zeigeAbschluss() {
+  // altLog: das Speicher-Log des gerade gelaufenen Durchgangs bleibt nach dem Neuzeichnen stehen.
+  function zeigeAbschluss(altLog = null) {
     try { localStorage.removeItem(MERKER); } catch {}
     zeichneLeiste(-1);
+    const w = eff();
     const offen = offeneSchritte(st);
+    const teile = entwurfTeile();
     kopf.innerHTML =
       `<div class="einr-zaehler">Einrichtung · Stand</div>` +
-      `<div class="einr-titel">${offen.length ? "Fast fertig" : "Alles eingerichtet"}</div>` +
-      `<p class="einr-satz">${offen.length ? "Übersprungenes fragt der Assistent beim nächsten Start wieder ab." : "Das Board ist vollständig eingerichtet."}</p>`;
+      `<div class="einr-titel">${teile.length ? "Speichern und loslegen" : offen.length ? "Fast fertig" : "Alles eingerichtet"}</div>` +
+      `<p class="einr-satz">${teile.length
+        ? "Deine Eingaben liegen noch im Entwurf. Ein Klick schreibt sie nacheinander nach Drive — das Log zeigt jeden Teil."
+        : offen.length ? "Übersprungenes fragt der Assistent beim nächsten Start wieder ab." : "Das Board ist vollständig eingerichtet."}</p>`;
     inhalt.innerHTML = "";
     const zeilen = SCHRITTE.map((s) => {
-      const p = s.pruefe(st);
-      const zeichen = !p.fehlt && !p.gesperrt ? "✓" : "○";
+      const p = s.pruefe(w);
+      const erledigt = !p.fehlt && !p.gesperrt;
       const grund = p.gesperrt ? ` — ${p.gesperrt}` : p.fehlt ? " — noch offen" : "";
-      return `<li class="${!p.fehlt && !p.gesperrt ? "ok" : "weg"}">${zeichen} ${escape(s.titel)}${escape(grund)}</li>`;
+      return `<li class="${erledigt ? "ok" : "weg"}">${erledigt ? "✓" : "○"} ${escape(s.titel)}${escape(grund)}</li>`;
     });
     inhalt.appendChild(absatz(`<ul class="einr-liste">${zeilen.join("")}</ul>`));
+    const log = altLog || document.createElement("div");
+    log.className = "einr-log";
+    log.hidden = !altLog;
+    inhalt.appendChild(log);
+
     fuss.innerHTML = "";
+    fuss.appendChild(entwurfHinweis());
     const rechts = document.createElement("div");
     rechts.className = "einr-fuss-rechts";
-    rechts.appendChild(knopf(offen.length ? "Schließen" : "Fertig", {
-      art: "haupt",
-      klick: async () => {
-        if (!offen.length) await speichereDefaults({ einrichtungFertig: true }).catch(() => {});
-        schliessen();
-      },
-    }));
+    if (teile.length) {
+      const sp = knopf("Speichern und loslegen", {
+        art: "haupt",
+        klick: async () => {
+          sp.disabled = true;
+          sp.textContent = "Speichert …";
+          const alleOk = await speichereEntwurf(st, log, offen.length === 0);
+          if (alleOk) {
+            await neuLesen("Lese den gespeicherten Stand aus Drive …");
+            zeigeAbschluss(log); // das Log bleibt sichtbar
+          } else {
+            sp.disabled = false;
+            sp.textContent = "Fehlgeschlagenes erneut speichern";
+            fuss.replaceChild(entwurfHinweis(), fuss.firstChild); // Hinweis zeigt nur noch, was offen ist
+          }
+        },
+      });
+      rechts.appendChild(sp);
+    } else {
+      rechts.appendChild(knopf(offen.length ? "Schließen" : "Loslegen", { art: "haupt", klick: () => schliessen() }));
+    }
     fuss.appendChild(rechts);
   }
 
@@ -303,9 +400,87 @@ export async function starteEinrichtung(stand = null) {
   let merker = null;
   try { merker = localStorage.getItem(MERKER); } catch {}
   const mi = SCHRITTE.findIndex((s) => s.id === merker);
-  const start = mi >= 0 && SCHRITTE[mi].pruefe(st).fehlt && !SCHRITTE[mi].pruefe(st).gesperrt ? mi : naechster(0);
+  const w0 = eff();
+  const start = mi >= 0 && SCHRITTE[mi].pruefe(w0).fehlt && !SCHRITTE[mi].pruefe(w0).gesperrt ? mi : naechster(0);
   zeige(start);
   return { schliessen };
+}
+
+// Schreibt den Entwurf in EINEM Durchgang nach Drive und fuehrt das Log. Erfolgreiche Teile verlassen
+// den Entwurf; fehlgeschlagene bleiben drin und lassen sich erneut speichern. Liefert true, wenn alles ging.
+async function speichereEntwurf(st, log, fertig) {
+  if (!Object.keys(leseEntwurf().prompts || {}).length) entwurfOhne(["prompts"]); // leere Reste weg
+  const e = leseEntwurf();
+  log.hidden = false;
+  log.innerHTML = `<div class="einr-log-kopf">Speicher-Log</div>`;
+  const zeilen = {};
+  const zeile = (teil) => {
+    if (!zeilen[teil]) {
+      zeilen[teil] = document.createElement("div");
+      zeilen[teil].className = "einr-log-zeile";
+      log.appendChild(zeilen[teil]);
+    }
+    return zeilen[teil];
+  };
+  const bestaetigt = { ...((st.defaults || {}).promptsBestaetigt || {}), ...(e.promptsBestaetigt || {}) };
+  const body = {
+    name: e.name && e.name !== (st.name || {}).name ? e.name : undefined,
+    firma: e.firma,
+    prompts: Object.entries(e.prompts || {}).map(([id, value]) => ({ id, value })),
+    nameBestaetigt: e.nameBestaetigt,
+    kiRollen: e.kiRollen,
+    promptsBestaetigt: e.promptsBestaetigt ? bestaetigt : undefined,
+    planBestaetigt: e.planBestaetigt,
+    einrichtungFertig: fertig || undefined,
+  };
+  // Welche Entwurfs-Felder ein erfolgreicher Teil erledigt.
+  const ERLEDIGT = {
+    name: ["name"],
+    firma: ["firma"],
+    prompts: ["prompts"],
+    einstellungen: ["nameBestaetigt", "kiRollen", "promptsBestaetigt", "planBestaetigt"],
+  };
+  let alleOk = true;
+  try {
+    const res = await fetch("/api/einrichtung/speichern", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    });
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let puffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      puffer += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = puffer.indexOf("\n")) >= 0) {
+        const z = puffer.slice(0, nl).trim();
+        puffer = puffer.slice(nl + 1);
+        if (!z) continue;
+        let o;
+        try { o = JSON.parse(z); } catch { continue; }
+        if (o.teil === "ende") continue;
+        const el = zeile(o.teil);
+        if (o.status === "laeuft") {
+          el.innerHTML = "";
+          el.appendChild(sanduhr(`${o.text} …`, { klein: true }));
+        } else if (o.status === "ok") {
+          el.innerHTML = `<span class="einr-log-ok">✓</span> ${escape(o.text)} <span class="einr-log-zeit">${(o.ms / 1000).toFixed(1)} s</span>`;
+          entwurfOhne(ERLEDIGT[o.teil] || []);
+          if (o.teil === "einstellungen" && e.kiRollen)
+            for (const [r, v] of Object.entries(e.kiRollen)) { try { localStorage.setItem(`cm-rolle-${r}`, JSON.stringify(v)); } catch {} }
+          if (o.teil === "name") window.dispatchEvent(new CustomEvent("board-name", { detail: e.name }));
+        } else {
+          alleOk = false;
+          el.innerHTML = `<span class="einr-log-fehler">✗</span> ${escape(o.text)} — ${escape(o.fehler || "fehlgeschlagen")}`;
+        }
+      }
+    }
+  } catch (err) {
+    alleOk = false;
+    zeile("netz").innerHTML = `<span class="einr-log-fehler">✗</span> Verbindung zum Board abgebrochen: ${escape(err.message)}`;
+  }
+  return alleOk;
 }
 
 // --- Bausteine ---------------------------------------------------------------
@@ -423,15 +598,10 @@ function baueName(el, { st, setzeWeiter }) {
   const name = eingabe(st.name.name || "", { platzhalter: "z. B. Gartenwerk – Social Media" });
   el.appendChild(feldBlock("Name", name, "Ändern benennt den Ordner in Google Drive um."));
   if (st.name.fehler) el.appendChild(absatz(`Drive-Name nicht lesbar: ${escape(st.name.fehler)}`, "einr-warn"));
+  // v94: nur in den Entwurf — das Umbenennen in Drive passiert beim Speichern am Ende.
   setzeWeiter(async () => {
     const neu = name.value.trim();
-    if (neu && neu !== st.name.name) {
-      const res = await putJson("/api/board/name", { name: neu });
-      const j = await res.json();
-      if (!res.ok) { el.appendChild(absatz(escape(j.error || "Umbenennen fehlgeschlagen."), "einr-warn")); return false; }
-      window.dispatchEvent(new CustomEvent("board-name", { detail: j.name }));
-    } else if (st.name.name) window.dispatchEvent(new CustomEvent("board-name", { detail: st.name.name }));
-    await speichereDefaults({ nameBestaetigt: true });
+    setzeEntwurf({ nameBestaetigt: true, ...(neu ? { name: neu } : {}) });
     return true;
   });
 }
@@ -529,11 +699,9 @@ function baueRollen(el, { st, setzeWeiter }) {
     const kiRollen = {};
     for (const [id, sel] of Object.entries(wahl)) {
       const [provider, modell] = sel.value.split(/:(.+)/);
-      const teil = provider === "claude" ? { provider, claudeModell: modell } : { provider, ollamaModel: modell };
-      setzeRolleKonfig(id, teil);
-      kiRollen[id] = rolleKonfig(id);
+      kiRollen[id] = { ...rolleKonfig(id), ...(provider === "claude" ? { provider, claudeModell: modell } : { provider, ollamaModel: modell }) };
     }
-    await speichereDefaults({ kiRollen }); // sofort, nicht erst nach der Buendelung in store.js
+    setzeEntwurf({ kiRollen }); // v94: Entwurf; Browser-Rollen + Drive erst beim Speichern
     return true;
   });
 }
@@ -552,9 +720,7 @@ function baueFirma(el, { st, setzeWeiter }) {
     const neu = FIRMA_FRAGEN.filter(([id]) => felder[id].value.trim())
       .map(([id, frage]) => `## ${frage}\n${felder[id].value.trim()}`).join("\n\n");
     if (!neu) { info.textContent = "Mindestens „Wer seid ihr?“ und „Wen wollt ihr erreichen?“ — ohne Firmenkontext schreibt die KI ins Blaue."; return false; }
-    const text = vorhanden ? `${vorhanden.trim()}\n\n${neu}` : neu;
-    const r = await putJson("/api/kontext", { was: "firma-text", text });
-    if (!r.ok) { info.textContent = "Speichern fehlgeschlagen — bitte erneut versuchen."; return false; }
+    setzeEntwurf({ firma: vorhanden ? `${vorhanden.trim()}\n\n${neu}` : neu }); // v94: Entwurf
     return true;
   });
 }
@@ -610,17 +776,17 @@ function bauePrompts(el, { st, setzeWeiter }) {
     el.appendChild(warn);
 
     setzeWeiter(async () => {
+      // v94: Entwurf. Geschrieben wird nur, was sich gegenueber dem Gespeicherten aendert:
+      // Vorschlag ohne eigene Fassung = nichts zu schreiben; unveraenderte eigene Fassung = nichts zu schreiben.
       const istVorschlag = texte.every((t, j) => t.value === vorschlag[j]);
-      let r;
-      if (id === "system") r = await putJson("/api/prompts", { id, text: istVorschlag ? "" : texte[0].value });
-      else r = await putJson("/api/prompts", {
-        id,
-        schritte: istVorschlag ? [] : (a.standard || []).map((s, j) => ({ ...s, prompt: texte[j].value })),
-      });
-      if (!r.ok) { warn.textContent = "Speichern fehlgeschlagen — bitte erneut versuchen."; return false; }
-      const bestaetigt = { ...bestaetigtePrompts(st), [id]: true };
-      st.defaults.promptsBestaetigt = bestaetigt;
-      await speichereDefaults({ promptsBestaetigt: bestaetigt });
+      const istEigen = !!eigen && texte.every((t, j) => t.value === (eigen[j] ?? eigen[0]));
+      const e = leseEntwurf();
+      const promptsNeu = { ...(e.prompts || {}) };
+      if (istVorschlag && eigen) promptsNeu[id] = id === "system" ? "" : []; // eigene Fassung -> zurueck auf Standard
+      else if (!istVorschlag && !istEigen)
+        promptsNeu[id] = id === "system" ? texte[0].value : (a.standard || []).map((s, j) => ({ ...s, prompt: texte[j].value }));
+      else delete promptsNeu[id];
+      setzeEntwurf({ prompts: promptsNeu, promptsBestaetigt: { ...(e.promptsBestaetigt || {}), [id]: true } });
       if (i < reihe.length - 1) { i++; zeichneEinen(); return false; } // naechster Prompt, Schritt bleibt
       return true;
     });
@@ -633,7 +799,7 @@ function bauePlan(el, { setzeWeiter }) {
   el.appendChild(absatz("Lege Plattformen, Posts pro Woche je Format und den maximalen Abstand fest und speichere. " +
     "Der Dialog öffnet sich über dem Assistenten; danach hier „Weiter“."));
   el.appendChild(knopf("Redaktionsplan öffnen", { art: "haupt", klick: () => zeigeRedaktionsplan() }));
-  setzeWeiter(async () => { await speichereDefaults({ planBestaetigt: true }); return true; });
+  setzeWeiter(async () => { setzeEntwurf({ planBestaetigt: true }); return true; });
 }
 
 function baueGoogle(el, { st }) {

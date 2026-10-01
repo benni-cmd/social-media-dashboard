@@ -32,6 +32,7 @@ Beim ersten Start erzeugt der Server `data/localhost.key`/`.crt` (braucht `opens
 Beim **ersten Start und bei jedem weiteren Start, solange etwas fehlt**, öffnet sich der Assistent und führt
 nur durch die offenen Schritte. Die Reihenfolge folgt den Abhängigkeiten; was eine Voraussetzung braucht, ist
 bis dahin gesperrt (mit Grund). „Später" überspringt für diese Sitzung, das ✕ schließt bis zum nächsten Start.
+Eingaben (Name, Rollen, Firmenkontext, Prompts, Plan) landen erst in einem **Entwurf** — „Weiter" schaltet ohne Wartezeit weiter. Am Ende schreibt **„Speichern und loslegen"** alles in einem Durchgang nach Drive; ein Log zeigt jeden Teil mit ✓/✗ und Dauer. Was nicht gespeichert werden konnte, bleibt im Entwurf und lässt sich erneut speichern.
 
 | # | Schritt | braucht | was passiert |
 |---|---|---|---|

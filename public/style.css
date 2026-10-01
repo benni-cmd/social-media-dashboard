@@ -4491,3 +4491,12 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .einr-wahl label { display: flex; align-items: center; gap: 6px; white-space: nowrap; width: auto; }
 .einst-zuruecksetzen { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--linie); }
 .einst-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0 10px; }
+
+/* v94 — Einrichtung: Entwurf-Hinweis und Speicher-Log */
+.einr-entwurf { font-size: 12px; color: var(--text-leise); max-width: 60%; line-height: 1.4; }
+.einr-log { border: 1px solid var(--linie); border-radius: var(--rund); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; background: var(--flaeche-hoch); }
+.einr-log-kopf { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-leise); }
+.einr-log-zeile { display: flex; align-items: center; gap: 6px; }
+.einr-log-ok { color: var(--ok); font-weight: 700; }
+.einr-log-fehler { color: var(--befund); font-weight: 700; }
+.einr-log-zeit { margin-left: auto; font-size: 11px; color: var(--text-leise); }

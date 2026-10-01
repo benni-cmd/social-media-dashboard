@@ -1485,6 +1485,36 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       return;
     }
+    // v94: Einrichtung am Ende EINMAL nach Drive schreiben (Owner 01.10.2026: erst Zwischenspeicher, dann
+    // ein Durchgang mit sichtbarem Log). Teil fuer Teil; jede Zeile NDJSON {teil, status, text, ms}.
+    // Ein Fehler stoppt nicht die uebrigen Teile — der Assistent behaelt den fehlgeschlagenen Teil im Entwurf.
+    if (pfad === "/api/einrichtung/speichern" && req.method === "POST") {
+      const e = JSON.parse((await readBody(req)) || "{}");
+      res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache" });
+      const zeile = (o) => res.write(JSON.stringify(o) + "\n");
+      const teil = async (id, text, f) => {
+        const t0 = Date.now();
+        zeile({ teil: id, status: "laeuft", text });
+        try {
+          await f();
+          zeile({ teil: id, status: "ok", text, ms: Date.now() - t0 });
+        } catch (err) {
+          zeile({ teil: id, status: "fehler", text, fehler: err.message, ms: Date.now() - t0 });
+        }
+      };
+      if (e.name) await teil("name", `Drive-Ordner umbenennen in „${e.name}“`, () => driveSetup.ordnerUmbenennen(e.name));
+      if (typeof e.firma === "string") await teil("firma", "Firmenkontext speichern", () => unternehmen.setzeFirmaText(e.firma, { streng: true }));
+      if (Array.isArray(e.prompts) && e.prompts.length)
+        await teil("prompts", `${e.prompts.length} ${e.prompts.length === 1 ? "Prompt" : "Prompts"} speichern`, () => prompts.setzeMehrere(e.prompts, { streng: true }));
+      const einst = {};
+      for (const k of ["nameBestaetigt", "kiRollen", "promptsBestaetigt", "planBestaetigt", "einrichtungFertig"]) if (e[k] !== undefined) einst[k] = e[k];
+      if (Object.keys(einst).length)
+        await teil("einstellungen", "KI-Rollen und Einrichtungs-Stand speichern", () => defaultsStore.mische(einst, { streng: true }));
+      zeile({ teil: "ende", status: "fertig" });
+      res.end();
+      return;
+    }
+
     // v93: Board zuruecksetzen (Owner 01.10.2026: „sauber neue Projekte aufsetzen, Einrichtung pruefen").
     // Loest das Board vom Projektordner und leert die lokalen Zwischenspeicher. Die Daten IM Drive-Ordner
     // bleiben unberuehrt (vorher wird der Board-Stand dort gesichert). `anmeldungen: true` trennt zusaetzlich
@@ -1535,6 +1565,10 @@ async function handler(req, res) {
 
     // v86: Claude-CLI aus dem Board anmelden — Schritt 1 liefert die Anmelde-Adresse, Schritt 2
     // nimmt den Code von claude.com entgegen (Ablauf in lib/claudeauth.js).
+    if (pfad === "/api/auth/claude/status" && req.method === "GET") {
+      sendJson(res, 200, await claudeAuth.status()); // v94: schnelle Einzelpruefung fuer die Einrichtung
+      return;
+    }
     if (pfad === "/api/auth/claude/start" && req.method === "POST") {
       try {
         sendJson(res, 200, await claudeAuth.starte());
