@@ -4440,3 +4440,9 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .wochen-tabelle .leise { color: var(--text-leise); font-size: 12px; }
 .wochen-tabelle tr.laeuft td { background: var(--flaeche-hoch); }
 .wochen-tabelle tr.plan-luecke td:nth-child(2) { color: var(--befund); font-weight: 600; }
+
+/* v86 — Anbindung: Datenfluss / Anbindung / Zustand unter jeder Verbindungs-Zeile */
+.verb-info { margin: 8px 0 0; display: grid; gap: 4px; font-size: 12.5px; line-height: 1.45; color: var(--text-still); }
+.verb-info-zeile { display: grid; grid-template-columns: 92px 1fr; gap: 8px; }
+.verb-info-label { color: var(--text-leise); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 2px; }
+.verb-link { display: inline-block; margin: 4px 0 8px; color: var(--akzent); font-weight: 600; }

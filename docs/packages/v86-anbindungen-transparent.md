@@ -69,15 +69,32 @@ Ollama = lokale KI-Rechenleistung · Web-Suche = Recherche-Quelle.
 
 ## Plan (festgezogen nach den Antworten)
 
-1. [ ] Fehlfarbe beheben: Ablehnung durch Google (`invalid_grant`) zählt als „getrennt: Anmeldung abgelaufen", nie als „unklar".
-2. [ ] Ein gemeinsames Status-Modell je Anbindung: `konto`, `zustand` (live/gestört/getrennt), `grund`, `letzterErfolg`, `letzterFehler`, `rolle`.
+1. [x] Fehlfarbe beheben: Ablehnung durch Google (`invalid_grant`) zählt als „getrennt: Anmeldung abgelaufen", nie als „unklar".
+2. [~] Ein gemeinsames Status-Modell je Anbindung: `konto`, `zustand` (live/gestört/getrennt), `grund`, `letzterErfolg`, `letzterFehler`, `rolle`.
 3. [ ] Server: aktive Prüfung je Anbindung (kleine echte Aufrufe), Ergebnis mit Zeitstempel; Zeiten aus dem Ereignis-Bus.
-4. [ ] Einstellungen „Externe Dienste" / „Social Media Kanäle": jede Zeile zeigt die Angaben aus 2.
+4. [~] Einstellungen „Externe Dienste" / „Social Media Kanäle": jede Zeile zeigt die Angaben aus 2.
 5. [ ] Kopfzeile: gestörte Anbindung sichtbar wie die Cache-Plakette, mit „Neu verbinden".
 6. [ ] Nutzstellen: z. B. Drehtermin zeigt „im Kalender eingetragen am … / fehlgeschlagen: …".
 7. [ ] Verify: echter Ausfall (jetziger Google-Token) wird rot, nach Neuverbindung grün; Screenshots hell + dunkel.
 
 ## Status
+
+01.10.2026 — Teil 1 gebaut (Owner-Go 01.10.2026: „ich sehe nicht, womit ich bei Kalender und Tasks angemeldet bin, woher die
+Daten kommen und wohin sie gehen … Arbeitsordner nicht nutzerfreundlich benannt … Claude-CLI soll übers Board anmeldbar sein").
+Rollen-Vorschlag oben gilt damit als bestätigt (Ben fragte genau nach Quelle/Ziel).
+- `lib/gcal.js`: Refresh-Fehler trägt jetzt `invalid_grant` → Status „Anmeldung abgelaufen" statt grün (belegt: Kopie :4399 mit Bens totem Token → `zustand: getrennt`).
+  Konto-Mail und letzter Erfolg werden bei jeder erfolgreichen Prüfung gemerkt. Netz-Zweifel = „gestört" (gelb), nie grün.
+- `lib/drivesetup.js` `ordnerName()`: Name des Arbeitsordners über Drive-API mit dem rclone-Zugang (belegt: „Social Media Dashbaord Test").
+- `lib/claudeauth.js` + `/api/auth/claude/start|code`: Claude-CLI im Board anmelden (Link → Code einfügen). Belegt: Start liefert Link;
+  CLI liest Code von stdin (falscher Code → „Login failed 400").
+- Einstellungen → Externe Dienste: je Anbindung Zeilen Datenfluss · Anbindung (inkl. Rechte) · Zustand (Grund, zuletzt erfolgreich, verbunden seit).
+- Geheimnis-Prüfung Drive (01.10.2026, rclone lsf -R + Inhalt der 8 System-Dateien): keine Tokens/Keys/Mails in Drive;
+  `git ls-files` ohne Geheimnis-Dateien. Alle Zugänge liegen nur lokal (`.env`, `data/tokens.json`, `data/.gdrive-env.json`).
+
+Offen (Teil 2): Kopfzeilen-Marker aus dem schlechtesten Zustand (heute zeigt „KI" grün, obwohl Claude abgemeldet ist);
+Prüfung beim Start + alle 30 min + „Jetzt prüfen"; Statusband im Log; Instagram/LinkedIn/Ollama/Web-Suche mit denselben Zeilen;
+Google-Konto erscheint erst nach dem Neu-Verbinden (vor dem Ablauf nie gespeichert).
+
 
 30.09.2026 — Paket angelegt, Bestand gelesen, Befund belegt (siehe Problem). Fragen beantwortet (Entscheidungen oben), Log-Studie gemacht. Noch nichts gebaut.
 

@@ -1454,7 +1454,91 @@ export function einstellungenModal(onThemeChange) {
     c.style.marginLeft = "8px";
     return c;
   }
-  function setzeChip(c, verbunden, bereit, hinweisText) {
+  // v86 (Owner 01.10.2026: „ich sehe nicht, womit ich angemeldet bin, woher die Daten kommen und
+  // wohin sie gehen"): drei feste Zeilen unter jeder Anbindung — Datenfluss, Anbindung, Zustand.
+  function fuelleVerbInfo(el, d) {
+    const zeilen = [];
+    if (d.fluss) zeilen.push(`<span class="verb-info-label">Datenfluss</span><span>${escape(d.fluss)}</span>`);
+    if (d.anbindung)
+      zeilen.push(`<span class="verb-info-label">Anbindung</span><span>${escape(d.anbindung)}` +
+        (d.rechte && d.rechte.length ? ` · Rechte: ${escape(d.rechte.join(", "))}` : "") + `</span>`);
+    const zeit = (iso) => (iso ? new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) : "");
+    const stand = [];
+    if (d.grund) stand.push(escape(d.grund));
+    if (d.letzterErfolg) stand.push(`zuletzt erfolgreich ${zeit(d.letzterErfolg)}`);
+    if (d.verbundenAm) stand.push(`verbunden seit ${zeit(d.verbundenAm)}`);
+    if (stand.length) zeilen.push(`<span class="verb-info-label">Zustand</span><span>${stand.join(" · ")}</span>`);
+    el.innerHTML = zeilen.map((z) => `<div class="verb-info-zeile">${z}</div>`).join("");
+    el.hidden = !zeilen.length;
+  }
+
+  // v86: Claude-CLI im Board anmelden. Schritt 1 holt die Anmelde-Adresse von der CLI (Server
+  // startet `claude auth login`), Schritt 2 gibt den Code von claude.com an die CLI zurueck.
+  function baueClaudeAnmeldung(danach) {
+    const el = document.createElement("div");
+    el.className = "verb-detail einst-ollama-konfig";
+    el.hidden = true;
+    const satz = document.createElement("p");
+    satz.className = "einst-provider-sub";
+    const schritt1 = document.createElement("div");
+    const codeFeld = eingabe("", { platzhalter: "Code von claude.com hier einfügen" });
+    const info = document.createElement("div");
+    info.className = "einst-ping-status";
+    const abschliessen = knopf("Anmeldung abschließen", {
+      art: "haupt",
+      klick: async () => {
+        const code = codeFeld.value.trim();
+        if (!code) { info.textContent = "Bitte zuerst den Code einfügen."; return; }
+        abschliessen.disabled = true;
+        info.textContent = "Melde an …";
+        try {
+          const r = await (await fetch("/api/auth/claude/code", {
+            method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }),
+          })).json();
+          if (r.ok) {
+            info.textContent = `Angemeldet${r.email ? ` als ${r.email}` : ""}.`;
+            codeFeld.value = "";
+            setTimeout(() => { el.hidden = true; danach(); }, 1200);
+          } else info.textContent = r.grund || r.error || "Anmeldung fehlgeschlagen.";
+        } catch { info.textContent = "Anmeldung fehlgeschlagen."; }
+        abschliessen.disabled = false;
+      },
+    });
+    const reihe = document.createElement("div");
+    reihe.className = "einst-ping-zeile";
+    reihe.appendChild(abschliessen);
+    reihe.appendChild(info);
+    el.append(satz, schritt1, feld("Code", codeFeld), reihe);
+
+    async function oeffne() {
+      el.hidden = false;
+      satz.textContent = "Starte die Anmeldung …";
+      schritt1.innerHTML = "";
+      info.textContent = "";
+      try {
+        const r = await (await fetch("/api/auth/claude/start", { method: "POST" })).json();
+        if (!r.url) throw new Error(r.error || "keine Adresse");
+        satz.innerHTML =
+          "1. Öffne den Link und melde dich mit deinem Claude-Abo an.<br>" +
+          "2. claude.com zeigt danach einen Code — kopiere ihn und füge ihn unten ein.";
+        const a = document.createElement("a");
+        a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "Bei Claude anmelden ↗";
+        a.className = "verb-link";
+        schritt1.appendChild(a); // die CLI oeffnet den Browser meist selbst; der Link ist der Ersatzweg
+      } catch (e) {
+        satz.textContent = `Die Anmeldung ließ sich nicht starten: ${e.message}. Ist die Claude-CLI installiert (npm i -g @anthropic-ai/claude-code)?`;
+      }
+    }
+    return { el, oeffne };
+  }
+
+  function setzeChip(c, verbunden, bereit, hinweisText, zustand) {
+    if (zustand === "gestoert") {
+      c.textContent = "gestört";
+      c.className = "chip chip-hinweis";
+      return;
+    }
     // v45: liegt ein Hinweis an (z. B. Token abgelaufen), ihn im Chip zeigen — Ton wie
     // „bereit zum Verbinden" (chip-hinweis), kein roter Alarm.
     if (!verbunden && hinweisText) {
@@ -1508,8 +1592,29 @@ export function einstellungenModal(onThemeChange) {
       trennen.style.display = "none";
       knoepfe.appendChild(trennen);
     }
+    // v86: Claude-CLI direkt hier anmelden (vorher nur Terminal-Hinweis).
+    let anmeldenKnopf = null;
+    let anmeldeBox = null;
+    if (opt.claudeAnmelden) {
+      anmeldeBox = baueClaudeAnmeldung(() => ladeVerbStatus());
+      anmeldenKnopf = knopf("Anmelden", { art: "haupt", klick: () => anmeldeBox.oeffne() });
+      anmeldenKnopf.classList.add("knopf-inline");
+      anmeldenKnopf.style.display = "none";
+      knoepfe.appendChild(anmeldenKnopf);
+    }
     kopf.appendChild(knoepfe);
     zeile.appendChild(kopf);
+
+    const info = document.createElement("div");
+    info.className = "verb-info";
+    info.hidden = true;
+    zeile.appendChild(info);
+    if (anmeldeBox) zeile.appendChild(anmeldeBox.el);
+    dienstRender.push((s) => {
+      const d = s[opt.statusKey] || {};
+      fuelleVerbInfo(info, d);
+      if (anmeldenKnopf) anmeldenKnopf.style.display = d.verbunden ? "none" : "";
+    });
 
     if (opt.text) {
       const t = document.createElement("p");
@@ -1556,7 +1661,7 @@ export function einstellungenModal(onThemeChange) {
 
       dienstRender.push((s) => {
         const d = s[opt.statusKey] || {};
-        setzeChip(chip, d.verbunden, d.clientKonfiguriert, d.hinweis);
+        setzeChip(chip, d.verbunden, d.clientKonfiguriert, d.hinweis, d.zustand);
         verbinden.disabled = !d.clientKonfiguriert;
         verbinden.style.display = d.verbunden ? "none" : "";
         if (trennen) trennen.style.display = d.verbunden ? "" : "none";
@@ -1571,7 +1676,7 @@ export function einstellungenModal(onThemeChange) {
     } else {
       dienstRender.push((s) => {
         const d = s[opt.statusKey] || {};
-        setzeChip(chip, d.verbunden, false, d.hinweis);
+        setzeChip(chip, d.verbunden, false, d.hinweis, d.zustand);
         if (trennen) trennen.style.display = d.verbunden ? "" : "none";
         const kontoWert = opt.kontoFeld ? d[opt.kontoFeld] : "";
         konto.hidden = !kontoWert;
@@ -1616,6 +1721,10 @@ export function einstellungenModal(onThemeChange) {
     const ordnerZeile = document.createElement("p");
     ordnerZeile.className = "einst-provider-sub verb-text";
     zeile.appendChild(ordnerZeile);
+    const driveInfo = document.createElement("div"); // v86: Datenfluss + Anbindung
+    driveInfo.className = "verb-info";
+    zeile.appendChild(driveInfo);
+    dienstRender.push((s) => fuelleVerbInfo(driveInfo, s.drive || {}));
     const kontoInfo = document.createElement("p");
     kontoInfo.className = "einst-provider-sub verb-text";
     kontoInfo.hidden = true;
@@ -1715,8 +1824,9 @@ export function einstellungenModal(onThemeChange) {
       konto.hidden = !d.email;
       konto.textContent = d.email ? `Konto: ${d.email}` : "";
       const link = d.root ? `https://drive.google.com/drive/folders/${d.root}` : "";
+      // v86: Name statt ID (die ID steht im Tooltip, falls jemand sie braucht).
       ordnerZeile.innerHTML = d.root
-        ? `Arbeitsordner: <code>${d.root}</code> · <a href="${link}" target="_blank" rel="noopener">in Drive oeffnen</a>` +
+        ? `Arbeitsordner: <b title="ID ${escape(d.root)}">${escape(d.name || d.root)}</b> · <a href="${link}" target="_blank" rel="noopener">in Drive oeffnen</a>` +
           (d.verbunden ? "" : " · <b>nicht erreichbar</b> — Konto oder Ordner pruefen")
         : "Kein Arbeitsordner festgelegt.";
     });
@@ -1742,9 +1852,7 @@ export function einstellungenModal(onThemeChange) {
     name: "Claude (KI-Texte)",
     statusKey: "claude", kontoFeld: "email", kontoLabel: "Konto",
     trennenPfad: "/api/auth/claude/trennen",
-    text:
-      "Die KI-Texte der Userkommunikation laufen ueber deine <b>Claude-CLI</b> (dein Abo, keine API-Kosten). " +
-      "Verbinden: einmal im Terminal <code>claude auth login</code> und mit dem eigenen Abo einloggen.",
+    claudeAnmelden: true,
   });
 
   const seite4 = document.createElement("div");

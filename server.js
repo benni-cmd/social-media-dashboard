@@ -38,6 +38,7 @@ import * as defaultsStore from "./lib/defaultsstore.js";
 import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as websuche from "./lib/websuche.js";
+import * as claudeAuth from "./lib/claudeauth.js"; // v86: Claude-CLI im Board anmelden
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -1361,7 +1362,7 @@ async function handler(req, res) {
       // v63: alle Abfragen PARALLEL statt nacheinander — der Status haengt nur noch an der
       // langsamsten (vorher Summe aus Drive-Pruefung + Claude-CLI + Google), damit man nach dem
       // Serverstart schnell den echten Stand sieht.
-      const [driveOk, driveKonto, claude, googleStatus, igName] = await Promise.all([
+      const [driveOk, driveKonto, claude, googleStatus, igName, driveName] = await Promise.all([
         drive.erreichbar().then((r) => !!(r && r.ok)).catch(() => false), // Drive gestoert = nicht verbunden
         driveSetup.konto().catch(() => null),
         // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
@@ -1369,16 +1370,20 @@ async function handler(req, res) {
         execAsync("claude auth status", { encoding: "utf8", timeout: 15000 })
           .then((r) => { const st = JSON.parse(r.stdout); return { ok: !!st.loggedIn, email: st.email || "" }; })
           .catch(() => ({ ok: false, email: "" })), // CLI fehlt oder nicht eingeloggt
-        gcal.statusGoogle().then(async (g) => {
-          // v62: Konto-Mail fuers Einstellungen-Fenster — nur abfragen, wenn ueberhaupt verbunden.
-          if (g.verbunden) g.email = await gcal.kontoMail();
-          return g;
-        }), // v45: echte Gueltigkeit + hinweis, kurz gecacht
+        // v45: echte Gueltigkeit + hinweis, kurz gecacht. v86: Konto, Zustand, Fluss und Anbindung
+        // kommen aus statusGoogle() selbst (die Mail stammt aus derselben Pruefung).
+        gcal.statusGoogle(),
         instagramName(tokens),
+        driveSetup.ordnerName().catch(() => ""), // v86: Name statt ID in der Anzeige
       ]);
       sendJson(res, 200, {
         google: googleStatus,
-        drive: { verbunden: driveOk, root: drive.aktuellerRoot(), email: driveKonto ? driveKonto.email : "" },
+        drive: {
+          verbunden: driveOk, root: drive.aktuellerRoot(), name: driveName, email: driveKonto ? driveKonto.email : "",
+          rolle: "Quelle der Wahrheit",
+          fluss: "Board ↔ Drive: Karten, Projektordner und alle Einstellungen liegen in diesem Ordner. Das Board liest und schreibt; ohne Board bleibt Drive vollständig nutzbar.",
+          anbindung: "rclone (lokal installiert) mit Google-Anmeldung des Drive-Kontos",
+        },
         instagram: {
           verbunden: !!(tokens.instagram && tokens.instagram.accessToken),
           clientKonfiguriert: !!process.env.INSTAGRAM_APP_ID,
@@ -1389,7 +1394,13 @@ async function handler(req, res) {
           clientKonfiguriert: !!process.env.LINKEDIN_CLIENT_ID,
           konto: (tokens.linkedin && tokens.linkedin.orgName) || "",
         },
-        claude: { verbunden: claude.ok, email: claude.email },
+        claude: {
+          verbunden: claude.ok, email: claude.email,
+          hinweis: claude.ok ? "" : "nicht angemeldet",
+          rolle: "KI-Rechenleistung",
+          fluss: "Board → Claude → Board: Prompt und Karteninhalt gehen an Claude, der Text kommt zurück in die Karte.",
+          anbindung: "Claude-CLI auf diesem Rechner, angemeldet mit deinem Claude-Abo (keine API-Kosten)",
+        },
         tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
       return;
@@ -1417,6 +1428,27 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       return;
     }
+    // v86: Claude-CLI aus dem Board anmelden — Schritt 1 liefert die Anmelde-Adresse, Schritt 2
+    // nimmt den Code von claude.com entgegen (Ablauf in lib/claudeauth.js).
+    if (pfad === "/api/auth/claude/start" && req.method === "POST") {
+      try {
+        sendJson(res, 200, await claudeAuth.starte());
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+    if (pfad === "/api/auth/claude/code" && req.method === "POST") {
+      try {
+        const { code } = JSON.parse(await readBody(req));
+        if (!code) { sendJson(res, 400, { error: "Code fehlt." }); return; }
+        sendJson(res, 200, await claudeAuth.abschliessen(code));
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+
     if (pfad === "/api/auth/claude/trennen" && req.method === "POST") {
       // Loggt die lokale Claude-CLI aus (betrifft das Konto auf DIESEM Rechner).
       try {
