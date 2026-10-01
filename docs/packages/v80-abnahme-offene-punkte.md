@@ -94,6 +94,13 @@ vs. Dienst).
   KI-Rollen, Externe Dienste, Social Media Kanäle, Unternehmenskontext, System Prompts, Board & Redaktionsplan).
 - Auswertung rendert; Konsole ohne Fehler.
 
+## Nachtrag 01.10.2026 (zweite Runde, Owner-Meldungen)
+
+- A3 (feste 3 in der Kopfzeile) → **erledigt in v90** (Woche gegen Redaktionsplan + Wochenstatistik).
+- A4 (Status lügt) → **Teil 1 erledigt in v86** (Google „Anmeldung abgelaufen", Claude „nicht angemeldet", Datenfluss/Anbindung/Zustand je Dienst, Claude im Board anmelden); Kopfzeilen-Marker offen.
+- B5 (llama3.2 fehlt) → **erledigt in v91** (Modellnamen aufgelöst, Fallback qwen2.5).
+- Neu erledigt: v89 Upload-Termin nach einer Regel (Format + Vorlauf); v91 Einrichtung + Board-Name; v92 README/INSTALL.
+
 ## Stand
 
 01.10.2026 — Rundgang + Recherche erledigt, Liste steht, Toast-Fix committet. Nächster Schritt: A1 (Ben).
