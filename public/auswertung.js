@@ -75,15 +75,25 @@ export async function zeichneAuswertung(el) {
     if (!laedt) {
       const meinVor = vor;
       laedt = fetch(`/api/stats/zeitraum?wochen=${WOCHEN}&vor=${meinVor}`)
-        .then((r) => r.json())
+        .then(async (r) => {
+          // Owner 01.10.2026: lief der Server noch mit altem Stand, kam „Nicht gefunden." und die Seite meldete
+          // faelschlich „kein Konto verbunden". Ein unbekannter Endpunkt heisst: Server neu starten.
+          if (r.status === 404) return { wochen: [], posts: [], veraltet: true };
+          return r.json();
+        })
         .then((j) => daten.set(meinVor, j))
         .catch((e) => daten.set(meinVor, { wochen: [], posts: [], error: e.message }))
         .finally(() => { laedt = null; zeichneAuswertung(el); });
     }
     return;
   }
+  if (d.veraltet) {
+    el.appendChild(hinweis("Der Board-Server läuft noch mit einem älteren Stand und kennt diese Auswertung nicht. " +
+      "Bitte das Board neu starten (Fenster schließen, Start-Board.cmd) — danach erscheinen die Zahlen."));
+    return;
+  }
   if (d.error) el.appendChild(hinweis(`Zahlen nicht vollständig: ${d.error}`));
-  if (!d.instagram && !d.linkedin) {
+  if (!d.instagram && !d.linkedin && !d.error) {
     el.appendChild(hinweis("Kein Social-Media-Konto verbunden — Einstellungen → Social Media."));
     el.appendChild(verbindenKnopf("instagram", "Instagram"));
     return;
