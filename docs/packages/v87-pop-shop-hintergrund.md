@@ -6,11 +6,11 @@
 
 **Problem:** Die Fläche zwischen und unter den Spalten sowie die Auswertungsseite sind einfarbig und wirken leer.
 **Intent:** Der Retro-/Pop-Look zieht sich bis in den Hintergrund, ohne Inhalte zu stören.
-**Goal:** Blasses Ben-Day-Punktraster nur hinter `.board-scroll` und `#ansicht-auswertung`; Kopfzeile, Board-Leiste und Detailspalte bleiben unverändert; hell und dunkel sichtbar, aber blass.
+**Goal (Runde 2, Owner 01.10.2026: „mehr so Keith-Haring-Pop-Shop-mäßig“):** Kachelmuster aus Street-Art-Kritzeln (dicke Tintenkontur, flache Signalfarben, Schlangenlinien, Zickzack, Strahlenkränze, Strichgruppen, dicht gefüllt) nur hinter `.board-scroll` und `#ansicht-auswertung`; Kopfzeile, Board-Leiste und Detailspalte bleiben unverändert; hell und dunkel sichtbar, aber blass.
 
 ## Plan
 
-1. [x] Zwei versetzte Punktraster (Koralle, Himmelblau) als `radial-gradient`, Tokens `--textur-a/-b` für hell und dunkel, `background-attachment: local`.
+1. [x] Runde 1: zwei versetzte Punktraster (Koralle, Himmelblau) als `radial-gradient`. Runde 2 ersetzt sie: 480-px-SVG-Kachel `public/texture-popshop.svg` (hell, Deckkraft 0,30) und `texture-popshop-dark.svg` (dunkel, 0,22), eingebunden über `--textur-bild`, `background-attachment: local`.
 2. [x] Verify: Screenshot Board hell + dunkel, Auswertung hell; Skript: Kopf, Leiste, Detail ohne Hintergrundbild.
 
 ## Status
@@ -18,7 +18,9 @@
 01.10.2026 — Gebaut in `public/style.css` (Block „v87"). Hell: Alpha 0,14, dunkel nach erstem Blick (0,09/0,08 kaum sichtbar) auf 0,13/0,12 angehoben. Gemessen: `.kopf`, `#board-leiste`, `#detail` haben `background-image: none`; `#ansicht-auswertung` trägt das Raster.
 Nicht gesehen: Auswertung im Dark Mode und mit Daten (in der Test-Instanz auf Port 4321 lag ein Einrichtungs-Dialog davor, nur im DOM ausgeblendet).
 
+01.10.2026 (Runde 2) — Muster neu: Herz, Stern, Sonne mit Strahlen, Blitz, Spirale, Sticker-Kreis, Dreieck, Wolke, X-Kreuze, Schlangenlinien, Zickzack, Strichgruppen, Punkte; Kontur 6 px, Füllkritzel gegen leere Stellen. Bewusst KEINE nachgezeichneten Figuren von Keith Haring (urheberrechtlich geschützt) — nur die Formsprache mit eigenen Motiven. Screenshots Board hell + dunkel bei 1440x900 gesehen; Karten bleiben lesbar.
+
 ## Definition of Done
 
 Geprueft gegen: Screenshots Board hell + dunkel, Auswertung hell, Computed-Style-Skript für Kopf, Leiste, Detail
-Offen: Auswertung im Dark Mode nicht gesehen; Geschmack (Punktgröße/Stärke) — Owner
+Offen: Auswertung mit Muster (hell + dunkel) nicht gesehen; Geschmack (Stärke/Dichte) — Owner

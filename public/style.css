@@ -4540,25 +4540,17 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 @media (max-width: 1100px) { .ausw-kennzahlen { grid-template-columns: repeat(3, 1fr); } .ausw-zweispaltig { grid-template-columns: 1fr; } .ausw-post { grid-template-columns: 1fr; } }
 
 /* ============================================================
-   v87 — Pop-Shop-Hintergrund (Owner 01.10.2026): blasses Ben-Day-Punktraster hinter Board und
-   Auswertung, damit die Flaeche zwischen den Spalten nicht leer wirkt. Zwei versetzte Raster in
-   zwei Chrome-Farben (Koralle, Himmelblau). NUR die Hintergrundflaechen: nicht Kopfzeile, nicht
-   Board-Leiste, nicht Detailspalte. `local` = das Raster scrollt mit dem Inhalt.
+   v87 — Pop-Shop-Hintergrund (Owner 01.10.2026): blasse Street-Art-Kritzel im Stil der Pop-Shop-
+   Poster der 80er — dicke Tintenkonturen, flache Signalfarben, Schlangenlinien, Zickzack,
+   Strahlenkraenze, Strichgruppen. Eigene, einfache Motive (keine nachgezeichneten Figuren).
+   Ein 480-px-Kachelmuster (public/texture-popshop*.svg, Deckkraft im SVG: hell 0,17, dunkel 0,13).
+   NUR die Hintergrundflaechen hinter Board und Auswertung: nicht Kopfzeile, Board-Leiste, Detail.
    ============================================================ */
-:root {
-  --textur-a: rgba(255, 107, 61, 0.14);
-  --textur-b: rgba(58, 168, 216, 0.14);
-}
-[data-theme="dark"] {
-  --textur-a: rgba(255, 130, 86, 0.13);
-  --textur-b: rgba(85, 187, 234, 0.12);
-}
+:root { --textur-bild: url("texture-popshop.svg"); }
+[data-theme="dark"] { --textur-bild: url("texture-popshop-dark.svg"); }
 .board-scroll,
 #ansicht-auswertung {
-  background-image:
-    radial-gradient(circle at center, var(--textur-a) 0 2.4px, transparent 2.9px),
-    radial-gradient(circle at center, var(--textur-b) 0 1.8px, transparent 2.3px);
-  background-size: 28px 28px, 28px 28px;
-  background-position: 0 0, 14px 14px;
+  background-image: var(--textur-bild);
+  background-size: 480px 480px;
   background-attachment: local;
 }
