@@ -909,8 +909,41 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/ai/ping-ollama" && req.method === "POST") {
-      const { model = "llama3.2" } = JSON.parse(await readBody(req));
-      sendJson(res, 200, await ki.pingOllama(model));
+      const { model = "qwen2.5" } = JSON.parse(await readBody(req));
+      sendJson(res, 200, await ki.pingOllama(await ki.loeseOllamaModell(model)));
+      return;
+    }
+
+    // v91 Einrichtung: laeuft Ollama, welche Modelle liegen da?
+    if (pfad === "/api/ai/ollama" && req.method === "GET") {
+      try {
+        const r = await fetch("http://localhost:11434/api/tags", { signal: AbortSignal.timeout(3000) });
+        const d = await r.json();
+        sendJson(res, 200, {
+          laeuft: true,
+          modelle: (d.models || []).map((m) => ({ name: m.name, gb: Math.round((m.size || 0) / 1e8) / 10 })),
+        });
+      } catch {
+        sendJson(res, 200, { laeuft: false, modelle: [] });
+      }
+      return;
+    }
+    // v91 Einrichtung: Modell laden (ollama pull) — Fortschritt zeilenweise als NDJSON durchreichen.
+    if (pfad === "/api/ai/ollama/pull" && req.method === "POST") {
+      const { model } = JSON.parse(await readBody(req));
+      if (!/^[a-z0-9._-]+(:[a-z0-9._-]+)?$/i.test(model || "")) { sendJson(res, 400, { error: "Ungueltiger Modellname." }); return; }
+      try {
+        const r = await fetch("http://localhost:11434/api/pull", {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model, stream: true }),
+        });
+        if (!r.ok || !r.body) { sendJson(res, 502, { error: `Ollama ${r.status}` }); return; }
+        res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache" });
+        for await (const teil of r.body) res.write(teil);
+        res.end();
+      } catch (e) {
+        if (!res.headersSent) sendJson(res, 502, { error: `Ollama nicht erreichbar: ${e.message}` });
+        else res.end();
+      }
       return;
     }
 
@@ -1428,6 +1461,25 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       return;
     }
+    // v91: Board-Name = Name des Drive-Hauptordners. PUT benennt den Drive-Ordner um.
+    if (pfad === "/api/board/name" && req.method === "GET") {
+      try {
+        sendJson(res, 200, { name: await driveSetup.ordnerName(), root: drive.aktuellerRoot() });
+      } catch (e) {
+        sendJson(res, 200, { name: "", root: drive.aktuellerRoot(), fehler: e.message });
+      }
+      return;
+    }
+    if (pfad === "/api/board/name" && req.method === "PUT") {
+      try {
+        const { name } = JSON.parse(await readBody(req));
+        sendJson(res, 200, { name: await driveSetup.ordnerUmbenennen(name) });
+      } catch (e) {
+        sendJson(res, 400, { error: e.message });
+      }
+      return;
+    }
+
     // v86: Claude-CLI aus dem Board anmelden — Schritt 1 liefert die Anmelde-Adresse, Schritt 2
     // nimmt den Code von claude.com entgegen (Ablauf in lib/claudeauth.js).
     if (pfad === "/api/auth/claude/start" && req.method === "POST") {

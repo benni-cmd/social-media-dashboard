@@ -613,6 +613,18 @@ export function setzeRolleKonfig(rolle, teil) {
   try {
     localStorage.setItem(`cm-rolle-${rolle}`, JSON.stringify({ ...rolleKonfig(rolle), ...teil }));
   } catch {}
+  rollenNachDrive();
+}
+
+// v91: Die Rollen-Wahl gehoert zum Board, nicht zum Browser — sie liegt in Drive (defaults.kiRollen),
+// der Browser-Speicher ist nur Zwischenspeicher. Kurz gebuendelt, weil ein Wechsel mehrere Felder setzt.
+let rollenTimer = null;
+function rollenNachDrive() {
+  clearTimeout(rollenTimer);
+  rollenTimer = setTimeout(() => {
+    const kiRollen = Object.fromEntries(Object.keys(ROLLEN_DEFAULT).map((r) => [r, rolleKonfig(r)]));
+    speichereDefaults({ kiRollen }).catch(() => {});
+  }, 600);
 }
 
 
@@ -992,6 +1004,13 @@ export async function ladeDefaults() {
     const d = await hole("/api/defaults");
     if (d.plattformen && Array.isArray(d.plattformen)) S.defaults.plattformen = d.plattformen;
     if (Array.isArray(d.personen)) S.defaults.personen = d.personen;
+    // v91: Rollen aus Drive in den Browser-Zwischenspeicher; Einrichtungs-Stand merken.
+    if (d.kiRollen && typeof d.kiRollen === "object")
+      for (const [r, v] of Object.entries(d.kiRollen)) {
+        try { localStorage.setItem(`cm-rolle-${r}`, JSON.stringify(v)); } catch {}
+      }
+    S.defaults.einrichtungFertig = !!d.einrichtungFertig;
+    S.defaults.geladen = true;
   } catch { /* Defaults sind Beiwerk */ }
 }
 

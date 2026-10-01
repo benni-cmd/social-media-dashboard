@@ -47,21 +47,31 @@ lokale KI, Rollen, Firmenkontext und alle System-Prompts gesetzt und in Drive ge
 
 1. [x] Lokale Modellnamen auflösen (`lib/ai.js` `loeseOllamaModell`: `deepseek-r1` → `deepseek-r1:14b`),
    Fallback `llama3.2` → `qwen2.5`.
-2. [ ] Board-Name: `GET /api/board/name`, `PUT` benennt den Drive-Ordner um; Kopf + Tab-Titel.
-3. [ ] KI-Rollen nach Drive (`defaults.kiRollen`), Laden beim Start, Schreiben bei Änderung.
-4. [ ] Ollama: `GET /api/ai/ollama` (läuft? Modelle), `POST /api/ai/ollama/pull` (Fortschritt als Stream).
-5. [ ] `public/einrichtung.js`: Assistent mit den 9 Schritten; Start nach Wechsel in einen leeren Ordner
+2. [x] Board-Name: `GET /api/board/name`, `PUT` benennt den Drive-Ordner um; Kopf + Tab-Titel.
+3. [x] KI-Rollen nach Drive (`defaults.kiRollen`), Laden beim Start, Schreiben bei Änderung.
+4. [x] Ollama: `GET /api/ai/ollama` (läuft? Modelle), `POST /api/ai/ollama/pull` (Fortschritt als Stream).
+5. [x] `public/einrichtung.js`: Assistent mit den 9 Schritten; Start nach Wechsel in einen leeren Ordner
    (`einrichtungFertig` fehlt in `defaults`) und über Einstellungen.
-6. [ ] Verify auf der Kopie (:4399, leerer Testordner-Zustand), Screenshots je Schritt.
+6. [x] Verify auf der Kopie (:4399, leerer Testordner-Zustand), Screenshots je Schritt.
 7. [ ] README-Abschnitt „Einrichtung" (Paket v92).
 
 ## Stand
 
-01.10.2026 — Plan angelegt; Schritt 1 gebaut (Node-Probe: `deepseek-r1` → `deepseek-r1:14b`, `qwen2.5` → `qwen2.5:14b`,
-`gemma4` → `gemma4:26b`, `llama3.2` bleibt — nicht installiert).
+01.10.2026 — gebaut und auf der Kopie (:4399, leeres Board) belegt:
+- Assistent öffnet sich von selbst bei leerem, nie eingerichtetem Board; alle 9 Schritte durchgeklickt
+  (Name · Google „Anmeldung abgelaufen" + Verbinden · Claude „Anmeldung starten" · Ollama läuft, 4 Modelle,
+  Empfehlungen deepseek-r1:14b/qwen2.5:14b „vorhanden" · Rollen-Auswahl · 6 Firmenfragen · 15 Prompts in
+  Ablauf-Reihenfolge mit Platzhalter-Legende · Redaktionsplan · Abschluss).
+- Abschluss-Seite prüft den echten Stand (nicht „Weiter gedrückt"): z. B. „○ Claude: nicht angemeldet".
+- „Einrichtung abschließen" → `defaults.einrichtungFertig: true`, `defaults.kiRollen` gespeichert; danach kein Auto-Start mehr.
+- Rückkehr an die letzte Stelle nach Neuladen (Merker) belegt; Board-Name im Kopf + Tab per Ereignis belegt.
+- Name lesen live belegt („Social Media Dashbaord Test"); Umbenennen in Drive NICHT live getestet (hätte Bens Ordner umbenannt).
+
+Offen: Umbenennen live prüfen beim Ordnerwechsel; der Standard-System-Vorspann ist WEE-spezifisch geschrieben
+(für ein anderes Board im Assistenten anpassen oder einen neutralen Standard anlegen).
 
 ## DoD
 
-- [ ] Wechsel in leeren Ordner → Einrichtung öffnet sich; alle 9 Schritte durchlaufbar und überspringbar
+- [x] Wechsel in leeren Ordner → Einrichtung öffnet sich; alle 9 Schritte durchlaufbar und überspringbar
 - [ ] Name oben links = Drive-Ordnername; Umbenennen im Board benennt den Drive-Ordner um
-- [ ] KI-Rollen, Firmenkontext, Prompts liegen nach der Einrichtung in Drive
+- [x] KI-Rollen, Firmenkontext, Prompts liegen nach der Einrichtung in Drive

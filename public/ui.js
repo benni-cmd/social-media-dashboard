@@ -1425,6 +1425,16 @@ export function einstellungenModal(onThemeChange) {
   hint3.className = "einst-provider-sub";
   hint3.textContent = "Alle Zugaenge bleiben lokal in .env — nichts davon landet auf GitHub.";
   seite3.appendChild(hint3);
+  // v91: der gefuehrte Durchlauf (Name, Google, Claude, lokale KI, Rollen, Kontext, Prompts, Plan).
+  const einrKnopf = knopf("Einrichtung Schritt für Schritt starten", {
+    zeichen: "weiter",
+    klick: () => {
+      overlay.remove();
+      import("./einrichtung.js").then((m) => m.starteEinrichtung(0));
+    },
+  });
+  einrKnopf.classList.add("knopf-inline");
+  seite3.appendChild(einrKnopf);
 
   const dienstRender = [];
   async function ladeVerbStatus() {

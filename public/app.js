@@ -1,6 +1,6 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { S, beiAenderung, zeichne, ladeBoard, ladePlan,verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, beiAbgleichStufe, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, ladePlan, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, beiAbgleichStufe, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
@@ -12,6 +12,7 @@ import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, 
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
 import { verdrahteAnschluesse, alleAbgleichen, merkeDriveStufe } from "./anschluesse.js"; // v58: Anschluss-Leiste + Kopf-Satz
+import { einrichtungFaellig, starteEinrichtung } from "./einrichtung.js"; // v91: Install-Flow
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -397,6 +398,26 @@ try {
   console.error("Beenden-Slider konnte nicht verdrahtet werden:", e);
 }
 
+// --- Board-Name (v91) -------------------------------------------------------
+// Oben links und im Browser-Tab steht der Name des Drive-Hauptordners. Erst der zuletzt bekannte
+// Name (sofort), dann der frische aus Drive. Ohne Namen bleibt der Produktname stehen.
+function setzeBoardName(name) {
+  if (!name) return;
+  const el = document.querySelector(".kopf-titel");
+  if (el) { el.textContent = name; el.title = "Name des Drive-Hauptordners"; }
+  document.title = name;
+  try { localStorage.setItem("cm-board-name", name); } catch {}
+}
+// Die Einrichtung (einrichtung.js) meldet einen neuen Namen per Ereignis — kein Import im Kreis.
+window.addEventListener("board-name", (e) => setzeBoardName(e.detail));
+async function zeigeBoardName() {
+  try { setzeBoardName(localStorage.getItem("cm-board-name")); } catch {}
+  try {
+    const r = await (await fetch("/api/board/name")).json();
+    setzeBoardName(r.name);
+  } catch { /* Name bleibt, wie er ist */ }
+}
+
 // --- Start ----------------------------------------------------------------
 
 (async () => {
@@ -414,6 +435,7 @@ try {
     // wartete der Start hier zusaetzlich auf sie — bis 14 s leeres Board, gemessen 30.09.2026).
     await Promise.all([ladeBoard(), ladeDefaults(), ladeCursorModusVomServer(), ladeKartenHinweise()]);
     setStand(`${S.cards.length} Karten geladen.`);
+    zeigeBoardName();
     // v90: Redaktionsplan im Hintergrund holen (Drive, einige Sekunden) — danach misst die
     // Kopfzeile die Woche gegen den Plan statt gegen die feste Zahl 3.
     ladePlan().then(() => zeichne()).catch(() => {});
@@ -441,6 +463,13 @@ try {
     ziel = "auswertung";
   }
   wechsle(ziel);
+
+  // v91: Einrichtung — nach dem Wechsel in einen leeren Ordner (Board leer, nie eingerichtet) oder
+  // bei Rueckkehr aus der Google-Anmeldung mitten in der Einrichtung.
+  {
+    const ab = einrichtungFaellig();
+    if (ab !== null) starteEinrichtung(ab);
+  }
 
   // Drive einmal beim Start pruefen — damit ein Ausfall sofort sichtbar ist und nicht
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.

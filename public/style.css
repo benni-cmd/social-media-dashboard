@@ -4446,3 +4446,41 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .verb-info-zeile { display: grid; grid-template-columns: 92px 1fr; gap: 8px; }
 .verb-info-label { color: var(--text-leise); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 2px; }
 .verb-link { display: inline-block; margin: 4px 0 8px; color: var(--akzent); font-weight: 600; }
+
+/* v91 — Einrichtung (Install-Flow) */
+.einrichtung-modal {
+  max-width: 720px;
+  max-height: calc(100vh - 40px);
+  position: relative;
+  padding: 0 !important;
+  gap: 0;
+}
+.einr-kopf { padding: 20px 24px 6px; }
+.einr-zaehler { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-leise); }
+.einr-titel { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.einr-satz { margin: 6px 0 0; color: var(--text-still); font-size: 13.5px; line-height: 1.5; }
+.einr-leiste { display: flex; gap: 6px; padding: 10px 24px 4px; }
+.einr-punkt { flex: 1; height: 4px; border-radius: 2px; background: var(--linie); }
+.einr-punkt.aktiv { background: var(--akzent); }
+.einr-punkt.ok { background: var(--ok); }
+.einr-punkt.weg { background: var(--hinweis); }
+.einr-inhalt { padding: 14px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-height: 160px; }
+.einr-fuss { display: flex; align-items: center; gap: 8px; padding: 12px 24px 18px; border-top: 1px solid var(--linie); }
+.einr-fuss-rechts { margin-left: auto; display: flex; gap: 8px; }
+.einr-text { margin: 0; font-size: 13.5px; line-height: 1.55; }
+.einr-text a, .einr-feld-hilfe a { color: var(--akzent); }
+.einr-warn { margin: 0; font-size: 13px; color: var(--befund); }
+.einr-feld { display: flex; flex-direction: column; gap: 4px; }
+.einr-feld-label { font-size: 13px; font-weight: 650; }
+.einr-feld-hilfe { font-size: 12px; color: var(--text-leise); line-height: 1.45; }
+.einr-feld textarea, .einr-feld input, .einr-select { width: 100%; box-sizing: border-box; }
+.einr-select { padding: 7px 8px; border: 1px solid var(--linie); border-radius: var(--rund); background: var(--flaeche); color: var(--text); font: inherit; }
+.einr-status { display: flex; }
+.einr-modell { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--linie); border-radius: var(--rund); }
+.einr-modell > div:first-child { flex: 1; font-size: 13px; line-height: 1.45; }
+.einr-prompt-name { font-size: 15px; font-weight: 700; margin: 2px 0 4px; }
+.einr-prompt-kopf { display: flex; flex-direction: column; gap: 2px; }
+.einr-prompt-nav { display: flex; }
+.einr-liste { margin: 0; padding-left: 18px; line-height: 1.8; }
+.einr-liste li.ok { color: var(--ok); }
+.einr-liste li.weg { color: var(--text-leise); }
