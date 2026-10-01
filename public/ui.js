@@ -1430,11 +1430,52 @@ export function einstellungenModal(onThemeChange) {
     zeichen: "weiter",
     klick: () => {
       overlay.remove();
-      import("./einrichtung.js").then((m) => m.starteEinrichtung(0));
+      import("./einrichtung.js").then((m) => m.starteEinrichtung());
     },
   });
   einrKnopf.classList.add("knopf-inline");
   seite3.appendChild(einrKnopf);
+
+  // v93: Board zuruecksetzen (Owner 01.10.2026) — fuer ein neues Projekt oder um die Einrichtung
+  // sauber zu pruefen. Loest das Board vom Ordner; der Drive-Ordner selbst bleibt unberuehrt.
+  {
+    const ab = document.createElement("div");
+    ab.className = "einst-abschnitt einst-zuruecksetzen";
+    ab.innerHTML =
+      `<div class="einst-label">Board zurücksetzen</div>` +
+      `<p class="einst-provider-sub">Löst das Board vom aktuellen Drive-Ordner und leert alle lokalen Zwischenspeicher. ` +
+      `Danach startet die Einrichtung von vorn (Ordner wählen …). <b>Die Daten im Drive-Ordner bleiben unverändert</b> ` +
+      `— wählst du ihn später wieder, ist alles da. Die Drive-Verbindung bleibt bestehen.</p>`;
+    const mitAnm = document.createElement("label");
+    mitAnm.className = "einst-check";
+    mitAnm.innerHTML = `<input type="checkbox"> Auch Anmeldungen trennen (Google Kalender + Tasks, Instagram, LinkedIn, Claude)`;
+    ab.appendChild(mitAnm);
+    const k = knopf("Board zurücksetzen", {
+      klick: () => {
+        const anmeldungen = mitAnm.querySelector("input").checked;
+        bestaetigen(
+          `Board vom Ordner lösen${anmeldungen ? " und alle Anmeldungen trennen" : ""}? Der Drive-Ordner bleibt unverändert.`,
+          "Zurücksetzen",
+          async () => {
+            const r = await fetch("/api/board/zuruecksetzen", {
+              method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ anmeldungen }),
+            });
+            if (!r.ok) { meldung("Zurücksetzen fehlgeschlagen.", "fehler"); return; }
+            try {
+              // Board-bezogenes weg; Darstellung (Theme, Cursor, Spaltenbreite) bleibt — gehoert zum Browser.
+              for (const key of Object.keys(localStorage))
+                if (/^cm-(board-name|rolle-|einrichtung-|auswertung-)/.test(key)) localStorage.removeItem(key);
+              sessionStorage.clear();
+            } catch {}
+            location.reload();
+          }
+        );
+      },
+    });
+    k.classList.add("knopf-inline", "knopf-gefahr");
+    ab.appendChild(k);
+    seite3.appendChild(ab);
+  }
 
   const dienstRender = [];
   async function ladeVerbStatus() {

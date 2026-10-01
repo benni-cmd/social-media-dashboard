@@ -2181,6 +2181,12 @@ function kiNutzlast(k) {
     const f = k.recherche.fokus[k.chosenFokus];
     if (f) n.fokus = `${f.titel}: ${f.text}`;
   }
+  // v93: Ergebnisse frueherer Schritte weitergeben (lib/ai.js kontext() stellt sie in den Prompt).
+  if (k.recherche && k.recherche.zusammenfassung) n.rechercheFakten = k.recherche.zusammenfassung;
+  if (k.recherche && Array.isArray(k.recherche.keywords)) n.keywords = k.recherche.keywords;
+  const skript = k.skriptFinal || (k.ai && k.ai.skript);
+  if (skript) n.skript = skript;
+  if (k.formate && Object.keys(k.formate).length) n.formatErgebnisse = k.formate;
   return n;
 }
 

@@ -27,62 +27,47 @@ Start: Doppelklick auf **`Start-Board.cmd`** (startet Ollama mit, öffnet den Br
 Adresse: **https://localhost:4321** — das Zertifikat ist selbstsigniert, der Browser fragt einmal nach.
 Beim ersten Start erzeugt der Server `data/localhost.key`/`.crt` (braucht `openssl` im PATH).
 
-## 3. Google Drive verbinden (rclone)
+## 3. Einrichtung im Board (der Assistent)
 
-1. Eigene Google-Cloud-App für rclone ist Pflicht (die geteilte client_id von rclone wird 2026
-   abgeschaltet): console.cloud.google.com → Projekt → **Google Drive API** aktivieren → Credentials →
-   OAuth client ID (Desktop app). Details: [`docs/drive-convention.md`](docs/drive-convention.md) Abschnitt „Zugang".
-2. `rclone config` → neuer Remote **`gdrive`**, Typ `drive`, client_id/secret eintragen, Scope `drive`,
-   im Browser mit dem Google-Konto anmelden, dem der Board-Ordner gehört.
-3. Prüfen: `rclone lsd gdrive:` listet deine Drive-Ordner.
+Beim **ersten Start und bei jedem weiteren Start, solange etwas fehlt**, öffnet sich der Assistent und führt
+nur durch die offenen Schritte. Die Reihenfolge folgt den Abhängigkeiten; was eine Voraussetzung braucht, ist
+bis dahin gesperrt (mit Grund). „Später" überspringt für diese Sitzung, das ✕ schließt bis zum nächsten Start.
 
-## 4. Board-Ordner wählen
+| # | Schritt | braucht | was passiert |
+|---|---|---|---|
+| 1 | Google Drive verbinden | rclone | eigene Google-Cloud-App (Google Drive API, OAuth „Desktop app"), Client-ID + Secret eintragen → Google-Login im Browser; bestehende Verbindung: „neu anmelden" |
+| 2 | Projektordner wählen | 1 | Link eines Drive-Ordners: leer → Struktur wird angelegt; mit Board → wird geladen; sonst abgelehnt mit Grund |
+| 3 | Board-Name | 2 | Name = Name des Drive-Ordners; Ändern benennt den Ordner um |
+| 4 | Claude anmelden | – | „Anmeldung starten" → bei Claude anmelden → Code einfügen |
+| 5 | Lokale KI (Ollama) | – | prüft Ollama; lädt `deepseek-r1:14b` (Recherche) und `qwen2.5:14b` (Kontextabgleich) |
+| 6 | KI-Rollen | 2 | Vorschlag: Userkommunikation Claude Haiku, Recherche DeepSeek, Kontextabgleich Qwen |
+| 7 | Firmenkontext | 2 | sechs Fragen (Wer · Wofür · Zielgruppe · Ton · No-Gos · Handlungsaufruf + Marken-Hashtags) — **kein Vorschlag**, Pflicht |
+| 8 | System-Prompts | 2 | alle 15 in Ablauf-Reihenfolge; je Prompt der **Vorschlag** zum Übernehmen oder Anpassen; eine eigene Fassung bleibt vorausgewählt |
+| 9 | Redaktionsplan | 2 | Posts pro Woche je Format |
+| 10 | Google Kalender + Tasks | 2 | Google-Cloud-App (Calendar API + Tasks API, OAuth „Web application", Redirect `https://localhost:4321/api/auth/google/callback`); für Dauerbetrieb „In production" (sonst läuft die Anmeldung nach 7 Tagen ab) |
 
-Im Board: **Einstellungen → Externe Dienste → Google Drive → „Ordner wechseln"**, Link des Drive-Ordners einfügen.
+Erneut starten: Einstellungen → Externe Dienste → „Einrichtung Schritt für Schritt starten".
 
-- **Leerer Ordner** → das Board legt die feste Struktur an und startet die **Einrichtung** (Abschnitt 5).
-- **Ordner mit vollständiger Board-Struktur** → wird geladen (Umzug eines bestehenden Boards).
-- **Anderer Inhalt / kaputte Struktur** → wird abgelehnt, mit Grund.
+**Board zurücksetzen** (Einstellungen → Externe Dienste, ganz unten): löst das Board vom Drive-Ordner und leert
+die lokalen Zwischenspeicher; der Assistent beginnt danach bei „Projektordner wählen". Die Daten im Drive-Ordner
+bleiben unverändert. Optional werden auch Google Kalender/Tasks, Instagram, LinkedIn und Claude getrennt; die
+Drive-Verbindung bleibt.
 
-Der Name des Ordners ist ab dann der Name des Boards (oben links).
-
-## 5. Einrichtung im Board (Schritt für Schritt)
-
-Öffnet sich von selbst bei einem neuen, leeren Board; sonst Einstellungen → Externe Dienste →
-„Einrichtung Schritt für Schritt starten". Jeder Schritt lässt sich mit „Später" überspringen.
-
-1. **Name** — Name des Drive-Ordners; Ändern benennt den Ordner um.
-2. **Google Kalender + Tasks** — einmalig eigene Google-Cloud-App (APIs *Google Calendar* und
-   *Google Tasks* aktivieren, OAuth client ID „Web application", Redirect URI
-   `https://localhost:4321/api/auth/google/callback`), Client-ID + Secret eintragen, „Verbinden".
-   Solange die App im Google-Modus „Testing" ist, läuft die Anmeldung nach 7 Tagen ab — für Dauerbetrieb
-   die App auf **„In production"** stellen.
-3. **Claude** — „Anmeldung starten" → bei Claude anmelden → angezeigten Code einfügen.
-4. **Lokale KI** — prüft Ollama, lädt die empfohlenen Modelle.
-5. **KI-Rollen** — Vorschlag: Userkommunikation = Claude Haiku, Recherche = `deepseek-r1:14b`,
-   Kontextabgleich = `qwen2.5:14b`. Gespeichert im Board (Drive).
-6. **Firmenkontext** — sechs Fragen (Wer · Wofür · Zielgruppe · Ton · No-Gos · Handlungsaufruf).
-7. **System-Prompts** — alle 15 in der Reihenfolge des Board-Ablaufs, je mit Erklärung, Ort des Knopfs
-   und Platzhalter-Legende. **Hinweis:** Der mitgelieferte System-Vorspann ist für World Eden Era
-   geschrieben — für ein anderes Unternehmen hier anpassen.
-8. **Redaktionsplan** — Posts pro Woche je Format.
-9. **Abschluss** — prüft den echten Stand und listet, was noch offen ist.
-
-## 6. Optional: Instagram und LinkedIn (Auswertung)
+## 4. Optional: Instagram und LinkedIn (Auswertung)
 
 Zugänge in `.env` (Anleitung steht als Kommentar in [`.env.example`](.env.example)), dann Einstellungen →
 Social Media Kanäle → „Verbinden". Redirect-URIs:
 `https://localhost:4321/api/auth/instagram/callback` und `https://localhost:4321/api/auth/linkedin/callback`.
 
-## 7. Umzug auf einen anderen Rechner oder in einen anderen Ordner
+## 5. Umzug auf einen anderen Rechner oder in einen anderen Ordner
 
 - **Anderer Rechner, gleicher Ordner:** Abschnitte 1–3, dann denselben Ordner wählen — Karten,
   Einstellungen, Prompts und KI-Rollen kommen aus Drive. Neu anmelden musst du Google Kalender/Tasks,
   Claude und Instagram/LinkedIn (Zugänge liegen bewusst nur lokal).
-- **Neuer, leerer Ordner:** Ordner wechseln → Einrichtung. Das alte Board bleibt in seinem Ordner
+- **Neuer, leerer Ordner:** Board zurücksetzen oder Ordner wechseln → Einrichtung. Das alte Board bleibt in seinem Ordner
   unverändert; das Board sichert seinen Stand vor jedem Wechsel.
 
-## 8. Fehlerbehebung
+## 6. Fehlerbehebung
 
 | Zeichen | Ursache | Lösung |
 |---|---|---|

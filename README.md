@@ -37,7 +37,8 @@ Vertrag im Detail: [`docs/drive-convention.md`](docs/drive-convention.md).
 ```
 
 Die Struktur ist **fest**. Ein leerer Ordner bekommt sie beim ersten Öffnen angelegt; ein Ordner mit
-falscher Struktur wird abgelehnt — mit Grund.
+falscher Struktur wird abgelehnt — mit Grund. Ohne gewählten Ordner arbeitet das Board nicht in Drive
+(es gibt keinen eingebauten Standard-Ordner); der Einrichtungs-Assistent fragt ihn ab.
 
 ## 2. Karten und Spalten
 
@@ -108,8 +109,15 @@ Die Rolle bestimmt das Modell:
 - **Prompts** (Einstellungen → System Prompts): ein **System-Vorspann** für jeden Text, dann je Knopf
   die Schritte. `{{Platzhalter}}` setzt das Board ein (Karteninhalt, Firmenkontext, Hausregeln).
   Je Format kann ein Knopf eine eigene Fassung haben; sonst gilt der Standard.
+- **Standard-Prompts sind neutral** (reine Social-Media-Funktion, kein Unternehmen eingebaut) und gleich
+  gegliedert: AUFGABE · DU BEKOMMST · REGELN · AUSGABE. Marke, Zielgruppe, Ton und Marken-Hashtags kommen
+  ausschließlich aus dem Firmenkontext.
+- **Die Schritte geben weiter:** jeder KI-Schritt bekommt im Karten-Kontext, was vorher entschieden wurde —
+  gewählter Fokus, gesprochener und Bild-Hook, recherchierte Fakten und Suchbegriffe, das aktuelle Skript und
+  bisherige Format-Ergebnisse (z. B. bekommt „Visual je Slide" die Slides aus „Slider aufbauen"; Caption und
+  Regieplan bekommen das Skript).
 - **Firmenkontext** (Einstellungen → Unternehmenskontext): Text + Dateien aus `Kontext/_global/`; geht
-  in jeden Prompt.
+  in jeden Prompt. Kein Standard — die Einrichtung fragt ihn ab.
 - **Web-Suche:** DuckDuckGo ohne Schlüssel; optional Tavily (`TAVILY_API_KEY`).
 - Lokale Modellnamen ohne Größe (`deepseek-r1`) löst das Board auf das installierte Modell auf.
 

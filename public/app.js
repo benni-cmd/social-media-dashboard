@@ -12,7 +12,7 @@ import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, 
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
 import { verdrahteAnschluesse, alleAbgleichen, merkeDriveStufe } from "./anschluesse.js"; // v58: Anschluss-Leiste + Kopf-Satz
-import { einrichtungFaellig, starteEinrichtung } from "./einrichtung.js"; // v91: Install-Flow
+import { einrichtungBeimStart } from "./einrichtung.js"; // v93: Assistent bei jedem Start, solange etwas fehlt
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -464,12 +464,9 @@ async function zeigeBoardName() {
   }
   wechsle(ziel);
 
-  // v91: Einrichtung — nach dem Wechsel in einen leeren Ordner (Board leer, nie eingerichtet) oder
-  // bei Rueckkehr aus der Google-Anmeldung mitten in der Einrichtung.
-  {
-    const ab = einrichtungFaellig();
-    if (ab !== null) starteEinrichtung(ab);
-  }
+  // v93: Bei JEDEM Start pruefen, ob die Einrichtung vollstaendig ist (Drive, Ordner, Name, Claude,
+  // lokale KI, Rollen, Firmenkontext, Prompts, Plan, Google) — fehlt etwas, oeffnet sich der Assistent.
+  einrichtungBeimStart().catch(() => {});
 
   // Drive einmal beim Start pruefen — damit ein Ausfall sofort sichtbar ist und nicht
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.

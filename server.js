@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { execSync, exec } from "node:child_process";
+import { execSync, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
 import * as pipeline from "./lib/pipeline.js";
@@ -124,14 +124,14 @@ async function wechsleDriveOrdner(neuId) {
 
 // Kontowechsel: rclones Browser-Anmeldung laeuft im Hintergrund, die Oberflaeche fragt den Stand ab.
 const kontoWechsel = { laeuft: false, gestartet: 0, ergebnis: null, satz: "" };
-function starteDriveKontoWechsel() {
+function starteDriveKontoWechsel(neu = null) {
   if (kontoWechsel.laeuft) return;
   kontoWechsel.laeuft = true;
   kontoWechsel.gestartet = Date.now();
   kontoWechsel.ergebnis = null;
   kontoWechsel.satz = "Anmeldung im Browser laeuft …";
   let fehlerText = "";
-  const kind = driveSetup.starteKontoWechsel();
+  const kind = driveSetup.starteKontoWechsel(undefined, neu);
   kind.stderr.on("data", (d) => { fehlerText += d; });
   const abbruch = setTimeout(() => { try { kind.kill(); } catch { /* schon beendet */ } }, 10 * 60 * 1000); // 10 Min. fuer den Login
   const fertig = (ok, satz) => {
@@ -359,7 +359,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
       firmenkontext: firmenKontext.firmenkontext || "",
       projektkontext: firmenKontext.projektkontext || "",
       vorschritt,
-    });
+    }, task);
     const userMsg = webBlock + "\n\n---\n\n" + stepPrompt;
     const system = rolle === "userkomm" ? systemVorspann : "";
     const letzter = i === schritte.length - 1;
@@ -1001,8 +1001,32 @@ async function handler(req, res) {
 
     // Konto wechseln: startet die Browser-Anmeldung; der Stand wird per GET abgefragt.
     if (pfad === "/api/drive/konto/wechseln" && req.method === "POST") {
-      starteDriveKontoWechsel();
+      // v93: mit {clientId, clientSecret} wird die Verbindung erst angelegt (Einrichtung, frischer Rechner).
+      let neu = null;
+      try {
+        const b = JSON.parse((await readBody(req)) || "{}");
+        if (b.clientId && b.clientSecret) {
+          if (!/^[w.-]+.apps.googleusercontent.com$/.test(b.clientId) || !/^[w-]{10,}$/.test(b.clientSecret)) {
+            sendJson(res, 400, { error: "Client-ID oder Client-Secret sieht nicht gueltig aus." });
+            return;
+          }
+          neu = { clientId: b.clientId, clientSecret: b.clientSecret };
+        }
+      } catch { /* ohne Body: bestehende Verbindung erneuern */ }
+      starteDriveKontoWechsel(neu);
       sendJson(res, 200, { laeuft: kontoWechsel.laeuft, satz: kontoWechsel.satz });
+      return;
+    }
+    // v93 Einrichtung Schritt 1: ist rclone da, gibt es die Verbindung, ist Drive erreichbar?
+    if (pfad === "/api/drive/einrichtung" && req.method === "GET") {
+      const rcloneDa = await new Promise((ok) => {
+        const k = spawn("rclone", ["version"], { shell: false });
+        k.on("error", () => ok(false));
+        k.on("close", (c) => ok(c === 0));
+      });
+      const verbindung = rcloneDa && !!drive.zugang();
+      const erreichbar = verbindung ? await drive.erreichbar().then((r) => !!(r && r.ok)).catch(() => false) : false;
+      sendJson(res, 200, { rclone: rcloneDa, verbindung, erreichbar, root: drive.aktuellerRoot() || "" });
       return;
     }
     if (pfad === "/api/drive/konto/wechseln" && req.method === "GET") {
@@ -1461,6 +1485,35 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       return;
     }
+    // v93: Board zuruecksetzen (Owner 01.10.2026: „sauber neue Projekte aufsetzen, Einrichtung pruefen").
+    // Loest das Board vom Projektordner und leert die lokalen Zwischenspeicher. Die Daten IM Drive-Ordner
+    // bleiben unberuehrt (vorher wird der Board-Stand dort gesichert). `anmeldungen: true` trennt zusaetzlich
+    // Google Kalender/Tasks, Instagram, LinkedIn und meldet die Claude-CLI ab; die Drive-Verbindung bleibt.
+    if (pfad === "/api/board/zuruecksetzen" && req.method === "POST") {
+      try {
+        const { anmeldungen = false } = JSON.parse((await readBody(req)) || "{}");
+        const alt = drive.aktuellerRoot();
+        if (alt) await sichereBoardFuerRoot(alt).catch(() => {});
+        drive.setzeRoot(null);
+        for (const f of [SPALTEN_FILE, PLAN_FILE, DEFAULTS_FILE, PROMPTS_FILE, WORKFLOWS_FILE, BOARDPARAM_FILE, KONTEXT_FILE]) {
+          try { await rm(f, { force: true }); } catch { /* egal */ }
+        }
+        const aktuell = await leseBoard();
+        await schreibeBoard([], aktuell.version + 1, []); // offene Tabs laufen in den Versions-Lock und laden neu
+        projekte.scanCacheLeeren();
+        driveSetup.kontoCacheLeeren();
+        if (anmeldungen) {
+          for (const dienst of ["google", "instagram", "linkedin"]) await entferneToken(dienst).catch(() => {});
+          gcal.statusCacheLeeren();
+          try { execSync("claude auth logout", { stdio: "ignore" }); } catch { /* war nicht angemeldet */ }
+        }
+        sendJson(res, 200, { ok: true, alterOrdner: alt || null });
+      } catch (e) {
+        sendJson(res, 500, { error: e.message });
+      }
+      return;
+    }
+
     // v91: Board-Name = Name des Drive-Hauptordners. PUT benennt den Drive-Ordner um.
     if (pfad === "/api/board/name" && req.method === "GET") {
       try {
