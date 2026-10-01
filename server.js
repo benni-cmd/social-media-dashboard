@@ -474,8 +474,9 @@ async function abgleichEinmal(onStufe) {
   }
   // v85-B: Steckbriefe (menschenlesbarer Stand je Projektordner) im Hintergrund nachziehen — die
   // Antwort wartet nicht darauf. Im Ruhezustand 3 md5sum-Aufrufe, geschrieben wird nur Abweichendes.
-  projekte
-    .steckbriefeAbgleichen(cards, ordnerDa)
+  // v98: 30 s spaeter — die Steckbriefe (13 + 5 s md5sum, gemessen) sollen keine Board-Anfrage aufhalten.
+  new Promise((r) => setTimeout(r, 30000))
+    .then(() => projekte.steckbriefeAbgleichen(cards, ordnerDa))
     .then((r) => { if (r.geschrieben) console.log(`Steckbriefe: ${r.geschrieben} von ${r.geprueft} geschrieben.`); })
     .catch((e) => console.log(`Steckbrief-Abgleich fehlgeschlagen: ${e.message}`));
   return { cards, befunde: [...spaltenBefunde, ...befunde], geaendert, version, spalten };
@@ -1881,6 +1882,10 @@ setInterval(async () => {
 
 server.listen(PORT, async () => {
   console.log(`WEE Social Media Suit laeuft auf https://localhost:${PORT}`);
+  // v98: Alles hier ist Hintergrundarbeit — sie wartet 60 s, damit das Board beim Start zuerst die Drive-
+  // Warteschlange bekommt (alle rclone-Aufrufe laufen nacheinander; gemessen standen KPI-Tabellen mit 15 s
+  // vor den Karten an).
+  await new Promise((r) => setTimeout(r, 60000));
   // v72: Ordner-Links der Drive-Marken vorwaermen (nacheinander, ein Aufruf je Ordner), damit der Klick sofort oeffnet
   (async () => { for (const rel of ["System (AI only)", "Kontext", "Videoauswertung/Auswertung-Tabellen"]) { try { await ordnerLinkId(rel); } catch { /* Beiwerk */ } } })();
   driveSetup.konto().catch(() => {}); // v63: Drive-Konto vorwaermen, damit "Externe Dienste" sofort den Stand zeigt

@@ -61,3 +61,6 @@ data/board-sicherungen/
 
 # Board-Parameter: lokale Daten dieses Rechners (Owner-Entscheid 30.09.2026), nicht committen.
 data/boardparameter.json
+
+# v98: Spiegel der System-Dateien (lokaler Beschleuniger, Wahrheit bleibt Drive)
+data/drive-spiegel/
