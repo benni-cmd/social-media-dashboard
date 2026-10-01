@@ -1,92 +1,156 @@
-# WEE Social Media Suit
+# WEE Social Media Suit — Content-Board
 
-Lokales Werkzeug fuer den Social-Media-Content der NGO World Eden Era. Es traegt den Weg von
-der Idee bis zum veroeffentlichten Video — und holt die Zahlen danach zurueck an die Karte,
-aus der das Video kam.
+Lokales Werkzeug für Social-Media-Content: von der Idee über Skript, Dreh, Schnitt und Caption bis
+zum Upload — und danach die Zahlen zurück an die Karte, aus der der Beitrag kam. Läuft auf dem
+eigenen Rechner (`https://localhost:4321`), speichert alles in **einem Google-Drive-Ordner** und
+nutzt KI ohne API-Kosten (Claude-Abo über die Claude-CLI, lokale Modelle über Ollama).
 
-## Was es tut
+> **Installieren, einrichten, umziehen:** [`INSTALL.md`](INSTALL.md).
+> **Diese Datei:** wie das Board funktioniert — die Regeln, nach denen es entscheidet.
 
-**Board.** Sieben Phasen: Idee › Skript › Videodreh › Schnitt › Caption › Upload › Fertig.
-Jede Phase ist ein Ordner in Google Drive; wandert die Karte, wandert der Ordner mit.
-**Grundsatz:** Drive ist die Wahrheit, und ohne Board muss man direkt in Drive weiterarbeiten
-können — Details und Prüfsatz in [`docs/drive-convention.md`](docs/drive-convention.md).
+---
 
-**Termine.** Sechs Meilensteine je Karte statt eines Upload-Datums: Idee, Skript, Dreh,
-Schnitt, Freigabe, Veroeffentlichung mit Uhrzeit. Ein Knopf rechnet den Rueckwaertsplan aus
-dem Veroeffentlichungsdatum. Der Kalender zeigt alles auf einen Blick.
+## 1. Grundsatz: Drive ist die Wahrheit
 
-**Qualitaetstore.** Vor jedem Phasenwechsel prueft das Werkzeug automatisch, was belegt
-wirkt — Sprechzeit, Hooklaenge, Untertitel, fremde Wasserzeichen, Hashtag-Grenzen je
-Plattform, genau ein Aufruf zum Handeln, keine Bitte um Likes. Herkunft jeder Regel:
-[`docs/best-practices.md`](docs/best-practices.md). Was sperrt, sperrt sichtbar und mit
-Begruendung.
+Ein Board = ein Drive-Hauptordner. **Der Name oben links ist der Name dieses Ordners**; wer das Board
+umbenennt, benennt den Ordner um. Alles Dauerhafte liegt dort — Karten (als Projektordner), Einstellungen,
+Prompts, Redaktionsplan, KI-Rollen. Lokal (`data/`) liegen nur Zwischenspeicher und Zugangsdaten.
 
-**KI in drei Rollen.** Die KI-Aufgaben (Recherche, Skript, Regieplan, Captions je Plattform,
-Ideen-Nachschub, Redaktionsplan) sind auf drei getrennt konfigurierbare Rollen verteilt —
-**Userkommunikation**, **Recherche** und **Kontextabgleich** —, jede mit eigenem Modell: lokal
-ueber **Ollama** (kostenlos, Default) oder ueber die **Claude-Code-CLI** (`claude -p`, dein Abo
-statt der kostenpflichtigen API). Die **Recherche-Rolle sucht echt im Web** (DuckDuckGo,
-schluessellos; Tavily optional per Key).
-
-**Anbindungen.** Google (Kalender/Tasks, Drive), Instagram, LinkedIn und Claude lassen sich in
-den Einstellungen **verbinden — und ebenso wieder trennen**.
-
-**Auswertung.** Instagram- und LinkedIn-Zahlen, verglichen gegen den **eigenen gleitenden
-Median** der letzten Beitraege. Branchen-Benchmarks aus Blogs sind bewusst nicht verdrahtet —
-sie sind unbelegt.
-
-## Einrichtung
+Ohne Board bleibt Drive voll nutzbar: ein Projekt wechselt die Phase, indem man seinen Ordner in den
+nächsten Spaltenordner zieht; jeder Projektordner trägt einen `Steckbrief.md` mit Stand und Terminen.
+Vertrag im Detail: [`docs/drive-convention.md`](docs/drive-convention.md).
 
 ```
-npm i -g @anthropic-ai/claude-code   # CLI installieren
-claude                               # einmal starten und interaktiv einloggen
+<Board-Name>/                      ← Drive-Hauptordner = Name des Boards
+├── In Bearbeitung/
+│   ├── 1 Idee/          Spalte „Skript schreiben"
+│   ├── 2 Skript/        Spalte „Drehtermin festlegen"
+│   ├── 3 Videodreh/
+│   ├── 4 Schnitt/
+│   ├── 5 Caption/
+│   └── 6 Upload/
+├── Videoauswertung/     Spalte „Fertig" (+ Auswertung-Tabellen/)
+├── Verworfen/
+├── Kontext/_global/     Dateien, die die KI über die Firma wissen soll
+├── Papierkorb/
+└── System (AI only)/    Einstellungen des Boards (nicht von Hand ändern)
 ```
 
-Google Drive laeuft ueber `rclone` mit dem Remote `gdrive:`. **Eigene client_id ist Pflicht
-geworden** — die geteilte wird 2026 abgeschaltet, Weg steht in
-[`docs/drive-convention.md`](docs/drive-convention.md).
+Die Struktur ist **fest**. Ein leerer Ordner bekommt sie beim ersten Öffnen angelegt; ein Ordner mit
+falscher Struktur wird abgelehnt — mit Grund.
 
-Fuer die Auswertung: `.env` aus `.env.example` anlegen und die App-Zugaenge eintragen.
+## 2. Karten und Spalten
 
-## Starten
+Eine Karte ist ein Beitrag. Sie trägt **Thema, Format, Kategorie, Ziel, Plattformen** („Worum geht es")
+und wandert von links nach rechts. Die Detailspalte zeigt immer nur den nächsten sinnvollen Schritt:
+erst „Worum geht es" vollständig, dann der Termin, dann die Arbeit der Spalte.
 
-```
-npm start
-```
+**Formate:** Reel · Slider · Beitrag mit Text · Story · Highlight · Langformat-Video. Video-Formate
+(Reel, Langformat) durchlaufen Drehtermin und Videodreh; die anderen überspringen diese Sperren und
+bekommen eigene KI-Schritte (Slides, Visual-Konzept, Story-Frames, Kapitel).
 
-Dann `https://localhost:4321` oeffnen (HTTPS, selbstsigniert — der Browser fragt einmal nach).
-Der Server braucht **keine** npm-Abhaengigkeiten, nur Node ab Version 20 — er nutzt ausschliesslich
-Bordmittel. Unter Windows startet `Start-Board.cmd` dasselbe per Doppelklick.
+**Weiter-Knopf und Sperren:** „Weiter" prüft die Qualitätstore der Spalte (z. B. Kategorie gewählt,
+Skript-Dokument in Drive, Sprechzeit, Hashtag-Grenzen). Was sperrt, steht mit Begründung an der Karte.
+Ziehen per Maus und das Kontextmenü verschieben **ohne** Prüfung — bewusst, als Handsteuerung.
+Herkunft jeder Regel: [`docs/best-practices.md`](docs/best-practices.md).
 
-## Auf einem anderen Rechner
+**Ampel an der Karte:** Punkt = Zeit bis zur dringlichsten Frist (rot ≤ 2 Tage oder überfällig, gelb
+3–5, grün ab 6; fest). Rotes **„!"** = Warnung (etwas ist falsch oder verstößt gegen eine Regel);
+gelber Kreis = Hinweis (etwas fehlt oder eine Empfehlung greift). Einzeln abschaltbar unter
+Einstellungen → Hinweise & Warnungen.
 
-```
-git clone https://github.com/benni-cmd/social-media-dashboard.git
-cd social-media-dashboard
-npm start          # oder: node server.js
-```
+## 3. Termine
 
-Voraussetzungen: **Node ab 20** und **`openssl` im PATH** — beim ersten Start erzeugt der Server
-daraus sein selbstsigniertes Zertifikat (`data/localhost.key`/`.crt`). Bei „Git fuer Windows" ist
-`openssl` dabei; fehlt es im `cmd`-PATH, bricht der Start ab. Google Drive (`rclone`) und die
-Auswertungs-Zugaenge (`.env`) sind optional — ohne verbundenes Drive startet das Board **leer**:
-die Karten-Daten liegen in Google Drive (die Wahrheit) und werden beim ersten Abgleich geholt.
-`data/board.json` ist nur der lokale Cache und wird **nicht** mehr im Repo mitgeliefert; bis zum
-ersten Abgleich meldet das Board Drive-Aktionen als „geht gerade nicht".
+**Eine zentrale Deadline je Karte: das Upload-Datum.** Alle anderen Fristen hängen als Kette davor
+(Einstellungen → Ansicht → Deadline-Vorlauf; Standard):
 
-## Aufbau
+| Schritt | liegt vor … | Standard |
+|---|---|---|
+| Freigabe | dem Upload | 3 Tage |
+| Schnitt | der Freigabe | 3 Tage |
+| Dreh | dem Schnitt | 6 Tage |
+
+Der **Drehtermin** kommt aus der Drehleiste oben (Sammeltermine für mehrere Karten). Zu späte
+Drehtermine werden abgelehnt.
+
+### Nächster freier Upload-Termin (eine Regel, überall gleich)
+
+Gilt für die Kachel „Nächstes freies Datum", „Nächsten freien Upload-Termin" (schwebend, rutscht mit),
+das Kontextmenü und „Idee von der KI" (`lib/uploadslots.js`):
+
+1. **Format passt:** nur Slots des Redaktionsplans mit demselben Format (Slider bekommt nur Slider-Slots;
+   Story und Highlight teilen sich die Story-Slots).
+2. **Machbar:** Video-Formate frühestens **nächster Drehtermin + 8 Tage**; Formate ohne Dreh frühestens
+   **heute + Freigabe- + Schnitt-Vorlauf** (Standard 6 Tage).
+3. **Frei:** kein anderer Beitrag hat Datum + Uhrzeit schon belegt.
+4. Ist für das Format nichts geplant, sagt das Board das im Klartext — es erfindet kein Datum.
+
+## 4. Redaktionsplan und Wochenziel
+
+Der Redaktionsplan legt fest: aktive Plattformen, **Posts pro Woche je Format** (0,25 = alle 4 Wochen),
+maximaler Abstand zwischen zwei Posts, Kategorien, Zielgewichte, Kampagnen. Daraus rechnet das Board
+feste Slots (Tag + Uhrzeit je Format, nach belegten Zeitfenstern).
+
+**Wochenziel (Kopfzeile):** Soll = Slots der laufenden Kalenderwoche (Mo–So) je Format; Ist = Karten mit
+Upload-Datum in dieser Woche. Die Kopfzeile sagt, was fehlt („es fehlt 1× Reel").
+
+## 5. KI
+
+Jeder KI-Knopf ist eine **Kette aus Schritten**; jeder Schritt hat eine **Rolle** und einen **Prompt**.
+Die Rolle bestimmt das Modell:
+
+| Rolle | Aufgabe | Empfehlung |
+|---|---|---|
+| Userkommunikation | Texte, die man sieht (Hooks, Skript, Caption, Ideen) | Claude (Haiku/Sonnet/Opus) über die Claude-CLI |
+| Recherche | Fakten sammeln, mit Web-Suche | `deepseek-r1:14b` lokal (gründlich, langsamer) |
+| Kontextabgleich | Texte mit dem Firmenkontext abgleichen | `qwen2.5:14b` lokal (schnell, genau) |
+
+- **Prompts** (Einstellungen → System Prompts): ein **System-Vorspann** für jeden Text, dann je Knopf
+  die Schritte. `{{Platzhalter}}` setzt das Board ein (Karteninhalt, Firmenkontext, Hausregeln).
+  Je Format kann ein Knopf eine eigene Fassung haben; sonst gilt der Standard.
+- **Firmenkontext** (Einstellungen → Unternehmenskontext): Text + Dateien aus `Kontext/_global/`; geht
+  in jeden Prompt.
+- **Web-Suche:** DuckDuckGo ohne Schlüssel; optional Tavily (`TAVILY_API_KEY`).
+- Lokale Modellnamen ohne Größe (`deepseek-r1`) löst das Board auf das installierte Modell auf.
+
+## 6. Anbindungen — wer, womit, wohin
+
+| Anbindung | Rolle | Datenfluss | Womit |
+|---|---|---|---|
+| Google Drive | Quelle der Wahrheit | Board ↔ Drive (lesen + schreiben) | rclone, Google-Konto des Ordners |
+| Google Kalender + Tasks | nur Ziel | Board → Google: Drehtermin = Kalendertermin + Aufgabe; nichts zurück | Google-Anmeldung über eigene Google-Cloud-App |
+| Claude | KI-Rechenleistung | Prompt hin, Text zurück | Claude-CLI, eigenes Claude-Abo |
+| Ollama | lokale KI | bleibt auf dem Rechner | Ollama-Dienst `localhost:11434` |
+| Instagram / LinkedIn | Quelle nur für Zahlen | Plattform → Board (lesen) | eigene Meta- bzw. LinkedIn-App |
+
+Einstellungen → Externe Dienste zeigt je Anbindung **Konto, Datenfluss, Anbindung und Zustand** (live /
+gestört / abgelaufen, mit Grund und „zuletzt erfolgreich"). Eine von Google abgelehnte Anmeldung
+erscheint als „Anmeldung abgelaufen", nie als grün. Claude lässt sich dort direkt anmelden.
+
+**Zugangsdaten** liegen nur lokal: `.env` (App-Schlüssel), `data/tokens.json` (Anmeldungen),
+`data/.gdrive-env.json` (rclone). Nichts davon liegt in Drive oder auf GitHub (geprüft 01.10.2026).
+
+## 7. Auswertung
+
+- Kennzahlen der letzten 30 Tage, verglichen mit den 30 davor.
+- **Wochenstatistik** (Mo–So, 8 Wochen, neueste oben): Redaktionsplan erfüllt? · veröffentlicht ·
+  Reichweite · Views · Interaktionen.
+- Letzte Beiträge beider Plattformen, Plattform-Vergleich, Bestperformer.
+- Vergleichslinie ist der **eigene gleitende Median** — Branchen-Benchmarks sind unbelegt und deshalb
+  nicht eingebaut.
+
+## 8. Aufbau des Codes
 
 | Ort | Aufgabe |
 |---|---|
-| `lib/pipeline.js` | Die eine Quelle: Phasen, Ordner, Termine, Karten-Schema, Qualitaetstore. Laeuft im Server UND im Browser. |
-| `lib/drive.js` | rclone-Anbindung. Trennt "gibt es nicht" von "geht gerade nicht". |
-| `lib/projects.js` | Projektordner anlegen, verschieben, lesen — und der Abgleich Board gegen Drive. |
-| `lib/ai.js` | Marken- und Praxis-Regeln, Prompts, KI-Aufrufe (Claude-CLI + Ollama, KI-Rollen). |
-| `lib/websuche.js` | Web-Suche fuer die Recherche-Rolle (DuckDuckGo schluessellos, Tavily optional). |
-| `lib/social.js` | Instagram- und LinkedIn-Zahlen. |
-| `server.js` | Nur Wegweisung. |
-| `public/` | Oberflaeche: `board` · `kalender` · `auswertung` · `detail` · `nachschub`, Bausteine in `ui.js`. |
-| `data/board.json` | Lokaler Karten-Cache mit Versionsnummer (nicht im Repo; Drive ist die Wahrheit). |
-| `docs/best-practices.md` | Belegbasis jeder eingebauten Regel, mit Quelle und Belegstaerke. |
-| `docs/drive-convention.md` | Der Drive-Vertrag. |
-| `docs/packages/` | Arbeitspakete (Problem · Intent · Goal · Plan · Stand · DoD). |
+| `server.js` | HTTPS-Server, API-Wegweisung, statische Dateien. Keine npm-Abhängigkeiten. |
+| `lib/pipeline.js` | Die eine Quelle: Phasen, Formate, Karten-Schema, Fristen, Qualitätstore. Läuft in Server **und** Browser. |
+| `lib/uploadslots.js` | Nächster freier Upload-Termin, Woche gegen Redaktionsplan. |
+| `lib/scheduler.js` | Slots aus dem Redaktionsplan. |
+| `lib/drive.js`, `lib/drivesetup.js`, `lib/projects.js` | rclone-Anbindung, Ordnerprüfung/-name, Projektordner und Abgleich. |
+| `lib/ai.js`, `lib/promptstore.js`, `lib/websuche.js` | KI-Aufrufe (Claude-CLI, Ollama), Prompts, Web-Suche. |
+| `lib/gcal.js`, `lib/claudeauth.js` | Google Kalender/Tasks, Claude-Anmeldung aus dem Board. |
+| `lib/social.js`, `lib/kpi*.js` | Instagram/LinkedIn-Zahlen, Auswertungs-Tabellen. |
+| `lib/*store.js` | Einstellungen in Drive (Plan, Prompts, Defaults, Workflows, Board-Parameter, Kontext). |
+| `public/` | Oberfläche: `board`, `detail`, `redaktionsplan`, `auswertung`, `einrichtung`, Bausteine in `ui.js`, Zustand in `store.js`. |
+| `docs/packages/` | Arbeitspakete (Problem · Intent · Goal · Plan · Stand · DoD) — die Historie jeder Entscheidung. |
