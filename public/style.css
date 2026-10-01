@@ -4413,33 +4413,7 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
    (border-box) verkleinert die Innenflaeche auf 112x30, der Griff (28 px) lag bei 3/3 px. */
 .shutdown-handle { top: 1px; left: 1px; }
 
-/* v90 — Wochenstatistik in der Auswertung (Mo–So, neueste oben) */
-.wochen-scroll { overflow-x: auto; margin-bottom: 26px; }
-.wochen-tabelle {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--flaeche);
-  border: 1px solid var(--linie);
-  border-radius: var(--rund);
-  box-shadow: var(--schatten);
-  font-size: 13px;
-}
-.wochen-tabelle th {
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-still);
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--linie);
-  white-space: nowrap;
-}
-.wochen-tabelle td { padding: 8px 12px; border-top: 1px solid var(--linie); white-space: nowrap; }
-.wochen-tabelle td .icon { width: 14px; height: 14px; vertical-align: -2px; }
-.wochen-tabelle .leise { color: var(--text-leise); font-size: 12px; }
-.wochen-tabelle tr.laeuft td { background: var(--flaeche-hoch); }
-.wochen-tabelle tr.plan-luecke td:nth-child(2) { color: var(--befund); font-weight: 600; }
+
 
 /* v86 — Anbindung: Datenfluss / Anbindung / Zustand unter jeder Verbindungs-Zeile */
 .verb-info { margin: 8px 0 0; display: grid; gap: 4px; font-size: 12.5px; line-height: 1.45; color: var(--text-still); }
@@ -4507,3 +4481,60 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .veroeff-art { color: var(--text-leise); font-size: 12px; margin-left: 4px; }
 .veroeff-vorschlag { border: 1px solid var(--hinweis); border-radius: var(--rund); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .veroeff-knoepfe { display: flex; gap: 8px; }
+
+/* v100 — Auswertung kompakt */
+.ausw { display: flex; flex-direction: column; gap: 14px; }
+.ausw-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.ausw-titel { font-size: 18px; font-weight: 700; }
+.ausw-zeitraum { color: var(--text-still); font-size: 13px; }
+.ausw-blaettern { display: flex; gap: 6px; margin-left: auto; }
+.ausw-umschalter { display: inline-flex; border: 1px solid var(--linie); border-radius: var(--rund); overflow: hidden; }
+.ausw-umschalt { font: inherit; font-size: 12.5px; padding: 6px 12px; border: 0; background: var(--flaeche); color: var(--text-still); cursor: pointer; }
+.ausw-umschalt.aktiv { background: var(--akzent); color: #fff; font-weight: 600; }
+.ausw-laedt { padding: 30px 12px; }
+.ausw-hinweis { margin: 0; font-size: 13px; color: var(--text-still); }
+.ausw-kennzahlen { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.ausw-kz { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--rund); padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.ausw-kz-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-leise); }
+.ausw-kz-wert { font-size: 20px; font-weight: 700; }
+.ausw-trend { font-size: 11.5px; font-weight: 600; }
+.ausw-trend.hoch { color: var(--ok); }
+.ausw-trend.runter { color: var(--befund); }
+.ausw-block { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--rund); padding: 10px 12px; }
+.ausw-block-kopf { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.ausw-block-unter { font-weight: 400; font-size: 12px; color: var(--text-leise); }
+.ausw-scroll { overflow-x: auto; }
+.ausw-tabelle { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ausw-tabelle th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-still); padding: 6px 8px; border-bottom: 1px solid var(--linie); white-space: nowrap; }
+.ausw-tabelle td { padding: 6px 8px; border-top: 1px solid var(--linie); vertical-align: middle; }
+.ausw-tabelle .ausw-zahl { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ausw-woche { cursor: pointer; }
+.ausw-woche:hover td, .ausw-woche.offen td { background: var(--flaeche-hoch); }
+.ausw-woche.laeuft td:first-child b::after { content: ""; }
+.ausw-tabelle .leise, .ausw .leise { color: var(--text-leise); font-size: 12px; }
+.ausw-chips { display: flex; flex-wrap: wrap; gap: 4px; max-width: 360px; }
+.ausw-chip { background: var(--flaeche-hoch); border: 1px solid var(--linie); border-radius: 12px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+.ausw-ok { color: var(--ok); font-weight: 600; white-space: nowrap; }
+.ausw-luecke { color: var(--befund); font-weight: 600; white-space: nowrap; }
+.ausw-ok .icon, .ausw-luecke .icon { width: 13px; height: 13px; vertical-align: -2px; }
+.ausw-detail td { background: var(--flaeche-hoch); padding: 0; }
+.ausw-wochendetail { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+.ausw-post { display: grid; grid-template-columns: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 2.2fr auto; align-items: center; gap: 4px 12px; padding: 6px 8px; border-radius: 6px; background: var(--flaeche); font-size: 12.5px; }
+.ausw-post.klickbar { cursor: pointer; }
+.ausw-post.klickbar:hover { outline: 1px solid var(--akzent); }
+.ausw-post-offen { border: 1px dashed var(--hinweis); grid-template-columns: minmax(160px, 1.2fr) 3fr; }
+.ausw-post-titel { font-weight: 600; }
+.ausw-post-zahlen { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--text-still); }
+.ausw-post a { color: var(--akzent); white-space: nowrap; }
+.ausw-zweispaltig { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ausw-mini { margin-bottom: 8px; }
+.ausw-mini-titel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-leise); margin: 4px 0 2px; }
+.ausw-mini-kopf, .ausw-mini-zeile { display: grid; grid-template-columns: 1fr 70px 60px; gap: 8px; font-size: 13px; }
+.ausw-mini-kopf { font-size: 11px; color: var(--text-leise); text-align: right; }
+.ausw-mini-zeile { padding: 3px 0; border-top: 1px solid var(--linie); }
+.ausw-mini-zeile span:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.ausw-balken-zeile { display: grid; grid-template-columns: 130px 1fr 60px; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; }
+.ausw-balken { height: 8px; background: var(--flaeche-hoch); border-radius: 4px; overflow: hidden; }
+.ausw-balken span { display: block; height: 100%; background: var(--akzent); }
+.ausw-fuss { margin: 0; font-size: 11.5px; color: var(--text-leise); }
+@media (max-width: 1100px) { .ausw-kennzahlen { grid-template-columns: repeat(3, 1fr); } .ausw-zweispaltig { grid-template-columns: 1fr; } .ausw-post { grid-template-columns: 1fr; } }

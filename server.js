@@ -1760,6 +1760,55 @@ async function handler(req, res) {
 
     // ---- Zahlen ----------------------------------------------------------
 
+    // v100: Auswertung je Zeitraum — 2× `wochen` Kalenderwochen ab `vor` Wochen zurueck (der zweite Block ist der
+    // Vergleichszeitraum). Liefert Konto-Werte je Woche und alle Posts darin mit Kennzahlen (Instagram + LinkedIn).
+    if (pfad === "/api/stats/zeitraum" && req.method === "GET") {
+      const wochen = Math.max(1, Math.min(26, Number(url.searchParams.get("wochen")) || 8));
+      const vor = Math.max(0, Math.min(104, Number(url.searchParams.get("vor")) || 0));
+      const tokens = await leseTokens();
+      const montag = new Date();
+      montag.setHours(0, 0, 0, 0);
+      montag.setDate(montag.getDate() - ((montag.getDay() + 6) % 7));
+      const bis = new Date(montag);
+      bis.setDate(bis.getDate() - 7 * vor + 7);
+      const von = new Date(montag);
+      von.setDate(von.getDate() - 7 * (vor + 2 * wochen - 1));
+      const antwort = { wochen: [], posts: [], instagram: false, linkedin: false };
+      try {
+        if (tokens.instagram && tokens.instagram.accessToken) {
+          const me = await social.instagramIch(tokens.instagram).catch(() => null);
+          const igId = me && me.id;
+          antwort.follower = me ? me.followers_count ?? null : null;
+          const [w, p] = await Promise.all([
+            igId ? social.instagramWochen(igId, tokens.instagram.accessToken, 2 * wochen, vor) : [],
+            social.instagramZeitraum(tokens.instagram, von.getTime(), bis.getTime()),
+          ]);
+          antwort.wochen = w;
+          antwort.posts.push(...p);
+          antwort.instagram = true;
+        }
+        if (tokens.linkedin && tokens.linkedin.accessToken) {
+          try {
+            const li = await social.linkedinZahlen(tokens.linkedin);
+            for (const x of li.posts || []) {
+              const t = typeof x.erstellt === "number" ? x.erstellt : Date.parse(x.erstellt);
+              if (t >= von.getTime() && t < bis.getTime())
+                antwort.posts.push({
+                  plattform: "linkedin", id: x.id, zeit: new Date(t).toISOString(), url: x.url || "", text: x.text || "",
+                  format: null, views: x.views ?? null, reach: null, likes: x.likes ?? null, kommentare: x.kommentare ?? null,
+                  geteilt: x.shares ?? null, gespeichert: null, interaktionen: x.interaktionen ?? null,
+                });
+            }
+            antwort.linkedin = true;
+          } catch { /* LinkedIn optional */ }
+        }
+        sendJson(res, 200, antwort);
+      } catch (e) {
+        sendJson(res, 502, { ...antwort, error: e.message });
+      }
+      return;
+    }
+
     if (pfad === "/api/stats/instagram" && req.method === "GET") {
       // Quelle: ?quelle=drive liest aus den Drive-CSVs (Paket v22), sonst live API.
       if (url.searchParams.get("quelle") === "drive") {
