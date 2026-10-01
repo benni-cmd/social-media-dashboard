@@ -90,7 +90,14 @@ das Kontextmenü und „Idee von der KI" (`lib/uploadslots.js`):
 
 Der Redaktionsplan legt fest: aktive Plattformen, **Posts pro Woche je Format** (0,25 = alle 4 Wochen),
 maximaler Abstand zwischen zwei Posts, Kategorien, Zielgewichte, Kampagnen. Daraus rechnet das Board
-feste Slots (Tag + Uhrzeit je Format, nach belegten Zeitfenstern).
+feste Slots (`lib/scheduler.js`, v95):
+- Der Zeitpunkt richtet sich nach der **Hauptplattform** des Formats (Reel → Instagram, Slider/Beitrag → LinkedIn,
+  Langvideo → YouTube/LinkedIn, Story → Instagram) und deren belegten Tagen und Zeiten (Instagram Di–Do 11:30/18:30,
+  LinkedIn Di–Do 15:30/17:00, YouTube Di–Mi 15:00/17:00, TikTok Sa/So/Mo).
+- Jede Woche dieselben Tage: 1 Post → Mi, 2 → Di + Do, 3 → Di, Mi, Do; mehr → zusätzlich Mo/Fr.
+- Wochenende nur, wenn die Hauptplattform es belegt (TikTok) oder bei vielen Stories.
+- Mehrere Formate verteilen sich über die Woche; teilen sie einen Tag, bekommt das zweite die zweite Uhrzeit.
+- Max-Abstand zieht einen Slot vor, aber nie auf Sa/So (dann auf den Freitag davor).
 
 **Wochenziel (Kopfzeile):** Soll = Slots der laufenden Kalenderwoche (Mo–So) je Format; Ist = Karten mit
 Upload-Datum in dieser Woche. Die Kopfzeile sagt, was fehlt („es fehlt 1× Reel").
