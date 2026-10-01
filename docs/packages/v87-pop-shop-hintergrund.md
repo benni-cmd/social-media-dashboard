@@ -20,7 +20,11 @@ Nicht gesehen: Auswertung im Dark Mode und mit Daten (in der Test-Instanz auf Po
 
 01.10.2026 (Runde 2) — Muster neu: Herz, Stern, Sonne mit Strahlen, Blitz, Spirale, Sticker-Kreis, Dreieck, Wolke, X-Kreuze, Schlangenlinien, Zickzack, Strichgruppen, Punkte; Kontur 6 px, Füllkritzel gegen leere Stellen. Bewusst KEINE nachgezeichneten Figuren von Keith Haring (urheberrechtlich geschützt) — nur die Formsprache mit eigenen Motiven. Screenshots Board hell + dunkel bei 1440x900 gesehen; Karten bleiben lesbar.
 
+01.10.2026 (Runde 3, Owner: „wirklich so ein Pattern, das sich endlos fortsetzt … Hintergrund muss nicht mitscrollen") —
+Antwort auf „selbst zeichnen oder Grafik suchen": selbst, per Generator. Gründe: Harings Linienlabyrinthe und Nachahmungen davon sind urheberrechtlich heikel; ein eigener Generator ist frei nutzbar, nahtlos und in Dicke/Dichte/Farbe änderbar. `tools/make-texture-popshop.mjs`: zufälliger Spannbaum (Tiefensuche) auf einem Torus → dicke, weich gerundete Linien, Kachel 572×572 px schließt sich an allen Rändern (mit überhöhtem Kontrast an der Kachelkante geprüft: keine Naht). Ausgabe `public/texture-popshop.svg` (hell 0,16) / `-dark.svg` (dunkel 0,12), ca. 28 KB. `background-attachment: fixed` → Muster steht, Inhalt scrollt darüber. Runde 2 (Kritzelmotive) ersetzt.
+Stellschrauben im Generator: `ZELLE` (Dichte), `STRICH` (Dicke), `WACKEL` (Unruhe), `SEED` (anderes Muster). Aufruf: `node tools/make-texture-popshop.mjs`.
+
 ## Definition of Done
 
 Geprueft gegen: Screenshots Board hell + dunkel, Auswertung hell, Computed-Style-Skript für Kopf, Leiste, Detail
-Offen: Auswertung mit Muster (hell + dunkel) nicht gesehen; Geschmack (Stärke/Dichte) — Owner
+Offen: Auswertung mit Muster nicht gesehen; Geschmack (Dicke, Dichte, Stärke, optional Farbe) — Owner
