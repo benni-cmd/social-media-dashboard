@@ -12,7 +12,8 @@
 // Leerzustand und "—", keine erfundenen Trends. LinkedIn liefert ueber social.js (noch) keine
 // Views/Reichweite/Weiterleitungen je Post — dort steht ehrlich "—", keine Naeherung.
 
-import { zielInfo, plattformName } from "/lib/pipeline.js";
+import { zielInfo, plattformName, isoDatum } from "/lib/pipeline.js";
+import { wocheGegenPlan, montagVon, plusTage } from "/lib/uploadslots.js";
 import { S, instagramZahlen, linkedinZahlen, zeichne } from "./store.js";
 import { zeichneKalender } from "./kalender.js";
 import { icon, statusChip, escape, knopf, leer, gruppe, sanduhr } from "./ui.js";
@@ -98,6 +99,7 @@ export async function zeichneAuswertung(el) {
 
   // --- Das Wichtigste, immer sichtbar ---
   el.appendChild(kpiReihe(ig, li, igOn, liOn));
+  el.appendChild(wochenStatistikBlock(ig, li, igOn, liOn));
   el.appendChild(letzteBeitraegeBlock(ig, li, igOn, liOn));
   el.appendChild(plattformVergleichBlock(ig, li, igOn, liOn));
   el.appendChild(medianHinweis());
@@ -372,6 +374,89 @@ function kpiReihe(ig, li, igOn, liOn) {
       "Liegen insgesamt auf den verbundenen Konten.");
   return wrap;
 }
+
+// --- Wochenstatistik (v90) ----------------------------------------------------
+//
+// Owner 01.10.2026: immer eine Wochenstatistik Montag–Sonntag, unabhaengig von den Uploads.
+// Je Kalenderwoche: Redaktionsplan (Soll aus dem Plan, terminiert aus den Karten), tatsaechlich
+// veroeffentlicht (Instagram + LinkedIn nach Zeitstempel) und die Konto-Werte von Instagram.
+// Neueste Woche oben; die laufende Woche ist markiert und zaehlt bis jetzt.
+function wochenStatistikBlock(ig, li, igOn, liOn) {
+  const wrap = document.createElement("div");
+  wrap.className = "abschnitt";
+  wrap.innerHTML =
+    `<div class="abschnitt-kopf">${icon("kalender")}<span class="abschnitt-titel">Wochenstatistik</span>` +
+    `<span class="abschnitt-unter">— Montag bis Sonntag, neueste oben</span></div>`;
+
+  const wochen = igOn && (ig.wochen || []).length ? ig.wochen : letzteWochenLeer(8);
+  const imZeitraum = (t, w) => {
+    if (!t) return false;
+    const tag = new Date(t).toISOString().slice(0, 10);
+    return tag >= w.von && tag <= w.bis;
+  };
+  const igPosts = igOn ? ig.medien || [] : [];
+  const liPosts = liOn ? li.posts || [] : [];
+
+  const tab = document.createElement("table");
+  tab.className = "wochen-tabelle";
+  tab.innerHTML =
+    `<thead><tr><th>Woche</th><th>Redaktionsplan</th><th>Veroeffentlicht</th>` +
+    `<th>Reichweite</th><th>Views</th><th>Interaktionen</th></tr></thead>`;
+  const body = document.createElement("tbody");
+  for (const w of wochen) {
+    const p = S.plan ? wocheGegenPlan(S.plan, S.cards, w.von) : null;
+    const planZelle = !p
+      ? `<span class="leise">Plan laedt …</span>`
+      : !p.sollGesamt
+        ? `<span class="leise">nichts geplant</span>`
+        : `${p.fehlt.length ? icon("warnung") : icon("check")} ${p.istGesamt} / ${p.sollGesamt}`;
+    const igN = igPosts.filter((m) => imZeitraum(m.timestamp, w)).length;
+    const liN = liPosts.filter((x) => imZeitraum(x.erstellt, w)).length;
+    const tr = document.createElement("tr");
+    if (w.laeuft) tr.className = "laeuft";
+    if (p && p.sollGesamt && p.fehlt.length) tr.classList.add("plan-luecke");
+    tr.innerHTML =
+      `<td><strong>KW ${kalenderwoche(w.von)}</strong> <span class="leise">${kurzTag(w.von)}–${kurzTag(w.bis)}${w.laeuft ? " · laeuft" : ""}</span></td>` +
+      `<td title="terminiert / laut Plan">${planZelle}</td>` +
+      `<td>${igOn || liOn ? `${igN + liN}${liOn ? ` <span class="leise">(IG ${igN} · LI ${liN})</span>` : ""}` : "—"}</td>` +
+      `<td>${w.reichweite == null ? "—" : fmt(w.reichweite)}</td>` +
+      `<td>${w.views == null ? "—" : fmt(w.views)}</td>` +
+      `<td>${w.interaktionen == null ? "—" : fmt(w.interaktionen)}</td>`;
+    body.appendChild(tr);
+  }
+  tab.appendChild(body);
+  const scroll = document.createElement("div");
+  scroll.className = "wochen-scroll";
+  scroll.appendChild(tab);
+  wrap.appendChild(scroll);
+  if (!igOn) {
+    const h = document.createElement("div");
+    h.className = "abschnitt-unter";
+    h.textContent = "Reichweite, Views und Interaktionen erscheinen, sobald Instagram verbunden ist.";
+    wrap.appendChild(h);
+  }
+  return wrap;
+}
+
+// Ohne Instagram: dieselben Wochen-Zeilen (Mo–So) ohne Konto-Werte.
+function letzteWochenLeer(anzahl) {
+  const heute = isoDatum(new Date());
+  const m0 = montagVon(heute);
+  return Array.from({ length: anzahl }, (_, i) => {
+    const von = plusTage(m0, -7 * i);
+    return { von, bis: plusTage(von, 6), laeuft: i === 0, reichweite: null, views: null, interaktionen: null };
+  });
+}
+
+// ISO-Kalenderwoche (Donnerstag-Regel).
+function kalenderwoche(iso) {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+  const jan4 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - jan4) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
+}
+
+const kurzTag = (iso) => `${Number(iso.slice(8, 10))}.${Number(iso.slice(5, 7))}.`;
 
 function kpiKarte(zeichen, label, wert, satz, trend) {
   const trendHtml = trend

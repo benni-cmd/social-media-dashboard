@@ -13,6 +13,7 @@ export const S = {
   cards: [],
   spalten: [], // Spalten aus Drive (v17b); leer => board.js faellt auf PHASEN zurueck
   drehtermine: [], // Batch-Drehtermine (v16)
+  plan: null, // zuletzt gelesener Redaktionsplan (v90); null = noch nicht geladen
   googleVerbunden: false, // gecachter Google-Verbindungsstand fuer den Auto-Sync (v16d-2)
   googleKonto: null, // Mail des verbundenen Google-Kontos, lazy geladen (v44)
   aktiv: null, // id der geoeffneten Karte
@@ -706,6 +707,7 @@ export async function linkedinZahlen() {
 export async function ladePlan() {
   try {
     const plan = await hole("/api/plan");
+    S.plan = plan; // v90: Kopfzeile und Wochenstatistik messen gegen den zuletzt gelesenen Plan
     // Owner 10.09.2026: ein haengender/fehlerhafter Drive-Zugriff darf nicht mehr still im
     // Cache-Fallback verschwinden — sichtbare Meldung mit Fehlercode, wie an anderer Stelle
     // (z. B. driveVerschieben) schon ueblich.

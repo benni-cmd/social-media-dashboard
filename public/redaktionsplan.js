@@ -10,7 +10,7 @@ import {
   zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
-import { melde, setStand } from "./store.js";
+import { S, melde, setStand, zeichne } from "./store.js";
 import { escape, knopf, sanduhr, modalX } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
@@ -77,6 +77,8 @@ async function speicherePlan(plan) {
     body: JSON.stringify(plan),
   });
   if (!r.ok) throw new Error("Speichern fehlgeschlagen (" + r.status + ")");
+  S.plan = plan; // v90: Kopfzeile und Termin-Vorschlaege rechnen sofort mit dem neuen Plan
+  zeichne();
 }
 
 function defaultPlan() {

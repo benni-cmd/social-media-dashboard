@@ -4412,3 +4412,31 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 /* v83: Beenden-Schieber — der Griff sass 1-2 px zu tief/zu weit rechts: die 2-px-Kante der Schiene
    (border-box) verkleinert die Innenflaeche auf 112x30, der Griff (28 px) lag bei 3/3 px. */
 .shutdown-handle { top: 1px; left: 1px; }
+
+/* v90 — Wochenstatistik in der Auswertung (Mo–So, neueste oben) */
+.wochen-scroll { overflow-x: auto; margin-bottom: 26px; }
+.wochen-tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--rund);
+  box-shadow: var(--schatten);
+  font-size: 13px;
+}
+.wochen-tabelle th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-still);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--linie);
+  white-space: nowrap;
+}
+.wochen-tabelle td { padding: 8px 12px; border-top: 1px solid var(--linie); white-space: nowrap; }
+.wochen-tabelle td .icon { width: 14px; height: 14px; vertical-align: -2px; }
+.wochen-tabelle .leise { color: var(--text-leise); font-size: 12px; }
+.wochen-tabelle tr.laeuft td { background: var(--flaeche-hoch); }
+.wochen-tabelle tr.plan-luecke td:nth-child(2) { color: var(--befund); font-weight: 600; }

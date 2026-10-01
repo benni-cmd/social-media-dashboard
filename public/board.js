@@ -19,6 +19,7 @@ import {
 import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
+import { wochenlastNachPlan } from "/lib/uploadslots.js";
 import { holeIdee } from "./nachschub.js";
 import { zeigeRedaktionsplan } from "./redaktionsplan.js";
 import { zeichneDrehleiste } from "./drehtermine.js";
@@ -263,7 +264,8 @@ export function schiebe(k, ziel) {
 
 function zeichneWochenlast(el) {
   if (!el) return;
-  const w = wochenlast(sichtbareKarten());
+  // v90: gegen den Redaktionsplan (je Format), sobald er geladen ist; bis dahin die alte Faustregel.
+  const w = S.plan ? wochenlastNachPlan(S.cards, S.plan) : wochenlast(sichtbareKarten());
   el.innerHTML = statusChip(w.status) + `<span>${escape(w.satz)}</span>`;
 
   // Der Redaktionsplan haengt an der Wochenleiste, weil er genau deren Frage beantwortet:
