@@ -7,34 +7,24 @@
 
 import {
   INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, saeulenVerteilung, MASSE,
-  contenttypName, kategorieName, contenttypFormat, zielInfo, naechsteFreieSlots, fruehesterUpload,
+  contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
-import { slotsForMonth } from "/lib/scheduler.js";
+import { naechsterFreierUpload } from "/lib/uploadslots.js";
 import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, optimistisch, terminplan, schwebendeNeuBerechnen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
 
-async function ladeOffeneSlots() {
+// v89: der naechste freie, machbare Slot beliebigen Formats (die Idee uebernimmt das Format des
+// Slots) — dieselbe Regel wie Kachel, Kontextmenue und schwebende Karten (lib/uploadslots.js).
+async function naechsterOffenerSlot() {
   try {
     const res = await fetch("/api/plan");
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const plan = await res.json();
-    // Algorithmisch erzeugte Slots der naechsten zwei Monate
-    const heute = new Date();
-    const heuteISO = isoDatum(heute);
-    const slots = [];
-    for (let delta = 0; delta < 2; delta++) {
-      const year = heute.getFullYear() + Math.floor((heute.getMonth() + delta) / 12);
-      const month = (heute.getMonth() + delta) % 12;
-      slots.push(...slotsForMonth(plan, year, month));
-    }
-    // P4 (v37): nie ein Upload-Datum vor „naechster Drehtermin + 8 Tage" anbieten, sonst
-    // landen Schnitt/Dreh in der Vergangenheit.
-    const frueh = fruehesterUpload(S.drehtermine, heuteISO);
-    return slots.filter((s) => s.datum >= frueh);
+    return naechsterFreierUpload({ plan, cards: S.cards, drehtermine: S.drehtermine, monate: 2 }).slot;
   } catch {}
-  return [];
+  return null;
 }
 
 // Ideen-Swipe (v17c): ein mittiges Popup zeigt EINE KI-Idee als Karte (Titel + 2–3 Saetze).
@@ -43,15 +33,9 @@ async function ladeOffeneSlots() {
 // ungefragt in Drive. Gibt die id der uebernommenen Karte zurueck (oder null bei Abbruch),
 // damit der Aufrufer sie oeffnen kann — dieselbe Signatur wie vorher.
 export async function holeIdee() {
-  const alleSlots = await ladeOffeneSlots();
-  const belegteUploads = new Set(
-    S.cards
-      .filter((c) => c.column !== "verworfen" && (c.dates || {}).upload)
-      .map((c) => c.dates.upload + "|" + (c.uploadTime || "")),
-  );
   // Ein freier Redaktionsplan-Slot ist ein Bonus (belegt das Upload-Datum vor), aber KEINE
   // Voraussetzung: ohne Slot entsteht eine reine Idee-Karte ohne Termin (spaeter planbar).
-  const slot = naechsteFreieSlots(alleSlots, belegteUploads, 1)[0] || null;
+  const slot = await naechsterOffenerSlot();
 
   return new Promise((resolve) => {
     const abgelehnt = []; // sitzungslokale Ablehnliste — verhindert Wiederholungen im Prompt

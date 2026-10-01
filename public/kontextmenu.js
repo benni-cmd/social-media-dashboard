@@ -16,11 +16,10 @@ import {
   phase,
   naechstePhase,
   einfacherPlan,
-  naechsteFreieSlots,
   isoDatum,
   deutschesDatum,
 } from "/lib/pipeline.js";
-import { slotsForMonth } from "/lib/scheduler.js";
+import { naechsterFreierUpload } from "/lib/uploadslots.js";
 import {
   S,
   speichere,
@@ -213,25 +212,12 @@ function baueEintraege(k, oeffne) {
 async function terminZuweisen(k) {
   try {
     const plan = await ladePlan();
-    const jetzt = new Date();
-    const roh = [];
-    for (let d = 0; d < 12; d++) {
-      const year = jetzt.getFullYear() + Math.floor((jetzt.getMonth() + d) / 12);
-      const month = (jetzt.getMonth() + d) % 12;
-      roh.push(...slotsForMonth(plan, year, month));
-    }
-    const heute = isoDatum(new Date());
-    const belegt = new Set(
-      S.cards
-        .filter((c) => c.column !== "verworfen" && c.id !== k.id && (c.dates || {}).upload)
-        .map((c) => c.dates.upload + "|" + (c.uploadTime || ""))
-    );
-    const frei = roh
-      .filter((s) => s.datum >= heute)
-      .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit || "").localeCompare(b.uhrzeit || ""));
-    const naechster = naechsteFreieSlots(frei, belegt, 1)[0];
+    // v89: dieselbe Regel wie die Kachel in detail.js (Format + machbarer Vorlauf).
+    const { slot: naechster, grund } = naechsterFreierUpload({
+      plan, card: k, cards: S.cards, drehtermine: S.drehtermine,
+    });
     if (!naechster) {
-      melde("hinweis", "Kein freier Upload-Termin im naechsten Jahr gefunden.");
+      melde("hinweis", grund);
       return;
     }
     k.dates = einfacherPlan(naechster.datum);

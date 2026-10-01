@@ -2,10 +2,10 @@
 
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
-  rueckwaertsplan, phaseIndex, isoDatum, naechsteFreieSlots, fruehesterUpload, setDeadlineOffsets,
+  rueckwaertsplan, phaseIndex, isoDatum, setDeadlineOffsets,
   spaetesterDreh, deutschesDatum,
 } from "/lib/pipeline.js";
-import { slotsForMonth } from "/lib/scheduler.js";
+import { naechsterFreierUpload, belegteTermine, slotSchluessel } from "/lib/uploadslots.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
 
 export const S = {
@@ -744,34 +744,17 @@ export async function schwebendeNeuBerechnen() {
   if (!schwebend.length) return false;
 
   const plan = await ladePlan();
-  const heute = new Date();
-  const heuteIso = isoDatum(heute);
-  const rohSlots = [];
-  for (let delta = 0; delta < 2; delta++) {
-    const year = heute.getFullYear() + Math.floor((heute.getMonth() + delta) / 12);
-    const month = (heute.getMonth() + delta) % 12;
-    rohSlots.push(...slotsForMonth(plan, year, month));
-  }
-  // P4 (v37): schwebende Karten rutschen nie vor „naechster Drehtermin + 8 Tage".
-  const frueh = fruehesterUpload(S.drehtermine, heuteIso);
-  const alleSlots = rohSlots
-    .filter((s) => s.datum >= frueh)
-    .sort((a, b) => a.datum.localeCompare(b.datum) || (a.uhrzeit || "").localeCompare(b.uhrzeit || ""));
 
   // Belegt ist jedes Upload-Datum einer NICHT-schwebenden Karte — schwebende Karten selbst
   // duerfen sich nicht gegenseitig blockieren, bevor sie neu verteilt sind.
-  const schwebendIds = new Set(schwebend.map((c) => c.id));
-  const belegt = new Set(
-    S.cards
-      .filter((c) => c.column !== "verworfen" && !schwebendIds.has(c.id) && (c.dates || {}).upload)
-      .map((c) => c.dates.upload + "|" + (c.uploadTime || ""))
-  );
+  const belegt = belegteTermine(S.cards, new Set(schwebend.map((c) => c.id)));
 
   let geaendert = false;
   for (const k of schwebend) {
-    const frei = naechsteFreieSlots(alleSlots, belegt, 1)[0];
-    if (!frei) continue; // kein freier Slot in den naechsten 2 Monaten — Datum bleibt stehen
-    belegt.add(frei.datum + "|" + (frei.uhrzeit || ""));
+    // v89: Format der Karte + machbarer Vorlauf, dieselbe Regel wie Kachel und Kontextmenue.
+    const { slot: frei } = naechsterFreierUpload({ plan, card: k, drehtermine: S.drehtermine, belegt });
+    if (!frei) continue; // kein passender Slot — Datum bleibt stehen
+    belegt.add(slotSchluessel(frei.datum, frei.uhrzeit));
     if (k.dates.upload !== frei.datum || (k.uploadTime || "") !== (frei.uhrzeit || "")) {
       k.dates = { ...terminplan(frei.datum), upload: frei.datum };
       k.uploadTime = frei.uhrzeit || "";
