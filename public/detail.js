@@ -204,7 +204,7 @@ export function zeichneDetail(el) {
   koerper.appendChild(blockStamm(k, merke));
 
   const istIdee = k.column === "idee";
-  const stammFertig = !!(k.title && k.kategorie && k.goal);
+  const stammFertig = stammKomplett(k);
 
   // --- Termine (in Idee erst nach Stamm-Daten) ---
   if (!istIdee || stammFertig) koerper.appendChild(blockTermine(k, merke));
@@ -334,6 +334,15 @@ const gruppeMitFarbe = (abschnitt, ...args) => {
   return g;
 };
 
+// v88 (Owner 01.10.2026: „immer alles Step by Step"): EINE Regel, wann „Worum geht es" fertig
+// ist — Thema, Typ, Kategorie, Ziel und mindestens eine Plattform. Sie entscheidet, ob die
+// Wahlreihen zuklappen UND ob in „Skript schreiben" der naechste Schritt (Termin) erscheint.
+// Vorher pruefte die Termin-Freigabe nur Thema+Kategorie+Ziel: der Termin kam, bevor Typ und
+// Plattform gewaehlt waren.
+function stammKomplett(k) {
+  return !!(k.title && k.contenttyp && k.kategorie && k.goal && (k.platforms || []).length);
+}
+
 function blockStamm(k, merke) {
   const g = gruppeMitFarbe("stamm", "Worum geht es", null, offenFuer(k, "stamm", true), merkeKlapp(k, "stamm"));
   const box = document.createElement("div");
@@ -347,7 +356,7 @@ function blockStamm(k, merke) {
   // Wahlreihen zugunsten einer kompakten Zeile — sie haben ihre Entscheidung schon getroffen,
   // permanente Buttons dafuer sind nur noch Ablenkung. Solange nicht alle vier stehen, bleibt
   // die volle Ansicht (Erstausfuellen darf nicht erschwert werden).
-  const stammVollstaendig = !!(k.contenttyp && k.kategorie && k.goal && (k.platforms || []).length);
+  const stammVollstaendig = stammKomplett(k);
   const offen = !stammVollstaendig || stammOffenIds.has(k.id);
 
   if (!offen) {
@@ -703,13 +712,22 @@ function blockTermineIdee(k, merke) {
       if (naechster) {
         slotKachel.querySelector(".termin-kachel-datum").textContent = deutschesDatum(naechster.datum);
         slotKachel.style.cursor = "pointer";
-        slotKachel.addEventListener("click", async () => {
+        // v88 (Owner 01.10.2026: „kein Feedback, dann viele Meldungen auf einmal"): SOFORT
+        // setzen, zeichnen und melden — die Kachel verschwindet damit, ein zweiter Klick ist nicht
+        // moeglich. Speichern und das Neuverteilen schwebender Karten (liest den Redaktionsplan
+        // aus Drive, mehrere Sekunden) laufen danach im Hintergrund.
+        let gewaehlt = false;
+        slotKachel.addEventListener("click", () => {
+          if (gewaehlt) return;
+          gewaehlt = true;
           merke("dates", einfacherPlan(naechster.datum), false);
           if (naechster.uhrzeit) merke("uploadTime", naechster.uhrzeit, false);
-          await speichere();
-          await schwebendeNeuBerechnen(); // Karte belegt den Termin ueber ihr Upload-Datum (v30/v52)
           zeichne();
           meldung(`Upload am ${deutschesDatum(naechster.datum)} geplant.`, "erfolg");
+          Promise.resolve(speichere())
+            .then(() => schwebendeNeuBerechnen()) // Karte belegt den Termin ueber ihr Upload-Datum (v30/v52)
+            .then(() => zeichne())
+            .catch(() => {});
         });
       } else {
         slotKachel.querySelector(".termin-kachel-label").textContent = "Kein freier Termin";
@@ -788,19 +806,30 @@ function floatSchalter(k, merke) {
   return pillenSchalter([{
     text: "Naechsten freien Upload-Termin",
     an: !!k.floatUpload,
+    // v88: sofort umschalten und zeichnen (Sanduhr in der Anzeige), DANN rechnen — vorher kam die
+    // Reaktion erst nach dem Lesen des Redaktionsplans aus Drive (mehrere Sekunden), und jeder
+    // Klick in der Zeit wurde nachgeholt.
     beiAenderung: async (checked) => {
       merke("floatUpload", checked, false);
-      if (checked) await schwebendeNeuBerechnen();
+      if (!checked) { zeichne(); return; }
+      schwebendRechnet.add(k.id);
       zeichne();
+      try { await schwebendeNeuBerechnen(); } finally { schwebendRechnet.delete(k.id); zeichne(); }
     },
   }]);
 }
 
 // v30: Read-only-Zeile fuer eine schwebende Karte — kein Datumsfeld, sondern der live
 // berechnete Stand (statusChip + Satz, kein nackter Wert ohne Kontext).
+const schwebendRechnet = new Set(); // v88: Karten-ids, deren schwebender Termin gerade berechnet wird
+
 function schwebendAnzeige(k) {
   const wrap = document.createElement("div");
   wrap.className = "befund";
+  if (schwebendRechnet.has(k.id)) {
+    wrap.appendChild(sanduhr("Sucht den nächsten freien Termin im Redaktionsplan …"));
+    return wrap;
+  }
   const datum = (k.dates || {}).upload;
   if (datum) {
     wrap.innerHTML =
@@ -1382,7 +1411,11 @@ function guidedFormat(k, box) {
 
   const reihe = document.createElement("div");
   reihe.className = "knopfreihe";
-  for (const [task, name] of flow.tasks) {
+  // v88 (Owner 01.10.2026: Schritt fuer Schritt): ein Schritt erscheint erst, wenn der vorige ein
+  // Ergebnis hat — z. B. „Visual je Slide" erst nach „Slider aufbauen", damit sich die Visuals am
+  // geschriebenen Text orientieren.
+  for (const [i, [task, name]] of flow.tasks.entries()) {
+    if (i > 0 && !fmtDaten(k, flow.tasks[i - 1][0])) break;
     const fertig = !!fmtDaten(k, task);
     reihe.appendChild(
       knopf(fertig ? `${name} — neu` : name, {

@@ -205,6 +205,7 @@ export async function ladeBoard() {
   const daten = await hole("/api/board");
   S.version = daten.version;
   S.cards = (daten.cards || []).map(migriere);
+  merkeBasis(); // v88: Server-Stand = Basis fuer das Zusammenfuehren bei Konflikten
   S.spalten = Array.isArray(daten.spalten) ? daten.spalten : [];
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   S.live.cacheStand = daten.cacheStand || null;
@@ -239,13 +240,37 @@ function pruefeAutoDreh() {
 }
 
 let speicherLaeuft = null;
+let nochmalSpeichern = false;
+
+// v88 (Befund 01.10.2026: ein KI-Ergebnis ging verloren, weil ein zweites Fenster gespeichert
+// hatte und der 409-Weg einfach neu lud): `basis` ist der Karten-Stand, den der Server zuletzt
+// bestaetigt hat. Bei einem Konflikt werden NUR die eigenen Aenderungen gegenueber `basis` auf den
+// Stand des anderen Fensters gelegt und erneut gespeichert — nichts wird mehr verworfen.
+let basis = new Map();
+export function merkeBasis(cards = S.cards) {
+  basis = new Map(cards.map((c) => [c.id, JSON.stringify(c)]));
+}
+
+export function legeAufFremdenStand(eigene, basisMap, fremde) {
+  const geaendert = eigene.filter((c) => basisMap.get(c.id) !== JSON.stringify(c));
+  const eigeneIds = new Set(eigene.map((c) => c.id));
+  const geloescht = new Set([...basisMap.keys()].filter((id) => !eigeneIds.has(id)));
+  const perId = new Map(geaendert.map((c) => [c.id, c]));
+  const cards = fremde.filter((c) => !geloescht.has(c.id)).map((c) => perId.get(c.id) || c);
+  const da = new Set(cards.map((c) => c.id));
+  for (const c of geaendert) if (!da.has(c.id)) cards.push(c);
+  return { cards, uebernommen: geaendert.length + geloescht.size };
+}
 
 export async function speichere() {
-  // Mehrere schnelle Aenderungen zu einem Schreibvorgang buendeln.
-  if (speicherLaeuft) return speicherLaeuft;
+  // Mehrere schnelle Aenderungen zu einem Schreibvorgang buendeln. Kommt waehrend eines laufenden
+  // Speicherns eine neue Aenderung, wird danach noch einmal gespeichert (v88: vorher ging sie
+  // bis zum naechsten Speichern verloren, falls keins mehr kam).
+  if (speicherLaeuft) { nochmalSpeichern = true; return speicherLaeuft; }
   speicherLaeuft = (async () => {
     await new Promise((r) => setTimeout(r, 120));
     setStand("Speichere …");
+    const gesendet = JSON.parse(JSON.stringify(S.cards)); // tiefe Kopie: Aenderungen waehrend des Sendens zaehlen danach als eigene
     try {
       const daten = await hole("/api/board", {
         method: "PUT",
@@ -253,10 +278,24 @@ export async function speichere() {
         body: JSON.stringify({ cards: S.cards, version: S.version, drehtermine: S.drehtermine }),
       });
       S.version = daten.version;
+      merkeBasis(gesendet);
       setStand("Stand gespeichert.");
     } catch (e) {
-      if (e.status === 409) {
-        // Ein anderes Fenster war schneller. Nicht ueberschreiben — melden und neu laden.
+      if (e.status === 409 && e.daten && e.daten.aktuell) {
+        // Ein anderes Fenster war schneller: eigene Aenderungen auf dessen Stand legen, nochmal speichern.
+        const fremd = e.daten.aktuell;
+        const { cards, uebernommen } = legeAufFremdenStand(S.cards, basis, (fremd.cards || []).map(migriere));
+        S.cards = cards;
+        S.version = fremd.version;
+        if (Array.isArray(fremd.drehtermine)) {
+          const ids = new Set(fremd.drehtermine.map((t) => t.id));
+          S.drehtermine = [...fremd.drehtermine, ...S.drehtermine.filter((t) => !ids.has(t.id))];
+        }
+        merkeBasis((fremd.cards || []).map(migriere));
+        zeichne();
+        nochmalSpeichern = true;
+        await melde("hinweis", `Ein anderes Fenster hatte gespeichert. Dein Stand wurde mit seinem zusammengeführt (${uebernommen} eigene Änderung${uebernommen === 1 ? "" : "en"} übernommen) und gespeichert.`);
+      } else if (e.status === 409) {
         await melde("befund", e.message + " Der Stand wurde neu geladen; pruefe deine letzte Aenderung.");
         await ladeBoard();
       } else {
@@ -265,6 +304,7 @@ export async function speichere() {
       }
     } finally {
       speicherLaeuft = null;
+      if (nochmalSpeichern) { nochmalSpeichern = false; speichere(); }
     }
   })();
   return speicherLaeuft;
@@ -439,9 +479,16 @@ export function driveAbgleich() {
     S.live.laeuft = true;
     S.live.spalten = new Set();
     zeichne();
+    // v88: Karten, die WAEHREND des Abgleichs hier im Browser entstanden sind, kennt das Ergebnis
+    // evtl. noch nicht (Speichern lief noch). Sie bleiben stehen, statt zu verschwinden.
+    const vorher = new Set(S.cards.map((c) => c.id));
     try {
       const ergebnis = await abgleichStream();
+      const lokalNeu = S.cards.filter((c) => !vorher.has(c.id));
       S.cards = (ergebnis.cards || []).map(migriere);
+      merkeBasis(S.cards); // v88: Abgleich-Ergebnis = Server-Stand
+      const da = new Set(S.cards.map((c) => c.id));
+      for (const c of lokalNeu) if (!da.has(c.id)) S.cards.push(c);
       // v55: Ein Abgleich mitten im Trash-Fenster darf eine optimistisch geloeschte Karte nicht
       // wieder sichtbar machen — Flag nach dem Neuaufbau erneut setzen.
       if (geloeschtInFlight.size) for (const c of S.cards) if (geloeschtInFlight.has(c.id)) c._geloescht = true;

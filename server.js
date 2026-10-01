@@ -457,10 +457,18 @@ async function abgleichEinmal(onStufe) {
   const spaltenBefunde = [];
 
   const aktuell = await leseBoard();
-  const { cards, befunde, geaendert, ordnerDa } = await projekte.abgleich(aktuell.cards, { onStufe });
-  let version = aktuell.version;
-  if (geaendert) {
-    version = aktuell.version + 1;
+  const { cards: abgeglichen, befunde, geaendert, ordnerDa } = await projekte.abgleich(aktuell.cards, { onStufe });
+  // v88 (Befund 01.10.2026): Der Abgleich dauert Sekunden; wer in der Zeit eine Karte anlegt oder
+  // aendert, speichert in board.json. Frueher schrieb der Abgleich danach seinen STARTSTAND
+  // zurueck (neue Karten weg) und lieferte ihn dem Browser (Karte verschwand, der naechste
+  // Speichervorgang loeschte sie endgueltig). Jetzt: die Aenderungen des Abgleichs werden auf den
+  // NEUESTEN Stand gelegt. Hat der Mensch eine Karte seit dem Start selbst geaendert, gewinnt
+  // seine Fassung — der naechste Abgleich holt die Drive-Seite nach.
+  const neuester = await leseBoard();
+  const { cards, zuSchreiben } = projekte.abgleichAufNeuesten(aktuell.cards, abgeglichen, neuester.cards);
+  let version = neuester.version;
+  if (geaendert && zuSchreiben) {
+    version = neuester.version + 1;
     await schreibeBoard(cards, version);
   }
   // v85-B: Steckbriefe (menschenlesbarer Stand je Projektordner) im Hintergrund nachziehen — die
