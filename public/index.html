@@ -10,19 +10,25 @@
   </head>
   <body>
     <header class="kopf">
+      <!-- v103: drei feste Zonen — Marke + Ansichten | Hauptaktion | Verbindungen + System -->
+      <div class="kopf-marke">
+      <span class="kopf-logo" aria-hidden="true"></span>
       <span class="kopf-titel">WEE Social Media Suit</span>
 
       <div class="ansichten" role="group" aria-label="Ansicht waehlen">
         <button class="ansicht-knopf" id="zu-board" aria-pressed="true">Board</button>
         <button class="ansicht-knopf" id="zu-auswertung" aria-pressed="false">Auswertung</button>
       </div>
+      </div>
 
+      <div class="kopf-mitte">
       <button class="knopf knopf-haupt" id="naechster-schritt" title="Oeffnet automatisch die sinnvollste offene Karte.">
         <span>Naechster Schritt</span>
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
       </button>
 
       <button class="live-plakette" id="live-stand" type="button" hidden></button>
+      </div>
 
       <div class="kopf-rechts">
         <div id="anschluesse" class="kopf-anschluesse"></div>

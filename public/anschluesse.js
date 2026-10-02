@@ -280,6 +280,20 @@ export function zeichneAnschluesse() {
     zeichneMarker(s.id);
     if (offeneSektion === s.id) zeichneTerminal(s.id);
   }
+  leiste.dataset.zustand = gesamtZustand();
+}
+
+// v103: Gesamtampel der Gruppe „Verbindungen" — der schlechteste Zustand aller vier Sektionen
+// (laeuft gerade etwas: „arbeitet"; sonst Ergebnis des letzten abgeschlossenen Aufrufs je Sektion).
+function gesamtZustand() {
+  const rang = { befund: 4, unlesbar: 4, fehlt: 3, hinweis: 2, ok: 1, entfaellt: 0 };
+  let schlimmster = "entfaellt";
+  for (const s of SEKTIONEN) {
+    const letzte = (verlauf[s.id] || []).filter((e) => !e.laeuft);
+    const code = letzte.length ? letzte[letzte.length - 1].status || "ok" : "entfaellt";
+    if ((rang[code] ?? 0) > (rang[schlimmster] ?? 0)) schlimmster = code;
+  }
+  return Object.values(aktiv).some(Boolean) && (rang[schlimmster] ?? 0) < 2 ? "arbeitet" : schlimmster;
 }
 
 // --- Aufbau ---------------------------------------------------------------
@@ -297,13 +311,24 @@ function baueSektion(s) {
       ? `<button type="button" class="anschluss-knopf anschluss-abgleich" title="${escape(s.abgleich.text)}">${icon("neuladen")}</button>`
       : "") +
     `<div class="anschluss-terminal" hidden>` +
-    `<div class="anschluss-terminal-kopf">${escape(s.titel)}</div>` +
+    `<div class="anschluss-terminal-kopf"><span>${escape(s.titel)}</span>` +
+    (s.abgleich ? `<button type="button" class="anschluss-terminal-abgleich">${escape(s.abgleich.text)}</button>` : "") +
+    `</div>` +
     `<div class="anschluss-terminal-koerper"><ul class="anschluss-terminal-liste"></ul></div>` +
     `</div>`;
 
   el.querySelector(".anschluss-oeffnen").addEventListener("click", () => schalteTerminal(s.id));
   const ab = el.querySelector(".anschluss-abgleich");
   if (ab) ab.addEventListener("click", () => starteAbgleich(s, ab));
+  // v103: Die Sektion ist im Kopf eine kleine Kachel in der Gruppe „Verbindungen" — ein Klick auf
+  // die ganze Kachel klappt das Log auf/zu; der Abgleich-Knopf sitzt im Log-Kopf.
+  el.title = `${s.name} — ${s.titel}`;
+  el.addEventListener("click", (e) => {
+    if (e.target.closest(".anschluss-terminal") || e.target.closest(".anschluss-knopf")) return;
+    schalteTerminal(s.id);
+  });
+  const logAb = el.querySelector(".anschluss-terminal-abgleich");
+  if (logAb) logAb.addEventListener("click", () => starteAbgleich(s, logAb));
   return el;
 }
 
