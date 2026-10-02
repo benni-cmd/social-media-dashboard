@@ -4540,10 +4540,10 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 @media (max-width: 1100px) { .ausw-kennzahlen { grid-template-columns: repeat(3, 1fr); } .ausw-zweispaltig { grid-template-columns: 1fr; } .ausw-post { grid-template-columns: 1fr; } }
 
 /* ============================================================
-   v87 — Pop-Shop-Hintergrund (Owner 01.10.2026): endlos kachelbares Linienlabyrinth im Stil der
-   Pop-Shop-Poster. Das Muster ist ein eigener Generator (tools/make-texture-popshop.mjs), keine
-   nachgezeichnete Vorlage; die 572-px-Kachel schliesst sich an allen Raendern ohne Naht
-   (public/texture-popshop*.svg, Deckkraft im SVG: hell 0,16, dunkel 0,12).
+   v87 — Pop-Shop-Hintergrund (Owner 01.10.2026): endlos kachelbares Poster-Muster aus tanzenden
+   Figuren und Kritzeln im Stil der Pop-Shop-Poster. Eigener Generator (tools/make-texture-popshop.mjs),
+   keine nachgezeichnete Vorlage; die 760-px-Kachel schliesst sich an allen Raendern ohne Naht
+   (public/texture-popshop*.svg, Deckkraft im SVG: hell 0,30, dunkel 0,24).
    `fixed`: das Muster steht still, der Inhalt scrollt darueber — das gibt Tiefe (Owner-Wunsch).
    NUR die Hintergrundflaechen hinter Board und Auswertung: nicht Kopfzeile, Board-Leiste, Detail.
    ============================================================ */
@@ -4552,6 +4552,41 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .board-scroll,
 #ansicht-auswertung {
   background-image: var(--textur-bild);
-  background-size: 572px 572px;
+  background-size: 456px 456px; /* 760-px-Kachel auf 60 %: Kontur ~3,6 px, passt zu den 3-px-Raendern des Boards */
   background-attachment: fixed;
 }
+
+
+/* ============================================================
+   v102 — Board-Zoom (Owner 01.10.2026): macht nur den Board-Inhalt groesser/kleiner, unabhaengig von
+   der Kopfzeile. Liegt unten rechts IN der Board-Ansicht: oeffnet die Detailspalte, schrumpft die
+   Ansicht und der Zoom rutscht automatisch mit nach links, bleibt also auf der Board-Ebene.
+   ============================================================ */
+#ansicht-board { position: relative; }
+#board, #nachschub { zoom: var(--board-zoom, 1); }
+.board-zoom {
+  position: absolute;
+  right: 22px;
+  bottom: 26px; /* ueber der waagerechten Bildlaufleiste */
+  z-index: 30;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.board-zoom button {
+  font: inherit;
+  cursor: var(--cursor-hand);
+  background: var(--flaeche);
+  color: var(--text);
+  border: 3px solid var(--linie);
+  border-radius: var(--rund-klein);
+  box-shadow: var(--schatten-klein);
+  height: 40px;
+}
+.board-zoom button:hover:not(:disabled) { background: var(--akzent-tief); }
+.board-zoom button:active:not(:disabled) { transform: translate(-1px, 1px); box-shadow: var(--schatten-klein-druck); }
+.board-zoom button:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.board-zoom-knopf { width: 40px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.board-zoom-knopf .icon { width: 20px; height: 20px; stroke-width: 3; }
+.board-zoom-wert { min-width: 64px; padding: 0 8px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.board-zoom-wert.board-zoom-geaendert { background: var(--chrome-b); color: #201e1a; }

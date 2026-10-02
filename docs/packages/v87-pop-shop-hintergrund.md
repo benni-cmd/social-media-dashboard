@@ -24,6 +24,9 @@ Nicht gesehen: Auswertung im Dark Mode und mit Daten (in der Test-Instanz auf Po
 Antwort auf „selbst zeichnen oder Grafik suchen": selbst, per Generator. Gründe: Harings Linienlabyrinthe und Nachahmungen davon sind urheberrechtlich heikel; ein eigener Generator ist frei nutzbar, nahtlos und in Dicke/Dichte/Farbe änderbar. `tools/make-texture-popshop.mjs`: zufälliger Spannbaum (Tiefensuche) auf einem Torus → dicke, weich gerundete Linien, Kachel 572×572 px schließt sich an allen Rändern (mit überhöhtem Kontrast an der Kachelkante geprüft: keine Naht). Ausgabe `public/texture-popshop.svg` (hell 0,16) / `-dark.svg` (dunkel 0,12), ca. 28 KB. `background-attachment: fixed` → Muster steht, Inhalt scrollt darüber. Runde 2 (Kritzelmotive) ersetzt.
 Stellschrauben im Generator: `ZELLE` (Dichte), `STRICH` (Dicke), `WACKEL` (Unruhe), `SEED` (anderes Muster). Aufruf: `node tools/make-texture-popshop.mjs`.
 
+01.10.2026 (Runde 4, Owner: „sieht aus wie ein schlecht gezeichnetes Labyrinth-Game … näher am Haring-Stil … etwas kleiner skaliert, Strichstärke besser ins Board-Design"): Generator neu (`tools/make-texture-popshop.mjs`): 9 tanzende Silhouetten-Figuren (zufällige Posen, teils kopfüber, Tintenkontur unter flacher Signalfarbe, Bewegungsstriche am Kopf) plus 61 Füllmotive (Wellen, Zickzack, Strichgruppen, Strahlen, Spiralen, Herzen, Sterne, Kreuze, kleine Kraken) auf einem Torus; Kachel 760 px, Deckkraft hell 0,30 / dunkel 0,24; Anzeige auf 60 % (456 px), Kontur ≈ 3,6 px wie die Board-Ränder. Mit vollem Kontrast gesehen (bunt, nahtlos) und im Board hell gesehen (blass, Karten lesbar). Eigene Figuren, keine von Harings.
+Nicht gesehen: Dark Mode des neuen Musters, Auswertung.
+
 ## Definition of Done
 
 Geprueft gegen: Screenshots Board hell + dunkel, Auswertung hell, Computed-Style-Skript für Kopf, Leiste, Detail

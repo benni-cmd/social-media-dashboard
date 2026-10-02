@@ -5,6 +5,7 @@ import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
 import { zeichneAuswertung, beiOeffnen as auswertungOeffnet } from "./auswertung.js";
+import { verdrahteBoardZoom } from "./boardzoom.js"; // v102
 import { zeichneDetail, beiSchieben } from "./detail.js";
 import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, gecachterCursorModus, ladeCursorModusVomServer, icon, cacheZeit } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
@@ -63,6 +64,7 @@ const knoepfe = {
 };
 
 verdrahteKopf(el("stand"));
+verdrahteBoardZoom(el("board-zoom")); // v102: Zoom nur fuer den Board-Inhalt
 
 // --- Google/Drive-Badge im Kopf (v52) --------------------------------------
 //
