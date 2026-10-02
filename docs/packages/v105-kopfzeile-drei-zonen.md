@@ -1,4 +1,4 @@
-# v103 — Kopfzeile in drei festen Zonen, Verbindungen als eine Gruppe
+# v105 — Kopfzeile in drei festen Zonen, Verbindungen als eine Gruppe
 
 > Owner-Auftrag 01.10.2026: „Der Gesamtlook sieht immer noch prototypmäßig aus — lässt sich das
 > verändern, indem man die Kopfzeilen mal richtig stylt und organisiert?" Entscheidungen (Fragen
@@ -13,7 +13,7 @@
 
 1. [x] `index.html`: Zonen `.kopf-marke`, `.kopf-mitte`, `.kopf-rechts`, Logo-Element; alle IDs unverändert.
 2. [x] `anschluesse.js`: Kachel-Klick öffnet das Log, Abgleich-Knopf im Log-Kopf, `data-zustand` der Gruppe aus dem schlechtesten Sektions-Zustand.
-3. [x] `style.css` Block „v103": Grid mit drei Spalten, Marke, Hauptknopf, Gruppe „Verbindungen" mit Ampelpunkt, Kacheln 32 px, Log-Kopf; Status-Satz erst ab 1700 px sichtbar.
+3. [x] `style.css` Block „v105": Grid mit drei Spalten, Marke, Hauptknopf, Gruppe „Verbindungen" mit Ampelpunkt, Kacheln 32 px, Log-Kopf; Status-Satz erst ab 1700 px sichtbar.
 4. [x] Verify: Screenshots hell 1440 und 2000, dunkel 1440 mit offenem Log (Edge-Headless auf isolierter Testkopie).
 
 ## Status

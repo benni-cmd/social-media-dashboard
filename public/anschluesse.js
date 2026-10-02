@@ -283,7 +283,7 @@ export function zeichneAnschluesse() {
   leiste.dataset.zustand = gesamtZustand();
 }
 
-// v103: Gesamtampel der Gruppe „Verbindungen" — der schlechteste Zustand aller vier Sektionen
+// v105: Gesamtampel der Gruppe „Verbindungen" — der schlechteste Zustand aller vier Sektionen
 // (laeuft gerade etwas: „arbeitet"; sonst Ergebnis des letzten abgeschlossenen Aufrufs je Sektion).
 function gesamtZustand() {
   const rang = { befund: 4, unlesbar: 4, fehlt: 3, hinweis: 2, ok: 1, entfaellt: 0 };
@@ -320,7 +320,7 @@ function baueSektion(s) {
   el.querySelector(".anschluss-oeffnen").addEventListener("click", () => schalteTerminal(s.id));
   const ab = el.querySelector(".anschluss-abgleich");
   if (ab) ab.addEventListener("click", () => starteAbgleich(s, ab));
-  // v103: Die Sektion ist im Kopf eine kleine Kachel in der Gruppe „Verbindungen" — ein Klick auf
+  // v105: Die Sektion ist im Kopf eine kleine Kachel in der Gruppe „Verbindungen" — ein Klick auf
   // die ganze Kachel klappt das Log auf/zu; der Abgleich-Knopf sitzt im Log-Kopf.
   el.title = `${s.name} — ${s.titel}`;
   el.addEventListener("click", (e) => {

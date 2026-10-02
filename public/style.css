@@ -4596,7 +4596,7 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .board-zoom-wert.board-zoom-geaendert { background: var(--chrome-b); color: #201e1a; }
 
 /* ============================================================
-   v103 — Kopfzeile in drei festen Zonen (Owner 01.10.2026: „sieht immer noch prototypmaessig aus,
+   v105 — Kopfzeile in drei festen Zonen (Owner 01.10.2026: „sieht immer noch prototypmaessig aus,
    Kopfzeilen richtig stylen und organisieren"). Links Marke + Ansichten, Mitte Hauptaktion,
    rechts Verbindungen + System. Jede Zone mit Trennlinie, nichts schwimmt mehr; die vier
    Verbindungs-Sektionen sitzen als kleine Kacheln in EINER Gruppe mit Gesamtampel.
@@ -4691,7 +4691,7 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .ki-rohtext-inhalt { font-size: 12px; line-height: 1.6; color: var(--text-still); white-space: pre-wrap; margin: 0; }
 /* v104: Grund unter dem gesperrten Weiter-Knopf */
 .abschluss-grund { margin-top: 6px; }
-/* v103 Feinschliff: die Marken-Zone behaelt ihre Breite; der Status-Satz („Liest …") ist nur bei
+/* v105 Feinschliff: die Marken-Zone behaelt ihre Breite; der Status-Satz („Liest …") ist nur bei
    breitem Fenster Platz-Luxus — darunter bleibt er im Tooltip der Sektionen und im Log. */
 .kopf-marke { flex: none; }
 @media (max-width: 1700px) { .kopf-stand { display: none; } }
