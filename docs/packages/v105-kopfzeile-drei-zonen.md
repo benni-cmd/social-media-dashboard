@@ -20,7 +20,7 @@
 
 01.10.2026 — Gebaut und gesehen. Messung 1440 px: Kopfbreite 1440 = Fensterbreite, Zonen 432 / 500 / 507 px. Hauptknopf gelb/koralle, Plakette „Cache … Abgleich fehlgeschlagen" passt daneben.
 Bewusst offen: Name der Verbindung steht nur im Tooltip der Kachel (Owner-Wahl „Name beim Darüberfahren"); die Statuszeile mit Konto/Zustand/„zuletzt ok" im Log kommt mit v86 (Anbindungen transparent). Der Status-Satz („Liest …") ist unter 1700 px ausgeblendet.
-Beobachtung (nicht von v103): im Drive-Log stapelt eine Zeile mit `--hash-type md5` ihren Text buchstabenweise untereinander (Spaltenbreite 1 Zeichen) — vermutlich Folge der v98-Spiegel-Zeilen.
+Beobachtung (nicht von v105): im Drive-Log stapelt eine Zeile mit `--hash-type md5` ihren Text buchstabenweise untereinander (Spaltenbreite 1 Zeichen) — vermutlich Folge der v98-Spiegel-Zeilen.
 
 ## Definition of Done
 
