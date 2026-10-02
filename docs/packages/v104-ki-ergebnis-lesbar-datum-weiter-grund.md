@@ -51,11 +51,9 @@ unter dem gesperrten Weiter steht der Grund; die eigene Spaltenarbeit erzeugt ke
   Upload: nichts); vollständige Karte kommt überall weiter. Slider: nur Fokus und Caption sperren.
 - Testkopie (Port 4399, ohne Drive), DOM-Prüfung der Karte: „Schritt 1 von 3 · Fokus" mit drei
   Fokus-Vorschlägen statt Code; Weiter-Grund sichtbar; kein rotes „!" auf der Karte.
-- **Optische Abnahme blockiert:** Screenshots im Browser-Pane liefen in „page did not finish
-  rendering" (Claude-Fenster im Hintergrund, s. Memory ui-screenshot-edge-headless).
+- Optische Abnahme (Screenshot Testkopie, 02.10.2026): „Schritt 1 von 3 · Fokus" mit drei Fokus-Kärtchen als Lesetext, Zusammenfassung eingeklappt unter „Recherche und Hard Facts", unter dem grauen Weiter der Grund (Fokus/Hook, Skript-Dokument). Der erste Versuch war blockiert (Claude-Fenster im Hintergrund).
 
 ## Definition of Done
 
 Geprueft gegen: Parser-Probe mit Bens Antwort, TZ-Gegenprobe, Hinweis-Regel-Test, Spalten-Prüfung, DOM-Prüfung Testkopie
-Offen:
-1. Screenshot-Abnahme in der Testkopie (Agent) — sobald das Claude-Fenster vorne ist
+Offen: nichts
