@@ -13,7 +13,7 @@ import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, 
 import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
 import { verdrahteAnschluesse, alleAbgleichen, merkeDriveStufe } from "./anschluesse.js"; // v58: Anschluss-Leiste + Kopf-Satz
-import { einrichtungBeimStart } from "./einrichtung.js"; // v93: Assistent bei jedem Start, solange etwas fehlt
+import { startTor } from "./einrichtung.js"; // v101: Einrichtungsstand zuerst, Board erst danach bedienbar
 
 // --- Theme ---
 function setzeTheme(name) {
@@ -425,6 +425,8 @@ async function zeigeBoardName() {
 (async () => {
   // Ladezustand (v32 E1): nie ein totes leeres Board zeigen, solange /api/board laedt — eine
   // drehende Sanduhr signalisiert „da kommt gleich was". Der erste Zeichenlauf ersetzt sie.
+  // v101: Start-Tor sofort — sperrt das Board, bis klar ist, ob die Einrichtung fertig ist (laeuft parallel zum Laden).
+  startTor().catch(() => {});
   try {
     const ladeMarke = document.createElement("div");
     ladeMarke.style.cssText = "padding:40px;display:flex;justify-content:center;width:100%";
@@ -466,9 +468,6 @@ async function zeigeBoardName() {
   }
   wechsle(ziel);
 
-  // v93: Bei JEDEM Start pruefen, ob die Einrichtung vollstaendig ist (Drive, Ordner, Name, Claude,
-  // lokale KI, Rollen, Firmenkontext, Prompts, Plan, Google) — fehlt etwas, oeffnet sich der Assistent.
-  einrichtungBeimStart().catch(() => {});
 
   // Drive einmal beim Start pruefen — damit ein Ausfall sofort sichtbar ist und nicht
   // erst dann, wenn eine Karte faelschlich als "kein Ordner" erscheint.

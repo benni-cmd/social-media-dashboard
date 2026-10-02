@@ -63,6 +63,7 @@ const PROMPTS_FILE = join(DATA_DIR, "prompts.json");
 const WORKFLOWS_FILE = join(DATA_DIR, "workflows.json");
 const BOARDPARAM_FILE = join(DATA_DIR, "boardparameter.json"); // v78: Cache fuer Kategorien/Ziele
 const KONTEXT_FILE = join(DATA_DIR, "kontext.json");
+const EINRICHTUNG_LOKAL_FILE = join(DATA_DIR, "einrichtung-lokal.json"); // v101: Anbindungen dieses Rechners eingerichtet?
 const PUBLIC_DIR = join(__dirname, "public");
 const LIB_DIR = join(__dirname, "lib");
 
@@ -1529,6 +1530,40 @@ async function handler(req, res) {
       sendJson(res, 200, { ok: true });
       return;
     }
+    // v101: Einrichtungsstand — das Erste, was die Oberflaeche beim Start liest. Lokal (Anbindungen dieses Rechners)
+    // + Board-Ordner (Drive, ueber den md5-Spiegel). Ordner-ID in der lokalen Datei: ein Ordnerwechsel macht sie ungueltig.
+    if (pfad === "/api/einrichtung/stand" && req.method === "GET") {
+      const root = drive.aktuellerRoot() || null;
+      let lokal = null;
+      try { lokal = JSON.parse(await readFile(EINRICHTUNG_LOKAL_FILE, "utf8")); } catch { /* noch nie eingerichtet */ }
+      if (lokal && lokal.ordner !== root) lokal = { ...lokal, fertig: false, grund: "anderer Ordner" };
+      let board = null;
+      if (root) {
+        try { board = JSON.parse(await drive.readFile(`${pipeline.SYSTEM_ORDNER}/einrichtung.json`, { timeoutMs: 15000 })); }
+        catch { /* fehlt oder Drive gestoert -> Assistent entscheidet */ }
+      }
+      sendJson(res, 200, { ordner: root, lokal, board });
+      return;
+    }
+    if (pfad === "/api/einrichtung/stand" && req.method === "POST") {
+      const { lokal, board } = JSON.parse((await readBody(req)) || "{}");
+      const jetzt = new Date().toISOString();
+      const root = drive.aktuellerRoot() || null;
+      const ergebnis = { lokal: false, board: false };
+      if (lokal) {
+        await writeFile(EINRICHTUNG_LOKAL_FILE, JSON.stringify({ ...lokal, ordner: root, aktualisiert: jetzt }, null, 2), "utf8");
+        ergebnis.lokal = true;
+      }
+      if (board && root) {
+        try {
+          await drive.writeFile(`${pipeline.SYSTEM_ORDNER}/einrichtung.json`, JSON.stringify({ ...board, aktualisiert: jetzt }, null, 2));
+          ergebnis.board = true;
+        } catch (e) { ergebnis.fehler = e.message; }
+      }
+      sendJson(res, 200, ergebnis);
+      return;
+    }
+
     // v94: Einrichtung am Ende EINMAL nach Drive schreiben (Owner 01.10.2026: erst Zwischenspeicher, dann
     // ein Durchgang mit sichtbarem Log). Teil fuer Teil; jede Zeile NDJSON {teil, status, text, ms}.
     // Ein Fehler stoppt nicht die uebrigen Teile — der Assistent behaelt den fehlgeschlagenen Teil im Entwurf.
@@ -1569,7 +1604,7 @@ async function handler(req, res) {
         const alt = drive.aktuellerRoot();
         if (alt) await sichereBoardFuerRoot(alt).catch(() => {});
         drive.setzeRoot(null);
-        for (const f of [SPALTEN_FILE, PLAN_FILE, DEFAULTS_FILE, PROMPTS_FILE, WORKFLOWS_FILE, BOARDPARAM_FILE, KONTEXT_FILE]) {
+        for (const f of [SPALTEN_FILE, PLAN_FILE, DEFAULTS_FILE, PROMPTS_FILE, WORKFLOWS_FILE, BOARDPARAM_FILE, KONTEXT_FILE, EINRICHTUNG_LOKAL_FILE]) {
           try { await rm(f, { force: true }); } catch { /* egal */ }
         }
         const aktuell = await leseBoard();

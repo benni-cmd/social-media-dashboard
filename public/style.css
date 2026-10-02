@@ -4556,6 +4556,9 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
   background-attachment: fixed;
 }
 
+/* v101 — Start-Tor: Sperre ueber dem Board, bis der Einrichtungsstand feststeht */
+.start-sperre { position: fixed; inset: 0; z-index: 45; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; cursor: wait; }
+.start-sperre-box { background: var(--flaeche); border: 1px solid var(--linie); border-radius: var(--rund); box-shadow: var(--schatten); padding: 16px 22px; }
 
 /* ============================================================
    v102 — Board-Zoom (Owner 01.10.2026): macht nur den Board-Inhalt groesser/kleiner, unabhaengig von

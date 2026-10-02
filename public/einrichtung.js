@@ -232,13 +232,64 @@ export function offeneSchritte(st) {
 }
 
 // Beim Start: Stand lesen; fehlt etwas ODER liegt ein ungespeicherter Entwurf vor, Assistent oeffnen.
-export async function einrichtungBeimStart() {
-  let merker = null;
-  try { merker = localStorage.getItem(MERKER); } catch {}
-  const st = await leseStand();
-  if (merker === null && !offeneSchritte(st).length && !entwurfTeile().length) return;
-  starteEinrichtung(st);
+// --- Start-Tor (v101) -----------------------------------------------------------
+//
+// Owner 01.10.2026: Vor der Entscheidung „eingerichtet oder nicht" darf das Board nicht bedienbar sein. Zuerst werden
+// zwei kleine Status-Dateien gelesen (Board-Ordner in Drive + Anbindungen dieses Rechners); stehen beide auf fertig,
+// startet das Board sofort — ohne den vollen Pruef-Lauf. Sonst bleibt die Sperre, bis der Assistent offen ist.
+// Plan: docs/packages/v101-start-tor-einrichtungsstand.md
+const LOKALE_SCHRITTE = new Set(["drive", "ordner", "claude", "ollama", "google"]);
+
+function zeigeSperre(text) {
+  const el = document.createElement("div");
+  el.className = "start-sperre";
+  const box = document.createElement("div");
+  box.className = "start-sperre-box";
+  box.appendChild(sanduhr(text));
+  el.appendChild(box);
+  document.body.appendChild(el);
+  return {
+    text: (t) => { box.innerHTML = ""; box.appendChild(sanduhr(t)); },
+    weg: () => el.remove(),
+  };
 }
+
+// Schreibt den echten Stand in beide Status-Dateien (Board-Schritte nach Drive, Anbindungen lokal).
+export async function schreibeStand(st) {
+  const offen = offeneSchritte(st).map((x) => x.s.id);
+  const lokalOffen = offen.filter((id) => LOKALE_SCHRITTE.has(id));
+  const boardOffen = offen.filter((id) => !LOKALE_SCHRITTE.has(id));
+  await postJson("/api/einrichtung/stand", {
+    lokal: { fertig: lokalOffen.length === 0, offen: lokalOffen },
+    board: st.ordnerOk ? { fertig: boardOffen.length === 0, offen: boardOffen } : undefined,
+  }).catch(() => {});
+}
+
+export async function startTor() {
+  const sperre = zeigeSperre("Board wird vorbereitet …");
+  try {
+    let merker = null;
+    try { merker = localStorage.getItem(MERKER); } catch {}
+    const stand = await holeJson("/api/einrichtung/stand").catch(() => ({}));
+    const fertig = stand.lokal && stand.lokal.fertig && stand.board && stand.board.fertig;
+    if (fertig && merker === null && !entwurfTeile().length) { sperre.weg(); return; }
+
+    sperre.text("Prüfe die Einrichtung …");
+    const st = await leseStand();
+    if (merker === null && !offeneSchritte(st).length && !entwurfTeile().length) {
+      await schreibeStand(st); // alles da (z. B. erster Start mit v101) -> Status-Dateien anlegen
+      sperre.weg();
+      return;
+    }
+    await starteEinrichtung(st); // der Assistent liegt jetzt selbst ueber dem Board
+    sperre.weg();
+  } catch {
+    sperre.weg(); // nie ein dauerhaft gesperrtes Board
+  }
+}
+
+// Alt-Name (v93) — wird vom Start nicht mehr genutzt, bleibt fuer andere Aufrufer gleichbedeutend.
+export const einrichtungBeimStart = startTor;
 
 // --- Assistent ---------------------------------------------------------------
 
@@ -355,6 +406,9 @@ export async function starteEinrichtung(stand = null) {
   function zeigeAbschluss(altLog = null) {
     try { localStorage.removeItem(MERKER); } catch {}
     zeichneLeiste(-1);
+    // v101: Stand festhalten (Drive + lokal), sobald nichts mehr im Entwurf liegt — beim naechsten Start entscheidet
+    // das Start-Tor dann ohne vollen Pruef-Lauf.
+    if (!entwurfTeile().length) schreibeStand(st);
     const w = eff();
     const offen = offeneSchritte(st);
     const teile = entwurfTeile();

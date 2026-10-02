@@ -57,6 +57,7 @@ data/localhost.crt
 
 # Drive-Arbeitsordner und je Ordner gesicherte Board-Staende (v63): rechnerlokal, Firmendaten — nicht committen.
 data/drive-root.json
+data/einrichtung-lokal.json
 data/board-sicherungen/
 
 # Board-Parameter: lokale Daten dieses Rechners (Owner-Entscheid 30.09.2026), nicht committen.
