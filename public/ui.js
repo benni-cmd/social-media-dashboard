@@ -631,12 +631,16 @@ export function modalKalender(frage, hinweis, fenster, onConfirm) {
     const erster = new Date(monat.getFullYear(), monat.getMonth(), 1);
     const start = new Date(erster);
     start.setDate(start.getDate() - ((erster.getDay() + 6) % 7));
-    const heuteISO = new Date().toISOString().slice(0, 10);
+    // v104 (Owner 01.10.2026: „26. November gewaehlt, eingetragen wird der 25."): Datum aus der
+    // ORTSZEIT bilden. toISOString() rechnet in UTC um — deutsche Mitternacht ist dann 22/23 Uhr
+    // am Vortag, jeder Klick landete einen Tag zu frueh.
+    const ortsISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const heuteISO = ortsISO(new Date());
 
     for (let i = 0; i < 42; i++) {
       const tag = new Date(start);
       tag.setDate(start.getDate() + i);
-      const iso = tag.toISOString().slice(0, 10);
+      const iso = ortsISO(tag);
       const jsTag = tag.getDay();
       const istSlot = slotTage.has(jsTag);
       const zelle = document.createElement("button");

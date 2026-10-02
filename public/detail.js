@@ -34,6 +34,7 @@ import {
   deutschesDatum,
   POSTZEITEN,
   projektPfad,
+  parseJsonNachsichtig,
 } from "/lib/pipeline.js";
 import { fensterFuerTyp } from "/lib/scheduler.js";
 import { naechsterFreierUpload } from "/lib/uploadslots.js";
@@ -148,6 +149,7 @@ export function zeichneDetail(el) {
     return;
   }
   el.hidden = false;
+  repariereRohAntworten(k); // v104: alte, nur formal kaputte KI-Antworten zu Feldern machen
   const p = phase(k.column);
   const stand = S.driveStand.get(k.id);
   const toreListe = tore(k, stand);
@@ -1142,10 +1144,7 @@ function guidedIdee(k, box) {
     return;
   }
   if (r.raw || !Array.isArray(r.fokus)) {
-    const pre = document.createElement("pre");
-    pre.className = "textblock";
-    pre.textContent = r.raw || JSON.stringify(r, null, 2);
-    box.appendChild(pre);
+    box.appendChild(rohBlock(r.raw ? r : { raw: JSON.stringify(r) }, (e) => rufeKi("recherche", k, e.currentTarget, box)));
     return;
   }
 
@@ -1440,11 +1439,37 @@ function fmtFeld(k, pfad, wert, rows, ph) {
   return ta;
 }
 
-function rohBlock(d) {
-  const pre = document.createElement("pre");
-  pre.className = "textblock";
-  pre.textContent = d.raw || JSON.stringify(d, null, 2);
-  return pre;
+// v104 (Owner 01.10.2026: „keine Klammern und Code-Anhang"): Laesst sich eine KI-Antwort auch
+// nachsichtig nicht lesen, steht sie als normaler Text da — mit dem Hinweis, wie man sie neu
+// erzeugt — statt als Code-Block.
+function rohBlock(d, nochmal = null) {
+  const wrap = document.createElement("div");
+  wrap.className = "ki-rohtext";
+  const hinweis = document.createElement("p");
+  hinweis.className = "feld-hinweis";
+  hinweis.textContent = "Die KI-Antwort kam nicht im erwarteten Aufbau. Lass sie neu erzeugen — der Text unten ist nur zur Ansicht.";
+  wrap.appendChild(hinweis);
+  if (nochmal) wrap.appendChild(knopf("Erneut versuchen", { art: "haupt", zeichen: "funken", klick: nochmal }));
+  const text = document.createElement("p");
+  text.className = "ki-rohtext-inhalt";
+  text.textContent = String(d.raw || "").replace(/[{}\[\]"]/g, "").replace(/^\s*[\w-]+:\s*/gm, "").trim();
+  wrap.appendChild(text);
+  return wrap;
+}
+
+// v104: Alte Roh-Antworten beim Anzeigen reparieren — was sich nachsichtig lesen laesst, wird
+// zum strukturierten Ergebnis (und gespeichert), damit Felder statt Code erscheinen.
+const KI_FELDER = ["recherche", "hooksVerbal", "hooksVisuell", "captionVorschlag"];
+function repariereRohAntworten(k) {
+  let geaendert = false;
+  const heile = (obj, setze) => {
+    if (!obj || !obj.raw) return;
+    const o = parseJsonNachsichtig(obj.raw);
+    if (o && typeof o === "object") { setze(o); geaendert = true; }
+  };
+  for (const f of KI_FELDER) heile(k[f], (o) => { k[f] = o; });
+  for (const t of Object.keys(k.formate || {})) heile(k.formate[t], (o) => { k.formate[t] = o; });
+  if (geaendert) speichere();
 }
 
 function guidedFormat(k, box) {
@@ -2089,6 +2114,7 @@ function blockAbschluss(k, toreListe) {
   }
 
   const ziel = naechstePhase(k.column);
+  let grund = null;
   if (ziel) {
     const blockiert = sperren(toreListe);
     const weiter = knopf(`Weiter zu ${phase(ziel).name}`, {
@@ -2108,8 +2134,13 @@ function blockAbschluss(k, toreListe) {
       weiter.title = blockiert.map((b) => b.satz).join(" ");
     }
     box.appendChild(weiter);
-    // Die "N Punkte halten die Karte auf"-Zeile steht seit P27 F1 bereits oben, sofort
-    // sichtbar direkt unter dem Kopf — hier keine zweite, redundante Zeile mehr.
+    // v104 (Owner 01.10.2026: „kann nicht auf Weiter klicken, warum weiß ich nicht"): Der Grund
+    // stand nur im Tooltip. Jetzt sichtbar unter dem Knopf.
+    if (blockiert.length) {
+      grund = document.createElement("p");
+      grund.className = "feld-hinweis abschluss-grund";
+      grund.textContent = "Noch zu tun, bevor es weitergeht: " + blockiert.map((b) => b.satz).join(" ");
+    }
   }
 
   box.appendChild(
@@ -2122,7 +2153,11 @@ function blockAbschluss(k, toreListe) {
       loeschenEintrag(k),
     ])
   );
-  return box;
+  if (!grund) return box;
+  const wrap = document.createElement("div");
+  wrap.appendChild(box);
+  wrap.appendChild(grund);
+  return wrap;
 }
 
 // Menue-Eintrag statt eigenem Knopf (v80) — derselbe Bestaetigen-Dialog wie bisher.
