@@ -101,15 +101,37 @@ vs. Dienst).
 - B5 (llama3.2 fehlt) → **erledigt in v91** (Modellnamen aufgelöst, Fallback qwen2.5).
 - Neu erledigt: v89 Upload-Termin nach einer Regel (Format + Vorlauf); v91 Einrichtung + Board-Name; v92 README/INSTALL.
 
+## Nachtrag 05.10.2026 (dritte Runde)
+
+- A1 (Claude ausgeloggt) → **erledigt:** `claude auth status` → `loggedIn: true` (05.10.2026).
+- A4 → **ganz erledigt in v86 Teil 2:** Kopfzeile prüft die Anbindungen selbst und zeigt Störungen rot, mit „Neu verbinden".
+- B6 → **erledigt:** Format-Aufgaben mit echter KI gelaufen, alle vier liefern gültiges Schema-JSON (Beleg in v79).
+- Neu erledigt:
+  - v103: KI-Weg wählbar (Claude / ChatGPT / nur Cloud / nur lokal), geteilte Ablagen
+  - v97-Nachtrag: Post von Hand zuordnen
+  - Prüfregel der Google-Client-ID repariert (seit v93 kaputt)
+
 ## Stand
 
-01.10.2026 — Rundgang + Recherche erledigt, Liste steht, Toast-Fix committet. Nächster Schritt: A1 (Ben).
+01.10.2026 — Rundgang + Recherche erledigt, Liste steht, Toast-Fix committet.
+
+05.10.2026 — Bei mir liegt nichts mehr offen. Was bleibt, braucht den Owner:
+- **Live-Prüfungen nach Neustart des Boards** (A2): v96 Assistent fragt nur noch Offenes, v98 Spiegel-Log, v101 Status-Dateien
+- **Entscheidungen:**
+  - B1 (v78 Phase B/D, Empfehlung: Variante B)
+  - B3 (eigene Regeln für Langform oder Tore aus)
+  - B4 (Drehtermin zuordnen ohne Kategorie)
+  - C1 (Testkarten löschen)
+- **Eingaben:**
+  - B2 Firmenkontext
+  - C3 LinkedIn verbinden
+  - D1–D3 Google (am Schluss)
 
 ## DoD
 
 - [x] Recherche Workflow-Bilder mit zwei Quellen (Paket + Code) beantwortet
 - [x] Alle offenen Paket-Punkte v60–v88 gesichtet und hier eingeordnet
 - [x] Rundgang Board, Detail, Redaktionsplan, Einstellungen, Auswertung, KI belegt
-- [ ] A1–A4 behoben und live nachgeprüft
-- [ ] B1–B6 entschieden bzw. gebaut
+- [~] A1–A4 behoben (A1, A3, A4 erledigt); live nachgeprüft erst nach Neustart des Boards (A2)
+- [~] B1–B6 entschieden bzw. gebaut (B5, B6 erledigt; B1, B3, B4 Owner-Entscheidung; B2 Owner-Eingabe)
 - [ ] D1–D3 (Google) erledigt

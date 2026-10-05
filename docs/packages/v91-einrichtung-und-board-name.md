@@ -67,8 +67,8 @@ lokale KI, Rollen, Firmenkontext und alle System-Prompts gesetzt und in Drive ge
 - Rückkehr an die letzte Stelle nach Neuladen (Merker) belegt; Board-Name im Kopf + Tab per Ereignis belegt.
 - Name lesen live belegt („Social Media Dashbaord Test"); Umbenennen in Drive NICHT live getestet (hätte Bens Ordner umbenannt).
 
-Offen: Umbenennen live prüfen beim Ordnerwechsel; der Standard-System-Vorspann ist WEE-spezifisch geschrieben
-(für ein anderes Board im Assistenten anpassen oder einen neutralen Standard anlegen).
+Offen: Umbenennen live prüfen beim Ordnerwechsel. (Erledigt in v93: Der Standard-System-Vorspann ist jetzt neutral; vorher war er WEE-spezifisch geschrieben
+und musste für ein anderes Board angepasst werden.)
 
 ## DoD
 

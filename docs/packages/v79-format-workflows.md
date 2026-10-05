@@ -269,4 +269,12 @@ Recherche A+B eingetragen. Bau beginnt mit v79-A.
       Tab-Wechsel lädt Fassung, „erbt Standard" bei fehlendem Override, neue Format-Tasks im Editor.
       Live-Speichern nicht ausgeführt (schreibt in geteilten Drive-Store; Save-Pfad per Code +
       E-1/B-Proben belegt). Dark-Mode nicht separat geschossen (Tokens haben Dark-Varianten).
-- [ ] Completeness + Fulfillment.
+- [x] Completeness + Fulfillment (05.10.2026, nachgeholt aus v80-B6): alle vier Format-Aufgaben mit **echter KI**
+      (Claude Haiku über `/api/ai/stream`, Testkopie :4399, echte Karte „Bienen und ihre Blumenfreunde")
+      liefern gültiges JSON im Schema und ohne offene Platzhalter:
+      - `slider_aufbau` → slides, cta, caption (93 s)
+      - `beitrag_visual` → hook, body, cta, visual, hashtags (46 s)
+      - `story_frames` → frames (69 s)
+      - `langform_konzept` → struktur, hook, kapitel, kapitelmarker, schluss (64 s)
+
+      Offen bleibt nur die Owner-Weiche B3 aus v80 (Langform behält Kurzform-Tore).
