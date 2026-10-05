@@ -47,8 +47,12 @@ Bekannt: Solange die Cache-Plakette steht, bleibt für den Kopf-Satz kein Platz 
 
 ## Definition of Done
 
-Geprueft gegen: Screenshots je Element hell + dunkel bei 1440x900 (Kopf, Toasts, Board-Leiste, Detail mit Menü), Kopf-Überlauf per Skript (scrollWidth 1440 = Fensterbreite), Toast-Zähler und Klartext mit echten `hinweisToast`-Aufrufen, `node --check`
-Offen:
-1. Die Ansichten Auswertung, Redaktionsplan, Einstellungen und Modale nicht im Rundgang gesehen (Drive war träge, Zahlen luden nicht) — ICH, nächster Schritt
-2. Fehlerfall des Abgleichs (Plakette „fehlgeschlagen") aus v81 ungeprüft — ICH
-3. Platz für den Kopf-Satz, solange die Cache-Plakette steht — DEINE ENTSCHEIDUNG
+Geprueft gegen: Screenshots je Element hell + dunkel bei 1440x900 (Kopf, Toasts, Board-Leiste, Detail mit Menü), Kopf-Überlauf per Skript (scrollWidth 1440 = Fensterbreite), Toast-Zähler und Klartext mit echten `hinweisToast`-Aufrufen, Rundgang Auswertung/Redaktionsplan/Einstellungen/Modale (v83), `node --check`
+Offen: nichts
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen):
+- Offen-Punkte 1 und 2 (Rundgang, Abgleich-Fehlerfall) sind in v83 erledigt; Punkt 3 (Platz für den Kopf-Satz) ist durch v105 gelöst (drei Zonen; Satz ab 1700 px Fensterbreite sichtbar, darunter im Log).
+- Nachtrag 05.10.2026: `verstaendlich()` kennt jetzt `unauthorized_client` und `invalid_grant` (statt rohem rclone-Dump) und kürzt URLs mit Abfrage; der Toast-Stapel liegt über der Zoom-Zeile (Konflikt mit v102 behoben). Im Browser gesehen.
+- Widerspruch aufgelöst: v82 Elemente 1–3 beschreiben die alte Kopfzeile; sie wurde in v105 umgebaut — es gilt v105.
+- Altlast: Die v82-Kopf-Regeln (`.kopf-rechts { flex … }` u. a.) liegen noch im Stylesheet und werden von v105 überschrieben; kein Fehler, aber doppelter Stand.
+Stand: **abgeschlossen**.

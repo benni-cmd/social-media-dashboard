@@ -2544,8 +2544,13 @@ export function meldung(text, typ = "erfolg") {
 // v82: Meldungen an Menschen schreiben, nicht an Entwickler — der rohe Dienst-Text
 // („rclone antwortet seit 20 Sekunden nicht.", „(?)" als fehlender Fehlercode) wird ein Satz.
 export function verstaendlich(satz) {
-  return String(satz ?? "")
+  const roh = String(satz ?? "");
+  // v82 Nachtrag (05.10.2026): Zwei Drive-Fehler, die als roher rclone-Dump im Toast standen.
+  if (/unauthorized_client/i.test(roh)) return "Drive lehnt die Anmeldung ab: Die Client-ID passt nicht zum gespeicherten Zugang. Drive in den Einstellungen neu verbinden.";
+  if (/invalid_grant/i.test(roh)) return "Die Anmeldung bei Google ist abgelaufen. In den Einstellungen neu verbinden.";
+  return roh
     .replace(/\s*\(\?\)/g, "")
+    .replace(/https?:\/\/[^\s"']*\?[^\s"']*/g, "…")
     .replace(/rclone antwortet seit (\d+) Sekunden nicht\.?/g, "Drive antwortet nicht (nach $1 Sekunden). Das Board arbeitet mit dem lokalen Stand weiter.")
     .replace(/Drive-Zugriff fehlgeschlagen:\s*(?=Drive antwortet)/g, "")
     .replace(/Zeitueberschreitung nach (\d+) s/g, "Keine Antwort nach $1 Sekunden")

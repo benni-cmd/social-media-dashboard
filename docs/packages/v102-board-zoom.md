@@ -22,5 +22,11 @@ Nicht geprüft: Drag-and-Drop von Karten bei Zoom ≠ 100 %; Dark Mode der Knöp
 
 ## Definition of Done
 
-Geprueft gegen: Skriptmessung Zoom-Variable, Kopf-Zoom, Position mit/ohne Detailspalte; Screenshot mit Detailspalte
-Offen: Drag-and-Drop bei Zoom ≠ 100 % und Dark Mode ungeprüft — ICH
+Geprueft gegen: Skriptmessung Zoom-Variable, Kopf-Zoom (bleibt 1), Position mit/ohne Detailspalte, Grenzen 50/150 % (Plus bzw. Minus gesperrt), Wert bleibt gespeichert (`localStorage`); Trefferprobe der Karten bei 90/100/120 % (7 von 8 an der Position, gleich wie bei 100 %); Screenshot dunkel bei 80 %
+Offen: echtes Ziehen und Ablegen mit der Maus sowie Firefox (CSS `zoom`) — beim ersten Gebrauch beobachten (Owner)
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen):
+- Konflikt gefunden und behoben: Toasts unten rechts deckten die Zoom-Knöpfe ab → Stapel liegt 84 px höher.
+- Zoom wirkt nur auf `#board`/`#nachschub`; in der Auswertung ist er nicht vorhanden (Breite 0).
+- Grenze der Prüfung: Die Trefferprobe ersetzt kein echtes Drag-and-Drop (HTML5-Ziehen ist in der Testumgebung nicht auslösbar); Chrome rechnet bei CSS `zoom` Koordinaten selbst um.
+Stand: **abgeschlossen mit zwei beobachtenden Punkten beim Owner**.

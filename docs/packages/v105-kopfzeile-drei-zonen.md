@@ -20,9 +20,15 @@
 
 01.10.2026 — Gebaut und gesehen. Messung 1440 px: Kopfbreite 1440 = Fensterbreite, Zonen 432 / 500 / 507 px. Hauptknopf gelb/koralle, Plakette „Cache … Abgleich fehlgeschlagen" passt daneben.
 Bewusst offen: Name der Verbindung steht nur im Tooltip der Kachel (Owner-Wahl „Name beim Darüberfahren"); die Statuszeile mit Konto/Zustand/„zuletzt ok" im Log kommt mit v86 (Anbindungen transparent). Der Status-Satz („Liest …") ist unter 1700 px ausgeblendet.
-Beobachtung (nicht von v105): im Drive-Log stapelt eine Zeile mit `--hash-type md5` ihren Text buchstabenweise untereinander (Spaltenbreite 1 Zeichen) — vermutlich Folge der v98-Spiegel-Zeilen.
+Beobachtung (nicht von v105): im Drive-Log stapelte eine Zeile ihren Text buchstabenweise — Ursache und Fix siehe Abschluss-Audit.
 
 ## Definition of Done
 
-Geprueft gegen: Screenshots hell 1440/2000, dunkel 1440 mit Log, Skript `scrollWidth` = Fensterbreite, Log öffnet per Kachelklick, Gesamtampel `data-zustand`
-Offen: Log-Textumbruch bei `--hash-type`-Zeilen; Status-Satz bei schmalen Fenstern; Gesamtampel kennt noch nicht die v86-Prüfung — ICH
+Geprueft gegen: Screenshots hell 1440/2000, dunkel 1440 mit Log, Skript `scrollWidth` = Fensterbreite, Log öffnet per Kachelklick, Gesamtampel `data-zustand`; Log-Zeilen: vorher 3 Zeilen mit 7 px breitem Befehl, nachher 0 von 40 Zeilen unter 60 px
+Offen: Gesamtampel speist sich noch aus dem letzten Ereignis je Sektion, nicht aus der v86-Prüfung — gehört zu v86 Teil 2 (andere Session)
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen):
+- Ursache Log-Umbruch belegt: In Fehlerzeilen steht die ganze rclone-Meldung (bis ~7000 px, `nowrap`) in der Ergebnis-Spalte und quetschte den Befehl auf 7 px (Grid-Spalten gemessen). Fix: Befehl `minmax(0,1fr)`, Ergebnis höchstens 46 % der Zeile, umbrechend, 3 Zeilen, voller Text im Tooltip.
+- Status-Satz: erst ab 1700 px sichtbar (bewusst; Owner-Frage aus v82 damit beantwortet).
+- Folgepflicht: v86 Teil 2 setzt `data-zustand` aus dem Prüfergebnis; bis dahin zeigt die Ampel den „schlechtesten letzten Aufruf“.
+Stand: **abgeschlossen** (Anbindung an v86 Teil 2 als Übergabe vermerkt).

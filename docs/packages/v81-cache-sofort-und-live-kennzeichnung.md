@@ -88,5 +88,8 @@ Screenshot im Browser-Pane.
 
 ## Definition of Done
 
-Geprueft gegen: Screenshots Start/nach Abgleich hell + dunkel, Screenshot Fehlerfall, DOM-Zählung Cache-Zeichen, `node --check`
+Geprueft gegen: Screenshots Start/nach Abgleich hell + dunkel (30.09.), DOM-Zählung Cache-Zeichen, `node --check`; Fehlerfall im Abgleich provoziert und gesehen (v83: Plakette „Abgleich fehlgeschlagen“, alle Spalten wieder Cache); feinkörnige Spalten-Freigabe in v83
 Offen: nichts
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen): Auftrag (Cache sofort, „nicht live“ auf jeder Ebene sichtbar) erfüllt — Kopf, Spalte, Karte, Detail; die Ebenen verlieren die Marke je Spalte (v83).
+Stand: **abgeschlossen**.

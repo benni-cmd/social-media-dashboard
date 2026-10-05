@@ -136,7 +136,7 @@ function zeileHtml(e) {
     links +
     `<span class="anschluss-dienst">${escape(e.dienst || "")}</span>` +
     `<span class="anschluss-text">${escape(e.text || "")}</span>` +
-    `<span class="anschluss-ergebnis">${escape(e.ergebnis || "")}</span>` +
+    `<span class="anschluss-ergebnis" title="${escape(e.ergebnis || "")}">${escape(e.ergebnis || "")}</span>` +
     (e.laeuft
       ? `<span class="anschluss-dauer anschluss-dauer-laeuft" data-start="${e.zeit}">${escape(laufDauer(e.zeit))}</span>`
       : `<span class="anschluss-dauer">${escape(dauer(e.dauerMs))}</span>`) +

@@ -10,7 +10,7 @@
 
 ## Plan
 
-1. [x] Runde 1: zwei versetzte Punktraster (Koralle, Himmelblau) als `radial-gradient`. Runde 2 ersetzt sie: 480-px-SVG-Kachel `public/texture-popshop.svg` (hell, Deckkraft 0,30) und `texture-popshop-dark.svg` (dunkel, 0,22), eingebunden über `--textur-bild`, `background-attachment: local`.
+1. [x] Runde 1: zwei versetzte Punktraster (Koralle, Himmelblau) als `radial-gradient`. Runde 2 ersetzt sie: 480-px-SVG-Kachel `public/texture-popshop.svg` (hell, Deckkraft 0,30) und `texture-popshop-dark.svg` (dunkel, 0,24), eingebunden über `--textur-bild`, `background-attachment: local`.
 2. [x] Verify: Screenshot Board hell + dunkel, Auswertung hell; Skript: Kopf, Leiste, Detail ohne Hintergrundbild.
 
 ## Status
@@ -29,5 +29,11 @@ Nicht gesehen: Dark Mode des neuen Musters, Auswertung.
 
 ## Definition of Done
 
-Geprueft gegen: Screenshots Board hell + dunkel, Auswertung hell, Computed-Style-Skript für Kopf, Leiste, Detail
-Offen: Auswertung mit Muster nicht gesehen; Geschmack (Dicke, Dichte, Stärke, optional Farbe) — Owner
+Geprueft gegen: Screenshots Board hell + dunkel, Auswertung hell + dunkel, Nahtprüfung der Kachel mit überhöhtem Kontrast, Computed-Style-Skript (Board und Auswertung `fixed` mit Bild; Kopf, Leiste, Detail ohne Bild)
+Offen: nichts (Stärke, Dichte und Figuren lassen sich per Generator nachjustieren)
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen):
+- Auswertung mit Muster gesehen (hell + dunkel). Befund: Titel und Hinweis lagen direkt auf dem Muster → Untergrund-Plaketten und Retro-Override (siehe v83 Nachtrag); das Muster bleibt dahinter.
+- Urheberrecht: Das Muster ist eigener Generator-Output (`tools/make-texture-popshop.mjs`), keine nachgezeichneten Haring-Figuren.
+- Folgepflicht Wiederherstellung: Generator und Seed `1987` liegen im Repo; Aufruf `node tools/make-texture-popshop.mjs`.
+Stand: **abgeschlossen**.

@@ -101,4 +101,4 @@ Google-Konto erscheint erst nach dem Neu-Verbinden (vor dem Ablauf nie gespeiche
 ## Definition of Done
 
 Geprueft gegen: echter Ausfall der Google-Anbindung sichtbar; Status jeder Anbindung aus Prüfung statt Token; Screenshots hell + dunkel
-Offen: Rollen-Bezeichnungen bestätigen; Go für die Umsetzung; Google neu verbinden (Owner, Token ist tot)
+Offen: Teil 2 (Kopf-Marker aus Prüfung, Prüfung beim Start/30 min/„Jetzt prüfen“, Statusband im Log, Instagram/LinkedIn/Ollama/Web-Suche); Google neu verbinden (Owner). Rollen: bestätigt (Teil 1, 01.10.). Andockstelle: Kopf-Gruppe „Verbindungen“ aus v105 (`gesamtZustand()` in `anschluesse.js`, `data-zustand` am Gruppen-Element, Abgleich-Knopf im Log-Kopf).

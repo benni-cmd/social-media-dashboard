@@ -4695,3 +4695,59 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
    breitem Fenster Platz-Luxus — darunter bleibt er im Tooltip der Sektionen und im Log. */
 .kopf-marke { flex: none; }
 @media (max-width: 1700px) { .kopf-stand { display: none; } }
+
+/* v105: Log-Zeilen mit langer Fehlermeldung (rclone-ERROR, bis ~7000 px ohne Umbruch) quetschten den
+   Befehl auf 7 px, er stapelte sich buchstabenweise. Jetzt: Befehl behaelt Platz (minmax(0,1fr)),
+   das Ergebnis darf hoechstens 46 % der Zeile, bricht um und zeigt max. 3 Zeilen; der volle Text
+   steht im Tooltip. */
+.anschluss-zeile { grid-template-columns: auto auto auto minmax(0, 1fr) minmax(0, 46%) auto; }
+.anschluss-ergebnis {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* v102/v82: Der Toast-Stapel unten rechts deckte den Board-Zoom ab (gleiche Ecke). Er startet jetzt
+   ueber der Zoom-Zeile (40 px Knopfhoehe + 26 px Abstand + Luft). */
+.meldung-stapel { bottom: 84px; }
+
+/* ============================================================
+   v87 (Nachtrag 05.10.2026) — Auswertung im Retro-Look + lesbar vor dem Hintergrundmuster.
+   Das Paket v100 (Auswertung kompakt) brachte 1-px-Kanten, runde Chips und Versalien zurueck; die
+   Muster-Textur (v87) liegt hinter der ganzen Seite, Titel und Hinweise standen direkt darauf.
+   Nur Darstellung, keine Logik: Struktur und Klassen von v100 bleiben unveraendert.
+   ============================================================ */
+#ansicht-auswertung { padding: 14px 18px 32px; }
+.ausw-kopf,
+.ausw-hinweis {
+  background: var(--flaeche);
+  border: 3px solid var(--linie);
+  border-radius: var(--rund-klein);
+  box-shadow: var(--schatten-klein);
+  padding: 8px 12px;
+}
+.ausw-hinweis { display: inline-block; }
+.ausw-kz, .ausw-block {
+  border: 3px solid var(--linie);
+  border-radius: var(--rund-klein);
+  box-shadow: var(--schatten);
+}
+.ausw-umschalter { border: 2px solid var(--linie); border-radius: var(--rund-klein); }
+.ausw-umschalt.aktiv { background: var(--chrome-b); color: #201e1a; font-weight: 700; }
+.ausw-chip { border: 2px solid var(--linie); border-radius: var(--rund-klein); }
+.ausw-post { border: 2px solid var(--linie); border-radius: var(--rund-klein); }
+.ausw-post.klickbar:hover { outline: 0; background: var(--akzent-tief); }
+.ausw-post-offen { border: 2px solid var(--hinweis); background: color-mix(in srgb, var(--hinweis) 22%, var(--flaeche)); }
+.ausw-kz-label, .ausw-tabelle th, .ausw-mini-titel {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ausw-balken { border: 2px solid var(--linie); border-radius: 3px; height: 12px; }
+.ausw-balken span { background: var(--chrome-b); }
+.ausw-hinweis { align-self: flex-start; }

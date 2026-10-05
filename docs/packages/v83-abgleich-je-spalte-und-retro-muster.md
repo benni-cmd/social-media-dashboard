@@ -68,6 +68,11 @@ Bekannt: Der parallele Abgleich-Start belegt Drive; andere Drive-Seiten (System 
 
 ## Definition of Done
 
-Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen Darstellung/KI-Rollen), Skript-Inventar der Standard-Muster, `node --check`
-Offen:
-1. Eigene Google-client_id einrichten (v84 Schritt 4) — DEINE HANDLUNG
+Geprueft gegen: Abgleich-Lauf mit Sekundentakt-Messung (Spalten-Uhren 8→1, Cache-Karten 17→0), Screenshots hell + dunkel (Board, Detail Skript/Videodreh, Einstellungen, Redaktionsplan, Kalender, Auswertung), Skript-Inventar der Standard-Muster, Drosselung per 16 + 22 `rclone -vv`-Läufen (403 vor, keiner nach eigener client_id), `node --check`
+Offen: nichts
+
+05.10.2026 — Abschluss-Audit (Vollständigkeits-Skill, 8 Fragen + 4 Gegenproben, gegen Auftrag, Code und Messungen):
+- Eigene Google-client_id: von Ben eingerichtet und durch Messung belegt (Client-ID aus eigenem Projekt, 22 Läufe ohne 403, kein „shared client_id“-Hinweis). Erledigt.
+- Nachtrag 05.10.2026: Das Paket v100 (andere Session) brachte 1-px-Kanten, runde Chips und Versalien in die Auswertung zurück. Retro-Override als reines CSS (Karten 3 px + Schatten, eckige Chips, gelber Umschalter, keine Versalien, Balken mit Kontur), Titel und Hinweis mit ruhigem Untergrund vor dem Hintergrundmuster. Gesehen mit Beispiel-Inhalt (die Testkopie hat keine Instagram-Daten) — NICHT mit echten Zahlen.
+- Folgepflicht: Wer `.ausw-*`-Klassen ändert, prüft gegen diese Regeln (Block „v87 (Nachtrag 05.10.2026)“ am Ende von `style.css`).
+Stand: **abgeschlossen**.
