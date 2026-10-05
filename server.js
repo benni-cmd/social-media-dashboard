@@ -39,6 +39,7 @@ import * as unternehmen from "./lib/kontextstore.js";
 import * as wfRegister from "./lib/workflows.js";
 import * as websuche from "./lib/websuche.js";
 import * as claudeAuth from "./lib/claudeauth.js"; // v86: Claude-CLI im Board anmelden
+import * as codexAuth from "./lib/codexauth.js"; // v103: ChatGPT ueber die Codex-CLI
 import * as zuordnung from "./lib/zuordnung.js"; // v97: Posts -> Karten
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -108,7 +109,7 @@ async function wechsleDriveOrdner(neuId) {
     }
     await sichereBoardFuerRoot(alt);
     const aktuell = await leseBoard();
-    drive.setzeRoot(neuId);
+    drive.setzeRoot(neuId, pruef.ablage ? pruef.ablage.teamDrive : null); // v103: geteilte Ablage merkt rclone mit
     // Alles, was am alten Ordner hing, ist ueberholt (die Caches regenerieren aus dem neuen Drive).
     for (const f of [SPALTEN_FILE, PLAN_FILE]) { try { await rm(f, { force: true }); } catch { /* egal */ } }
     projekte.scanCacheLeeren();
@@ -369,7 +370,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
     const rolle = s.rolle || "userkomm";
     const konf = rollen[rolle] || rollen.userkomm || fallback;
     const rolleName = ROLLE_NAME[rolle] || rolle;
-    const modellName = konf.provider === "claude" ? "Claude" : `${konf.ollamaModel} (lokal)`;
+    const modellName = konf.provider === "claude" ? "Claude" : konf.provider === "codex" ? "ChatGPT" : `${konf.ollamaModel} (lokal)`;
     const marke = `Schritt ${i + 1}/${schritte.length} · ${rolleName}`;
     // v51: dieselben Angaben, die `marke` zu einem String verklebt, zusaetzlich als Felder.
     const basis = { schritt: i + 1, von: schritte.length, rolle, rolleName, modell: modellName };
@@ -434,6 +435,16 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
         throw e;
       } finally {
         tickerAus();
+      }
+    } else if (konf.provider === "codex") {
+      // v103: ChatGPT ueber die Codex-CLI — kein Stream; die fertige Antwort geht als ein Stueck an die Anzeige.
+      onStufe({ ...basis, stufe: "generiert" });
+      try {
+        text = await ki.runCodex(system ? system + userMsg : userMsg, { modell: konf.codexModell || "" });
+        if (letzter && text) onDelta(text);
+      } catch (e) {
+        e.provider = "codex";
+        throw e;
       }
     } else {
       const prompt = system ? system + userMsg : userMsg;
@@ -1024,7 +1035,9 @@ async function handler(req, res) {
       try {
         const p = await driveSetup.pruefeOrdner(id);
         // v87: „falsch" = Board-Ordner mit unvollstaendiger/falscher Struktur -> abgelehnt, mit Grund.
-        sendJson(res, 200, { id, art: p.art, ok: p.art === "leer" || p.art === "board", satz: driveSetup.pruefSatz(p), fehler: p.fehler });
+        // v103: geteilte Ablage + eigene Rechte gehen als eigener Satz mit (ablage = null: Meine Ablage).
+        const ablageSatz = driveSetup.ablageSatz(p.ablage);
+        sendJson(res, 200, { id, art: p.art, ok: p.art === "leer" || p.art === "board", satz: [driveSetup.pruefSatz(p), ablageSatz].filter(Boolean).join(" "), fehler: p.fehler, ablage: p.ablage || null });
       } catch (e) {
         sendJson(res, 200, { id, art: "unerreichbar", ok: false, satz: e.message });
       }
@@ -1051,7 +1064,8 @@ async function handler(req, res) {
       try {
         const b = JSON.parse((await readBody(req)) || "{}");
         if (b.clientId && b.clientSecret) {
-          if (!/^[w.-]+.apps.googleusercontent.com$/.test(b.clientId) || !/^[w-]{10,}$/.test(b.clientSecret)) {
+          // v103: Backslashes ergaenzt — seit v93 lehnte die Pruefung jede echte Client-ID ab ([w.-] statt [\w.-]).
+          if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(b.clientId) || !/^[\w-]{10,}$/.test(b.clientSecret)) {
             sendJson(res, 400, { error: "Client-ID oder Client-Secret sieht nicht gueltig aus." });
             return;
           }
@@ -1464,7 +1478,7 @@ async function handler(req, res) {
       // v63: alle Abfragen PARALLEL statt nacheinander — der Status haengt nur noch an der
       // langsamsten (vorher Summe aus Drive-Pruefung + Claude-CLI + Google), damit man nach dem
       // Serverstart schnell den echten Stand sieht.
-      const [driveOk, driveKonto, claude, googleStatus, igName, driveName] = await Promise.all([
+      const [driveOk, driveKonto, claude, googleStatus, igName, driveName, codex] = await Promise.all([
         drive.erreichbar().then((r) => !!(r && r.ok)).catch(() => false), // Drive gestoert = nicht verbunden
         driveSetup.konto().catch(() => null),
         // v40: echter Login-Status statt nur „CLI installiert" — damit Trennen den Chip umschlagen laesst.
@@ -1477,6 +1491,7 @@ async function handler(req, res) {
         gcal.statusGoogle(),
         instagramName(tokens),
         driveSetup.ordnerName().catch(() => ""), // v86: Name statt ID in der Anzeige
+        codexAuth.status(), // v103: ChatGPT (Codex-CLI)
       ]);
       sendJson(res, 200, {
         google: googleStatus,
@@ -1502,6 +1517,14 @@ async function handler(req, res) {
           rolle: "KI-Rechenleistung",
           fluss: "Board → Claude → Board: Prompt und Karteninhalt gehen an Claude, der Text kommt zurück in die Karte.",
           anbindung: "Claude-CLI auf diesem Rechner, angemeldet mit deinem Claude-Abo (keine API-Kosten)",
+        },
+        // v103: ChatGPT ueber die Codex-CLI (wahlweise statt oder neben Claude).
+        chatgpt: {
+          verbunden: codex.loggedIn, installiert: codex.installiert, art: codex.art,
+          hinweis: codex.loggedIn ? "" : codex.installiert ? "nicht angemeldet" : "Codex-CLI nicht installiert",
+          rolle: "KI-Rechenleistung",
+          fluss: "Board → ChatGPT → Board: Prompt und Karteninhalt gehen an OpenAI, der Text kommt zurück in die Karte.",
+          anbindung: codex.art === "apikey" ? "Codex-CLI auf diesem Rechner, mit API-Schlüssel (Abrechnung nach Verbrauch)" : "Codex-CLI auf diesem Rechner, angemeldet mit deinem ChatGPT-Konto",
         },
         tavily: { konfiguriert: !!process.env.TAVILY_API_KEY }, // v40: Web-Such-Key gesetzt?
       });
@@ -1664,6 +1687,28 @@ async function handler(req, res) {
       } catch (e) {
         sendJson(res, 502, { error: e.message });
       }
+      return;
+    }
+
+    // v103: ChatGPT (Codex-CLI) anmelden — Konto im Browser oder API-Schluessel (geht nur an die CLI).
+    if (pfad === "/api/auth/chatgpt/status" && req.method === "GET") {
+      sendJson(res, 200, await codexAuth.status());
+      return;
+    }
+    if (pfad === "/api/auth/chatgpt/start" && req.method === "POST") {
+      try { sendJson(res, 200, await codexAuth.starte()); } catch (e) { sendJson(res, 502, { error: e.message }); }
+      return;
+    }
+    if (pfad === "/api/auth/chatgpt/schluessel" && req.method === "POST") {
+      try {
+        const { schluessel } = JSON.parse(await readBody(req));
+        if (!schluessel || !String(schluessel).trim()) { sendJson(res, 400, { error: "Schlüssel fehlt." }); return; }
+        sendJson(res, 200, await codexAuth.mitSchluessel(schluessel));
+      } catch (e) { sendJson(res, 502, { error: e.message }); }
+      return;
+    }
+    if (pfad === "/api/auth/chatgpt/trennen" && req.method === "POST") {
+      sendJson(res, 200, await codexAuth.abmelden());
       return;
     }
 

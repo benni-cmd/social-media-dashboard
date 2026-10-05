@@ -1155,8 +1155,8 @@ export function einstellungenModal(onThemeChange) {
   const kiIntro = document.createElement("p");
   kiIntro.className = "einst-provider-sub";
   kiIntro.textContent =
-    "Jede KI-Aufgabe laeuft ueber das Modell ihrer Rolle: die Ausgabe an dich ueber Claude, " +
-    "Recherche und Kontextabgleich lokal ueber DeepSeek R1 (kostenlos, kein Token-Verbrauch).";
+    "Jede KI-Aufgabe laeuft ueber das Modell ihrer Rolle — je Rolle lokal (kostenlos), ueber Claude oder " +
+    "ueber ChatGPT. Standard: Texte an dich ueber Claude, Recherche und Kontextabgleich lokal.";
   kiAbschnitt.appendChild(kiIntro);
 
   function baueRollenKonfig(rolle) {
@@ -1176,6 +1176,7 @@ export function einstellungenModal(onThemeChange) {
 
     let ollamaKonfig;
     let claudeKonfig;
+    let codexKonfig;
 
     // Provider-Wahl (lokal vs. Claude) — Radios je Rolle mit eindeutigem name.
     const providerReihe = document.createElement("div");
@@ -1183,6 +1184,8 @@ export function einstellungenModal(onThemeChange) {
     const providerOptionen = [
       { id: "ollama", label: "Lokal (Ollama)", sub: "kostenlos · kein Token-Verbrauch · laeuft auf deinem Rechner · Modell unten waehlbar" },
       { id: "claude", label: "Claude (via CLI · dein Abo)", sub: "beste Qualitaet fuer Nutzer-Texte · braucht die eingeloggte Claude-CLI" },
+      // v103: ChatGPT ueber die Codex-CLI (Konto oder API-Schluessel)
+      { id: "codex", label: "ChatGPT (via Codex-CLI)", sub: "dein ChatGPT-Konto oder ein API-Schluessel · braucht die angemeldete Codex-CLI" },
     ];
     for (const opt of providerOptionen) {
       const label = document.createElement("label");
@@ -1209,6 +1212,8 @@ export function einstellungenModal(onThemeChange) {
         setzeRolleKonfig(rolle, { provider: opt.id });
         if (ollamaKonfig) ollamaKonfig.style.display = opt.id === "ollama" ? "flex" : "none";
         if (claudeKonfig) claudeKonfig.style.display = opt.id === "claude" ? "flex" : "none";
+        if (codexKonfig) codexKonfig.style.display = opt.id === "codex" ? "flex" : "none";
+        if (opt.id === "codex") zeigeCodex();
         if (opt.id === "ollama") ladeModelle();
       });
       providerReihe.appendChild(label);
@@ -1333,6 +1338,78 @@ export function einstellungenModal(onThemeChange) {
       claudeKonfig.appendChild(claudeHilfe);
     }
     wrap.appendChild(claudeKonfig);
+
+    // v103: ChatGPT-Konfig — Stand der Codex-CLI, Anmeldung mit Konto oder Schluessel (geht nur an die CLI).
+    codexKonfig = document.createElement("div");
+    codexKonfig.className = "einst-ollama-konfig";
+    codexKonfig.style.display = konfig.provider === "codex" ? "flex" : "none";
+    const codexStand = document.createElement("div");
+    codexStand.className = "einst-ping-status";
+    const codexZeile = document.createElement("div");
+    codexZeile.className = "einst-ping-zeile";
+    const codexLogin = document.createElement("button");
+    codexLogin.className = "chip";
+    codexLogin.textContent = "Mit ChatGPT anmelden";
+    const codexKey = eingabe("", { typ: "password", platzhalter: "oder OpenAI-API-Schluessel (sk-…)" });
+    const codexKeyBtn = document.createElement("button");
+    codexKeyBtn.className = "chip";
+    codexKeyBtn.textContent = "Mit Schluessel anmelden";
+    const codexInfo = document.createElement("div");
+    codexInfo.className = "einst-provider-sub";
+    codexInfo.textContent = "Der Schluessel geht nur an die Codex-CLI auf diesem Rechner — nicht in Drive, nicht auf GitHub. " +
+      "OpenAI: ChatGPT-Plan = persoenliche Nutzung; fuer Automatisierung empfiehlt OpenAI einen API-Schluessel.";
+    const codexHilfe = document.createElement("details");
+    codexHilfe.className = "einst-ollama-hilfe";
+    codexHilfe.innerHTML =
+      `<summary class="einst-label">So richtest du die Codex-CLI ein</summary>` +
+      `<p class="einst-provider-sub">Einmalig im Terminal installieren, danach oben anmelden.</p>` +
+      `<pre class="einst-befehl">npm i -g @openai/codex</pre>`;
+    async function zeigeCodex() {
+      codexStand.textContent = "Pruefe die Codex-CLI …";
+      try {
+        const c = await (await fetch("/api/auth/chatgpt/status")).json();
+        codexStand.textContent = c.loggedIn
+          ? `✅ angemeldet (${c.art === "apikey" ? "API-Schluessel" : "ChatGPT-Konto"})`
+          : c.installiert ? "⚠️ nicht angemeldet" : "❌ Codex-CLI nicht installiert";
+        codexHilfe.open = !c.installiert;
+      } catch {
+        codexStand.textContent = "❌ Stand nicht lesbar — laeuft der Server noch?";
+      }
+    }
+    codexLogin.addEventListener("click", async () => {
+      codexLogin.disabled = true;
+      codexStand.textContent = "Anmeldung laeuft — im Browser oeffnet sich OpenAI …";
+      try {
+        const r = await (await fetch("/api/auth/chatgpt/start", { method: "POST" })).json();
+        if (r.error) codexStand.textContent = "❌ " + r.error;
+        else if (r.url) window.open(r.url, "_blank", "noopener");
+      } finally {
+        codexLogin.disabled = false;
+        setTimeout(zeigeCodex, 15000);
+      }
+    });
+    codexKeyBtn.addEventListener("click", async () => {
+      if (!codexKey.value.trim()) return;
+      codexStand.textContent = "Melde an …";
+      const r = await fetch("/api/auth/chatgpt/schluessel", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ schluessel: codexKey.value }),
+      }).then((x) => x.json()).catch(() => ({}));
+      codexKey.value = "";
+      if (r.ok) zeigeCodex(); else codexStand.textContent = "❌ " + (r.grund || r.error || "Anmeldung fehlgeschlagen");
+    });
+    codexZeile.appendChild(codexLogin);
+    codexZeile.appendChild(codexStand);
+    codexKonfig.appendChild(codexZeile);
+    const codexKeyZeile = document.createElement("div");
+    codexKeyZeile.className = "einst-ping-zeile";
+    codexKey.style.flex = "1";
+    codexKeyZeile.appendChild(codexKey);
+    codexKeyZeile.appendChild(codexKeyBtn);
+    codexKonfig.appendChild(codexKeyZeile);
+    codexKonfig.appendChild(codexInfo);
+    codexKonfig.appendChild(codexHilfe);
+    wrap.appendChild(codexKonfig);
+    if (konfig.provider === "codex") zeigeCodex();
 
     // Web-Suche der Recherche-Rolle (v40): schluessellos ueber DuckDuckGo (Standard, kein Key).
     // Optional ein Gratis-Tavily-Key fuer stabilere Treffer — bleibt lokal in .env, nie im Repo.

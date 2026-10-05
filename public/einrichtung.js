@@ -128,6 +128,14 @@ const offenePrompts = (st) => {
 const hatEigeneRollen = () => {
   try { return Object.keys(localStorage).some((k) => k.startsWith("cm-rolle-")); } catch { return false; }
 };
+// v103: Welche Rollen-Verteilung gilt (gespeichert, Entwurf oder Browser)? null = noch nichts gewaehlt.
+const ROLLEN_IDS = ["userkomm", "recherche", "kontext"];
+const effRollen = (st) => (st.defaults && st.defaults.kiRollen) || (hatEigeneRollen() ? Object.fromEntries(ROLLEN_IDS.map((r) => [r, rolleKonfig(r)])) : null);
+// Braucht die gewaehlte Verteilung diesen Anbieter? Ohne Wahl gilt der Standard-Weg (Claude + lokal).
+const nutzt = (st, provider) => {
+  const r = effRollen(st);
+  return r ? Object.values(r).some((x) => x && x.provider === provider) : provider === "claude" || provider === "ollama";
+};
 const modellDa = (st, m) => (st.ollama.modelle || []).some((x) => x.name === m || x.name.startsWith(m + ":"));
 
 // --- Schritte (Reihenfolge = Abhaengigkeiten) ---------------------------------
@@ -162,14 +170,33 @@ const SCHRITTE = [
     baue: baueName,
   },
   {
+    id: "kiweg",
+    titel: "Wie soll die KI laufen?",
+    satz: "Wähle den Weg: Claude oder ChatGPT für die Texte und lokal (kostenlos) für Recherche und Abgleich — oder alles in der Cloud bzw. alles lokal. Danach fragt die Einrichtung nur noch, was dieser Weg braucht.",
+    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.kiRollen && !hatEigeneRollen() }),
+    baue: baueKiWeg,
+  },
+  {
     id: "claude",
     titel: "Claude anmelden",
     satz: "Claude schreibt die Texte, die du später siehst (Hooks, Skript, Caption) — über dein Claude-Abo auf diesem Rechner, ohne API-Kosten.",
-    pruefe: (st) => ({ fehlt: !(st.verb.claude && st.verb.claude.verbunden) }),
+    // v103: nur gefragt, wenn eine Rolle Claude nutzt (Weg „ChatGPT" oder „nur lokal" braucht es nicht).
+    pruefe: (st) => ({ fehlt: nutzt(st, "claude") && !(st.verb.claude && st.verb.claude.verbunden) }),
     baue: baueClaude,
     nachpruefen: async (st) => {
       const c = await holeJson("/api/auth/claude/status");
       st.verb = { ...st.verb, claude: { ...(st.verb.claude || {}), verbunden: !!c.loggedIn, email: c.email || "" } };
+    },
+  },
+  {
+    id: "chatgpt",
+    titel: "ChatGPT anmelden",
+    satz: "ChatGPT schreibt die Texte über die Codex-CLI von OpenAI auf diesem Rechner — mit deinem ChatGPT-Konto oder einem eigenen API-Schlüssel.",
+    pruefe: (st) => ({ fehlt: nutzt(st, "codex") && !(st.verb.chatgpt && st.verb.chatgpt.verbunden) }),
+    baue: baueChatgpt,
+    nachpruefen: async (st) => {
+      const c = await holeJson("/api/auth/chatgpt/status");
+      st.verb = { ...st.verb, chatgpt: { ...(st.verb.chatgpt || {}), verbunden: !!c.loggedIn, installiert: c.installiert, art: c.art } };
     },
   },
   {
@@ -185,13 +212,6 @@ const SCHRITTE = [
     },
     baue: baueOllama,
     nachpruefen: async (st) => { st.ollama = await holeJson("/api/ai/ollama"); },
-  },
-  {
-    id: "rollen",
-    titel: "KI-Rollen verteilen",
-    satz: "Jede KI-Aufgabe läuft über das Modell ihrer Rolle. Der Vorschlag ist vorausgewählt; gespeichert wird im Board.",
-    pruefe: (st) => ({ gesperrt: st.ordnerOk ? null : OHNE_ORDNER, fehlt: !st.defaults.kiRollen && !hatEigeneRollen() }),
-    baue: baueRollen,
   },
   {
     id: "firma",
@@ -238,7 +258,7 @@ export function offeneSchritte(st) {
 // zwei kleine Status-Dateien gelesen (Board-Ordner in Drive + Anbindungen dieses Rechners); stehen beide auf fertig,
 // startet das Board sofort — ohne den vollen Pruef-Lauf. Sonst bleibt die Sperre, bis der Assistent offen ist.
 // Plan: docs/packages/v101-start-tor-einrichtungsstand.md
-const LOKALE_SCHRITTE = new Set(["drive", "ordner", "claude", "ollama", "google"]);
+const LOKALE_SCHRITTE = new Set(["drive", "ordner", "claude", "chatgpt", "ollama", "google"]);
 
 function zeigeSperre(text) {
   const el = document.createElement("div");
@@ -737,37 +757,115 @@ function baueOllama(el, { st }) {
   }
 }
 
-function baueRollen(el, { st, setzeWeiter }) {
+// v103 (Owner 02.10.2026): Weg-Wahl statt fester Claude-Pflicht. Ein Weg setzt die drei Rollen vor; darunter
+// lassen sie sich einzeln umstellen. Was der Weg braucht (Claude, ChatGPT, Ollama), fragen die naechsten Schritte.
+const WEGE = [
+  { id: "claude", titel: "Claude + lokal", satz: "Texte mit deinem Claude-Abo, Recherche und Abgleich kostenlos auf diesem Rechner. Empfohlen.",
+    rollen: { userkomm: "claude:haiku", recherche: `ollama:${EMPFEHLUNG.recherche.modell}`, kontext: `ollama:${EMPFEHLUNG.kontext.modell}` } },
+  { id: "chatgpt", titel: "ChatGPT + lokal", satz: "Texte mit ChatGPT (Konto oder API-Schlüssel), Recherche und Abgleich kostenlos auf diesem Rechner.",
+    rollen: { userkomm: "codex:standard", recherche: `ollama:${EMPFEHLUNG.recherche.modell}`, kontext: `ollama:${EMPFEHLUNG.kontext.modell}` } },
+  { id: "cloud", titel: "Nur Cloud", satz: "Alles über Claude — kein Ollama nötig, schnell, braucht mehr vom Abo. Für ChatGPT unten je Rolle umstellen.",
+    rollen: { userkomm: "claude:haiku", recherche: "claude:haiku", kontext: "claude:haiku" } },
+  { id: "lokal", titel: "Nur lokal", satz: "Alles auf diesem Rechner, kostenlos und ohne Konto. Langsamer, Texte schwächer als in der Cloud.",
+    rollen: { userkomm: `ollama:${EMPFEHLUNG.kontext.modell}`, recherche: `ollama:${EMPFEHLUNG.recherche.modell}`, kontext: `ollama:${EMPFEHLUNG.kontext.modell}` } },
+];
+
+function baueKiWeg(el, { st, setzeWeiter }) {
   const lokale = (st.ollama.modelle || []).map((m) => m.name);
   const rollen = [
-    ["userkomm", "Userkommunikation", "Texte, die du siehst und veröffentlichst", "claude:haiku"],
-    ["recherche", "Recherche", "Fakten sammeln, mit Web-Suche", `ollama:${EMPFEHLUNG.recherche.modell}`],
-    ["kontext", "Kontextabgleich", "Texte mit dem Firmenkontext abgleichen", `ollama:${EMPFEHLUNG.kontext.modell}`],
+    ["userkomm", "Userkommunikation", "Texte, die du siehst und veröffentlichst"],
+    ["recherche", "Recherche", "Fakten sammeln, mit Web-Suche"],
+    ["kontext", "Kontextabgleich", "Texte mit dem Firmenkontext abgleichen"],
+  ];
+  const vorschlagModelle = [...new Set(WEGE.flatMap((w) => Object.values(w.rollen)).filter((v) => v.startsWith("ollama:")).map((v) => v.slice(7)))];
+  const optionen = [
+    ["claude:haiku", "Claude Haiku (schnell, Abo)"],
+    ["claude:sonnet", "Claude Sonnet (ausgewogen, Abo)"],
+    ["claude:opus", "Claude Opus (stärkste Texte, Abo)"],
+    ["codex:standard", "ChatGPT (Codex-CLI, Konto oder API-Schlüssel)"],
+    ...lokale.map((m) => [`ollama:${m}`, `${m} (lokal, kostenlos)`]),
+    // Vorschlags-Modelle, die noch fehlen, bleiben waehlbar — der Schritt „Lokale KI" laedt sie danach.
+    ...vorschlagModelle.filter((m) => !lokale.includes(m)).map((m) => [`ollama:${m}`, `${m} (lokal, wird im nächsten Schritt geladen)`]),
   ];
   const wahl = {};
-  for (const [id, name, wozu, vorschlag] of rollen) {
+  const karten = document.createElement("div");
+  karten.className = "einr-wege";
+  const passt = (weg) => Object.entries(wahl).every(([r, sel]) => weg.rollen[r] === sel.value);
+  const markiere = () => karten.querySelectorAll(".einr-weg").forEach((k) => k.classList.toggle("aktiv", passt(WEGE.find((w) => w.id === k.dataset.weg))));
+  for (const weg of WEGE) {
+    const k = document.createElement("button");
+    k.type = "button";
+    k.className = "einr-weg";
+    k.dataset.weg = weg.id;
+    k.innerHTML = `<b>${escape(weg.titel)}</b><span>${escape(weg.satz)}</span>`;
+    k.addEventListener("click", () => {
+      for (const [id, sel] of Object.entries(wahl)) sel.value = weg.rollen[id];
+      markiere();
+    });
+    karten.appendChild(k);
+  }
+  el.appendChild(karten);
+  for (const [id, name, wozu] of rollen) {
     const sel = document.createElement("select");
     sel.className = "einr-select";
-    const optionen = [
-      ["claude:haiku", "Claude Haiku (schnell, Abo)"],
-      ["claude:sonnet", "Claude Sonnet (ausgewogen, Abo)"],
-      ["claude:opus", "Claude Opus (stärkste Texte, Abo)"],
-      ...lokale.map((m) => [`ollama:${m}`, `${m} (lokal, kostenlos)`]),
-    ];
-    const vor = optionen.some(([v]) => v === vorschlag) ? vorschlag : "claude:haiku";
-    sel.innerHTML = optionen.map(([v, t]) => `<option value="${escape(v)}"${v === vor ? " selected" : ""}>${escape(t)}${v === vorschlag ? " — Vorschlag" : ""}</option>`).join("");
+    sel.innerHTML = optionen.map(([v, t]) => `<option value="${escape(v)}">${escape(t)}</option>`).join("");
+    sel.value = WEGE[0].rollen[id];
+    sel.addEventListener("change", markiere);
     wahl[id] = sel;
     el.appendChild(feldBlock(name, sel, wozu));
   }
+  markiere();
   setzeWeiter(async () => {
     const kiRollen = {};
     for (const [id, sel] of Object.entries(wahl)) {
       const [provider, modell] = sel.value.split(/:(.+)/);
-      kiRollen[id] = { ...rolleKonfig(id), ...(provider === "claude" ? { provider, claudeModell: modell } : { provider, ollamaModel: modell }) };
+      const teil = provider === "claude" ? { provider, claudeModell: modell }
+        : provider === "codex" ? { provider, codexModell: modell === "standard" ? "" : modell }
+        : { provider, ollamaModel: modell };
+      kiRollen[id] = { ...rolleKonfig(id), ...teil };
     }
     setzeEntwurf({ kiRollen }); // v94: Entwurf; Browser-Rollen + Drive erst beim Speichern
     return true;
   });
+}
+
+// v103: ChatGPT ueber die Codex-CLI — Anmeldung mit dem ChatGPT-Konto (Browser) oder einem API-Schluessel.
+// Der Schluessel geht nur an die CLI (die ihn selbst ablegt), nie in Drive oder eine Board-Datei.
+function baueChatgpt(el, { st }) {
+  const c = st.verb.chatgpt || {};
+  const info = absatz("", "einr-text");
+  if (c.installiert === false) {
+    el.appendChild(statusZeile("Codex-CLI fehlt", "fehlt"));
+    el.appendChild(absatz("Einmalig im Terminal installieren: <code>npm i -g @openai/codex</code> — danach „Weiter“ (prüft neu)."));
+    return;
+  }
+  el.appendChild(statusZeile("nicht angemeldet", "hinweis"));
+  el.appendChild(absatz("<b>Mit ChatGPT-Konto</b> — im Browser anmelden; die Nutzung läuft über deinen ChatGPT-Plan. " +
+    "OpenAI empfiehlt für Automatisierung einen API-Schlüssel; das Board ruft ChatGPT nur auf deinen Klick."));
+  el.appendChild(knopf("Mit ChatGPT anmelden", {
+    art: "haupt",
+    klick: async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      info.textContent = "Starte die Anmeldung — im Browser öffnet sich OpenAI …";
+      const r = await holeJson("/api/auth/chatgpt/start", { method: "POST" }).catch((err) => ({ error: err.message }));
+      if (r.error) { info.textContent = r.error; b.disabled = false; return; }
+      info.innerHTML = (r.url ? `Falls sich kein Browser öffnet: <a href="${escape(r.url)}" target="_blank" rel="noopener">bei OpenAI anmelden ↗</a>. ` : "") +
+        "Nach der Anmeldung „Weiter“.";
+    },
+  }));
+  const schluessel = eingabe("", { typ: "password", platzhalter: "sk-…" });
+  el.appendChild(feldBlock("Oder: OpenAI-API-Schlüssel", schluessel, "Abrechnung nach Verbrauch bei OpenAI. Geht nur an die Codex-CLI auf diesem Rechner — nicht in Drive, nicht auf GitHub."));
+  el.appendChild(knopf("Mit Schlüssel anmelden", {
+    klick: async () => {
+      if (!schluessel.value.trim()) { info.textContent = "Bitte zuerst den Schlüssel einfügen."; return; }
+      info.textContent = "Melde an …";
+      const j = await (await postJson("/api/auth/chatgpt/schluessel", { schluessel: schluessel.value })).json().catch(() => ({}));
+      schluessel.value = "";
+      info.textContent = j.ok ? "Angemeldet. Weiter mit „Weiter“." : j.grund || j.error || "Anmeldung fehlgeschlagen.";
+    },
+  }));
+  el.appendChild(info);
 }
 
 function baueFirma(el, { st, setzeWeiter }) {

@@ -3,7 +3,7 @@
 Lokales Werkzeug für Social-Media-Content: von der Idee über Skript, Dreh, Schnitt und Caption bis
 zum Upload — und danach die Zahlen zurück an die Karte, aus der der Beitrag kam. Läuft auf dem
 eigenen Rechner (`https://localhost:4321`), speichert alles in **einem Google-Drive-Ordner** und
-nutzt KI ohne API-Kosten (Claude-Abo über die Claude-CLI, lokale Modelle über Ollama).
+nutzt KI ohne API-Kosten (Claude-Abo über die Claude-CLI oder ChatGPT über die Codex-CLI, lokale Modelle über Ollama — wählbar je Board).
 
 > **Installieren, einrichten, umziehen:** [`INSTALL.md`](INSTALL.md).
 > **Diese Datei:** wie das Board funktioniert — die Regeln, nach denen es entscheidet.
@@ -109,7 +109,7 @@ Die Rolle bestimmt das Modell:
 
 | Rolle | Aufgabe | Empfehlung |
 |---|---|---|
-| Userkommunikation | Texte, die man sieht (Hooks, Skript, Caption, Ideen) | Claude (Haiku/Sonnet/Opus) über die Claude-CLI |
+| Userkommunikation | Texte, die man sieht (Hooks, Skript, Caption, Ideen) | Claude (Haiku/Sonnet/Opus) über die Claude-CLI — oder ChatGPT über die Codex-CLI |
 | Recherche | Fakten sammeln, mit Web-Suche | `deepseek-r1:14b` lokal (gründlich, langsamer) |
 | Kontextabgleich | Texte mit dem Firmenkontext abgleichen | `qwen2.5:14b` lokal (schnell, genau) |
 
@@ -135,6 +135,7 @@ Die Rolle bestimmt das Modell:
 | Google Drive | Quelle der Wahrheit | Board ↔ Drive (lesen + schreiben) | rclone, Google-Konto des Ordners |
 | Google Kalender + Tasks | nur Ziel | Board → Google: Drehtermin = Kalendertermin + Aufgabe; nichts zurück | Google-Anmeldung über eigene Google-Cloud-App |
 | Claude | KI-Rechenleistung | Prompt hin, Text zurück | Claude-CLI, eigenes Claude-Abo |
+| ChatGPT | KI-Rechenleistung (wahlweise) | Prompt hin, Text zurück | Codex-CLI (`codex exec`, nur lesend), ChatGPT-Konto oder OpenAI-API-Schlüssel |
 | Ollama | lokale KI | bleibt auf dem Rechner | Ollama-Dienst `localhost:11434` |
 | Instagram / LinkedIn | Quelle nur für Zahlen | Plattform → Board (lesen) | eigene Meta- bzw. LinkedIn-App |
 
@@ -164,7 +165,7 @@ erscheint als „Anmeldung abgelaufen", nie als grün. Claude lässt sich dort d
 | `lib/scheduler.js` | Slots aus dem Redaktionsplan. |
 | `lib/drive.js`, `lib/drivesetup.js`, `lib/projects.js` | rclone-Anbindung, Ordnerprüfung/-name, Projektordner und Abgleich. |
 | `lib/ai.js`, `lib/promptstore.js`, `lib/websuche.js` | KI-Aufrufe (Claude-CLI, Ollama), Prompts, Web-Suche. |
-| `lib/gcal.js`, `lib/claudeauth.js` | Google Kalender/Tasks, Claude-Anmeldung aus dem Board. |
+| `lib/gcal.js`, `lib/claudeauth.js`, `lib/codexauth.js` | Google Kalender/Tasks, Claude- und ChatGPT-Anmeldung aus dem Board. |
 | `lib/social.js`, `lib/kpi*.js` | Instagram/LinkedIn-Zahlen, Auswertungs-Tabellen. |
 | `lib/*store.js` | Einstellungen in Drive (Plan, Prompts, Defaults, Workflows, Board-Parameter, Kontext). |
 | `public/` | Oberfläche: `board`, `detail`, `redaktionsplan`, `auswertung`, `einrichtung`, Bausteine in `ui.js`, Zustand in `store.js`. |
