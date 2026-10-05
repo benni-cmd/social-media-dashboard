@@ -80,8 +80,13 @@ geändert).
 - Beobachtung: Der Start-Abgleich beginnt erst, wenn der Start (Plan, Workflows) durch ist; bis dahin steht „noch nicht live — jetzt abgleichen" (ehrlich, Klick startet ihn). Nicht geändert.
 - Nicht geprüft: Fehlerfall des Abgleichs (Plakette „fehlgeschlagen").
 
+05.10.2026 — Fehlerfall geprüft in isolierte Testkopie (Scratchpad `board-test-3`, Port 4399, ohne echtes Drive; Strukturliste per Umgebungsvariable vorgegeben: „In Bearbeitung/Schnitt" statt „4 Schnitt"): Kopf-Plakette „Cache 05.10. 18:50 · Abgleich
+fehlgeschlagen" mit roter Umrandung (Klasse `live-plakette-fehler`), Tooltip nennt den Grund
+(„Der Abgleich mit Drive schlug fehl: Das Board lädt nichts aus Drive, weil die Ordnerstruktur nicht
+stimmt …"); alle 20 Karten tragen die Cache-Markierung (DOM-Zählung `.eintrag-cache` = 20).
+Screenshot im Browser-Pane.
+
 ## Definition of Done
 
-Geprueft gegen: Screenshots Start/nach Abgleich, Zeitmessung bis erste Karte, `node --check`
-Geprueft gegen: Screenshots Start/nach Abgleich hell + dunkel, DOM-Zählung Cache-Zeichen, `node --check`
-Offen: Fehlerfall-Darstellung ungeprüft
+Geprueft gegen: Screenshots Start/nach Abgleich hell + dunkel, Screenshot Fehlerfall, DOM-Zählung Cache-Zeichen, `node --check`
+Offen: nichts

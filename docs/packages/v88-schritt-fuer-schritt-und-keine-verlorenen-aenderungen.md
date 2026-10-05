@@ -57,9 +57,12 @@ eigenen Änderungen.
 - Unit-Tests (Scratchpad, `node --test`): `abgleichAufNeuesten` 5/5, `legeAufFremdenStand` 2/2.
 - `node --check` auf `public/detail.js`, `public/store.js`, `lib/projects.js`, `server.js`.
 
+05.10.2026 — Testkarte „Neue Idee" (Reel, id cmupdpjxzr5yy) ist nicht mehr im Board
+(`data/board.json`, Version 472) — von Ben entfernt. Server-Teil (Abgleich auf neuesten Stand)
+ist per Unit-Test belegt (5/5); im Live-Betrieb wirkt er, sobald das Board mit Code ab Commit
+593b2c7 läuft.
+
 ## Definition of Done
 
-Geprueft gegen: Screenshots Bens Board + Testkopie, Unit-Tests 5/5 + 2/2, Server-Stand nach Konflikt
-Offen:
-1. Board neu starten (Ben) — Server-Teil (Abgleich auf neuesten Stand) wirkt erst dann
-2. Testkarte „Neue Idee" (Typ Reel, id cmupdpjxzr5yy) aus Bens Board entfernen — angelegt beim Test
+Geprueft gegen: Screenshots Bens Board + Testkopie, Unit-Tests 5/5 + 2/2, Server-Stand nach Konflikt, board.json 05.10.2026
+Offen: nichts

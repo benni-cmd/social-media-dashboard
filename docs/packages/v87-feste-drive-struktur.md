@@ -40,7 +40,7 @@
 4. [x] Spalten-Umbenennen entfernen (UI-Doppelklick, `/api/spalten/rename`, `benenneUm`) —
    je nach Owner-Entscheidung (s. u.).
 5. [x] `spalten.json` wird nicht mehr gelesen/geschrieben (bleibt in Drive liegen, schadet nicht).
-6. [ ] Verify: Strukturprüfung mit nachgebautem Drive (vollständig / Ordner fehlt / umbenannt /
+6. [~] Verify: Strukturprüfung mit nachgebautem Drive (vollständig / Ordner fehlt / umbenannt /
    leer); live: aktueller Drive-Ordner wird als korrekt erkannt, Abgleich-Zeit; Screenshot
    der Fehlermeldung.
 7. [x] `docs/drive-convention.md` nachführen (feste Struktur statt v17b-Umbenennung).
@@ -73,10 +73,21 @@
   besteht die eigene Prüfung; vollständig → board; umbenannte Spalte → falsch mit Satz; fremd;
   **echtes Drive (nur lesend) besteht die Prüfung**. `node --check` auf allen JS-Dateien.
 
+05.10.2026 — Abschluss-Prüfung:
+- Fehlermeldung bei falscher Struktur, isolierte Testkopie (Scratchpad `board-test-3`, Port 4399, ohne echtes Drive; Strukturliste per Umgebungsvariable vorgegeben: „In Bearbeitung/Schnitt" statt „4 Schnitt"): `POST /api/drive/reconcile` antwortet
+  „Das Board lädt nichts aus Drive, weil die Ordnerstruktur nicht stimmt: Der Ordner „In
+  Bearbeitung/Schnitt" muss „In Bearbeitung/4 Schnitt" heißen." — im Board als Meldung und in der
+  Kopf-Plakette (Screenshot).
+- Spaltenköpfe (DOM): 8 Spalten „Skript schreiben … Verworfen", keine Nummer im Namen, kein
+  Umbenennen-Hinweis.
+- Echtes Drive besteht die Strukturprüfung (nur lesend, 30.09.2026, `v87.test.mjs` 5/5).
+- Nicht live gemessen: Abgleich-Zeit mit dem v87-Code auf Bens Board (Board lief am 05.10.2026
+  nicht; aus der Sandbox darf der echte Server nicht gestartet werden, s. Memory
+  board-test-isoliert). Letzte Live-Messung vor v87: 8,8–9,8 s; v87 ersetzt zwei Drive-Aufrufe
+  (spalten.json + Marker) durch einen.
+
 ## Definition of Done
 
-Geprueft gegen: Strukturprüfung-Tests, Live-Erkennung des aktuellen Ordners, Screenshot Fehlermeldung
+Geprueft gegen: Strukturprüfung-Tests 7 Fälle + 5/5, Screenshot Fehlermeldung (Testkopie), DOM Spaltenköpfe
 Offen:
-1. Board neu starten (Ben) — neuer Server-Code
-2. Danach live: Abgleich-Zeit, Screenshot Board (Spaltenkopf ohne Umbenennen-Hinweis),
-   Screenshot Fehlermeldung bei falscher Struktur (Agent)
+1. Abgleich-Zeit live auf Bens Board messen (Agent, `curl -X POST /api/drive/reconcile`) — braucht das laufende Board
