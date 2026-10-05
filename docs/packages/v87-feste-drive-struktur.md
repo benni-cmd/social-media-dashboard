@@ -88,6 +88,8 @@
 
 05.10.2026 19:5x — Live-Messung auf Bens Board (Server gestartet 19:52:52, Code-Stand 274e345, client_id aktiv): `curl -sk -X POST -w "%{time_total}" https://localhost:4321/api/drive/reconcile` → 6,2 s und 7,4 s (vorher 8,8–9,8 s); 20 Karten, „Board und Drive stimmen ueberein". Ein dritter Lauf (0,8 s) hing sich an den Start-Abgleich an und zaehlt nicht.
 
+05.10.2026 — Auf Owner-Ja die Reste der alten Umbenennen-Technik in den Drive-Papierkorb gelegt (9 Dateien: 8× `.phase`, `System (AI only)/spalten.json`; Skript `reste-entfernen.mjs`, danach 0 gefunden). Der Code liest sie nicht mehr (grep). Abgleich danach: 7,7 s, 20 Karten, „Board und Drive stimmen ueberein".
+
 ## Definition of Done
 
 Geprueft gegen: Strukturprüfung-Tests 7 Fälle + 5/5, Screenshot Fehlermeldung (Testkopie), DOM Spaltenköpfe, Live-Abgleich 6,2/7,4 s

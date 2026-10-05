@@ -75,8 +75,7 @@ Spalten gibt es nicht mehr — weder im Board noch aus Drive heraus.
   aus Drive, bleibt beim Cache („Cache-Stand" im Kopf) und nennt den Grund als Meldung und im
   Drive-Protokoll. Das Board repariert die Struktur nicht selbst.
 - Liegt ein Projektordner in zwei Spalten zugleich, meldet der Abgleich das als Befund.
-- Übrig aus v17b–v85 und ohne Funktion: `.phase`-Marker in den Spaltenordnern und
-  `System (AI only)/spalten.json` — schadlos, dürfen gelöscht werden.
+- Die Reste aus v17b–v85 (`.phase`-Marker, `System (AI only)/spalten.json`) wurden am 05.10.2026 in den Drive-Papierkorb gelegt (Owner-Ja).
 
 **Wichtig:** Der Name entsteht beim Anlegen und lebt danach als `card.driveName` weiter. Er
 wird **nicht** bei jedem Zugriff neu aus dem Titel abgeleitet.
