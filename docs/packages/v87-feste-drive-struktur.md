@@ -40,7 +40,7 @@
 4. [x] Spalten-Umbenennen entfernen (UI-Doppelklick, `/api/spalten/rename`, `benenneUm`) —
    je nach Owner-Entscheidung (s. u.).
 5. [x] `spalten.json` wird nicht mehr gelesen/geschrieben (bleibt in Drive liegen, schadet nicht).
-6. [~] Verify: Strukturprüfung mit nachgebautem Drive (vollständig / Ordner fehlt / umbenannt /
+6. [x] Verify: Strukturprüfung mit nachgebautem Drive (vollständig / Ordner fehlt / umbenannt /
    leer); live: aktueller Drive-Ordner wird als korrekt erkannt, Abgleich-Zeit; Screenshot
    der Fehlermeldung.
 7. [x] `docs/drive-convention.md` nachführen (feste Struktur statt v17b-Umbenennung).
@@ -86,8 +86,9 @@
   board-test-isoliert). Letzte Live-Messung vor v87: 8,8–9,8 s; v87 ersetzt zwei Drive-Aufrufe
   (spalten.json + Marker) durch einen.
 
+05.10.2026 19:5x — Live-Messung auf Bens Board (Server gestartet 19:52:52, Code-Stand 274e345, client_id aktiv): `curl -sk -X POST -w "%{time_total}" https://localhost:4321/api/drive/reconcile` → 6,2 s und 7,4 s (vorher 8,8–9,8 s); 20 Karten, „Board und Drive stimmen ueberein". Ein dritter Lauf (0,8 s) hing sich an den Start-Abgleich an und zaehlt nicht.
+
 ## Definition of Done
 
-Geprueft gegen: Strukturprüfung-Tests 7 Fälle + 5/5, Screenshot Fehlermeldung (Testkopie), DOM Spaltenköpfe
-Offen:
-1. Abgleich-Zeit live auf Bens Board messen (Agent, `curl -X POST /api/drive/reconcile`) — braucht das laufende Board
+Geprueft gegen: Strukturprüfung-Tests 7 Fälle + 5/5, Screenshot Fehlermeldung (Testkopie), DOM Spaltenköpfe, Live-Abgleich 6,2/7,4 s
+Offen: nichts
