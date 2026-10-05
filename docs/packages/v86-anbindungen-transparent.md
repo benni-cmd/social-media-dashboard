@@ -71,9 +71,9 @@ Ollama = lokale KI-Rechenleistung · Web-Suche = Recherche-Quelle.
 
 1. [x] Fehlfarbe beheben: Ablehnung durch Google (`invalid_grant`) zählt als „getrennt: Anmeldung abgelaufen", nie als „unklar".
 2. [~] Ein gemeinsames Status-Modell je Anbindung: `konto`, `zustand` (live/gestört/getrennt), `grund`, `letzterErfolg`, `letzterFehler`, `rolle`.
-3. [ ] Server: aktive Prüfung je Anbindung (kleine echte Aufrufe), Ergebnis mit Zeitstempel; Zeiten aus dem Ereignis-Bus.
+3. [x] Aktive Prüfung je Anbindung mit Zeitstempel (Drive, Google, KI je genutztem Anbieter; Instagram/LinkedIn/Web-Suche noch aus dem letzten Aufruf).
 4. [~] Einstellungen „Externe Dienste" / „Social Media Kanäle": jede Zeile zeigt die Angaben aus 2.
-5. [ ] Kopfzeile: gestörte Anbindung sichtbar wie die Cache-Plakette, mit „Neu verbinden".
+5. [x] Kopfzeile: gestörte Anbindung sichtbar (Kachel + Gesamtampel + Befundzeile im Log), mit „Neu verbinden".
 6. [ ] Nutzstellen: z. B. Drehtermin zeigt „im Kalender eingetragen am … / fehlgeschlagen: …".
 7. [ ] Verify: echter Ausfall (jetziger Google-Token) wird rot, nach Neuverbindung grün; Screenshots hell + dunkel.
 
@@ -91,9 +91,29 @@ Rollen-Vorschlag oben gilt damit als bestätigt (Ben fragte genau nach Quelle/Zi
 - Geheimnis-Prüfung Drive (01.10.2026, rclone lsf -R + Inhalt der 8 System-Dateien): keine Tokens/Keys/Mails in Drive;
   `git ls-files` ohne Geheimnis-Dateien. Alle Zugänge liegen nur lokal (`.env`, `data/tokens.json`, `data/.gdrive-env.json`).
 
-Offen (Teil 2): Kopfzeilen-Marker aus dem schlechtesten Zustand (heute zeigt „KI" grün, obwohl Claude abgemeldet ist);
-Prüfung beim Start + alle 30 min + „Jetzt prüfen"; Statusband im Log; Instagram/LinkedIn/Ollama/Web-Suche mit denselben Zeilen;
-Google-Konto erscheint erst nach dem Neu-Verbinden (vor dem Ablauf nie gespeichert).
+05.10.2026 — **Teil 2 gebaut.** Es baut auf der v105-Kopfzeile auf (`public/anschluesse.js`).
+- **Wann geprüft wird:**
+  - 20 s nach dem Start (nicht im Start-Pfad, v98)
+  - danach alle 30 min
+  - bei jedem Öffnen eines Logs (= „Jetzt prüfen")
+  - Quellen: `/api/verbindungen/status` und `/api/ai/ollama`
+- **Kachel und Gesamtampel:**
+  - zeigen den schlechteren Wert aus letztem Aufruf und Prüfung
+  - oben im Log steht eine Befundzeile mit Grund und Prüfzeit, bei Störung mit dem Knopf **„Neu verbinden"**; er öffnet die Einstellungen direkt am passenden Tab (Google bzw. KI-Rollen)
+  - der Tooltip der Kachel trägt denselben Grund
+- **Was jede Kachel prüft:**
+  - KI: nur die Anbieter, die die Rollen nutzen (Claude, ChatGPT aus v103, Ollama)
+  - Google: nie verbunden = „fehlt" (offener Schritt), abgelaufen oder getrennt = Befund (rot), Netz-Zweifel = Hinweis (gelb)
+  - Drive: nicht erreichbar = Befund
+- **Beleg (Testkopie :4399):**
+  - Drive ohne Ordner → rot
+  - Google nie verbunden → „fehlt"
+  - ChatGPT abgemeldet bei Rolle ChatGPT → KI rot, Gesamtampel rot, Befundzeile „ChatGPT nicht angemeldet — Einstellungen → KI-Rollen"
+  - „Neu verbinden" öffnet den Tab KI-Rollen
+  - alles bereit → KI grün
+  - Screenshots angesehen
+
+Offen (Rest): Die API-Kachel (Instagram/LinkedIn) und die Web-Suche haben noch keine eigene Prüfung. Sie zeigen weiter das Ergebnis des letzten Abrufs. Google-Konto-Mail erscheint erst nach dem Neu-Verbinden.
 
 
 30.09.2026 — Paket angelegt, Bestand gelesen, Befund belegt (siehe Problem). Fragen beantwortet (Entscheidungen oben), Log-Studie gemacht. Noch nichts gebaut.
@@ -101,4 +121,4 @@ Google-Konto erscheint erst nach dem Neu-Verbinden (vor dem Ablauf nie gespeiche
 ## Definition of Done
 
 Geprueft gegen: echter Ausfall der Google-Anbindung sichtbar; Status jeder Anbindung aus Prüfung statt Token; Screenshots hell + dunkel
-Offen: Teil 2 (Kopf-Marker aus Prüfung, Prüfung beim Start/30 min/„Jetzt prüfen“, Statusband im Log, Instagram/LinkedIn/Ollama/Web-Suche); Google neu verbinden (Owner). Rollen: bestätigt (Teil 1, 01.10.). Andockstelle: Kopf-Gruppe „Verbindungen“ aus v105 (`gesamtZustand()` in `anschluesse.js`, `data-zustand` am Gruppen-Element, Abgleich-Knopf im Log-Kopf).
+Offen: Eigene Prüfung für Instagram/LinkedIn/Web-Suche (heute letzter Abruf); Nutzstelle Drehtermin (Owner: nicht gewählt); Live-Verify „Google rot → nach Neuverbindung grün" auf Bens Board — Google neu verbinden (Owner). Rollen: bestätigt (Teil 1, 01.10.). Andockstelle: Kopf-Gruppe „Verbindungen“ aus v105 (`gesamtZustand()` in `anschluesse.js`, `data-zustand` am Gruppen-Element, Abgleich-Knopf im Log-Kopf).

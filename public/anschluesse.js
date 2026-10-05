@@ -8,7 +8,7 @@
 // Die Ereignisse kommen aus dem Server (lib/ereignisse.js) ueber GET /api/ereignisse/stream.
 // Eigenes Modul, damit app.js nicht weiter waechst und die Leiste an EINER Stelle lebt.
 
-import { S, driveAbgleich, instagramZahlen, linkedinZahlen, gcalStatus, gcalSync, melde } from "./store.js";
+import { S, driveAbgleich, instagramZahlen, linkedinZahlen, gcalStatus, gcalSync, melde, rolleKonfig } from "./store.js";
 import { icon, statusChip, escape, sanduhr } from "./ui.js";
 
 // Das Register. Eine neue Plattform (YouTube, TikTok) ist hier eine Zeile in `dienste`
@@ -42,8 +42,8 @@ const SEKTIONEN = [
   {
     id: "ki",
     name: "KI",
-    titel: "Ollama und Claude",
-    dienste: ["ollama", "claude"],
+    titel: "Ollama, Claude und ChatGPT",
+    dienste: ["ollama", "claude", "chatgpt"],
     // Bewusst ohne Abgleich-Knopf (Owner 23.09.2026): ein KI-Lauf geht von einer Karte aus,
     // nicht von der Kopfzeile. Hier wird nur mitgelesen.
     abgleich: null,
@@ -67,6 +67,58 @@ async function weitereAbgleichen() {
   const offen = (S.drehtermine || []).filter((t) => !t.gcalEventId);
   for (const t of offen) await gcalSync(t.id);
   return { ...stand, nachgezogen: offen.length };
+}
+
+// --- Anbindungs-Pruefung (v86 Teil 2) ----------------------------------------
+//
+// Owner 01.10.2026: Der Kopf zeigte „KI" gruen, obwohl Claude abgemeldet war — die Marker lasen nur, wie der
+// letzte Aufruf ausging. Jetzt prueft das Board die Anbindungen selbst: 20 s nach dem Start (nicht im
+// Start-Pfad, v98), danach alle 30 min und beim Oeffnen eines Logs. Je Sektion gilt der schlechtere Wert aus
+// letztem Aufruf und Pruefung; der Grund steht im Log-Kopf und im Tooltip der Kachel.
+const pruefung = { api: null, drive: null, weitere: null, ki: null }; // { code, grund, zeit }
+let pruefLaeuft = null;
+
+async function pruefeAnbindungen() {
+  if (pruefLaeuft) return pruefLaeuft;
+  pruefLaeuft = (async () => {
+    try {
+      const [st, ollama] = await Promise.all([
+        fetch("/api/verbindungen/status").then((r) => r.json()),
+        fetch("/api/ai/ollama").then((r) => r.json()).catch(() => ({ laeuft: false })),
+      ]);
+      const zeit = Date.now();
+      const d = st.drive || {};
+      pruefung.drive = d.verbunden ? { code: "ok", grund: `verbunden${d.name ? ` · Ordner „${d.name}“` : ""}`, zeit }
+        : { code: "befund", grund: "Drive nicht erreichbar — Einstellungen → Google", zeit, tab: "Google" };
+      const g = st.google || {};
+      pruefung.weitere = g.zustand === "live" ? { code: "ok", grund: `Google verbunden${g.email ? ` (${g.email})` : ""}`, zeit }
+        : g.zustand === "gestoert" ? { code: "hinweis", grund: `Google gestört: ${g.grund || "keine Antwort"}`, zeit }
+        : { code: /noch nicht verbunden/i.test(g.grund || g.hinweis || "") ? "fehlt" : "befund", grund: `Google: ${String(g.grund || g.hinweis || "nicht verbunden").replace(/\.$/, "")} — Einstellungen → Google`, zeit, tab: "Google" };
+      // KI: nur, was die Rollen dieses Boards wirklich nutzen.
+      const genutzt = new Set(["userkomm", "recherche", "kontext"].map((r) => rolleKonfig(r).provider));
+      const fehlt = [];
+      if (genutzt.has("claude") && !(st.claude && st.claude.verbunden)) fehlt.push("Claude nicht angemeldet");
+      if (genutzt.has("codex") && !(st.chatgpt && st.chatgpt.verbunden)) fehlt.push(st.chatgpt && st.chatgpt.installiert === false ? "Codex-CLI (ChatGPT) nicht installiert" : "ChatGPT nicht angemeldet");
+      if (genutzt.has("ollama") && !ollama.laeuft) fehlt.push("Ollama läuft nicht");
+      pruefung.ki = fehlt.length ? { code: "befund", grund: `${fehlt.join(" · ")} — Einstellungen → KI-Rollen`, zeit }
+        : { code: "ok", grund: "alle genutzten KI-Anbindungen bereit", zeit };
+      if (pruefung.ki.code !== "ok") pruefung.ki.tab = "KI-Rollen";
+    } catch {
+      /* Server nicht erreichbar: der Ereignis-Strom meldet das schon selbst */
+    } finally {
+      pruefLaeuft = null;
+      zeichneAnschluesse();
+    }
+  })();
+  return pruefLaeuft;
+}
+
+const RANG = { befund: 4, unlesbar: 4, fehlt: 3, hinweis: 2, ok: 1, entfaellt: 0 };
+function sektionsCode(sektion) {
+  const letzte = (verlauf[sektion] || []).filter((e) => !e.laeuft);
+  const ausVerlauf = letzte.length ? letzte[letzte.length - 1].status || "ok" : "entfaellt";
+  const p = pruefung[sektion];
+  return p && (RANG[p.code] ?? 0) > (RANG[ausVerlauf] ?? 0) ? p.code : ausVerlauf;
 }
 
 // --- Zustand --------------------------------------------------------------
@@ -173,10 +225,23 @@ function zeichneMarker(sektion) {
     return;
   }
   // Ohne laufende Arbeit zaehlt, wie der letzte Aufruf ausging — nichts gelaufen heisst
-  // „entfaellt", nicht „ok": es gibt schlicht noch keinen Befund.
-  const letzte = (verlauf[sektion] || []).filter((e) => !e.laeuft);
-  const code = letzte.length ? letzte[letzte.length - 1].status || "ok" : "entfaellt";
-  el.innerHTML = statusChip(code);
+  // „entfaellt", nicht „ok": es gibt schlicht noch keinen Befund. v86: die Anbindungs-Pruefung zaehlt mit.
+  el.innerHTML = statusChip(sektionsCode(sektion));
+  const p = pruefung[sektion];
+  const kachel = el.closest(".anschluss");
+  const s = SEKTIONEN.find((x) => x.id === sektion);
+  if (kachel && s) kachel.title = `${s.name} — ${s.titel}${p ? `\n${p.grund}` : ""}`;
+  const befund = kachel && kachel.querySelector(".anschluss-terminal-befund");
+  if (befund) {
+    befund.hidden = !p;
+    if (p) {
+      befund.innerHTML = `<span>Anbindung: ${escape(p.grund)} (geprüft ${uhrzeit(p.zeit)})</span>` +
+        (p.tab && p.code !== "ok" ? `<button type="button" class="anschluss-neu-verbinden">Neu verbinden</button>` : "");
+      const nv = befund.querySelector(".anschluss-neu-verbinden");
+      if (nv) nv.addEventListener("click", () => window.dispatchEvent(new CustomEvent("einstellungen-oeffnen", { detail: p.tab })));
+    }
+    if (p) befund.dataset.code = p.code;
+  }
 }
 
 // --- Der Satz in der Kopfzeile -------------------------------------------
@@ -286,14 +351,12 @@ export function zeichneAnschluesse() {
 // v105: Gesamtampel der Gruppe „Verbindungen" — der schlechteste Zustand aller vier Sektionen
 // (laeuft gerade etwas: „arbeitet"; sonst Ergebnis des letzten abgeschlossenen Aufrufs je Sektion).
 function gesamtZustand() {
-  const rang = { befund: 4, unlesbar: 4, fehlt: 3, hinweis: 2, ok: 1, entfaellt: 0 };
   let schlimmster = "entfaellt";
   for (const s of SEKTIONEN) {
-    const letzte = (verlauf[s.id] || []).filter((e) => !e.laeuft);
-    const code = letzte.length ? letzte[letzte.length - 1].status || "ok" : "entfaellt";
-    if ((rang[code] ?? 0) > (rang[schlimmster] ?? 0)) schlimmster = code;
+    const code = sektionsCode(s.id); // v86: inkl. Anbindungs-Pruefung
+    if ((RANG[code] ?? 0) > (RANG[schlimmster] ?? 0)) schlimmster = code;
   }
-  return Object.values(aktiv).some(Boolean) && (rang[schlimmster] ?? 0) < 2 ? "arbeitet" : schlimmster;
+  return Object.values(aktiv).some(Boolean) && (RANG[schlimmster] ?? 0) < 2 ? "arbeitet" : schlimmster;
 }
 
 // --- Aufbau ---------------------------------------------------------------
@@ -314,6 +377,7 @@ function baueSektion(s) {
     `<div class="anschluss-terminal-kopf"><span>${escape(s.titel)}</span>` +
     (s.abgleich ? `<button type="button" class="anschluss-terminal-abgleich">${escape(s.abgleich.text)}</button>` : "") +
     `</div>` +
+    `<div class="anschluss-terminal-befund" hidden></div>` +
     `<div class="anschluss-terminal-koerper"><ul class="anschluss-terminal-liste"></ul></div>` +
     `</div>`;
 
@@ -343,7 +407,10 @@ function schalteTerminal(sektion) {
     term.hidden = !offen;
     knopf.setAttribute("aria-expanded", String(offen));
   }
-  if (offeneSektion) zeichneTerminal(offeneSektion);
+  if (offeneSektion) {
+    zeichneTerminal(offeneSektion);
+    pruefeAnbindungen(); // v86: Log oeffnen = jetzt pruefen
+  }
 }
 
 export async function starteAbgleich(s, knopfEl) {
@@ -439,4 +506,7 @@ export async function verdrahteAnschluesse(el, stand) {
 
   zeichneAnschluesse();
   if (feed.stand !== "veraltet") verbindeFeed();
+  // v86 Teil 2: Anbindungen pruefen — nicht im Start-Pfad, danach alle 30 min.
+  setTimeout(pruefeAnbindungen, 20000);
+  setInterval(pruefeAnbindungen, 30 * 60 * 1000);
 }

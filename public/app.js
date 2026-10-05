@@ -250,6 +250,10 @@ el("abgleichen").addEventListener("click", async (e) => {
 el("einstellungen").addEventListener("click", () => {
   einstellungenModal((theme) => setzeTheme(theme));
 });
+// v86 Teil 2: „Neu verbinden" in der Kopfzeile oeffnet die Einstellungen am passenden Tab.
+window.addEventListener("einstellungen-oeffnen", (e) => {
+  einstellungenModal((theme) => setzeTheme(theme), e.detail || null);
+});
 
 // --- Kopf-Menue: Seltenes hinter einem Knopf, statt staendig sichtbar -----
 

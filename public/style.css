@@ -4759,3 +4759,10 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .einr-weg:hover { border-color: var(--akzent); }
 .einr-weg.aktiv { border-color: var(--akzent); background: var(--akzent-tief); box-shadow: inset 0 0 0 1px var(--akzent); }
 @media (max-width: 560px) { .einr-wege { grid-template-columns: 1fr; } }
+
+/* v86 Teil 2: Ergebnis der Anbindungs-Pruefung oben im Log einer Sektion. */
+.anschluss-terminal-befund { padding: 6px 10px; font-size: 12px; line-height: 1.4; border-bottom: 1px solid var(--linie); }
+.anschluss-terminal-befund[data-code="befund"] { color: var(--befund); font-weight: 600; }
+.anschluss-terminal-befund[data-code="hinweis"] { color: var(--text); background: color-mix(in srgb, var(--hinweis) 18%, transparent); }
+.anschluss-terminal-befund { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.anschluss-neu-verbinden { flex: none; padding: 3px 9px; border: 1px solid currentColor; border-radius: var(--rund); background: var(--flaeche); color: inherit; font: inherit; font-weight: 650; cursor: pointer; }

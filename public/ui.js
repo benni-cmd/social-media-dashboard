@@ -838,7 +838,8 @@ const DRIVE_TABS = new Map([
 ]);
 
 // Einstellungs-Modal: zentriertes Popup, Liste links, Inhalt rechts.
-export function einstellungenModal(onThemeChange) {
+// v86 Teil 2: `startTab` (Name eines Tabs) oeffnet direkt dort — fuer „Neu verbinden" aus der Kopfzeile.
+export function einstellungenModal(onThemeChange, startTab = null) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   const box = document.createElement("div");
@@ -2179,7 +2180,8 @@ export function einstellungenModal(onThemeChange) {
     if (tab.beimOeffnen) tab.beimOeffnen();
   }
   for (const tab of TABS) rechts.appendChild(tab.seite);
-  zeigeTab(TABS[0], navItems[0]);
+  const startIdx = Math.max(0, TABS.findIndex((t) => t.name === startTab));
+  zeigeTab(TABS[startIdx], navItems[startIdx]);
 
   box.appendChild(links);
   box.appendChild(rechts);
