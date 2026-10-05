@@ -10,8 +10,8 @@ import {
   zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
-import { S, melde, setStand, zeichne } from "./store.js";
-import { escape, knopf, sanduhr, modalX } from "./ui.js";
+import { S, melde, setStand, zeichne, ladeAnstehende } from "./store.js";
+import { escape, knopf, sanduhr, modalX, driveOrt, befundZeile, bestaetigen } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
 const PLAN_TYP_NAME = {
@@ -77,8 +77,12 @@ async function speicherePlan(plan) {
     body: JSON.stringify(plan),
   });
   if (!r.ok) throw new Error("Speichern fehlgeschlagen (" + r.status + ")");
+  // v107: der Server ordnet neuen Kampagnen ihre Drive-Tabelle zu — die Pfade uebernehmen.
+  const antwort = await r.json().catch(() => ({}));
+  if (Array.isArray(antwort.kampagnen)) plan.kampagnen = antwort.kampagnen;
   S.plan = plan; // v90: Kopfzeile und Termin-Vorschlaege rechnen sofort mit dem neuen Plan
   zeichne();
+  ladeAnstehende(); // v107: Kampagnen geaendert -> Anlass-Knoepfe neu
 }
 
 function defaultPlan() {
@@ -287,11 +291,26 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   aktualisiereSum(zielSumEl, Object.values(zielGetters).map((f) => f()));
 
   // ── Kampagnen ──────────────────────────────────────────────────────────
-  sektionKopf("Kampagnen & Serien", koerper, "14px 0 8px");
-  let kampagnen = [...(plan.kampagnen || [])];
+  // v107: jede Kampagne hat eine Tabelle in Drive (Ordner „Kampagnen"). Ihre Anlaesse der naechsten
+  // 60 Tage erscheinen als Knoepfe in der ersten Spalte, solange es kein Projekt dazu gibt.
+  sektionKopf("Kampagnen", koerper, "14px 0 8px");
+  const kampSatz = document.createElement("p");
+  kampSatz.className = "feld-hinweis";
+  kampSatz.innerHTML =
+    `Jede Kampagne hat eine eigene Tabelle in Drive ${driveOrt("Kampagnen", "Kampagnen")}. ` +
+    `Liegt ein Anlass daraus in den nächsten 60 Tagen und gibt es noch kein Projekt dazu, steht in der ersten Spalte ein Knopf mit seinem Namen.`;
+  koerper.appendChild(kampSatz);
+  if ((S.kampagnenBefunde || []).length) {
+    const ul = document.createElement("ul");
+    ul.className = "befundliste";
+    for (const b of S.kampagnenBefunde) ul.appendChild(befundZeile("befund", b));
+    koerper.appendChild(ul);
+  }
+  let kampagnen = (plan.kampagnen || []).map((k) => ({ ...k }));
   const kampContainer = document.createElement("div");
   koerper.appendChild(kampContainer);
-  const addKampBtn = knopf("+ Kampagne", {
+  const addKampBtn = knopf("Kampagne anlegen", {
+    zeichen: "plus",
     klick: () => { kampagnen.push({ id: "k" + Date.now(), name: "", aktiv: true }); renderKamp(); },
   });
   addKampBtn.style.marginTop = "4px";
@@ -309,14 +328,33 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
     kampagnen.forEach((kamp, i) => {
       const z = document.createElement("div");
       z.style.cssText = "display:flex;gap:6px;align-items:center;padding:2px 0";
+      const an = document.createElement("input");
+      an.type = "checkbox";
+      an.checked = kamp.aktiv !== false;
+      an.title = "Aktiv: Anlässe dieser Kampagne erscheinen als Knöpfe in der ersten Spalte.";
+      an.setAttribute("aria-label", `Kampagne „${kamp.name || "neu"}“ aktiv`);
+      an.addEventListener("change", () => { kampagnen[i].aktiv = an.checked; });
       const inp = document.createElement("input");
       inp.type = "text";
       inp.value = kamp.name;
-      inp.placeholder = "Kampagnenname";
+      inp.placeholder = "Name der Kampagne";
       inp.style.cssText = "flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--fg1);font-size:13px";
       inp.addEventListener("input", () => { kampagnen[i].name = inp.value; });
-      const del = knopf("×", { titel: "Entfernen", klick: () => { kampagnen.splice(i, 1); renderKamp(); } });
+      z.appendChild(an);
       z.appendChild(inp);
+      if (kamp.tabelle) {
+        const t = document.createElement("span");
+        t.innerHTML = driveOrt(kamp.tabelle.replace(/\/[^/]*$/, ""), "Tabelle", `Die Tabelle liegt in Drive: ${kamp.tabelle}`);
+        z.appendChild(t);
+      }
+      const del = knopf("Löschen", {
+        titel: "Kampagne aus dem Redaktionsplan entfernen",
+        klick: () => bestaetigen(
+          `Kampagne „${kamp.name || "ohne Namen"}“ entfernen? Ihre Tabelle bleibt in Drive${kamp.tabelle ? ` (${kamp.tabelle})` : ""}; wirksam nach „Einstellungen speichern“.`,
+          "Entfernen",
+          () => { kampagnen.splice(i, 1); renderKamp(); },
+        ),
+      });
       z.appendChild(del);
       kampContainer.appendChild(z);
     });

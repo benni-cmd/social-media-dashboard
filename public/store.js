@@ -720,6 +720,7 @@ export async function ladePlan() {
   try {
     const plan = await hole("/api/plan");
     S.plan = plan; // v90: Kopfzeile und Wochenstatistik messen gegen den zuletzt gelesenen Plan
+    ladeAnstehende(); // v107: Kampagnen koennen sich mit dem Plan geaendert haben (laeuft nebenher)
     // Owner 10.09.2026: ein haengender/fehlerhafter Drive-Zugriff darf nicht mehr still im
     // Cache-Fallback verschwinden — sichtbare Meldung mit Fehlercode, wie an anderer Stelle
     // (z. B. driveVerschieben) schon ueblich.
@@ -730,6 +731,21 @@ export async function ladePlan() {
     return { slots: [] };
   }
 }
+
+// v107: Anlaesse aktiver Kampagnen in den naechsten 60 Tagen (Knoepfe in der ersten Spalte) und
+// die Befunde aus den Kampagnen-Tabellen (unlesbare Zeilen). Beiwerk: ohne Antwort keine Knoepfe.
+export async function ladeAnstehende() {
+  try {
+    const r = await hole("/api/kampagnen/anstehend");
+    S.anstehend = r.anstehend || [];
+    S.kampagnenBefunde = r.befunde || [];
+    zeichne();
+  } catch { /* still — die Knoepfe fehlen dann nur */ }
+}
+
+// Anlaesse, zu denen es noch kein Projekt gibt (Karte mit demselben Anlass-Schluessel, auch verworfen).
+export const offeneAnlaesse = () =>
+  (S.anstehend || []).filter((a) => !S.cards.some((c) => !c._geloescht && c.anlass && c.anlass.schluessel === a.schluessel));
 
 export async function slotBelegen(slotId, karteId) {
   return hole("/api/plan/slot", {

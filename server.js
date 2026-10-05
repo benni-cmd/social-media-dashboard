@@ -41,6 +41,7 @@ import * as websuche from "./lib/websuche.js";
 import * as claudeAuth from "./lib/claudeauth.js"; // v86: Claude-CLI im Board anmelden
 import * as codexAuth from "./lib/codexauth.js"; // v103: ChatGPT ueber die Codex-CLI
 import * as zuordnung from "./lib/zuordnung.js"; // v97: Posts -> Karten
+import * as kampagnen from "./lib/kampagnen.js"; // v107: Kampagnen mit Drive-Tabelle
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -550,7 +551,7 @@ async function abgleichEinmal(onStufe) {
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
 // Client versehentlich Anzeige-Felder (planAbgleich, quelle) zurueckschreibt und den
 // Fingerabdruck verfaelscht.
-const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen", "maxAbstandTage"];
+const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen", "maxAbstandTage", "kampagnenVorlage"];
 function nurPlanConfig(o) {
   const c = {};
   for (const k of PLAN_ERLAUBT) if (o && o[k] !== undefined) c[k] = o[k];
@@ -743,6 +744,16 @@ async function handler(req, res) {
         if (driveOk) { try { await planstore.schreibeConfigNachDrive(config); } catch (e) { merkeFehler(e); } }
         await planCacheSchreiben(config);
       }
+      // v107: die zwei Start-Kampagnen einmalig anlegen — hier, damit jeder Plan-Leser sie sieht
+      // (sonst koennte ein offener Redaktionsplan-Dialog sie mit einem alten Stand wieder loeschen).
+      if (driveOk && !config.kampagnenVorlage) {
+        try {
+          if (await kampagnen.legeVorlagenAn(config, drive)) {
+            await planstore.schreibeConfigNachDrive(config);
+            await planCacheSchreiben(config);
+          }
+        } catch { /* naechster Aufruf versucht es wieder; /api/kampagnen/anstehend nennt den Grund */ }
+      }
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
       if (driveOk) {
         try {
@@ -763,7 +774,8 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/plan" && req.method === "PUT") {
-      const config = nurPlanConfig(JSON.parse(await readBody(req)));
+      // v107: Kampagnen behalten ihre Tabelle (der Browser schickt sie evtl. nicht mit).
+      const config = kampagnen.ordneTabellenZu(nurPlanConfig(JSON.parse(await readBody(req))), await planCacheLesen());
       await planCacheSchreiben(config); // Cache zuerst — der Speichern-Weg haengt nie an Drive
       defaultsStore.mische({ planBestaetigt: true }).catch(() => {}); // v96: Speichern = bestaetigt (Einrichtung)
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
@@ -771,10 +783,11 @@ async function handler(req, res) {
         await planstore.schreibeConfigNachDrive(config);
         const a = await planstore.abgleiche(config);
         planAbgleich = { neuGerechnet: a.neuGerechnet, hinweis: a.hinweis };
+        await kampagnen.sichereTabellen(config, drive); // v107: neue Kampagne -> leere Tabelle in Drive
       } catch (e) {
         planAbgleich.hinweis = `Drive-Schreiben fehlgeschlagen: ${e.message} — lokal gesichert, naechster Aufruf gleicht ab.`;
       }
-      sendJson(res, 200, { ok: true, planAbgleich });
+      sendJson(res, 200, { ok: true, planAbgleich, kampagnen: config.kampagnen || [] });
       return;
     }
 
@@ -787,6 +800,28 @@ async function handler(req, res) {
       slot.karteId = karteId || null;
       await writeFile(PLAN_FILE, JSON.stringify(plan, null, 2), "utf8");
       sendJson(res, 200, { ok: true, slot });
+      return;
+    }
+
+    // v107: Anlaesse aktiver Kampagnen in den naechsten 60 Tagen (Knoepfe in der ersten Spalte).
+    // Legt beim ersten Aufruf die zwei Start-Kampagnen an — aber nur, wenn die Plan-Config wirklich
+    // aus Drive kam (sonst wuerde ein alter Cache den Drive-Stand ueberschreiben).
+    if (pfad === "/api/kampagnen/anstehend" && req.method === "GET") {
+      const befunde = [];
+      let config = null, ausDrive = true;
+      try { config = await planstore.leseConfigVonDrive(); } catch (e) { ausDrive = false; befunde.push(`Plan aus Drive nicht lesbar: ${e.message}`); }
+      if (!config) config = (await planCacheLesen()) || pipeline.defaultPlan();
+      if (ausDrive && !config.kampagnenVorlage) {
+        try {
+          if (await kampagnen.legeVorlagenAn(config, drive)) {
+            await planstore.schreibeConfigNachDrive(config);
+            await planCacheSchreiben(config);
+          }
+        } catch (e) { befunde.push(`Start-Kampagnen nicht angelegt: ${e.message}`); }
+      }
+      const tabellen = await kampagnen.leseTabellen(config, drive);
+      const r = kampagnen.anstehende({ kampagnen: config.kampagnen || [], tabellen, heute: pipeline.isoDatum(new Date()) });
+      sendJson(res, 200, { anstehend: r.anstehend, befunde: [...befunde, ...r.befunde], kampagnen: config.kampagnen || [] });
       return;
     }
 

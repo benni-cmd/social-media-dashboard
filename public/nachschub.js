@@ -9,7 +9,7 @@ import {
   INHALTSKATEGORIEN, leereKarte, saeuleName, isoDatum, saeulenVerteilung, MASSE,
   contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
-import { naechsterFreierUpload } from "/lib/uploadslots.js";
+import { naechsterFreierUpload, planSlots, slotTyp, fruehesterUploadFuer } from "/lib/uploadslots.js";
 import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, optimistisch, terminplan, schwebendeNeuBerechnen } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
@@ -27,15 +27,36 @@ async function naechsterOffenerSlot() {
   return null;
 }
 
+// v107: Termin-Vorlage fuer ein Anlass-Projekt. Upload ist der Anlass-Tag selbst (Owner 05.10.2026:
+// rechtzeitig produzieren, am Tag hochladen); Uhrzeit und Plattformen kommen vom Plan-Slot desselben
+// Formats (am selben Tag, sonst der naechste), das Ziel aus der Kampagnen-Tabelle, sonst vom Slot.
+function anlassSlot(a) {
+  const typ = a.format || "reel";
+  const slots = S.plan ? planSlots(S.plan, 3).filter((s) => s.typ === slotTyp(typ)) : [];
+  const v = slots.find((s) => s.datum === a.datum) || slots[0] || null;
+  return {
+    datum: a.datum, typ, uhrzeit: (v && v.uhrzeit) || "", plattformen: (v && v.plattformen) || [],
+    ziel: a.ziel || (v && v.ziel) || "", kategorie: (v && v.kategorie) || "",
+  };
+}
+const deDatum = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("de-DE");
+
 // Ideen-Swipe (v17c): ein mittiges Popup zeigt EINE KI-Idee als Karte (Titel + 2–3 Saetze).
 // Links = andere Idee (die abgelehnte fliesst in den Prompt, damit die KI nicht wiederholt),
 // rechts = uebernehmen: erst DANN entsteht eine Karte UND der Drive-Ordner. Nichts landet
 // ungefragt in Drive. Gibt die id der uebernommenen Karte zurueck (oder null bei Abbruch),
 // damit der Aufrufer sie oeffnen kann — dieselbe Signatur wie vorher.
-export async function holeIdee() {
+// v107: `opts.anlass` (aus /api/kampagnen/anstehend) macht daraus die Anlass-Variante: KI-Aufgabe
+// anlass_ideen (mit Websuche, drei Vorschlaege je Aufruf), Upload fest am Anlass-Tag, Karte mit Anlass.
+export async function holeIdee(opts = {}) {
+  const anlass = opts.anlass || null;
   // Ein freier Redaktionsplan-Slot ist ein Bonus (belegt das Upload-Datum vor), aber KEINE
   // Voraussetzung: ohne Slot entsteht eine reine Idee-Karte ohne Termin (spaeter planbar).
-  const slot = await naechsterOffenerSlot();
+  const slot = anlass ? anlassSlot(anlass) : await naechsterOffenerSlot();
+  // Anlass: frueheste machbare Fertigstellung — liegt sie nach dem Anlass, sagt der Vorschlag es.
+  const zuKnapp = anlass && fruehesterUploadFuer(slotTyp(slot.typ), S.drehtermine || []) > anlass.datum
+    ? fruehesterUploadFuer(slotTyp(slot.typ), S.drehtermine || []) : null;
+  const vorrat = []; // Anlass: die KI liefert drei Ideen auf einmal, "Andere Idee" zeigt die naechste
 
   return new Promise((resolve) => {
     const abgelehnt = []; // sitzungslokale Ablehnliste — verhindert Wiederholungen im Prompt
@@ -85,19 +106,31 @@ export async function holeIdee() {
     }
 
     async function naechste() {
+      if (vorrat.length) { aktuelleIdee = vorrat.shift(); zeigeIdee(aktuelleIdee); return; }
       laeuft = true;
       // Live-Denk-Konsole (v32 D): drehende Sanduhr + der echte Textstrom der KI, statt eines
       // statischen „… recherchiert" das sich anfuehlt, als passiere nichts. denkPanel bringt die
       // Sanduhr im Kopf und streamt die Deltas in ein konsolenartiges Fenster.
       box.innerHTML = "";
-      const panel = denkPanel(box, "Die KI recherchiert eine Idee …");
+      const panel = denkPanel(box, anlass ? `Die KI sucht aktuelle Ideen zum ${anlass.anlass} …` : "Die KI recherchiert eine Idee …");
       const verteilung = saeulenVerteilung(S.cards.filter((c) => c.kategorie))
         .map((s) => `${s.name}: ${s.anzahl}`)
         .join(", ");
       try {
+        const vorhandene = S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean);
+        const verworfen = [
+          ...S.cards.filter((c) => c.column === "verworfen").map((c) => c.title).filter(Boolean),
+          ...abgelehnt,
+        ];
         const antwort = await kiStream(
-          "ideen",
-          {
+          anlass ? "anlass_ideen" : "ideen",
+          anlass ? {
+            // title = Suchanfrage der Websuche (Server: Titel + Reihe)
+            title: `${anlass.anlass} ${anlass.datum.slice(0, 4)}`,
+            anzahl: 3, anlass: anlass.anlass, datum: anlass.datum, kampagne: anlass.kampagne,
+            themen: anlass.themen, ziel: slot.ziel, zielgruppe: anlass.zielgruppe, format: slot.typ,
+            vorhandene, verworfen,
+          } : {
             anzahl: 1,
             vorhandene: S.cards.filter((c) => c.column !== "verworfen").map((c) => c.title).filter(Boolean),
             verworfen: [
@@ -119,6 +152,7 @@ export async function holeIdee() {
         const ideen = (antwort.data && antwort.data.ideen) || [];
         if (!ideen.length) { zeigeFehler("Die KI hat keine verwertbare Idee geliefert."); return; }
         aktuelleIdee = ideen[0];
+        vorrat.push(...ideen.slice(1));
         zeigeIdee(aktuelleIdee);
       } catch (e) {
         laeuft = false;
@@ -129,18 +163,23 @@ export async function holeIdee() {
     function zeigeIdee(idee) {
       const katId = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie);
       const typName = contenttypName((slot && slot.typ) || "reel");
-      const marke = katId ? `${kategorieName(katId)} · ${typName}` : typName;
+      const marke = (katId ? `${kategorieName(katId)} · ${typName}` : typName) +
+        (anlass ? ` · Upload am ${deDatum(anlass.datum)}` : "");
+      const kopf = anlass ? `Idee zum ${anlass.anlass} am ${deDatum(anlass.datum)}` : "Neue Idee";
       // P2 (v37): system-eigene Tokens (--linie-hell/--flaeche-hoch) statt erfundener
       // --rand/--flaeche2 (die immer auf dunkle Fallbacks fielen, im Hellmodus falsch) und
       // ohne die redundante „← andere Idee · übernehmen →"-Zeile — die Knoepfe sagen das schon.
       box.innerHTML =
-        `<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px">Neue Idee</div>` +
+        `<div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px">${escape(kopf)}</div>` +
         `<div style="border:1px solid var(--linie-hell);border-radius:12px;padding:18px 16px;text-align:left;background:var(--flaeche-hoch)">` +
           `<div style="font-size:20px;font-weight:700;line-height:1.25;margin-bottom:6px">${escape(idee.titel || "(ohne Titel)")}</div>` +
           `<div style="font-size:12px;color:var(--fg2);margin-bottom:10px">${escape(marke)}</div>` +
           `<p style="margin:0;line-height:1.5">${escape(idee.warum || "")}</p>` +
           (idee.hook ? `<p style="margin:10px 0 0;color:var(--fg2);font-size:13px"><em>Hook: ${escape(idee.hook)}</em></p>` : "") +
-        `</div>`;
+          (anlass && idee.bezug ? `<p style="margin:10px 0 0;font-size:13px">Aktueller Bezug: ${escape(idee.bezug)}</p>` : "") +
+          (anlass && idee.zielgruppe ? `<p style="margin:6px 0 0;color:var(--fg2);font-size:13px">Zielgruppe: ${escape(idee.zielgruppe)}</p>` : "") +
+        `</div>` +
+        (zuKnapp ? `<p class="feld-hinweis" style="text-align:left;margin:10px 0 0">${statusChip("hinweis")} Knapp: Ein ${escape(typName)} ist frühestens am ${deDatum(zuKnapp)} fertig, der Anlass ist am ${deDatum(anlass.datum)}. Ein anderes Format (z. B. Slider) geht schneller.</p>` : "");
       const r = document.createElement("div");
       r.className = "modal-knoepfe";
       r.appendChild(knopf("Andere Idee", { zeichen: "schliessen", klick: () => dislike() }));
@@ -161,7 +200,11 @@ export async function holeIdee() {
       const k = leereKarte("idee");
       k.title = idee.titel || "Neue Idee";
       k.hook = { text: idee.hook || "", visual: idee.visuell || "" };
-      k.notes = idee.warum || "";
+      k.notes = anlass
+        ? [idee.warum, idee.bezug && `Aktueller Bezug: ${idee.bezug}`, (idee.zielgruppe || anlass.zielgruppe) && `Zielgruppe: ${idee.zielgruppe || anlass.zielgruppe}`]
+            .filter(Boolean).join("\n\n")
+        : idee.warum || "";
+      if (anlass) k.anlass = { schluessel: anlass.schluessel, name: anlass.anlass, datum: anlass.datum, kampagne: anlass.kampagne };
       k.contenttyp = (slot && slot.typ) || "reel";
       k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === idee.saeule) ? idee.saeule : (slot && slot.kategorie) || "";
       if (slot) {

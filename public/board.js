@@ -16,7 +16,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin } from "./store.js";
+import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin, offeneAnlaesse } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { wochenlastNachPlan } from "/lib/uploadslots.js";
@@ -203,6 +203,27 @@ export function zeichneBoard(boardEl, lastEl) {
     if (p.id === "idee") {
       const fuss = document.createElement("div");
       fuss.className = "spalte-fuss";
+
+      // v107: je Anlass einer aktiven Kampagne (naechste 60 Tage, noch kein Projekt) ein Knopf mit
+      // seinem Namen. Klick = Themenvorschlaege wie "Idee von der KI", Upload am Anlass-Tag.
+      for (const a of offeneAnlaesse()) {
+        const datum = new Date(a.datum + "T00:00:00").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+        const wann = a.tage === 0 ? "heute" : a.tage === 1 ? "morgen" : `in ${a.tage} Tagen`;
+        const ak = knopf(`${a.anlass} am ${datum}`, {
+          zeichen: "kalender",
+          titel: `Kampagne „${a.kampagne}“: ${a.anlass} ist ${wann}. Ein Klick holt Themenvorschläge; das Projekt bekommt den Anlass-Tag als Upload-Termin.`,
+          klick: async () => {
+            const zustand = knopfLaeuft(ak, "startet …");
+            try {
+              const id = await holeIdee({ anlass: a });
+              if (id) oeffne(id);
+            } finally { zustand.zurueck(); }
+          },
+        });
+        ak.classList.add("knopf-breit", "knopf-symbol", "knopf-symbol-kalender", "knopf-anlass");
+        ak.style.marginBottom = "7px";
+        fuss.appendChild(ak);
+      }
       const neuKnopf = knopf("Karte anlegen", {
         art: "still",
         zeichen: "plus",
