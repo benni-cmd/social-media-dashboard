@@ -99,6 +99,11 @@ feste Slots (`lib/scheduler.js`, v95):
 - Mehrere Formate verteilen sich über die Woche; teilen sie einen Tag, bekommt das zweite die zweite Uhrzeit.
 - Max-Abstand zieht einen Slot vor, aber nie auf Sa/So (dann auf den Freitag davor).
 
+**Post ↔ Karte (v97):** Echte Posts von Instagram/LinkedIn ordnet das Board selbst zu, wenn Zeitpunkt (höchstens 3 Std.
+neben dem Plan) und Format eindeutig passen; Zweifelsfälle erscheinen in der Karte als „Ist das dieser Post?" zum Bestätigen.
+Passt ein Post zu keiner Karte, wählt man ihn in der Karte unter „Veröffentlicht" → **„Post von Hand wählen"** aus der Liste
+der freien Posts; eine Karte ohne Termin übernimmt dabei Datum und Uhrzeit des Posts.
+
 **Wochenziel (Kopfzeile):** Soll = Slots der laufenden Kalenderwoche (Mo–So) je Format; Ist = Karten mit
 Upload-Datum in dieser Woche. Die Kopfzeile sagt, was fehlt („es fehlt 1× Reel").
 

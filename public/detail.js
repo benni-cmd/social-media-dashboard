@@ -548,6 +548,53 @@ function blockVeroeffentlicht(k) {
   });
   jetzt.classList.add("knopf-inline");
   box.appendChild(jetzt);
+
+  // v97 Nachtrag: Post von Hand waehlen — fuer Posts, die zeitlich zu keiner Karte passen (Automatik: 3 Std.).
+  const handBox = document.createElement("div");
+  handBox.className = "veroeff-hand";
+  const hand = knopf("Post von Hand wählen", {
+    zeichen: "plus",
+    klick: async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      handBox.textContent = "Lade Posts …";
+      const r = await (await fetch(`/api/zuordnung/posts?cardId=${encodeURIComponent(k.id)}`)).json().catch((err) => ({ error: err.message }));
+      b.disabled = false;
+      handBox.innerHTML = "";
+      if (r.error || !(r.posts || []).length) {
+        handBox.textContent = r.error ? `Posts nicht ladbar: ${r.error}` : "Keine freien Posts gefunden (alle sind schon Karten zugeordnet).";
+        return;
+      }
+      const hinweis = document.createElement("p");
+      hinweis.className = "veroeff-art";
+      hinweis.textContent = (k.dates && k.dates.upload) ? "Freie Posts, nächste zum geplanten Upload zuerst. Ein Klick ordnet zu." : "Freie Posts, neueste zuerst. Ein Klick ordnet zu; die Karte übernimmt Datum und Uhrzeit des Posts.";
+      handBox.appendChild(hinweis);
+      for (const p of r.posts) {
+        const zeile = document.createElement("button");
+        zeile.type = "button";
+        zeile.className = "veroeff-post" + (p.passt ? "" : " veroeff-post-anders");
+        zeile.innerHTML = `<b>${escape(name(p.plattform))}</b> · ${escape(zeit(p.zeit))}` +
+          (p.passt ? "" : ` · <span class="veroeff-art">anderes Format</span>`) +
+          `<br><span class="veroeff-art">${escape(p.text || "(ohne Text)")}</span>`;
+        zeile.addEventListener("click", async () => {
+          zeile.disabled = true;
+          const a = await fetch("/api/zuordnung/hand", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ cardId: k.id, plattform: p.plattform, postId: p.id }),
+          });
+          const j = await a.json().catch(() => ({}));
+          if (!a.ok) { meldung(j.error || "Zuordnung fehlgeschlagen.", "fehler"); zeile.disabled = false; return; }
+          meldung(`Post vom ${zeit(p.zeit)} zugeordnet.`, "erfolg");
+          await ladeBoard();
+          zeichne();
+        });
+        handBox.appendChild(zeile);
+      }
+    },
+  });
+  hand.classList.add("knopf-inline");
+  box.appendChild(hand);
+  box.appendChild(handBox);
   g.appendChild(box);
   return g;
 }

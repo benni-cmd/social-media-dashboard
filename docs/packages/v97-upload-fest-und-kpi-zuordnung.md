@@ -71,7 +71,16 @@ vorhandene KPI-Messung startet ab der echten Post-Zeit.
 - KPI: `pruefeKarten` misst ab der echten Post-Zeit — Testkarten fällig 24h…1m bzw. 24h…2m (2-Monats-Messung beim 04.08. korrekt noch nicht fällig).
 - Belegt-Regel: ein Termin ist belegt nach Datum + Format (nicht Uhrzeit), damit die Uhrzeit-Variation keine Doppelbelegung erzeugt.
 
-Offen: Zuordnung von Hand aus einer Postliste (für Posts, die zeitlich zu keiner Karte passen); Wochenstatistik zählt „veröffentlicht"
+05.10.2026 — **Nachtrag Hand-Zuordnung gebaut:**
+- In der Karte unter „Veröffentlicht" gibt es den Knopf „Post von Hand wählen". Er zeigt die freien Posts (`GET /api/zuordnung/posts`): keiner Karte zugeordnet, nächste zum geplanten Upload zuerst bzw. neueste zuerst, anderes Format blass markiert. Ein Klick ordnet zu (`POST /api/zuordnung/hand`, Art „von Hand").
+- Ein Post, der schon zu einer anderen Karte gehört, wird abgelehnt (409 mit Kartenname). Eine Karte ohne Termin übernimmt Datum und Uhrzeit des Posts in Ortszeit.
+- Beleg (Testkopie :4399, echte Instagram-Liste nur lesend):
+  - 19 freie Posts; nach der Zuordnung 18, der vergebene Post fehlt
+  - Doppelvergabe → „Der Post gehört schon zur Karte „Digitaler Sandkasten““
+  - Karte „KPI" ohne Termin → `upload 2026-07-07`, `08:30` (Post 06:30 UTC)
+  - Screenshot der Liste und der zugeordneten Zeile angesehen
+
+Offen: Wochenstatistik zählt „veröffentlicht"
 noch je Post statt je Karte; Bens echte Karten liegen alle nach dem letzten Instagram-Post (04.08.) — erste echte Zuordnung beim nächsten Upload.
 
 ## DoD

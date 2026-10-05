@@ -197,6 +197,18 @@ async function envSchreiben(key, wert) {
 // v97: Posts von Instagram/LinkedIn holen und den Karten zuordnen. Eindeutige Treffer (Format passt, hoechstens
 // 3 Std. neben dem geplanten Upload, keine Konkurrenz) werden eingetragen; alles andere wird ein Vorschlag an der
 // Karte, den der Mensch bestaetigt oder ablehnt. Geaenderte Karten gehen auch in ihre projekt.json (Drive-Wahrheit).
+// v97 Nachtrag: alle Posts der verbundenen Plattformen in Einheits-Form (fuer Automatik und Hand-Zuordnung).
+async function allePosts() {
+  const tokens = await leseTokens();
+  const posts = [];
+  if (tokens.instagram && tokens.instagram.accessToken)
+    posts.push(...zuordnung.postsAusInstagram(await social.instagramMedienListe(tokens.instagram)));
+  if (tokens.linkedin && tokens.linkedin.accessToken) {
+    try { posts.push(...zuordnung.postsAusLinkedin((await social.linkedinZahlen(tokens.linkedin)).posts || [])); } catch { /* LinkedIn optional */ }
+  }
+  return posts;
+}
+
 async function zuordnungPruefen() {
   const tokens = await leseTokens();
   const posts = [];
@@ -1951,6 +1963,57 @@ async function handler(req, res) {
       }
       return;
     }
+    // v97 Nachtrag: Hand-Zuordnung fuer Posts, die zeitlich zu keiner Karte passen. Liste = noch keiner Karte
+    // zugeordnete Posts, naechste zum geplanten Upload zuerst; `passt` sagt, ob das Format zur Karte passt.
+    if (pfad === "/api/zuordnung/posts" && req.method === "GET") {
+      try {
+        const cardId = url.searchParams.get("cardId");
+        const board = await leseBoard();
+        const k = board.cards.find((c) => c.id === cardId);
+        if (!k) { sendJson(res, 404, { error: "Karte nicht gefunden." }); return; }
+        const vergeben = new Set(board.cards.flatMap((c) => Object.values(c.published || {}).map((v) => v && v.id).filter(Boolean)));
+        const bezug = (k.dates && k.dates.upload) ? new Date(`${k.dates.upload}T12:00:00`).getTime() : Date.now();
+        const liste = (await allePosts())
+          .filter((p) => !vergeben.has(p.id) && Number.isFinite(p.zeit))
+          .sort((a, b) => Math.abs(a.zeit - bezug) - Math.abs(b.zeit - bezug))
+          .slice(0, 20)
+          .map((p) => ({ plattform: p.plattform, id: p.id, zeit: new Date(p.zeit).toISOString(), url: p.url, text: String(p.text || "").slice(0, 90), passt: !!p.passt(k.contenttyp) }));
+        sendJson(res, 200, { posts: liste });
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+    if (pfad === "/api/zuordnung/hand" && req.method === "POST") {
+      try {
+        const { cardId, plattform, postId } = JSON.parse(await readBody(req));
+        const post = (await allePosts()).find((p) => p.plattform === plattform && p.id === postId);
+        if (!post) { sendJson(res, 404, { error: "Post nicht gefunden." }); return; }
+        const board = await leseBoard();
+        const k = board.cards.find((c) => c.id === cardId);
+        if (!k) { sendJson(res, 404, { error: "Karte nicht gefunden." }); return; }
+        const schon = board.cards.find((c) => c !== k && Object.values(c.published || {}).some((v) => v && v.id === postId));
+        if (schon) { sendJson(res, 409, { error: `Der Post gehört schon zur Karte „${schon.title}“.` }); return; }
+        k.published = { ...(k.published || {}), [plattform]: zuordnung.postEintrag(post, "manuell") };
+        k.floatUpload = false;
+        // Karte ohne Termin: der echte Post-Zeitpunkt wird ihr Upload-Termin (Ortszeit des Boards).
+        if (!(k.dates && k.dates.upload)) {
+          const d = new Date(post.zeit);
+          const zwei = (n) => String(n).padStart(2, "0");
+          k.dates = { ...(k.dates || {}), upload: `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}` };
+          if (!k.uploadTime) k.uploadTime = `${zwei(d.getHours())}:${zwei(d.getMinutes())}`;
+        }
+        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
+        for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
+        await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
+        if (k.driveName) projekte.spiegeleKarte(k).catch(() => {});
+        sendJson(res, 200, { ok: true });
+      } catch (e) {
+        sendJson(res, 502, { error: e.message });
+      }
+      return;
+    }
+
     // v97: Vorschlag bestaetigen (ja) oder ablehnen (nein — der Post wird dieser Karte nie wieder angeboten).
     if (pfad === "/api/zuordnung/entscheiden" && req.method === "POST") {
       const { cardId, plattform, postId, ja } = JSON.parse(await readBody(req));

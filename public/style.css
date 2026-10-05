@@ -4766,3 +4766,11 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .anschluss-terminal-befund[data-code="hinweis"] { color: var(--text); background: color-mix(in srgb, var(--hinweis) 18%, transparent); }
 .anschluss-terminal-befund { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .anschluss-neu-verbinden { flex: none; padding: 3px 9px; border: 1px solid currentColor; border-radius: var(--rund); background: var(--flaeche); color: inherit; font: inherit; font-weight: 650; cursor: pointer; }
+
+/* v97 Nachtrag: Hand-Zuordnung — freie Posts als klickbare Zeilen. */
+.veroeff-hand { display: flex; flex-direction: column; gap: 6px; }
+.veroeff-hand:empty { display: none; }
+.veroeff-post { text-align: left; padding: 7px 10px; border: 1px solid var(--linie); border-radius: var(--rund); background: var(--flaeche); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.veroeff-post:hover { border-color: var(--akzent); }
+.veroeff-post-anders { opacity: .7; }
+.veroeff-post .veroeff-art { margin-left: 0; }
