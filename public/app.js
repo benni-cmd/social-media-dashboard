@@ -65,6 +65,7 @@ const knoepfe = {
 
 verdrahteKopf(el("stand"));
 verdrahteBoardZoom(el("board-zoom")); // v102: Zoom nur fuer den Board-Inhalt
+verdrahteBoardZoom(el("auswertung-zoom"), { schluessel: "cm-auswertung-zoom", variable: "--auswertung-zoom", name: "Auswertung" }); // v102 Nachtrag
 
 // --- Google/Drive-Badge im Kopf (v52) --------------------------------------
 //

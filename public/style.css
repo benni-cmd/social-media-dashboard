@@ -4774,3 +4774,10 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .veroeff-post:hover { border-color: var(--akzent); }
 .veroeff-post-anders { opacity: .7; }
 .veroeff-post .veroeff-art { margin-left: 0; }
+
+/* v102 Nachtrag (05.10.2026) — Zoom auch in der Auswertung: eigene Huelle (Position fuer den Knopf, damit er nicht
+   mitscrollt), eigener Wert, gleicher Stil. Die Huelle verschwindet mit ihrer Ansicht. */
+.ansicht-huelle { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; }
+.ansicht-huelle:has(> .ansicht[hidden]) { display: none; }
+.ansicht-huelle > .ansicht { flex: 1 1 auto; }
+#ansicht-auswertung > * { zoom: var(--auswertung-zoom, 1); }

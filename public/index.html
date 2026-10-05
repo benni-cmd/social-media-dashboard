@@ -80,7 +80,11 @@
         <div class="board-zoom" id="board-zoom" role="group" aria-label="Board vergroessern oder verkleinern"></div>
       </section>
 
-      <section class="ansicht" id="ansicht-auswertung" hidden></section>
+      <!-- v102 Nachtrag: Auswertung in einer Huelle, damit ihr Zoom-Knopf nicht mitscrollt und beim Neuzeichnen bleibt -->
+      <div class="ansicht-huelle">
+        <section class="ansicht" id="ansicht-auswertung" hidden></section>
+        <div class="board-zoom" id="auswertung-zoom" role="group" aria-label="Auswertung vergroessern oder verkleinern"></div>
+      </div>
 
       <div class="detail-griff" id="detail-griff" hidden title="Breite ziehen"></div>
       <aside class="detail" id="detail" hidden></aside>

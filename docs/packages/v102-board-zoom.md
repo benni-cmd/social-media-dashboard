@@ -30,3 +30,10 @@ Offen: echtes Ziehen und Ablegen mit der Maus sowie Firefox (CSS `zoom`) — bei
 - Zoom wirkt nur auf `#board`/`#nachschub`; in der Auswertung ist er nicht vorhanden (Breite 0).
 - Grenze der Prüfung: Die Trefferprobe ersetzt kein echtes Drag-and-Drop (HTML5-Ziehen ist in der Testumgebung nicht auslösbar); Chrome rechnet bei CSS `zoom` Koordinaten selbst um.
 Stand: **abgeschlossen mit zwei beobachtenden Punkten beim Owner**.
+
+## Nachtrag 05.10.2026 — Zoom auch in der Auswertung (Owner-Auftrag)
+
+Entscheidung (Annahme, vom Owner nicht widersprochen): **eigener Wert je Ansicht** (Board und Auswertung getrennt, `localStorage` `cm-board-zoom` / `cm-auswertung-zoom`), gleicher Stil, gleiche Schritte (5 %, 50–150 %), unten rechts, mit offener Detailspalte links davon.
+Umsetzung: `public/boardzoom.js` verallgemeinert (Schlüssel, CSS-Variable, Name je Aufruf); `index.html`: Auswertung in einer Hülle `.ansicht-huelle` (Position für den Knopf; sonst scrollt er mit dem Inhalt und verschwindet beim Neuzeichnen per `innerHTML`); `style.css`: Hülle verschwindet mit ihrer Ansicht (`:has(> .ansicht[hidden])`), `#ansicht-auswertung > *` bekommt `zoom: var(--auswertung-zoom)`.
+Gemessen auf der isolierten Kopie (Edge-Headless): Board-Zoom in der Auswertung unsichtbar (Breite 0) und umgekehrt; Plus ×4 → 120 %, Variable 1,2, Inhalt wächst; nach Scrollen um 300 px bleibt der Knopf an derselben Stelle; nach Neuzeichnen 3 Knöpfe mit 120 %; Abstand zum Rand 22 / 26 px; nur `cm-auswertung-zoom` gespeichert, Board-Wert unberührt. Screenshot gesehen.
+Nicht geprüft: Auswertung mit echten Daten und geöffneter Detailspalte; Dark Mode der Auswertungs-Knöpfe (Stil identisch zum Board-Zoom, dort gesehen).
