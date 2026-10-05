@@ -1,8 +1,10 @@
-# v87 — Pop-Shop-Hintergrund für Board und Auswertung
+# v106 — Pop-Shop-Hintergrund für Board und Auswertung
 
 > Owner-Auftrag 01.10.2026: „Auf den Hintergrund im Board und der Auswertungsseite (nichts
 > Detailansicht oder Kopfzeilen) eine Textur passend zum Board-Stil, z. B. Pop-Shop-like, blass in
 > den Hintergrund, dass das nicht so leer aussieht."
+
+> Nummer: bis 05.10.2026 als „v87“ geführt (Commits `v87: …`); v87 gehört dem Paket „feste Drive-Struktur“ — Nummernkollision, deshalb v106.
 
 **Problem:** Die Fläche zwischen und unter den Spalten sowie die Auswertungsseite sind einfarbig und wirken leer.
 **Intent:** Der Retro-/Pop-Look zieht sich bis in den Hintergrund, ohne Inhalte zu stören.
@@ -15,7 +17,7 @@
 
 ## Status
 
-01.10.2026 — Gebaut in `public/style.css` (Block „v87"). Hell: Alpha 0,14, dunkel nach erstem Blick (0,09/0,08 kaum sichtbar) auf 0,13/0,12 angehoben. Gemessen: `.kopf`, `#board-leiste`, `#detail` haben `background-image: none`; `#ansicht-auswertung` trägt das Raster.
+01.10.2026 — Gebaut in `public/style.css` (Block „v106"). Hell: Alpha 0,14, dunkel nach erstem Blick (0,09/0,08 kaum sichtbar) auf 0,13/0,12 angehoben. Gemessen: `.kopf`, `#board-leiste`, `#detail` haben `background-image: none`; `#ansicht-auswertung` trägt das Raster.
 Nicht gesehen: Auswertung im Dark Mode und mit Daten (in der Test-Instanz auf Port 4321 lag ein Einrichtungs-Dialog davor, nur im DOM ausgeblendet).
 
 01.10.2026 (Runde 2) — Muster neu: Herz, Stern, Sonne mit Strahlen, Blitz, Spirale, Sticker-Kreis, Dreieck, Wolke, X-Kreuze, Schlangenlinien, Zickzack, Strichgruppen, Punkte; Kontur 6 px, Füllkritzel gegen leere Stellen. Bewusst KEINE nachgezeichneten Figuren von Keith Haring (urheberrechtlich geschützt) — nur die Formsprache mit eigenen Motiven. Screenshots Board hell + dunkel bei 1440x900 gesehen; Karten bleiben lesbar.

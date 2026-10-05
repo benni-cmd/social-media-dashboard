@@ -4541,7 +4541,7 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 @media (max-width: 1100px) { .ausw-kennzahlen { grid-template-columns: repeat(3, 1fr); } .ausw-zweispaltig { grid-template-columns: 1fr; } .ausw-post { grid-template-columns: 1fr; } }
 
 /* ============================================================
-   v87 — Pop-Shop-Hintergrund (Owner 01.10.2026): endlos kachelbares Poster-Muster aus tanzenden
+   v106 — Pop-Shop-Hintergrund (Owner 01.10.2026): endlos kachelbares Poster-Muster aus tanzenden
    Figuren und Kritzeln im Stil der Pop-Shop-Poster. Eigener Generator (tools/make-texture-popshop.mjs),
    keine nachgezeichnete Vorlage; die 760-px-Kachel schliesst sich an allen Raendern ohne Naht
    (public/texture-popshop*.svg, Deckkraft im SVG: hell 0,30, dunkel 0,24).
@@ -4715,9 +4715,9 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .meldung-stapel { bottom: 84px; }
 
 /* ============================================================
-   v87 (Nachtrag 05.10.2026) — Auswertung im Retro-Look + lesbar vor dem Hintergrundmuster.
+   v106 (Nachtrag 05.10.2026) — Auswertung im Retro-Look + lesbar vor dem Hintergrundmuster.
    Das Paket v100 (Auswertung kompakt) brachte 1-px-Kanten, runde Chips und Versalien zurueck; die
-   Muster-Textur (v87) liegt hinter der ganzen Seite, Titel und Hinweise standen direkt darauf.
+   Muster-Textur (v106) liegt hinter der ganzen Seite, Titel und Hinweise standen direkt darauf.
    Nur Darstellung, keine Logik: Struktur und Klassen von v100 bleiben unveraendert.
    ============================================================ */
 #ansicht-auswertung { padding: 14px 18px 32px; }
