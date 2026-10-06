@@ -1,6 +1,6 @@
 # v110 — „Stil & KI-Verhalten": steuerbare Stilregeln + Vermeidungsliste (Negativ-Prompt)
 
-> Owner-Auftrag 06.10.2026. PLAN — NICHT bauen bis Owner-Go. Spec per 4 AskUserQuestion-Antworten fix.
+> Owner-Auftrag 06.10.2026. Spec per 4 AskUserQuestion-Antworten fix; Owner-Go 06.10.2026, gebaut 06.10.2026.
 
 ## PIG
 
@@ -60,7 +60,24 @@ wiederholen; pro Rolle nur ein optionaler Zusatz.
 - [x] Bestand geprüft: kein Stil-/Negativ-Feld vorhanden; Injektionspunkt `ai.js baueSystem`/`SYSTEM_VORLAGE`;
       Rollen-Konfig Drive-gestützt (`defaults.kiRollen`, v91); Kontext Drive-gestützt.
 - [x] Spec (4 Owner-Entscheide) festgehalten.
-- [ ] Bau — WARTET auf Owner-Go (bewusst nicht gebaut).
+- [x] Owner-Go 06.10.2026 (zusammen mit v78 B+D).
+- **Bau-Entscheide (Opus 5.5, 06.10.2026):** zwei getrennte Checklisten (Positiv / Vermeiden) + Freitext;
+  pro Rolle nur Freitext (`stilZusatz`). Injektion: globaler Block `{{stilregeln}}` am Ende des
+  System-Vorspanns (fehlt der Platzhalter in Bens eigener Fassung, wird der Block angehaengt) — damit in
+  jedem Userkommunikations-Schritt; Schritte der Rollen Recherche/Kontextabgleich (ohne Vorspann) bekommen
+  den Block an ihren Prompt gehaengt. Rollen-Zusatz haengt am Prompt jedes Schritts dieser Rolle.
+- **Bauplan:** `lib/kontextstore.js` (STIL_STANDARD, lies/sammle/uebersicht, setzeStil) · `server.js`
+  (PUT /api/kontext `was:"stil"`, laufePipeline) · `lib/ai.js` (Platzhalter) · `public/kontext.js` (UI global)
+  · `public/store.js` + `public/ui.js` (stilZusatz je Rolle).
+- [x] **Bau (06.10.2026, Opus 5.5):** wie Bauplan. Default-Liste = 5 positive + 7 Vermeidungs-Regeln (alle angehakt).
+- [x] **Verify isoliert (Klon Port 4399, Fake-Ollama auf 11434 schneidet die echten Prompts mit):**
+      „Superlativ-Marketing" abgehakt + Freitext gesetzt + Zusatz Userkommunikation/Recherche → nach Reload alles da
+      (Server `defaults.kiRollen` traegt die Zusaetze). KI-Lauf „Recherche" (3 Schritte): Vorspann der
+      userkomm-Schritte enthaelt Stil-Block (Gedankenstrich-Regel ja, Superlativ nein, Freitext ja, kein offener
+      `{{stilregeln}}`), deren Prompt den Userkomm-Zusatz; Recherche-Schritt (ohne Vorspann) bekommt Stil-Block +
+      Recherche-Zusatz am Prompt, keinen fremden Zusatz. 0 Konsolenfehler; Screenshots optisch geprueft.
+- [ ] Im echten Board/Drive und mit echtem Modell nicht geprueft (Owner-Daten); ob das Modell die Regeln BEFOLGT,
+      zeigt erst der Alltag.
 
 ## DoD (für später)
 - Globaler Stil-Block (Checkliste + Freitext) im Unternehmenskontext-Tab, Drive-persistent, fließt in jeden KI-Prompt.
