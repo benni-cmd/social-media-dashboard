@@ -5,6 +5,9 @@
 // prozentuale Verteilung bleibt im Redaktionsplan. „Entfernen" = deaktivieren (aktiv=false):
 // der Eintrag bleibt erhalten, damit bestehende Karten ihre Zuordnung behalten (Owner 28.09.2026).
 
+import { setzeBoardparameter } from "/lib/pipeline.js";
+import { S, zeichne } from "./store.js";
+
 const nid = (p) => p + Math.random().toString(36).slice(2, 8);
 
 async function ladeParameter() {
@@ -170,7 +173,11 @@ export async function zeichneBoardparameter(container) {
     speichern.disabled = true;
     setStand("Speichere …");
     try {
-      await speichereParameter({ kategorien, ziele });
+      const neu = await speichereParameter({ kategorien, ziele });
+      // v78 Phase B: ab sofort Wahrheit fuer Board, Redaktionsplan und Karten-Auswahl.
+      setzeBoardparameter(neu);
+      S.boardparameter = neu;
+      zeichne();
       setStand("Gespeichert.");
     } catch (e) {
       setStand(e.message);
