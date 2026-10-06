@@ -372,11 +372,12 @@ function blockStamm(k, merke) {
     // Content-Typ: Single-Select Toggle-Buttons
     box.appendChild(feld("Typ", einzelwahlReihe(CONTENTTYPEN, k.contenttyp || "", (id) => merke("contenttyp", id, true))));
 
-    // Kategorie (ex Content-Saeule): Single-Select Toggle-Buttons
-    box.appendChild(feld("Kategorie", einzelwahlReihe(INHALTSKATEGORIEN, k.kategorie || "", (id) => merke("kategorie", id, true))));
+    // Kategorie (ex Content-Saeule): Single-Select Toggle-Buttons. v78: nur aktive (boardparameter) —
+    // eine deaktivierte bleibt sichtbar, solange die Karte sie traegt (Zuordnung geht nicht verloren).
+    box.appendChild(feld("Kategorie", einzelwahlReihe(INHALTSKATEGORIEN.filter((x) => x.aktiv !== false || x.id === k.kategorie), k.kategorie || "", (id) => merke("kategorie", id, true))));
 
     // Ziel: Single-Select Toggle-Buttons
-    box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE, k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
+    box.appendChild(feldMitInfo("Ziel", einzelwahlReihe(ZIELE.filter((x) => x.aktiv !== false || x.id === k.goal), k.goal || "", (id) => merke("goal", id, true)), k.goal ? `Gemessen wird an: ${zielInfo(k.goal).kennzahl}.` : ""));
 
     // Plattformen: Multi-Select Toggle-Buttons
     const plattformen = pillenReihe(PLATTFORMEN, k.platforms || [], {
