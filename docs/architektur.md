@@ -4,6 +4,9 @@
 > Code gelesen (Fundstellen in Klammern) bzw. an der Showcase gemessen — nichts geraten. Wo etwas offen
 > ist, steht es in Abschnitt 7.
 >
+> **Ziel für die fertige Software** (Board ersetzt den Social-Media-Bereich von Rootwork, gehostet,
+> mehrere Nutzer): [`zielarchitektur.md`](zielarchitektur.md). Dieses Dokument beschreibt den heutigen Stand.
+>
 > **Für wen:** Leon, der das Board in die Rootwork-Showcase `https://showcase-rootwork.vercel.app/`
 > einbetten und anpassen will. Kurzfassung der Empfehlung: **Abschnitt 6**.
 

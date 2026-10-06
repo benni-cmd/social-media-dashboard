@@ -71,16 +71,16 @@ Jede Aussage ist belegt oder als offen markiert.
 
 ## Stand
 - [x] Entscheidungen eingeholt, Abo-Regel mit zwei Quellen belegt (06.10.2026)
-- [ ] Angaben von Leon (siehe Offen)
-- [ ] docs/zielarchitektur.md gebaut
-- [ ] committet + gepusht
+- [x] Owner 06.10.2026: Leons Fragen werden als seine Aufgaben in der Doku hinterlegt (kein Blocker)
+- [x] docs/zielarchitektur.md gebaut (06.10.2026): 8 Planpunkte + Rootwork-Einbau + Aufgaben fuer Leon (Abschnitt 11) + Quellen
+- [x] committet + gepusht
 
-## Offen
+## Offen (liegt laut Owner bei Leon, steht in docs/zielarchitektur.md Abschnitt 11)
 1. **Leon:** Rootwork-Repo, Supabase-Projekt und das bestehende Rollenmodell (welche Rollen, wie sie in Supabase abgebildet sind, z. B. RLS-Regeln).
 2. **Klärung bei Anthropic:** Darf ein Nutzer das eigene Claude-Abo über das lokale Hilfsprogramm nutzen? Bis dahin gilt: Cloud = API-Schlüssel, lokal = Ollama.
 3. **Workspace-Admin:** Darf eine interne App Drive-Vollzugriff bekommen?
 
 ## DoD
 - `docs/zielarchitektur.md` deckt die acht Planpunkte ab; jede Aussage ist belegt (Fundstelle oder Quelle) oder steht unter „Offen".
-- Leons Angaben (Repo, Supabase, Rollen) sind eingearbeitet, oder ihr Fehlen ist als Blocker benannt.
+- Leons Angaben (Repo, Supabase, Rollen) stehen als seine Aufgaben in der Doku (Owner 06.10.2026).
 - Committet und gepusht.
