@@ -62,6 +62,114 @@ function textfeld(wert, platzhalter, beimSpeichern) {
   return { feld, status };
 }
 
+// v110: „Stil & KI-Verhalten" — zwei abhakbare Listen (So schreibst du / Vermeide) + Freitext.
+// Gespeichert wird sofort beim Haken und beim Verlassen eines Textfelds (wie textfeld()); ohne
+// Neuzeichnen, damit der Cursor bleibt, wo er ist. Wirkt in jedem KI-Prompt (lib/ai.js {{stilregeln}}).
+function stilAbschnitt(stil) {
+  const st = {
+    positivHaken: (stil?.positivHaken || []).map((h) => ({ ...h })),
+    vermeidenHaken: (stil?.vermeidenHaken || []).map((h) => ({ ...h })),
+    freitext: stil?.freitext || "",
+  };
+  const box = document.createElement("div");
+  box.className = "einst-abschnitt kontext-block stil-block";
+  const titel = document.createElement("div");
+  titel.className = "einst-label";
+  titel.textContent = "Stil & KI-Verhalten";
+  box.appendChild(titel);
+  const hinweis = document.createElement("p");
+  hinweis.className = "einst-provider-sub";
+  hinweis.textContent =
+    "Wie die KI schreiben soll und welche typischen KI-Schreibweisen sie vermeidet. Gilt fuer jeden " +
+    "KI-Text; je Rolle laesst sich unter „KI-Rollen“ etwas ergaenzen.";
+  box.appendChild(hinweis);
+  const status = document.createElement("div");
+  status.className = "einst-ping-status";
+
+  async function sichern() {
+    status.textContent = "Speichere …";
+    try {
+      await aendere({ was: "stil", stil: st });
+      status.textContent = "✅ gespeichert";
+    } catch (e) {
+      status.textContent = `❌ ${e.message}`;
+    }
+  }
+
+  function liste(schluessel, ueberschrift, praefix) {
+    const wrap = document.createElement("div");
+    wrap.className = "stil-liste";
+    const kopf = document.createElement("div");
+    kopf.className = "stil-liste-kopf";
+    kopf.textContent = ueberschrift;
+    wrap.appendChild(kopf);
+    const zeilen = document.createElement("div");
+    wrap.appendChild(zeilen);
+    function zeichneZeilen() {
+      zeilen.innerHTML = "";
+      st[schluessel].forEach((h, i) => {
+        const z = document.createElement("div");
+        z.className = "stil-zeile";
+        z.style.cssText = "display:flex;gap:6px;align-items:center;padding:2px 0";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = h.an !== false;
+        cb.setAttribute("aria-label", `${ueberschrift}: ${h.text}`);
+        cb.addEventListener("change", () => { h.an = cb.checked; sichern(); });
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = h.text;
+        inp.style.cssText = "flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg1);color:var(--fg1);font-size:13px";
+        inp.addEventListener("blur", () => {
+          const t = inp.value.trim();
+          if (t === h.text) return;
+          if (!t) { st[schluessel].splice(i, 1); zeichneZeilen(); } else h.text = t;
+          sichern();
+        });
+        const weg = document.createElement("button");
+        weg.type = "button";
+        weg.className = "chip";
+        weg.textContent = "✕";
+        weg.title = "Regel entfernen";
+        weg.addEventListener("click", () => { st[schluessel].splice(i, 1); zeichneZeilen(); sichern(); });
+        z.appendChild(cb);
+        z.appendChild(inp);
+        z.appendChild(weg);
+        zeilen.appendChild(z);
+      });
+    }
+    zeichneZeilen();
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.className = "chip";
+    plus.innerHTML = `${icon("plus")}<span>Regel hinzufuegen</span>`;
+    plus.addEventListener("click", () => {
+      st[schluessel].push({ id: praefix + Math.random().toString(36).slice(2, 8), text: "", an: true });
+      zeichneZeilen();
+      const felder = zeilen.querySelectorAll("input[type=text]");
+      felder[felder.length - 1]?.focus();
+    });
+    wrap.appendChild(plus);
+    return wrap;
+  }
+
+  box.appendChild(liste("positivHaken", "So schreibst du", "p-"));
+  box.appendChild(liste("vermeidenHaken", "Vermeide", "v-"));
+  const fKopf = document.createElement("div");
+  fKopf.className = "stil-liste-kopf";
+  fKopf.textContent = "Eigene Hinweise (Freitext)";
+  box.appendChild(fKopf);
+  const frei = textfeld(st.freitext, "Zum Beispiel: Wir duzen. Fachbegriffe immer kurz erklaeren …", async (text) => {
+    st.freitext = text;
+    await aendere({ was: "stil", stil: st });
+  });
+  frei.feld.rows = 3;
+  box.appendChild(frei.feld);
+  box.appendChild(frei.status);
+  box.appendChild(status);
+  return box;
+}
+
 // Die Quellenliste eines Blocks: was da ist, was sie liefert, und wie man eine anlegt.
 function quellenBlock(ziel, quellen, neuZeichnen) {
   const box = document.createElement("div");
@@ -238,6 +346,7 @@ export async function zeichneKontext(ziel) {
     firma.appendChild(fFeld.status);
     firma.appendChild(quellenBlock("firma", stand.firma.quellen, neu));
     wurzel.appendChild(firma);
+    wurzel.appendChild(stilAbschnitt(stand.stilregeln)); // v110
 
     // --- Projekte ---
     const pKopf = document.createElement("div");
