@@ -1,6 +1,6 @@
 // Verdrahtung: Kopfzeile, Ansichten, Zeichnen. Die Arbeit selbst steckt in den Modulen.
 
-import { S, beiAenderung, zeichne, ladeBoard, ladePlan, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, beiAbgleichStufe, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
+import { S, beiAenderung, zeichne, ladeBoard, ladePlan, ladeBoardparameter, verdrahteKopf, melde, setStand, driveAbgleich, abgleichLaeuft, beiAbgleichStufe, driveStatus, ladeDefaults, ladeWorkflows, speichere } from "./store.js";
 import { zeichneBoard, schiebe, beiOeffnen as boardOeffnet } from "./board.js";
 import { beiOeffnen as drehOeffnet } from "./drehtermine.js";
 import { beiOeffnen as kalenderOeffnet } from "./kalender.js";
@@ -447,7 +447,8 @@ async function zeigeBoardName() {
     zeigeBoardName();
     // v90: Redaktionsplan im Hintergrund holen (Drive, einige Sekunden) — danach misst die
     // Kopfzeile die Woche gegen den Plan statt gegen die feste Zahl 3.
-    ladePlan().then(() => zeichne()).catch(() => {});
+    // v78: erst Kategorien/Ziele (boardparameter), dann der Plan — der Scheduler rechnet mit ihnen.
+    ladeBoardparameter().then(() => ladePlan()).then(() => zeichne()).catch(() => {});
   } catch (e) {
     await melde("befund", `Das Board liess sich nicht laden: ${e.message}`);
   }
