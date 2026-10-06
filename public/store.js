@@ -3,7 +3,7 @@
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
   rueckwaertsplan, phaseIndex, isoDatum, setDeadlineOffsets,
-  spaetesterDreh, deutschesDatum,
+  spaetesterDreh, deutschesDatum, setzeBoardparameter,
 } from "/lib/pipeline.js";
 import { naechsterFreierUpload, belegteTermine, slotSchluessel } from "/lib/uploadslots.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -595,10 +595,11 @@ export const ROLLEN_META = {
 };
 
 // Defaults laut Owner (12.09.2026): Nutzer-Ausgabe ueber Claude/Abo, Recherche + Abgleich lokal.
+// v110: `stilZusatz` = optionaler Freitext je Rolle (KI-Rollen-Tab); geht an jeden Schritt der Rolle.
 export const ROLLEN_DEFAULT = {
-  userkomm:  { provider: "claude", ollamaModel: "qwen2.5",     claudeModell: "haiku" }, // v91: llama3.2 war nie installiert
-  recherche: { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
-  kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku" },
+  userkomm:  { provider: "claude", ollamaModel: "qwen2.5",     claudeModell: "haiku", stilZusatz: "" }, // v91: llama3.2 war nie installiert
+  recherche: { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku", stilZusatz: "" },
+  kontext:   { provider: "ollama", ollamaModel: "deepseek-r1", claudeModell: "haiku", stilZusatz: "" },
 };
 
 export function rolleKonfig(rolle) {
@@ -712,6 +713,21 @@ export async function instagramZahlen() {
 
 export async function linkedinZahlen() {
   return hole("/api/stats/linkedin?quelle=" + auswertungQuelle());
+}
+
+// --- Kategorien & Ziele (v78) ----------------------------------------------
+// Wahrheit ist boardparameter (Einstellungs-Tab, Drive). Geladen wird in die Live-Listen von
+// pipeline.js — Scheduler, Redaktionsplan und Karten-Auswahl lesen von dort. Fehlschlag: die
+// Konstanten bleiben stehen, das Board bleibt bedienbar.
+export async function ladeBoardparameter() {
+  try {
+    const bp = await hole("/api/boardparameter");
+    setzeBoardparameter(bp);
+    S.boardparameter = bp;
+    return bp;
+  } catch {
+    return null;
+  }
 }
 
 // --- Redaktionsplan --------------------------------------------------------
