@@ -80,9 +80,38 @@ Einstellungs-Tab; Redaktionsplan zeigt nur noch die %-Verteilung + Links.
           Sauberer, aber cross-cutting und aendert Board-Scheduling -> braucht Board-Verify.
       Empfehlung: (B), weil der Plan boardparameter ausdruecklich als "Wahrheit" definiert. Vor Bau abklaeren,
       weil es sichtbares Board-Verhalten aendert.
-- [ ] Phase B: kategorieName/zielInfo/Listen store-fähig (Override + Fallback); store.js laedt in S; ai.js/kpi einspeisen.
-- [ ] Phase D: redaktionsplan.js — Priorität/Aktiv RAUS, kategorienAnteil % (Summe 100) REIN, Ziel-% bleibt, Rücksprung-Links.
-- [ ] Verify (Board zeigt Edits) + Migration verlustfrei (bestehende Karten behalten Zuordnung).
+- [x] **Owner-Entscheid 06.10.2026: Variante (B)** — boardparameter ist ALLEINIGE Wahrheit; kein Sync in
+      `plan.kategorienFokus` (bleibt nur als Altbestand/Seed-Quelle im Plan liegen, nichts geloescht).
+- **Bauplan B+D (Opus 5.5, 06.10.2026):**
+  1. `lib/pipeline.js`: Konstanten werden `*_STANDARD` (Seed/Fallback); `INHALTSKATEGORIEN`/`ZIELE` bleiben
+     exportiert, sind aber LIVE-Listen, die `setzeBoardparameter(bp)` in-place ersetzt (alle Importeure sehen
+     sie ohne Umbau). Neu: `aktiveKategorien()` (nach Prioritaet), `aktiveZiele()`. `kategorieName`/`zielInfo`
+     loesen auch deaktivierte auf (Karten behalten Zuordnung). `defaultPlan().kategorienAnteil`.
+  2. `lib/scheduler.js`: aktive Kategorien aus `aktiveKategorien()`; Auswahl gewichtet nach
+     `plan.kategorienAnteil` (Summe>0), sonst Prioritaets-Treppe wie bisher.
+  3. `lib/planstore.js`: Fingerabdruck = aktive Kategorien (id+prio) + `kategorienAnteil` statt kategorienFokus.
+  4. `server.js`: boardparameter beim Start + nach GET/PUT in pipeline setzen; vor Plan-Abgleich sicher geladen;
+     `kategorienAnteil` in PLAN_ERLAUBT. `lib/ai.js`: Kategorien/Ziele-Listen nur aktive.
+  5. Client: `store.js ladeBoardparameter()` vor `ladePlan`; Tab ruft nach Speichern `setzeBoardparameter`;
+     Karten-Detail zeigt aktive + die eigene. Phase D im Redaktionsplan.
+- [x] **Phase B gebaut (06.10.2026, Opus 5.5):** pipeline.js Live-Listen + `setzeBoardparameter`/`aktiveKategorien`/
+      `aktiveZiele` (Konstanten = `*_STANDARD`, Seed/Fallback); Scheduler nimmt aktive Kategorien UND aktive Ziele
+      (deaktiviertes Ziel faellt aus der Rotation, auch mit Restgewicht im Plan); planstore-Fingerabdruck sieht
+      Tab-Aenderungen; server.js laedt boardparameter vor Plan-Abgleich, KI-Lauf und KPI-Sammlung und setzt ihn nach
+      GET/PUT; ai.js listet nur aktive Kategorien (Ideen, Anlass-Ideen, Plan-Prompt mit Prio + %); Karten-Detail
+      zeigt aktive + die eigene; Tab-Speichern wirkt sofort im Browser. kpi-tabellen.js liest ueber kategorieName/
+      zielInfo automatisch die Live-Liste (kein eigener Umbau noetig).
+- [x] **Phase D gebaut:** Redaktionsplan ohne Prio/Aktiv; Kategorie-% je aktiver Kategorie (`plan.kategorienAnteil`,
+      Summe 100, Pflicht beim Speichern); Ziel-% nur fuer aktive Ziele (deaktivierte = 0); zwei Links „⚙ In
+      Einstellungen verwalten" oeffnen den Tab „Kategorien & Ziele". Ohne gespeicherten Anteil zeigt die Vorbelegung
+      genau die Prioritaets-Treppe, die der Scheduler dann rechnet.
+- [x] **Verify isoliert (Scratchpad-Klon, Port 4399, Drive-Root ungueltig, Edge headless CDP):**
+      Tab: Spendenaufruf aus, Umfrage Prio 1 → Kalender Okt. 2026 vorher `bildung 3/umfrage 1`, nachher
+      `bildung 2/umfrage 2`, Spendenaufruf 0; Plan zeigt nur noch Umfrage+Bildung, 0 Prio-Felder, 2 Links; Link
+      schliesst Plan und oeffnet „Kategorien & Ziele"; Anteil 70/30 gespeichert → nach Reload `umfrage 3/bildung 1`,
+      Werte stehen. Karten je Kategorie vorher = nachher (`bildung 8, spendenaufruf 3, umfrage 2, ohne 7`).
+      0 Konsolenfehler. Node-Test: deaktiviertes Ziel → 12/12 Slots auf aktives Ziel. Screenshots optisch geprueft.
+- [ ] Im echten Board (Drive) nicht geprueft — bewusst (Owner-Daten); erster echter Lauf beim Owner.
 
 ## DoD
 - Kategorien/Ziele im Einstellungs-Tab add/entfernen(=deaktivieren)/Priorität/Aktiv; persistent in Drive.
