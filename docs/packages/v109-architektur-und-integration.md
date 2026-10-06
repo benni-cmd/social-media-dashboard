@@ -37,10 +37,19 @@ eine echte Anpassung, kein Quick-Embed. Diese Grenze (lokal-gebunden vs. portier
 
 ## Stand
 - [x] Rahmen/Plan + zentrale Wahrheit festgehalten (diese Session, 06.10.2026)
-- [ ] docs/architektur.md gebaut (Opus-5.5-Session) — akkurat aus Quellen + Showcase angesehen
-- [ ] committet + gepusht (auf GitHub)
+- [x] docs/architektur.md gebaut (Opus-5.5-Session, 06.10.2026) — aus server.js (81 Handler/71 Pfade), lib/*, public/*, drive-convention; Showcase im Browser angesehen + Bundle ausgewertet
+- [x] committet + gepusht (auf GitHub)
 
-## DoD
+**Befund Showcase (06.10.2026):** Vite/React-SPA mit Hash-Routing und Supabase, Demo-Daten. Hat schon
+(1) Seite `#/board%3Asocial-media` mit KPI-Kacheln und Banner „Anbindung an das Social-Media-Board folgt",
+(2) Anwendungs-Register mit iframe-Einbettung (`embedUrl`, prueft frame-ancestors/X-Frame-Options).
+**Empfehlung in der Doku:** Hybrid — Board pusht schlanken Export (KPI + Phasen-Stand) in Rootwork,
+Arbeiten bleibt lokal, Knopf „Board oeffnen" auf die lokale Instanz.
+
+**Offen:** Rootwork-Repo/Supabase-Tabelle fuer den Export (Leon); was oeffentlich sein darf (Owner + Leon);
+iframe auf `https://localhost:4321` von der Vercel-Seite ungetestet.
+
+## DoD (erfuellt 06.10.2026, bis auf die drei offenen Punkte oben)
 - `docs/architektur.md` existiert, aus echten Quellen (nicht geraten), auf GitHub gepusht.
 - Enthält Komponenten/API/Speicher/Abhängigkeiten, die Pro-Funktion-Tabelle und die bewerteten
   Integrationswege (Aufwand + Pro/Contra), konkret auf die Rootwork-Showcase bezogen.
