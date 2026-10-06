@@ -2,7 +2,8 @@
 
 import {
   CONTENTTYPEN,
-  INHALTSKATEGORIEN,
+  aktiveKategorien,
+  aktiveZiele,
   ZIELE,
   PLATTFORMEN,
   contenttypName,
@@ -10,7 +11,7 @@ import {
   zielInfo,
 } from "/lib/pipeline.js";
 import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
-import { S, melde, setStand, zeichne, ladeAnstehende } from "./store.js";
+import { S, melde, setStand, zeichne, ladeAnstehende, ladeBoardparameter } from "./store.js";
 import { escape, knopf, sanduhr, modalX, driveOrt, befundZeile, bestaetigen } from "./ui.js";
 
 // Anzeigenamen im Plan-UI (abweichend von card-internen IDs)
@@ -41,12 +42,22 @@ const ZIEL_FARBE = {
   donations: "#8b5cf6",
 };
 
+// v78: Farben der Standard-Kategorien; neu angelegte bekommen das neutrale Grau.
+const KAT_FARBE = {
+  bildung:           "#0ea5e9",
+  spendenaufruf:     "#ec4899",
+  projektbegleitung: "#84cc16",
+  partnerpost:       "#f59e0b",
+  umfrage:           "#14b8a6",
+};
+
 let aktivesOverlay = null;
 let currentPlan    = null; // ueberlebt Schliessen/Oeffnen — zweites Oeffnen zeigt sofort den Cache (v47)
 
 // ── Plan I/O ──────────────────────────────────────────────────────────────
 
 async function ladePlan() {
+  await ladeBoardparameter(); // v78: aktive Kategorien/Ziele (Einstellungs-Tab) vor der Vorschau
   try {
     const r = await fetch("/api/plan");
     if (r.ok) {
@@ -94,11 +105,12 @@ function defaultPlan() {
       typ: id,
       perWoche: { reel: 2, slider: 0.75, beitrag: 0.25, story: 0, langformat: 0 }[id] ?? 0,
     })),
-    kategorienFokus: INHALTSKATEGORIEN.map((k, i) => ({
-      id: k.id,
-      aktiv: ["bildung", "spendenaufruf", "umfrage"].includes(k.id),
-      prioritaet: i + 1,
-    })),
+    // v78: aktiv/Prioritaet leben im Einstellungs-Tab; hier nur die %-Verteilung.
+    kategorienAnteil: [
+      { id: "bildung", anteil: 50 },
+      { id: "spendenaufruf", anteil: 30 },
+      { id: "umfrage", anteil: 20 },
+    ],
     zielgewichte: [
       { id: "reach_new", gewicht: 40 },
       { id: "deepen",    gewicht: 20 },
@@ -259,23 +271,40 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   koerper.appendChild(abstandHinweis);
   const getMaxAbstand = () => Math.max(0, Math.floor(Number(abstandInput.value) || 0));
 
-  // ── Inhaltskategorien ──────────────────────────────────────────────────
+  // ── Inhaltskategorien (v78 Phase D) ────────────────────────────────────
+  // Aktiv/Prioritaet/Liste leben im Einstellungs-Tab „Kategorien & Ziele"; hier nur der %-Anteil je
+  // aktiver Kategorie (Summe 100, analog Zielgewichte). Ohne gespeicherten Anteil: gleich verteilt.
   sektionKopf("Inhaltskategorien", koerper, "14px 0 8px");
-  const katStatus = {};
-  const katPrio   = {};
-  for (const k of INHALTSKATEGORIEN) {
-    const kf = plan.kategorienFokus.find((f) => f.id === k.id) || { aktiv: false, prioritaet: 99 };
-    const { zeile, getAktiv, getPrio } = kategorieZeile(k, kf);
-    katStatus[k.id] = getAktiv;
-    katPrio[k.id]   = getPrio;
+  koerper.appendChild(einstellungsLink());
+  const katSumEl = sumAnzeige();
+  const katGetters = {};
+  const aktKat = aktiveKategorien();
+  const startAnteil = anteileMitFallback(plan.kategorienAnteil, aktKat);
+  for (const k of aktKat) {
+    const { zeile, getValue } = sliderZeile(
+      k.name,
+      KAT_FARBE[k.id] || "#64748b",
+      startAnteil[k.id],
+      0, 100,
+      () => aktualisiereSum(katSumEl, Object.values(katGetters).map((f) => f())),
+    );
+    katGetters[k.id] = getValue;
     koerper.appendChild(zeile);
   }
+  if (!aktKat.length) {
+    const p = document.createElement("p");
+    p.className = "feld-hinweis";
+    p.textContent = "Keine Kategorie aktiv — in den Einstellungen mindestens eine einschalten.";
+    koerper.appendChild(p);
+  } else koerper.appendChild(katSumEl);
+  aktualisiereSum(katSumEl, Object.values(katGetters).map((f) => f()));
 
   // ── Zielgewichte ──────────────────────────────────────────────────────
   sektionKopf("Zielgewichte", koerper, "14px 0 8px");
+  koerper.appendChild(einstellungsLink());
   const zielSumEl = sumAnzeige();
   const zielGetters = {};
-  for (const z of ZIELE) {
+  for (const z of aktiveZiele()) {
     const zw = plan.zielgewichte.find((w) => w.id === z.id) || { gewicht: 25 };
     const { zeile, getValue } = sliderZeile(
       z.name,
@@ -375,6 +404,12 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       fehlerEl.style.display = "";
       return;
     }
+    const katSumme = Object.values(katGetters).reduce((s, f) => s + f(), 0);
+    if (aktKat.length && katSumme !== 100) {
+      fehlerEl.textContent = `Kategorie-Anteile ergeben ${katSumme} % — muss genau 100 % sein.`;
+      fehlerEl.style.display = "";
+      return;
+    }
     fehlerEl.style.display = "none";
 
     // Aus dem bereits geladenen Plan zusammensetzen — KEIN erneuter Drive-Read (v47). Frueher
@@ -385,10 +420,9 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       plattformen: PLATTFORMEN.map((pl) => pl.id).filter((id) => plCheckboxen[id]?.checked),
       typenmix: PLAN_TYPEN.map((t) => ({ typ: t.id, perWoche: freqGetters[t.id]() })),
       maxAbstandTage: getMaxAbstand(),
-      kategorienFokus: INHALTSKATEGORIEN.map((k) => ({
-        id: k.id, aktiv: katStatus[k.id](), prioritaet: katPrio[k.id](),
-      })),
-      zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id]() })),
+      kategorienAnteil: aktKat.map((k) => ({ id: k.id, anteil: katGetters[k.id]() })),
+      // Deaktivierte Ziele zaehlen mit 0 — der Scheduler waehlt nur, was im Tab aktiv ist.
+      zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id] ? zielGetters[z.id]() : 0 })),
       kampagnen: kampagnen.filter((k) => k.name.trim()),
     };
 
@@ -677,58 +711,38 @@ function aktualisiereSum(el, werte) {
   el.textContent = `Summe: ${summe} %${ok ? " ✓" : " — muss 100 % ergeben"}`;
 }
 
-function kategorieZeile(k, kf) {
-  let aktiv = kf.aktiv;
-  let prio  = kf.prioritaet;
+// v78 Phase D: Ruecksprung in den Einstellungs-Tab „Kategorien & Ziele" (Liste, Aktiv, Prioritaet).
+// Schliesst den Redaktionsplan — ungespeicherte Aenderungen hier gehen dabei verloren (steht im Titel).
+function einstellungsLink() {
+  const a = document.createElement("button");
+  a.type = "button";
+  a.className = "rp-einst-link";
+  a.textContent = "⚙ In Einstellungen verwalten";
+  a.title = "Öffnet Einstellungen → Kategorien & Ziele (Liste, Aktiv, Priorität). Ungespeicherte Änderungen im Redaktionsplan gehen verloren.";
+  a.style.cssText = "background:none;border:none;padding:0 0 6px;color:var(--akzent,#3b82f6);font-size:12px;cursor:pointer;text-decoration:underline";
+  a.addEventListener("click", () => {
+    schliesseOverlay();
+    window.dispatchEvent(new CustomEvent("einstellungen-oeffnen", { detail: "Kategorien & Ziele" }));
+  });
+  return a;
+}
 
-  const zeile = document.createElement("div");
-  zeile.style.cssText = "display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)";
-
-  const toggleWrap = document.createElement("label");
-  toggleWrap.style.cssText = "position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer";
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.checked = aktiv;
-  cb.style.cssText = "opacity:0;width:0;height:0;position:absolute";
-  const track = document.createElement("span");
-  const thumb = document.createElement("span");
-  thumb.className = "thumb";
-  thumb.style.cssText = "position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.25)";
-  track.appendChild(thumb);
-
-  function updateTrack() {
-    track.style.cssText = `position:absolute;top:0;left:0;right:0;bottom:0;border-radius:20px;transition:background 0.15s;background:${aktiv ? "var(--akzent,#3b82f6)" : "var(--border)"}`;
-    thumb.style.transform = `translateX(${aktiv ? 16 : 0}px)`;
+// Gespeicherte Anteile der aktiven Kategorien. Fehlt ein Plan-Anteil ganz, zeigt die Vorbelegung genau
+// das, was der Scheduler dann rechnet: die Prioritaets-Treppe (Rang i von n wiegt n-i), auf 100 % gerundet.
+function anteileMitFallback(gespeichert, aktKat) {
+  const aus = {};
+  const liste = gespeichert || [];
+  const summe = aktKat.reduce((s, k) => s + ((liste.find((a) => a.id === k.id) || {}).anteil || 0), 0);
+  if (summe > 0) {
+    for (const k of aktKat) aus[k.id] = (liste.find((a) => a.id === k.id) || {}).anteil || 0;
+    return aus;
   }
-  updateTrack();
-  cb.addEventListener("change", () => { aktiv = cb.checked; updateTrack(); });
-  toggleWrap.appendChild(cb);
-  toggleWrap.appendChild(track);
-
-  const nameEl = document.createElement("span");
-  nameEl.style.cssText = "flex:1;font-size:13px;color:var(--fg1)";
-  nameEl.textContent = k.name;
-
-  const prioLabel = document.createElement("span");
-  prioLabel.style.cssText = "font-size:11px;color:var(--fg2);white-space:nowrap";
-  prioLabel.textContent = "Prio";
-
-  const prioInp = document.createElement("input");
-  prioInp.type = "number";
-  prioInp.min = "1";
-  prioInp.max = "9";
-  prioInp.value = prio;
-  prioInp.title = "Prioritaet 1 = hoechste";
-  prioInp.style.cssText = "width:40px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;background:var(--bg1);color:var(--fg1);text-align:center;font-size:12px";
-  prioInp.addEventListener("input", () => { prio = parseInt(prioInp.value, 10) || 1; });
-
-  zeile.appendChild(toggleWrap);
-  zeile.appendChild(nameEl);
-  zeile.appendChild(prioLabel);
-  zeile.appendChild(prioInp);
-  return {
-    zeile,
-    getAktiv: () => cb.checked,
-    getPrio:  () => parseInt(prioInp.value, 10) || 1,
-  };
+  const n = aktKat.length;
+  const gesamt = (n * (n + 1)) / 2 || 1;
+  let rest = 100;
+  aktKat.forEach((k, i) => {
+    aus[k.id] = i === n - 1 ? rest : Math.round(((n - i) / gesamt) * 100);
+    rest -= aus[k.id];
+  });
+  return aus;
 }
