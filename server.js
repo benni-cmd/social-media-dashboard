@@ -351,6 +351,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   // vom 17.09.2026 allein 12,4 s, bevor ueberhaupt die erste Status-Zeile kam — bis dahin war
   // die Anzeige leer. Deshalb hier die erste Stufe, noch vor jeder Datei- und Drive-Leserei.
   onStufe({ stufe: "kontext", schritt: 0, von: 0 });
+  await boardparamSicher(); // v78: KI sieht die editierten Kategorien/Ziele
   // v79: format-spezifische Pipeline (contenttypFormat der Karte). Fehlt eine, greift der Fallback
   // Task-Default -> Standard (in promptstore.effektiveSchritte).
   const format = pipeline.contenttypFormat(c.contenttyp || "reel");
@@ -358,8 +359,15 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
   if (!schritte.length) throw new Error(`Kein Prompt fuer die Aufgabe ${task}.`);
   const firmenKontext = await unternehmen
     .sammle({ serie: c.serie ? pipeline.slug(c.serie) : "" })
-    .catch(() => ({ firmenkontext: "", projektkontext: "" }));
-  const systemVorspann = await prompts.systemPrompt(firmenKontext);
+    .catch(() => ({ firmenkontext: "", projektkontext: "", stilregeln: "", stil: null }));
+  // v110: globaler Stil-Block sitzt im Vorspann (Platzhalter {{stilregeln}}), den bekommen nur
+  // Userkommunikations-Schritte. Rollen ohne Vorspann bekommen ihn an den Schritt-Prompt gehaengt,
+  // jede Rolle zusaetzlich ihren eigenen Stil-Zusatz (KI-Rollen-Tab).
+  const systemVorspann = await prompts.systemPrompt({
+    firmenkontext: firmenKontext.firmenkontext || "",
+    projektkontext: firmenKontext.projektkontext || "",
+    stilregeln: firmenKontext.stilregeln || "",
+  });
   const rollen = rollenModelle || {};
   const fallback = { provider: "ollama", ollamaModel: "qwen2.5", claudeModell: ki.CLAUDE_MODELL_STANDARD }; // v91: wird per loeseOllamaModell auf die installierte Groesse aufgeloest
 
@@ -412,9 +420,15 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
     const stepPrompt = ki.baueSchritt(s.prompt, c, {
       firmenkontext: firmenKontext.firmenkontext || "",
       projektkontext: firmenKontext.projektkontext || "",
+      stilregeln: firmenKontext.stilregeln || "", // v110: auch in Schritt-Vorlagen verfuegbar
       vorschritt,
     }, task);
-    const userMsg = webBlock + "\n\n---\n\n" + stepPrompt;
+    const zusatz = String(konf.stilZusatz || "").trim().slice(0, 4000);
+    const stilAnhang =
+      rolle === "userkomm"
+        ? (zusatz ? `\n\nSTIL-ZUSATZ FUER DIESE ROLLE (Einstellungen → KI-Rollen)\n${zusatz}` : "")
+        : unternehmen.stilBlock(firmenKontext.stil, zusatz);
+    const userMsg = webBlock + "\n\n---\n\n" + stepPrompt + stilAnhang;
     const system = rolle === "userkomm" ? systemVorspann : "";
     const letzter = i === schritte.length - 1;
 
@@ -551,12 +565,28 @@ async function abgleichEinmal(onStufe) {
 // Nur die Stellschrauben sind Config. Der Sanitizer schuetzt die Drive-Config davor, dass ein
 // Client versehentlich Anzeige-Felder (planAbgleich, quelle) zurueckschreibt und den
 // Fingerabdruck verfaelscht.
-const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "zielgewichte", "kampagnen", "slots", "plattformen", "maxAbstandTage", "kampagnenVorlage"];
+const PLAN_ERLAUBT = ["kadenz", "typenmix", "kategorienFokus", "kategorienAnteil", "zielgewichte", "kampagnen", "slots", "plattformen", "maxAbstandTage", "kampagnenVorlage"];
 function nurPlanConfig(o) {
   const c = {};
   for (const k of PLAN_ERLAUBT) if (o && o[k] !== undefined) c[k] = o[k];
   return c;
 }
+// v78 Phase B: boardparameter (Einstellungs-Tab, Drive) ist die alleinige Wahrheit fuer Kategorien/Ziele.
+// Einmal geladen und in die Live-Listen von pipeline.js gesetzt — Scheduler, ai.js, kpi-tabellen.js und
+// planstore lesen von dort. Fehlschlag -> Konstanten bleiben, naechster Aufruf versucht es wieder.
+let boardparamLauf = null;
+function boardparamSicher() {
+  if (!boardparamLauf)
+    boardparamLauf = (async () => {
+      const plan = (await planCacheLesen()) || pipeline.defaultPlan();
+      pipeline.setzeBoardparameter(await boardparam.seedFallsLeer(plan));
+    })().catch((e) => {
+      boardparamLauf = null;
+      console.warn(`boardparameter: nicht geladen, Konstanten bleiben (${e.message})`);
+    });
+  return boardparamLauf;
+}
+
 async function planCacheLesen() {
   try { return JSON.parse(await readFile(PLAN_FILE, "utf8")); } catch { return null; }
 }
@@ -755,6 +785,7 @@ async function handler(req, res) {
         } catch { /* naechster Aufruf versucht es wieder; /api/kampagnen/anstehend nennt den Grund */ }
       }
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
+      await boardparamSicher(); // v78: Scheduler-Kategorien aus boardparameter
       if (driveOk) {
         try {
           const a = await planstore.abgleiche(config);
@@ -779,6 +810,7 @@ async function handler(req, res) {
       await planCacheSchreiben(config); // Cache zuerst — der Speichern-Weg haengt nie an Drive
       defaultsStore.mische({ planBestaetigt: true }).catch(() => {}); // v96: Speichern = bestaetigt (Einrichtung)
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
+      await boardparamSicher();
       try {
         await planstore.schreibeConfigNachDrive(config);
         const a = await planstore.abgleiche(config);
@@ -910,6 +942,9 @@ async function handler(req, res) {
           case "firma-text":
             stand = await unternehmen.setzeFirmaText(body.text);
             break;
+          case "stil": // v110: Stil & KI-Verhalten (global)
+            stand = await unternehmen.setzeStil(body.stil);
+            break;
           case "projekt-anlegen":
             stand = await unternehmen.projektAnlegen(body.name);
             break;
@@ -997,14 +1032,18 @@ async function handler(req, res) {
       // pipeline.js-Konstanten geseedet und dabei plan.kategorienFokus (aktiv/prioritaet) verlustfrei
       // uebernommen (Plan aus dem lokalen Cache — kein zusaetzlicher Drive-Read auf dem Lesepfad).
       const plan = (await planCacheLesen()) || pipeline.defaultPlan();
-      sendJson(res, 200, await boardparam.seedFallsLeer(plan));
+      const stand = await boardparam.seedFallsLeer(plan);
+      pipeline.setzeBoardparameter(stand);
+      sendJson(res, 200, stand);
       return;
     }
 
     if (pfad === "/api/boardparameter" && req.method === "PUT") {
       const body = JSON.parse(await readBody(req));
       try {
-        sendJson(res, 200, await boardparam.schreib(body));
+        const stand = await boardparam.schreib(body);
+        pipeline.setzeBoardparameter(stand); // v78: ab sofort fuer Scheduler/KI/KPI gueltig
+        sendJson(res, 200, stand);
       } catch (e) {
         sendJson(res, 400, { error: e.message });
       }
@@ -2075,6 +2114,7 @@ async function handler(req, res) {
       await zuordnungPruefen().catch(() => {}); // v97: erst zuordnen, dann messen
       const board = await leseBoard();
       const tokens = await leseTokens();
+      await boardparamSicher();
       const ergebnis = await kpi.sammle(board.cards, tokens);
       if (ergebnis.gesammelt > 0) {
         const neueVersion = board.version + 1;
@@ -2197,7 +2237,8 @@ server.listen(PORT, async () => {
     if (z.auto || z.vorschlaege) console.log(`Zuordnung beim Start: ${z.auto} automatisch, ${z.vorschlaege} Vorschlag/Vorschlaege.`);
     const board = await leseBoard();
     const tokens = await leseTokens();
-    const ergebnis = await kpi.sammle(board.cards, tokens);
+    await boardparamSicher();
+      const ergebnis = await kpi.sammle(board.cards, tokens);
     if (ergebnis.gesammelt > 0) {
       await schreibeBoard(ergebnis.cards, board.version + 1);
     }
