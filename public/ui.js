@@ -1482,6 +1482,31 @@ export function einstellungenModal(onThemeChange, startTab = null) {
       wrap.appendChild(web);
     }
 
+    // v110: optionaler Stil-Zusatz je Rolle (Freitext). Die gemeinsamen Stilregeln stehen unter
+    // „Unternehmenskontext"; hier nur, was NUR fuer diese Rolle gilt. Speichert beim Verlassen.
+    const stilWrap = document.createElement("div");
+    stilWrap.className = "einst-rolle-stil";
+    const stilLbl = document.createElement("label");
+    stilLbl.className = "einst-provider-sub";
+    stilLbl.textContent = "Stil-Zusatz fuer diese Rolle (optional) — ergaenzt „Stil & KI-Verhalten“ im Unternehmenskontext.";
+    const stilFeld = document.createElement("textarea");
+    stilFeld.className = "kontext-feld";
+    stilFeld.rows = 2;
+    stilFeld.value = konfig.stilZusatz || "";
+    stilFeld.placeholder = "Zum Beispiel: Antworte knapp in Stichpunkten.";
+    stilFeld.setAttribute("aria-label", `Stil-Zusatz ${meta.name}`);
+    const stilStatus = document.createElement("div");
+    stilStatus.className = "einst-ping-status";
+    stilFeld.addEventListener("blur", () => {
+      if ((rolleKonfig(rolle).stilZusatz || "") === stilFeld.value) return;
+      setzeRolleKonfig(rolle, { stilZusatz: stilFeld.value });
+      stilStatus.textContent = "✅ gespeichert";
+    });
+    stilWrap.appendChild(stilLbl);
+    stilWrap.appendChild(stilFeld);
+    stilWrap.appendChild(stilStatus);
+    wrap.appendChild(stilWrap);
+
     if (konfig.provider === "ollama") ladeModelle();
     return wrap;
   }
