@@ -17,7 +17,7 @@ Fix-Vorschlag, eine ok/Befund-Zeile je Funktion und Automation und ein Launch-Ur
 
 > **Stand 07.10.2026:** Alle Befunde außer N3 (Tastaturbedienung, vom Owner zurückgestellt) sind in
 > [`v113-fixes-aus-abnahmetest.md`](v113-fixes-aus-abnahmetest.md) gebaut und isoliert belegt — mit 25 Owner-
-> Entscheidungen, wo es Produktfragen waren. Ein zweiter, harter Prüfdurchlauf folgt als v114.
+> Entscheidungen, wo es Produktfragen waren. Der zweite, harte Prüfdurchlauf steht in `v114-harter-nachtest.md` (Launch-Urteil dort aktueller).
 
 ## Launch-Urteil (06.10.2026, vor v113)
 

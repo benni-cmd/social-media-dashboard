@@ -113,4 +113,4 @@ Geprueft gegen:
 Offen:
 1. N3 Tastaturbedienung der Schalter — DEINE ENTSCHEIDUNG (eigenes Paket, von dir zurückgestellt)
 2. Live am echten Drive nicht prüfbar (Zugriff gesperrt): Umbenennen, Ordner-Link, geteilte Ablage — DEINE HANDLUNG nach Board-Neustart
-3. Nebenbefunde oben → harter Nachtest v114 — ICH, direkt im Anschluss
+3. Nebenbefunde oben → harter Nachtest v114 — erledigt 07.10.2026, Ergebnis in `v114-harter-nachtest.md` (N4, N5 und Stau dort)
