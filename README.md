@@ -81,7 +81,8 @@ das Kontextmenü und „Idee von der KI" (`lib/uploadslots.js`):
 
 1. **Format passt:** nur Slots des Redaktionsplans mit demselben Format (Slider bekommt nur Slider-Slots;
    Story und Highlight teilen sich die Story-Slots).
-2. **Machbar:** Video-Formate frühestens **nächster Drehtermin + 8 Tage**; Formate ohne Dreh frühestens
+2. **Machbar:** Video-Formate frühestens **nächster Drehtermin + Dreh-Vorlauf der Deadline-Kette** (Standard 3 + 3 + 6
+   = 12 Tage, Einstellungen → Termine & Fristen — so ist der Drehtermin nie „zu spät", v113); Formate ohne Dreh frühestens
    **heute + Freigabe- + Schnitt-Vorlauf** (Standard 6 Tage).
 3. **Frei:** kein anderer Beitrag hat Datum + Uhrzeit schon belegt.
 4. Ist für das Format nichts geplant, sagt das Board das im Klartext — es erfindet kein Datum.

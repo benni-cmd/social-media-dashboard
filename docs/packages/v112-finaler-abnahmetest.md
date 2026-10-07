@@ -15,7 +15,11 @@ konkretem Fix je Befund, damit danach gezielt repariert statt erneut gesucht wir
 **Goal:** Ein priorisierter Befund-Katalog (BLOCKER / HOCH / MITTEL / NIEDRIG) mit Soll · Ist · Beleg ·
 Fix-Vorschlag, eine ok/Befund-Zeile je Funktion und Automation und ein Launch-Urteil mit Blocker-Liste.
 
-## Launch-Urteil
+> **Stand 07.10.2026:** Alle Befunde außer N3 (Tastaturbedienung, vom Owner zurückgestellt) sind in
+> [`v113-fixes-aus-abnahmetest.md`](v113-fixes-aus-abnahmetest.md) gebaut und isoliert belegt — mit 25 Owner-
+> Entscheidungen, wo es Produktfragen waren. Ein zweiter, harter Prüfdurchlauf folgt als v114.
+
+## Launch-Urteil (06.10.2026, vor v113)
 
 **Nicht startklar.** Ein Blocker und neun hohe Befunde. Der Blocker zerlegt bei jedem Phasenwechsel die
 Projektordner in Drive (Drive ist die Wahrheit — damit ist die Wahrheit kaputt) und lässt gelöschte Karten

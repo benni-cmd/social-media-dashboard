@@ -89,8 +89,10 @@ es spricht ausschließlich mit `/api/*` desselben Servers.
 
 ## 2. API-Oberfläche
 
-81 Handler auf 71 Pfaden (`grep -cE 'if \(pfad === "/api/' server.js` → 81). Alle ohne Anmeldung —
-der Server vertraut jedem, der ihn erreicht (siehe 4 und 5). Antworten JSON, außer wo „NDJSON"/„ZIP"/„302".
+80 Handler auf 70 Pfaden (`grep -cE 'if \(pfad === "/api/' server.js` → 80, Stand v113). Alle ohne Anmeldung —
+der Server vertraut jedem, der ihn erreicht (siehe 4 und 5); seit v113 lauscht er deshalb nur auf `127.0.0.1`
+(vorher im ganzen WLAN erreichbar). OAuth-Starts tragen einen einmal gültigen `state` (v113). Antworten JSON,
+außer wo „NDJSON"/„ZIP"/„302".
 
 **Board & Karten**
 
@@ -126,7 +128,6 @@ der Server vertraut jedem, der ihn erreicht (siehe 4 und 5). Antworten JSON, au�
 |---|---|---|---|
 | GET | `/api/plan` | Plan-Config aus Drive (Cache-Fallback) + Slot-Abgleich | → Config + `{planAbgleich, quelle, istStandard}` |
 | PUT | `/api/plan` | Plan speichern (Cache, dann Drive) | Config → `{ok, planAbgleich, kampagnen}` |
-| PUT | `/api/plan/slot` | Karte an Slot binden | `{slotId, karteId}` → `{ok, slot}` |
 | GET | `/api/kampagnen/anstehend` | Anlässe aktiver Kampagnen (60 Tage) | → `{anstehend, befunde, kampagnen}` |
 
 **KI**
@@ -191,7 +192,8 @@ Board lädt nichts aus Drive und nennt den Grund.
 │   └── <Projekt>/                    Name einmal vergeben, als card.driveName eingefroren
 │       ├── Steckbrief.md             Klartext für Menschen (vom Board geschrieben)
 │       ├── (AI only)/projekt.json    Maschinen-Index der Karte = Wahrheit
-│       ├── Skript und Caption/       00_recherche.md · 10_skript.md · 20_regieplan.md · 30_caption.md
+│       ├── Skript und Caption/       00_recherche.md · 10_skript.txt · 20_regieplan.md · 30_caption.md
+│       │                             (Slider/Beitrag/Story/Langformat: 10_slider.md · 10_beitrag.md · 10_story.md · 10_konzept.md)
 │       ├── Rohmaterial/              Rohclips  (≥ 1 Datei ⇒ „Dreh ist durch")
 │       └── Fertiges Video/           Schnitt   (Videodatei ⇒ „Schnitt fertig")
 ├── Videoauswertung/                  Phase „Fertig"; KPI/<projekt>_kpi.json; Auswertung-Tabellen/*.csv
@@ -234,21 +236,22 @@ bekommt **Zugriff auf den Google-Drive-Ordner** (Drive-Freigabe) und arbeitet en
 oder mit einem eigenen Board auf dem eigenen Rechner, das auf denselben Ordner zeigt. Wer den Server
 erreicht, darf alles — darum darf er nie ungeschützt ins Netz.
 
-**Automationen** (`lib/workflows.js`, je einzeln abschaltbar unter Einstellungen; Stand in
+**Automationen** (`lib/workflows.js`; an/aus und Parameter stehen in `System (AI only)/workflows.json` — einen
+Schalter-Tab gibt es seit v41 nicht mehr, nur „Termine & Fristen" stellt die Deadline-Kette ein; Stand in
 `System (AI only)/workflows.json`)
 
 | Funktion | Wer | Auslöser | Was passiert | Wo gespeichert |
 |---|---|---|---|---|
 | Fertiges Video schiebt weiter (`upload-fertig-weiter`) | Owner (Board) | Video in „Fertiges Video" hochgeladen | Karte rückt vor, wenn Qualitätstore frei | Datei in Drive; Phase in `projekt.json` + Ordner wandert |
 | Drehtermin → Videodreh (`drehtermin-zuordnen-videodreh`) | Owner | Karte einem Drehtermin zugeordnet | Karte springt nach „Videodreh" | `board.json` → `projekt.json` |
-| Skript schiebt weiter (`skript-gespeichert-weiter`) | Owner | fertiges Skript gespeichert | weiter zu „Drehtermin festlegen" (fragt Upload-Datum ab) | `10_skript.md` in Drive |
+| Skript schiebt weiter (`skript-gespeichert-weiter`) | Owner | fertiges Skript gespeichert | weiter zu „Drehtermin festlegen" (fragt Upload-Datum ab) | `10_skript.txt` in Drive |
 | Automatischer Drehtermin (`auto-drehtermin`) | Board selbst | kein Drehtermin im Vorlauf-Fenster | setzt Sonntag der Folgewoche, markiert „automatisch" | `board.json` (`drehtermine`) |
 | Kalender-Spiegel (`gcal-autosync`) | Board selbst | Drehtermin angelegt/geändert/gelöscht | Google-Kalender-Termin + Task mitziehen; Fehler blockiert nie | Google Calendar/Tasks (nur hin) |
 | Rückwärtsplan (`rueckwaertsplan`) | Board selbst | Upload-Datum gesetzt | Freigabe 3 Tage vor Upload, Schnitt 3 vor Freigabe, Dreh 6 vor Schnitt (einstellbar) | Karte |
 | Projektordner anlegen (`drive-ordner-anlegen`) | Board selbst | visueller Hook gewählt, noch kein Ordner | Projektordner mit Unterordnern in Drive | Drive |
 | Ordner folgt Karte (`drive-ordner-mitziehen`) | Board selbst | Karte wechselt Spalte | Projektordner wandert in den Phasenordner | Drive |
 | Auto-Shutdown (`auto-shutdown`) | Board selbst | keine Anfrage für 60 Min. (Standard) | Ollama entladen, Prozess beenden | — |
-| Ampel-Schwellen (`ampel-schwellen`) | Board selbst | Zeitpunkt einer Karte wird gefärbt | rot ≤ 2 Tage, gelb ≤ 5 | Einstellung |
+| Ampel (fest, kein Workflow mehr seit v113) | Board selbst | Zeitpunkt einer Karte wird gefärbt | rot ≤ 2 Tage, gelb ≤ 5 — Kachel, Detailspalte und „Nächster Schritt" zeigen dieselbe Frist | `lib/pipeline.js` `AMPEL` |
 
 **Phasen und Qualitätstore** (`PHASEN`, `tore()` in `lib/pipeline.js`; Anzeige über `KATALOG` in
 `lib/kartenhinweise.js`). „Weiter" prüft die Tore; Ziehen und Kontextmenü verschieben bewusst **ohne** Prüfung.
