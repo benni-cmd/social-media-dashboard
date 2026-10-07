@@ -4781,3 +4781,14 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
 .ansicht-huelle:has(> .ansicht[hidden]) { display: none; }
 .ansicht-huelle > .ansicht { flex: 1 1 auto; }
 #ansicht-auswertung > * { zoom: var(--auswertung-zoom, 1); }
+
+/* v113 (M7, Owner 07.10.2026): Meldungsstapel unten rechts ueber der Zoom-Anzeige, aber links neben der
+   Detailspalte — er verdeckt sie nie (rechter Abstand --meldung-rechts setzt ui.js nach ihrer Breite). Er waechst
+   nach oben, nichts wird gekuerzt oder entfernt; wird er hoeher als der Platz unter der Kopfzeile, scrollt er in sich. */
+.meldung-stapel {
+  right: var(--meldung-rechts, 22px);
+  max-height: calc(100vh - 84px - 140px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 6px 8px; /* Platz fuer den harten Schatten (-4px 4px) — overflow wuerde ihn sonst abschneiden */
+}

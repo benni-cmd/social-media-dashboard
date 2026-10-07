@@ -833,6 +833,7 @@ export async function ladeCursorModusVomServer() {
 // Tab -> Drive-Ordner, in dem seine Daten liegen (die Marke im Menue oeffnet ihn per Klick).
 const DRIVE_TABS = new Map([
   ["Mitteilungen", "System (AI only)"],
+  ["Vorbelegungen", "System (AI only)"], // v113: defaults.json
   ["Unternehmenskontext", "Kontext"],
   ["Prompts", "System (AI only)"],
 ]);
@@ -1537,6 +1538,18 @@ export function einstellungenModal(onThemeChange, startTab = null) {
     p.className = "einst-provider-sub";
     p.textContent = "Der Assistent führt durch alles, was noch fehlt — er öffnet sich auch beim Start von selbst, solange etwas offen ist.";
     seiteSystem.appendChild(p);
+    // v113 (M4, Owner 07.10.2026): was auf diesem Rechner bewusst auf später gelegt ist, bleibt hier sichtbar.
+    const spaeterZeile = document.createElement("p");
+    spaeterZeile.className = "einst-provider-sub";
+    spaeterZeile.hidden = true;
+    seiteSystem.appendChild(spaeterZeile);
+    const SCHRITT_NAMEN = { google: "Google Kalender + Tasks verbinden" };
+    fetch("/api/einrichtung/stand").then((r) => r.json()).then((st) => {
+      const aus = (st.lokal && st.lokal.ausgelassen) || [];
+      if (!aus.length) return;
+      spaeterZeile.textContent = `Bewusst auf später gelegt (der Assistent fragt deswegen nicht mehr von selbst): ${aus.map((id) => SCHRITT_NAMEN[id] || id).join(", ")}. „Einrichtung Schritt für Schritt starten" bietet es wieder an.`;
+      spaeterZeile.hidden = false;
+    }).catch(() => {});
   }
   // v91: der gefuehrte Durchlauf (Name, Google, Claude, lokale KI, Rollen, Kontext, Prompts, Plan).
   const einrKnopf = knopf("Einrichtung Schritt für Schritt starten", {
@@ -2009,7 +2022,7 @@ export function einstellungenModal(onThemeChange, startTab = null) {
     idPlatz: "Client-ID (…apps.googleusercontent.com)", secretPlatz: "Client-Secret",
     anleitung:
       "1. <b>console.cloud.google.com</b> → Credentials → OAuth client ID (Web application). " +
-      "2. Redirect URI: <code>https://localhost:4321/api/auth/google/callback</code>. " +
+      "2. Redirect URI: <code>https://localhost:" + location.port + "/api/auth/google/callback</code>. " +
       "3. Client-ID + Secret unten eintragen, Speichern, dann Verbinden. Scopes: Kalender + Tasks.",
   });
   // v99: Claude-Anmeldung gehoert zu den KI-Rollen (oben), nicht zu den Google-Diensten.
@@ -2078,7 +2091,7 @@ export function einstellungenModal(onThemeChange, startTab = null) {
     idPlatz: "Instagram App-ID", secretPlatz: "App-Secret",
     anleitung:
       "1. <b>developers.facebook.com</b> → App (Typ Business) → Produkt <b>Instagram</b> hinzufuegen. " +
-      "2. Redirect: <code>https://localhost:4321/api/auth/instagram/callback</code>. " +
+      "2. Redirect: <code>https://localhost:" + location.port + "/api/auth/instagram/callback</code>. " +
       "3. App-ID + Secret unten eintragen. Dein IG-Konto muss als Tester eingeladen und akzeptiert sein.",
   });
   baueVerbindungsZeile(seite4, {
@@ -2092,7 +2105,7 @@ export function einstellungenModal(onThemeChange, startTab = null) {
     idPlatz: "LinkedIn Client-ID", secretPlatz: "Client-Secret",
     anleitung:
       "1. <b>linkedin.com/developers</b> → App anlegen (mit deiner Unternehmensseite). " +
-      "2. Redirect: <code>https://localhost:4321/api/auth/linkedin/callback</code>. " +
+      "2. Redirect: <code>https://localhost:" + location.port + "/api/auth/linkedin/callback</code>. " +
       "3. Client-ID + Secret unten eintragen. Produkte: Community Management / Organization Social.",
   });
 
@@ -2141,6 +2154,10 @@ export function einstellungenModal(onThemeChange, startTab = null) {
   seiteBoard.className = "einst-seite";
   seiteBoard.textContent = "Lade …";
 
+  // v113 (N2, Owner 07.10.2026): Vorbelegungen fuer neue Karten; Inhalt in public/vorbelegung.js.
+  const seiteVorbelegung = document.createElement("div");
+  seiteVorbelegung.className = "einst-seite";
+  seiteVorbelegung.textContent = "Lade …";
 
   // --- Tabs (v99) ---
   // Owner 01.10.2026: „die Zuordnung links an die Tabs ist sinnlos". Gruppiert nach Thema, benannt nach Inhalt.
@@ -2158,6 +2175,11 @@ export function einstellungenModal(onThemeChange, startTab = null) {
         boardparamGeladen = true;
         import("./boardparameter.js").then((m) => m.zeichneBoardparameter(seiteBoard));
       },
+    },
+    {
+      gruppe: "Board", name: "Vorbelegungen", seite: seiteVorbelegung,
+      // jedes Oeffnen frisch zeichnen — aktive Kategorien/Ziele koennen sich im Nachbar-Tab geaendert haben
+      beimOeffnen: () => import("./vorbelegung.js").then((m) => m.zeichneVorbelegung(seiteVorbelegung)),
     },
     {
       gruppe: "Inhalte & KI", name: "Unternehmenskontext", seite: seite7,
@@ -2322,7 +2344,9 @@ function systemBlock(eintrag) {
     }
   }
   speichern.addEventListener("click", () => schicke(feld.value === eintrag.vorlage ? "" : feld.value));
-  zuruecksetzen.addEventListener("click", () => schicke(""));
+  // v113 (M10): die eigene Fassung war nach einem Klick ohne Rueckfrage weg.
+  zuruecksetzen.addEventListener("click", () =>
+    bestaetigen("System-Vorspann auf den Standard zurücksetzen? Deine eigene Fassung geht dabei verloren.", "Ja, zurücksetzen", () => schicke("")));
   return box;
 }
 
@@ -2563,7 +2587,15 @@ function aufgabeBlock(eintrag, rollen, formate = []) {
     }
   }
   speichern.addEventListener("click", () => schicke(schritte));
-  zuruecksetzen.addEventListener("click", () => schicke([]));
+  // v113 (M10): Rueckfrage, bevor eine eigene Fassung (Standard oder Format) verworfen wird.
+  zuruecksetzen.addEventListener("click", () =>
+    bestaetigen(
+      aktivesFormat == null
+        ? `„${eintrag.name || eintrag.id}" auf den Standard zurücksetzen? Deine eigene Fassung geht dabei verloren.`
+        : `Format-Fassung von „${eintrag.name || eintrag.id}" entfernen? Danach gilt wieder der Standard.`,
+      "Ja, zurücksetzen",
+      () => schicke([])
+    ));
 
   ladeFassung(null);
   return box;
@@ -2620,18 +2652,36 @@ function _bekommStapel() {
     _stapel = document.createElement("div");
     _stapel.className = "meldung-stapel";
     document.body.appendChild(_stapel);
+    // v113 (M7): der Stapel folgt der Detailspalte — er sitzt immer links von ihr.
+    window.addEventListener("resize", _platziereStapel);
+    const detail = document.getElementById("detail");
+    if (detail && typeof ResizeObserver === "function") new ResizeObserver(_platziereStapel).observe(detail);
   }
+  _platziereStapel();
   return _stapel;
+}
+
+// v113 (M7, Owner 07.10.2026): unten rechts ueber der Zoom-Anzeige, aber nie ueber der Detailspalte — der rechte
+// Abstand ist die Breite von Detailspalte samt Zieh-Griff (wenn offen) plus derselbe Rand wie der Zoom (22 px).
+function _platziereStapel() {
+  if (!_stapel) return;
+  const kante = ["detail-griff", "detail"].map((id) => document.getElementById(id)).find((e) => e && e.offsetParent !== null);
+  const rechts = kante ? Math.max(0, window.innerWidth - kante.getBoundingClientRect().left) : 0;
+  _stapel.style.setProperty("--meldung-rechts", `${Math.round(rechts + 22)}px`);
 }
 
 function _schliesseMeldung(el) {
   clearTimeout(Number(el.dataset.timer));
   el.classList.add("meldung-weg");
   el.addEventListener("animationend", () => el.remove(), { once: true });
+  // v113 (M7): Im Hintergrundfenster laeuft die Ausblend-Animation nicht zu Ende — `animationend` kam nie, die
+  // Meldung blieb halbtransparent stehen und stapelte sich (v112). Nach der Animationsdauer (0,18 s) auf jeden Fall weg.
+  setTimeout(() => el.remove(), 400);
 }
 
 // Zeigt einen Toast oben rechts. typ: "erfolg" (gruen) | "fehler" (rot).
 export function meldung(text, typ = "erfolg") {
+  if (typ !== "erfolg") text = verstaendlich(text); // v113 (M6)
   const st = _bekommStapel();
   const el = document.createElement("div");
   el.className = `meldung meldung-${typ}`;
@@ -2652,7 +2702,11 @@ export function verstaendlich(satz) {
   // v82 Nachtrag (05.10.2026): Zwei Drive-Fehler, die als roher rclone-Dump im Toast standen.
   if (/unauthorized_client/i.test(roh)) return "Drive lehnt die Anmeldung ab: Die Client-ID passt nicht zum gespeicherten Zugang. Drive in den Einstellungen neu verbinden.";
   if (/invalid_grant/i.test(roh)) return "Die Anmeldung bei Google ist abgelaufen. In den Einstellungen neu verbinden.";
+  // v113 (M6): roher rclone-Text stand so im Toast („CRITICAL: Failed to create file system … [config-schnappschuss …]").
+  if (/(didn't|couldn't) find section in config file/i.test(roh))
+    return "Drive ist auf diesem Rechner nicht verbunden (rclone kennt die Verbindung „gdrive“ nicht). Einstellungen → Google → Google Drive verbinden.";
   return roh
+    .replace(/\s*\[config-schnappschuss:[^\]]*\]/g, "")
     .replace(/\s*\(\?\)/g, "")
     .replace(/https?:\/\/[^\s"']*\?[^\s"']*/g, "…")
     .replace(/rclone antwortet seit (\d+) Sekunden nicht\.?/g, "Drive antwortet nicht (nach $1 Sekunden). Das Board arbeitet mit dem lokalen Stand weiter.")
@@ -2699,6 +2753,7 @@ export function hinweisToast(status, satz) {
 // Abgleich zeigt so einen „Wiederholen"-Knopf direkt am Hinweis. Klick fuehrt die Aktion aus und
 // schliesst den Toast; das X schliesst nur.
 export function hinweisToastAktion(status, satz, aktionLabel, onAktion) {
+  satz = verstaendlich(satz); // v113 (M6): wie hinweisToast — kein roher Dienst-Text
   const st = _bekommStapel();
   const el = document.createElement("div");
   el.className = "meldung meldung-hinweis";

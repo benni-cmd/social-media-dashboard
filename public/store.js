@@ -3,7 +3,7 @@
 import {
   migriere, leereKarte, STANDARD_PLATTFORMEN, leereDrehtermin, autoDrehNoetig, drehImFenster,
   rueckwaertsplan, phaseIndex, isoDatum, setDeadlineOffsets,
-  spaetesterDreh, deutschesDatum, setzeBoardparameter,
+  spaetesterDreh, deutschesDatum, setzeBoardparameter, ampel, aktiveKategorien, aktiveZiele,
 } from "/lib/pipeline.js";
 import { naechsterFreierUpload, belegteTermine, slotSchluessel } from "/lib/uploadslots.js";
 import { istAn as wfIstAn, param as wfParam } from "/lib/workflows.js";
@@ -24,7 +24,7 @@ export const S = {
   abgleichStufe: "", // wo der laufende Drive-Abgleich steht, als Satz (v51 T7); leer = laeuft nicht
   zahlen: null, // zuletzt geholte Instagram-Zahlen
   zahlenLi: null, // zuletzt geholte LinkedIn-Zahlen
-  defaults: { plattformen: STANDARD_PLATTFORMEN, personen: [] }, // personen: Team-Mailliste (v44)
+  defaults: { plattformen: STANDARD_PLATTFORMEN, personen: [], vorbelegung: {} }, // personen: Team-Mailliste (v44); vorbelegung: v113
   workflows: {}, // Stand der Automationen (v26); leer => es gelten die Standards des Registers
   // v81: Stammt das Gezeigte schon aus Drive? Bis der Abgleich durch ist, zeigt das Board den
   // lokalen Cache — Kopf, Spalten, Karten und Detail kennzeichnen das. `fehler` = letzter
@@ -210,6 +210,7 @@ export async function ladeBoard() {
   S.spalten = Array.isArray(daten.spalten) ? daten.spalten : [];
   S.drehtermine = Array.isArray(daten.drehtermine) ? daten.drehtermine : [];
   S.live.cacheStand = daten.cacheStand || null;
+  S.ordnerGewaehlt = daten.ordnerGewaehlt !== false; // v113 (N15): fehlt das Feld (alter Server), wie bisher
   zeichne();
   // v83: Der Drive-Abgleich startet sofort nach dem ersten Zeichnen und laeuft PARALLEL zu
   // Workflows/Plan — vorher begann er erst nach dem ganzen Start (ueber 60 s gemessen) und die
@@ -229,6 +230,7 @@ export async function ladeBoard() {
 // Workflow "auto-drehtermin" — abschaltbar, Fenster einstellbar (v26).
 function pruefeAutoDreh() {
   if (!an("auto-drehtermin")) return;
+  if (!S.ordnerGewaehlt) return; // v113 (N15): ohne Board-Ordner (frisch/zurueckgesetzt) keinen Termin anlegen
   const heute = new Date();
   const p = (n) => String(n).padStart(2, "0");
   const heuteIso = `${heute.getFullYear()}-${p(heute.getMonth() + 1)}-${p(heute.getDate())}`;
@@ -313,6 +315,7 @@ export async function speichere() {
 
 export function neueKarte(spalte) {
   const k = leereKarte(spalte);
+  vorbelegeKarte(k); // v113 (N2)
   S.cards.push(k);
   speichere();
   return k;
@@ -341,13 +344,14 @@ export async function loescheKarte(id) {
     S.cards = S.cards.filter((c) => c.id !== id);
     await speichere();
     zeichne();
-    return;
+    return { getrasht: false };
   }
   k._geloescht = true;
   geloeschtInFlight.add(id);
   zeichne(); // sofort weg aus Board + Kalender
+  let ergebnis;
   try {
-    await hole("/api/karte/loeschen", {
+    ergebnis = await hole("/api/karte/loeschen", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(k),
@@ -363,6 +367,7 @@ export async function loescheKarte(id) {
   S.cards = S.cards.filter((c) => c.id !== id);
   await speichere();
   zeichne();
+  return ergebnis || { getrasht: false }; // v113: Meldung folgt dem, was wirklich passiert ist
 }
 
 // --- Drive ----------------------------------------------------------------
@@ -423,7 +428,11 @@ export async function driveVerschieben(k, ziel) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ card: k, ziel }),
   });
-  if (ergebnis.name) k.driveName = ergebnis.name;
+  // v113 (N14): ein neu vergebener Ordnername gehoert sofort gespeichert — bis v112 lebte er nur im Browser.
+  if (ergebnis.name && k.driveName !== ergebnis.name) {
+    k.driveName = ergebnis.name;
+    await speichere();
+  }
   S.driveStand.delete(k.id);
   return ergebnis;
 }
@@ -753,9 +762,13 @@ export async function ladePlan() {
 export async function ladeAnstehende() {
   try {
     const r = await hole("/api/kampagnen/anstehend");
+    const neu = JSON.stringify([r.anstehend || [], r.befunde || []]);
+    const alt = JSON.stringify([S.anstehend || [], S.kampagnenBefunde || []]);
     S.anstehend = r.anstehend || [];
     S.kampagnenBefunde = r.befunde || [];
-    zeichne();
+    // v113 (H3): nur bei echter Aenderung neu zeichnen. Das Neuzeichnen startete sonst ueber die Detailspalte
+    // (blockTermineIdee -> ladePlan -> hierher) eine Endlosschleife: gemessen 261 Drive-Ereignisse in 10 s.
+    if (neu !== alt) zeichne();
   } catch { /* still — die Knoepfe fehlen dann nur */ }
 }
 
@@ -763,13 +776,6 @@ export async function ladeAnstehende() {
 export const offeneAnlaesse = () =>
   (S.anstehend || []).filter((a) => !S.cards.some((c) => !c._geloescht && c.anlass && c.anlass.schluessel === a.schluessel));
 
-export async function slotBelegen(slotId, karteId) {
-  return hole("/api/plan/slot", {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ slotId, karteId }),
-  });
-}
 
 // --- Forecast: schwebende Upload-Termine (v30) -----------------------------
 //
@@ -828,6 +834,15 @@ export function drehtermin(id) {
   return S.drehtermine.find((t) => t.id === id) || null;
 }
 
+// v113 (M1, Owner 07.10.2026): die EINE Zeit-Ampel einer Karte — Punkt auf der Kachel, Termin-Block der
+// Detailspalte und „Naechster Schritt" zeigen dieselbe dringlichste Frist. Der zugewiesene Drehtermin zaehlt,
+// solange die Karte hoechstens in „Videodreh" steht (danach ist der Dreh vorbei).
+export function zeitAmpel(k) {
+  const zugewiesen = k.drehterminId ? drehtermin(k.drehterminId) : null;
+  const drehDatum = phaseIndex(k.column) <= phaseIndex("videodreh") && zugewiesen ? zugewiesen.datum : null;
+  return { ...ampel(k, drehDatum), drehDatum };
+}
+
 export function drehterminAnlegen(datum, zeit) {
   const t = leereDrehtermin(datum, zeit);
   S.drehtermine.push(t);
@@ -865,6 +880,15 @@ export function drehterminLoeschen(id) {
   S.drehtermine = S.drehtermine.filter((x) => x.id !== id);
   speichere();
   zeichne();
+}
+
+// v113 (N13): Ist ein Drehtermin fuer diese Karte zu spaet (v70-Block)? Liefert den Satz oder null — damit die
+// Auswahl ihn schon VOR dem Klick als „zu spät" zeigt (bis v112 kam die Sperre erst nach dem Klick).
+export function drehZuSpaet(k, t) {
+  const grenze = spaetesterDreh(((k && k.dates) || {}).upload);
+  return grenze && t && t.datum > grenze
+    ? `Zu spät für diese Karte — spätestens am ${deutschesDatum(grenze)} drehen, sonst geht sie schon mit gelbem Punkt in den Schnitt.`
+    : null;
 }
 
 // Ordnet eine Karte einem Drehtermin zu. Liefert {ok, warnung} bei Erfolg; {ok:false, grund} wenn der
@@ -1047,6 +1071,7 @@ export async function ladeDefaults() {
     const d = await hole("/api/defaults");
     if (d.plattformen && Array.isArray(d.plattformen)) S.defaults.plattformen = d.plattformen;
     if (Array.isArray(d.personen)) S.defaults.personen = d.personen;
+    if (d.vorbelegung && typeof d.vorbelegung === "object") S.defaults.vorbelegung = { ...d.vorbelegung }; // v113 (N2)
     // v91: Rollen aus Drive in den Browser-Zwischenspeicher; Einrichtungs-Stand merken.
     if (d.kiRollen && typeof d.kiRollen === "object")
       for (const [r, v] of Object.entries(d.kiRollen)) {
@@ -1066,6 +1091,23 @@ export async function speichereDefaults(daten) {
   if (ergebnis.defaults) {
     if (ergebnis.defaults.plattformen) S.defaults.plattformen = ergebnis.defaults.plattformen;
     if (Array.isArray(ergebnis.defaults.personen)) S.defaults.personen = ergebnis.defaults.personen;
+    if (ergebnis.defaults.vorbelegung) S.defaults.vorbelegung = { ...ergebnis.defaults.vorbelegung }; // v113 (N2)
   }
   return ergebnis;
+}
+
+// v113 (N2, Owner 07.10.2026): Vorbelegungen fuer neue Karten (Einstellungen → Vorbelegungen). Plattformen:
+// der gespeicherte Plattform-Standard (Instagram + LinkedIn), sichtbar angehakt — bis v112 zeigte eine neue
+// Karte keine Plattform und der Server setzte still Instagram. Format/Kategorie/Ziel nur, wenn eingestellt und
+// (Kategorie/Ziel) noch aktiv. Schon gesetzte Felder bleiben unberuehrt.
+export function vorbelegeKarte(k, { plattformen = null } = {}) {
+  if (!Array.isArray(k.platforms) || !k.platforms.length) {
+    const pl = plattformen && plattformen.length ? plattformen : S.defaults.plattformen && S.defaults.plattformen.length ? S.defaults.plattformen : STANDARD_PLATTFORMEN;
+    k.platforms = [...pl];
+  }
+  const v = S.defaults.vorbelegung || {};
+  if (!k.contenttyp && v.contenttyp) k.contenttyp = v.contenttyp;
+  if (!k.kategorie && v.kategorie && aktiveKategorien().some((x) => x.id === v.kategorie)) k.kategorie = v.kategorie;
+  if (!k.goal && v.goal && aktiveZiele().some((x) => x.id === v.goal)) k.goal = v.goal;
+  return k;
 }

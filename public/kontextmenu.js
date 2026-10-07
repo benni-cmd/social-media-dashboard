@@ -18,6 +18,8 @@ import {
   einfacherPlan,
   isoDatum,
   deutschesDatum,
+  tore,
+  sperren,
 } from "/lib/pipeline.js";
 import { naechsterFreierUpload } from "/lib/uploadslots.js";
 import {
@@ -29,6 +31,8 @@ import {
   schwebendeNeuBerechnen,
   ladePlan,
   melde,
+  driveScan,
+  drehZuSpaet,
 } from "./store.js";
 import { icon, bestaetigen, meldung } from "./ui.js";
 import { schiebe } from "./board.js";
@@ -160,7 +164,23 @@ function baueEintraege(k, oeffne) {
   // Weiter in die naechste Phase — nur solange es eine gibt (nicht bei fertig/verworfen).
   if (k.column !== "fertig" && k.column !== "verworfen") {
     const ziel = naechstePhase(k.column);
-    if (ziel) liste.push({ icon: "weiter", label: `Weiter zu ${phase(ziel).name}`, tun: () => schiebe(k, ziel) });
+    // v113 (M2, Owner 07.10.2026): „Weiter zu …" prueft dieselben Tore wie der gleichnamige Knopf der
+    // Detailspalte (vorher war das v75-Skript-Tor per Rechtsklick umgehbar). Ziehen und „Verschieben in"
+    // bleiben bewusst ungeprueft. Fehlt der Drive-Stand, wird er erst gelesen.
+    if (ziel)
+      liste.push({
+        icon: "weiter",
+        label: `Weiter zu ${phase(ziel).name}`,
+        tun: async () => {
+          const stand = await driveScan(k).catch(() => null);
+          const blockiert = sperren(tore(k, stand));
+          if (blockiert.length) {
+            await melde("befund", `„${k.title}“ kann noch nicht weiter: ${blockiert.map((b) => b.satz).join(" ")}`);
+            return;
+          }
+          await schiebe(k, ziel);
+        },
+      });
   }
 
   // Verschieben in — alle Spalten ausser der aktuellen.
@@ -186,7 +206,8 @@ function baueEintraege(k, oeffne) {
       icon: "video",
       label: "Drehtermin zuordnen",
       sub: kommend.map((t) => ({
-        label: `${deutschesDatum(t.datum)}${t.zeit ? " · " + t.zeit : ""}${t.ort ? " · " + t.ort : ""}`,
+        // v113 (N13): zu spaete Termine schon im Menue kennzeichnen (Klick zeigt wie bisher den Grund).
+        label: `${deutschesDatum(t.datum)}${t.zeit ? " · " + t.zeit : ""}${t.ort ? " · " + t.ort : ""}${drehZuSpaet(k, t) ? " · zu spät" : ""}`,
         tun: () => drehZuordnen(k, t.id),
       })),
     });
@@ -244,8 +265,8 @@ function loeschen(k) {
     "Ja, loeschen",
     async () => {
       try {
-        await loescheKarte(k.id);
-        meldung(k.driveName ? "Karte geloescht — der Drive-Ordner liegt im Papierkorb." : "Karte geloescht.", "erfolg");
+        const r = await loescheKarte(k.id);
+        meldung(r && r.getrasht ? "Karte geloescht — der Drive-Ordner liegt im Papierkorb." : "Karte geloescht.", "erfolg");
       } catch (e) {
         meldung(`Loeschen fehlgeschlagen, die Karte bleibt: ${e.message}`, "fehler");
       }

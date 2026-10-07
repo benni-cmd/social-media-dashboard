@@ -10,7 +10,7 @@ import {
   contenttypName, kategorieName, contenttypFormat, zielInfo,
 } from "/lib/pipeline.js";
 import { naechsterFreierUpload, planSlots, slotTyp, fruehesterUploadFuer } from "/lib/uploadslots.js";
-import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, optimistisch, terminplan, schwebendeNeuBerechnen } from "./store.js";
+import { S, kiStream, speichere, zeichne, melde, setStand, driveAnlegen, optimistisch, terminplan, schwebendeNeuBerechnen, vorbelegeKarte } from "./store.js";
 import { icon, statusChip, escape, knopf, denkPanel, meldung, sanduhr } from "./ui.js";
 
 // --- Ideen ----------------------------------------------------------------
@@ -211,8 +211,11 @@ export async function holeIdee(opts = {}) {
         k.dates = { ...terminplan(slot.datum), upload: slot.datum };
         k.uploadTime = slot.uhrzeit || "";
         if (slot.ziel) k.goal = slot.ziel;
-        if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
+        // v113 (N2, Owner 07.10.2026): Anlass-Karten nehmen die Plattformen aus der Kampagnen-Tabelle (Spalte
+        // „Plattformen"), leer = Vorbelegung — nicht den Plan-Slot. Andere Ideen behalten die Slot-Plattformen.
+        if (!anlass && slot.plattformen?.length) k.platforms = [...slot.plattformen];
       }
+      vorbelegeKarte(k, { plattformen: anlass ? anlass.plattformen : null }); // fuellt nur, was noch leer ist
       S.cards.push(k);
       zeichne();
       await speichere();
@@ -298,6 +301,7 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
             if (slot.plattformen?.length) k.platforms = [...slot.plattformen];
             slotUpdates.push({ slotId: slot.id, karteId: k.id });
           }
+          vorbelegeKarte(k); // v113 (N2): fuellt nur, was der Slot offen liess
 
           S.cards.push(k);
           n++;
@@ -305,25 +309,10 @@ function zeigeIdeen(ideen, anker, offeneSlots = []) {
         speichere();
         zeichne();
 
-        // Slots als belegt markieren
+        // v113 (N6): Ein Slot gilt als belegt, sobald eine Karte sein Datum als Upload traegt (uploadslots.js
+        // belegteTermine). Das fruehere „Slots als belegt markieren" suchte Slots in der Plan-Konfiguration, wo seit
+        // v52 keine mehr liegen, fand nichts und schrieb trotzdem den ganzen Plan zurueck — entfernt.
         if (slotUpdates.length) {
-          try {
-            const planRes = await fetch("/api/plan");
-            if (planRes.ok) {
-              const plan = await planRes.json();
-              for (const upd of slotUpdates) {
-                const s = plan.slots.find((sl) => sl.id === upd.slotId);
-                if (s) s.karteId = upd.karteId;
-              }
-              await fetch("/api/plan", {
-                method: "PUT",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(plan),
-              });
-            }
-          } catch {
-            meldung("Slot konnte nicht belegt werden.", "fehler");
-          }
           // Die neu belegten Slots koennen schwebende Karten verdraengt haben (v30).
           await schwebendeNeuBerechnen();
           zeichne();
@@ -426,6 +415,7 @@ function zeigePlan(plan, hinweis, anker) {
             k.title = e.titel || "Neue Idee";
             k.kategorie = INHALTSKATEGORIEN.some((s) => s.id === e.saeule) ? e.saeule : "";
             if (e.ziel) k.goal = e.ziel;
+            vorbelegeKarte(k); // v113 (N2)
             S.cards.push(k);
             neu++;
           }

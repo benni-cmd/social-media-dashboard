@@ -16,7 +16,7 @@ import {
   wochenlast,
   MASSE,
 } from "/lib/pipeline.js";
-import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin, offeneAnlaesse } from "./store.js";
+import { S, spalteLive, karte, sichtbareKarten, speichere, zeichne, neueKarte, driveVerschieben, melde, setStand, optimistisch, an, drehtermin, offeneAnlaesse, zeitAmpel } from "./store.js";
 import { statusChip, escape, knopf, leer, icon, knopfLaeuft, STATUS, CACHE_SATZ } from "./ui.js";
 import { kartenMeldungen } from "/lib/kartenhinweise.js";
 import { wochenlastNachPlan } from "/lib/uploadslots.js";
@@ -30,7 +30,7 @@ export const beiOeffnen = (f) => (oeffne = f);
 
 // Tore, die den Drive-Stand brauchen. Ohne ihn duerfen sie nicht als "offen" gezaehlt
 // werden — sonst behauptet die Kachel etwas, das niemand geprueft hat.
-const BRAUCHT_DRIVE = new Set(["rohmaterial", "final", "skript-datei"]);
+const BRAUCHT_DRIVE = new Set(["rohmaterial", "final", "skript-datei", "format-datei"]);
 
 function pruefungen(k) {
   const stand = S.driveStand.get(k.id);
@@ -75,11 +75,8 @@ export function kachel(k) {
   // (aus S.drehtermine ueber card.drehterminId aufgeloest) und nur, solange die Karte hoechstens in
   // „videodreh" steht (danach ist der Dreh vorbei). Die Aufloesung passiert hier, weil pipeline.js
   // kein S kennt; die Ampel-Logik selbst liegt in pipeline.js (ampel()).
-  const drehZugewiesen = k.drehterminId ? drehtermin(k.drehterminId) : null;
-  const drehRelevant = phaseIndex(k.column) <= phaseIndex("videodreh");
-  const drehDatum = drehRelevant && drehZugewiesen ? drehZugewiesen.datum : null;
-
-  const a = ampel(k, drehDatum); // { status, frist, satz } — reine Zeit
+  const a = zeitAmpel(k); // { status, frist, satz, drehDatum } — reine Zeit (v113: geteilt mit der Detailspalte)
+  const drehDatum = a.drehDatum;
   const statusCode = a.status;
 
   // „!" = Warnung, getrennt vom Punkt und immer im Hinweis-Ton: offene Blocker (offenePunkte) ODER

@@ -495,7 +495,8 @@ export async function zeichneKontext(ziel) {
       zeigen.disabled = true;
       try {
         const p = await hole("/api/kontext/probe");
-        const text = (p.firmenkontext + p.projektkontext).trim();
+        // v113 (N10): der Stil-Block (v110) geht ebenfalls in jeden Prompt — er stand hier bisher nicht.
+        const text = [p.firmenkontext, p.projektkontext, p.stilregeln].map((x) => String(x || "").trim()).filter(Boolean).join("\n\n");
         probe.textContent = text || "Nichts hinterlegt — die Prompts laufen wie ohne Kontext.";
         probe.hidden = false;
       } catch (e) {

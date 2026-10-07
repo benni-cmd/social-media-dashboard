@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { execSync, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { randomBytes } from "node:crypto";
 
 import * as pipeline from "./lib/pipeline.js";
 import * as drive from "./lib/drive.js";
@@ -199,6 +200,13 @@ async function envSchreiben(key, wert) {
 // 3 Std. neben dem geplanten Upload, keine Konkurrenz) werden eingetragen; alles andere wird ein Vorschlag an der
 // Karte, den der Mensch bestaetigt oder ablehnt. Geaenderte Karten gehen auch in ihre projekt.json (Drive-Wahrheit).
 // v97 Nachtrag: alle Posts der verbundenen Plattformen in Einheits-Form (fuer Automatik und Hand-Zuordnung).
+// v113 (M9): welche Plattformen ueberhaupt verbunden sind — ohne Verbindung meldete die Upload-Phase
+// „0 Posts geprüft" bzw. „alle sind schon Karten zugeordnet" statt „nicht verbunden".
+async function verbundenePlattformen() {
+  const tokens = await leseTokens();
+  return ["instagram", "linkedin"].filter((p) => tokens[p] && tokens[p].accessToken);
+}
+
 async function allePosts() {
   const tokens = await leseTokens();
   const posts = [];
@@ -620,6 +628,27 @@ const umleitung = (res, ziel) => {
   res.end();
 };
 
+// v113 (N11): OAuth-`state` gegen untergeschobene Rueckrufe (CSRF). Je Anmelde-Start ein Zufallswert,
+// 10 Minuten gueltig, genau einmal einloesbar; der Rueckruf prueft ihn, bevor er einen Code eintauscht.
+const OAUTH_STATE_MS = 10 * 60 * 1000;
+const oauthStates = new Map(); // state -> { anbieter, zeit }
+function neuerOauthState(anbieter) {
+  const jetzt = Date.now();
+  for (const [s, v] of oauthStates) if (jetzt - v.zeit > OAUTH_STATE_MS) oauthStates.delete(s);
+  const s = `${anbieter}_${randomBytes(16).toString("hex")}`;
+  oauthStates.set(s, { anbieter, zeit: jetzt });
+  return s;
+}
+function oauthStateOk(anbieter, s) {
+  const v = s ? oauthStates.get(s) : null;
+  if (s) oauthStates.delete(s);
+  return !!v && v.anbieter === anbieter && Date.now() - v.zeit <= OAUTH_STATE_MS;
+}
+const OAUTH_STATE_FEHLER = "/?fehler=" + encodeURIComponent("Sicherheitsprüfung der Anmeldung fehlgeschlagen — bitte erneut verbinden.");
+// v113 (M8): Fehlen die App-Daten, zurueck ins Board mit einem Satz statt einer rohen JSON-Fehlerseite.
+const appFehlt = (res, name, tab) =>
+  umleitung(res, "/?fehler=" + encodeURIComponent(`Für ${name} fehlen noch App-ID und Secret — erst unter Einstellungen → ${tab} eintragen.`));
+
 // v34: leseKontext() ist entfallen. Die Drive-Ordner Kontext/_global und Kontext/<reihe>
 // laufen jetzt als eingebaute Quellen ueber lib/kontextstore.js — damit steht an EINER Stelle,
 // was in den Prompt geht, und der Tab zeigt es auch an.
@@ -679,7 +708,8 @@ async function handler(req, res) {
       // Drive-Abgleich „Cache-Stand von <Zeit>" statt so zu tun, als sei das der Live-Stand.
       let cacheStand = null;
       try { cacheStand = (await stat(BOARD_FILE)).mtime.toISOString(); } catch {}
-      sendJson(res, 200, { ...board, spalten, phasen: spalten, cacheStand });
+      // v113 (N15): ob ein Board-Ordner gewaehlt ist — ohne Ordner legt der Browser keinen Auto-Drehtermin an.
+      sendJson(res, 200, { ...board, spalten, phasen: spalten, cacheStand, ordnerGewaehlt: !!drive.aktuellerRoot() });
       return;
     }
 
@@ -718,11 +748,17 @@ async function handler(req, res) {
 
       // Hintergrund-Spiegelung: nur tatsaechlich geaenderte Karten mit vorhandenem Drive-Ordner
       // (Diff gegen den alten Cache), damit ein Save nicht 17 Drive-Schreibvorgaenge ausloest.
-      const altPerId = new Map(aktuell.cards.map((c) => [c.id, JSON.stringify(c)]));
+      const altPerId = new Map(aktuell.cards.map((c) => [c.id, c]));
       const spiegelung = (async () => {
         for (const k of neueKarten) {
           if (!k.driveName) continue; // noch kein Ordner -> nichts zu spiegeln
-          if (altPerId.get(k.id) === JSON.stringify(k)) continue; // unveraendert
+          const alt = altPerId.get(k.id);
+          if (alt && JSON.stringify(alt) === JSON.stringify(k)) continue; // unveraendert
+          // v113 (B1): Spaltenwechsel NICHT spiegeln. Die Spiegelung schrieb an den NEUEN Pfad und legte damit
+          // den Zielordner an, bevor /api/drive/move den Projektordner verschob — rclone verschob dann Datei fuer
+          // Datei und liess die alte Huelle stehen; der naechste Wechsel griff die Huelle (v112 B1). Das
+          // Verschieben schreibt projekt.json und Steckbrief am Ziel selbst (projects.verschiebe).
+          if (alt && alt.column !== k.column) continue;
           try {
             await projekte.spiegeleKarte(k);
           } catch (e) {
@@ -823,17 +859,8 @@ async function handler(req, res) {
       return;
     }
 
-    if (pfad === "/api/plan/slot" && req.method === "PUT") {
-      const { slotId, karteId } = JSON.parse(await readBody(req));
-      let plan;
-      try { plan = JSON.parse(await readFile(PLAN_FILE, "utf8")); } catch { plan = pipeline.defaultPlan(); }
-      const slot = (plan.slots || []).find((s) => s.id === slotId);
-      if (!slot) { sendJson(res, 404, { error: "Slot nicht gefunden." }); return; }
-      slot.karteId = karteId || null;
-      await writeFile(PLAN_FILE, JSON.stringify(plan, null, 2), "utf8");
-      sendJson(res, 200, { ok: true, slot });
-      return;
-    }
+    // v113 (N6): PUT /api/plan/slot entfernt — suchte Slots in der Plan-Config (seit v52 leer, immer 404) und
+    // hatte keinen Aufrufer mehr. Belegt ist ein Slot, sobald eine Karte sein Datum als Upload traegt.
 
     // v107: Anlaesse aktiver Kampagnen in den naechsten 60 Tagen (Knoepfe in der ersten Spalte).
     // Legt beim ersten Aufruf die zwei Start-Kampagnen an — aber nur, wenn die Plan-Config wirklich
@@ -1237,7 +1264,7 @@ async function handler(req, res) {
         return;
       }
       const ziel = await projekte.speichereDatei(card, filename, content ?? "");
-      sendJson(res, 200, { ok: true, pfad: ziel });
+      sendJson(res, 200, { ok: true, pfad: ziel.pfad, name: ziel.name }); // v113: name = driveName der Karte
       return;
     }
 
@@ -1360,7 +1387,7 @@ async function handler(req, res) {
     if (pfad === "/api/auth/instagram" && req.method === "GET") {
       const appId = process.env.INSTAGRAM_APP_ID;
       if (!appId) {
-        sendJson(res, 500, { error: "INSTAGRAM_APP_ID fehlt in .env" });
+        appFehlt(res, "Instagram", "Social Media");
         return;
       }
       const p = new URLSearchParams({
@@ -1368,6 +1395,7 @@ async function handler(req, res) {
         redirect_uri: `https://localhost:${PORT}/api/auth/instagram/callback`,
         scope: "instagram_business_basic,instagram_business_manage_insights",
         response_type: "code",
+        state: neuerOauthState("instagram"),
       });
       umleitung(res, `https://www.instagram.com/oauth/authorize?${p}`);
       return;
@@ -1380,6 +1408,10 @@ async function handler(req, res) {
           res,
           `/?fehler=${encodeURIComponent(url.searchParams.get("error_description") || "Verbindung abgebrochen")}`
         );
+        return;
+      }
+      if (!oauthStateOk("instagram", url.searchParams.get("state"))) {
+        umleitung(res, OAUTH_STATE_FEHLER);
         return;
       }
       try {
@@ -1429,7 +1461,7 @@ async function handler(req, res) {
     if (pfad === "/api/auth/google" && req.method === "GET") {
       const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
       if (!clientId) {
-        sendJson(res, 500, { error: "GOOGLE_OAUTH_CLIENT_ID fehlt in .env" });
+        appFehlt(res, "Google Kalender + Tasks", "Google");
         return;
       }
       const p = new URLSearchParams({
@@ -1439,6 +1471,7 @@ async function handler(req, res) {
         scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks",
         access_type: "offline",
         prompt: "consent", // erzwingt den Refresh-Token auch bei erneutem Verbinden
+        state: neuerOauthState("google"),
       });
       umleitung(res, `https://accounts.google.com/o/oauth2/v2/auth?${p}`);
       return;
@@ -1448,6 +1481,10 @@ async function handler(req, res) {
       const code = url.searchParams.get("code");
       if (!code) {
         umleitung(res, `/?fehler=${encodeURIComponent(url.searchParams.get("error") || "Google-Verbindung abgebrochen")}`);
+        return;
+      }
+      if (!oauthStateOk("google", url.searchParams.get("state"))) {
+        umleitung(res, OAUTH_STATE_FEHLER);
         return;
       }
       try {
@@ -1647,7 +1684,9 @@ async function handler(req, res) {
       try { lokal = JSON.parse(await readFile(EINRICHTUNG_LOKAL_FILE, "utf8")); } catch { /* noch nie eingerichtet */ }
       if (lokal && lokal.ordner !== root) lokal = { ...lokal, fertig: false, grund: "anderer Ordner" };
       let board = null;
-      if (root) {
+      // v113 (M5): Ist dieser Rechner nicht fertig eingerichtet, steht die Entscheidung schon fest (Assistent) —
+      // dann Drive nicht fragen. Bei gestoertem Drive hielt dieses Lesen das Start-Tor bis 39 s gesperrt (v112).
+      if (root && lokal && lokal.fertig) {
         try { board = JSON.parse(await drive.readFile(`${pipeline.SYSTEM_ORDNER}/einrichtung.json`, { timeoutMs: 15000 })); }
         catch { /* fehlt oder Drive gestoert -> Assistent entscheidet */ }
       }
@@ -1858,7 +1897,7 @@ async function handler(req, res) {
     if (pfad === "/api/auth/linkedin" && req.method === "GET") {
       const clientId = process.env.LINKEDIN_CLIENT_ID;
       if (!clientId) {
-        sendJson(res, 500, { error: "LINKEDIN_CLIENT_ID fehlt in .env" });
+        appFehlt(res, "LinkedIn", "Social Media");
         return;
       }
       const p = new URLSearchParams({
@@ -1866,7 +1905,7 @@ async function handler(req, res) {
         client_id: clientId,
         redirect_uri: `https://localhost:${PORT}/api/auth/linkedin/callback`,
         scope: "r_organization_social rw_organization_admin",
-        state: "li_" + Date.now(),
+        state: neuerOauthState("linkedin"),
       });
       umleitung(res, `https://www.linkedin.com/oauth/v2/authorization?${p}`);
       return;
@@ -1876,6 +1915,10 @@ async function handler(req, res) {
       const code = url.searchParams.get("code");
       if (!code) {
         umleitung(res, `/?fehler=${encodeURIComponent("LinkedIn-Verbindung abgebrochen")}`);
+        return;
+      }
+      if (!oauthStateOk("linkedin", url.searchParams.get("state"))) {
+        umleitung(res, OAUTH_STATE_FEHLER);
         return;
       }
       try {
@@ -2031,7 +2074,7 @@ async function handler(req, res) {
     // v97: veroeffentlichte Posts den Karten zuordnen (eindeutig -> automatisch, sonst Vorschlag).
     if (pfad === "/api/zuordnung/pruefen" && req.method === "POST") {
       try {
-        sendJson(res, 200, await zuordnungPruefen());
+        sendJson(res, 200, { ...(await zuordnungPruefen()), verbunden: await verbundenePlattformen() });
       } catch (e) {
         sendJson(res, 502, { error: e.message });
       }
@@ -2052,7 +2095,7 @@ async function handler(req, res) {
           .sort((a, b) => Math.abs(a.zeit - bezug) - Math.abs(b.zeit - bezug))
           .slice(0, 20)
           .map((p) => ({ plattform: p.plattform, id: p.id, zeit: new Date(p.zeit).toISOString(), url: p.url, text: String(p.text || "").slice(0, 90), passt: !!p.passt(k.contenttyp) }));
-        sendJson(res, 200, { posts: liste });
+        sendJson(res, 200, { posts: liste, verbunden: await verbundenePlattformen() });
       } catch (e) {
         sendJson(res, 502, { error: e.message });
       }
@@ -2198,14 +2241,18 @@ async function ollamaEntladen() {
     const res = await fetch("http://localhost:11434/api/ps");
     if (!res.ok) return;
     const { models } = await res.json();
-    for (const m of (models || [])) {
+    // v113 (N12, Owner 07.10.2026): nur die Modelle entladen, die das Board selbst genutzt hat — nicht die
+    // anderer Programme (z. B. LAUI), die zufaellig gerade geladen sind.
+    const eigene = new Set(ki.vomBoardGenutzteOllamaModelle());
+    const zuEntladen = (models || []).filter((m) => eigene.has(m.name) || eigene.has(m.model));
+    for (const m of zuEntladen) {
       await fetch("http://localhost:11434/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ model: m.name, keep_alive: 0 }),
       }).catch(() => {});
     }
-    if ((models || []).length) console.log("Ollama: Modelle entladen.");
+    if (zuEntladen.length) console.log(`Ollama: ${zuEntladen.length} vom Board genutzte(s) Modell(e) entladen.`);
   } catch { /* Ollama war nicht aktiv */ }
 }
 
@@ -2218,7 +2265,9 @@ setInterval(async () => {
   }
 }, 5 * 60 * 1000);
 
-server.listen(PORT, async () => {
+// v113 (H8, Owner 07.10.2026): nur dieser Rechner. Die API hat keine Anmeldung — ohne Host-Angabe war sie im
+// ganzen WLAN erreichbar (gemessen: https://192.168.0.131:4399/api/board -> 200). OAuth-Rueckrufe laufen ueber localhost.
+server.listen(PORT, "127.0.0.1", async () => {
   console.log(`WEE Social Media Suit laeuft auf https://localhost:${PORT}`);
   // v98: Alles hier ist Hintergrundarbeit — sie wartet 60 s, damit das Board beim Start zuerst die Drive-
   // Warteschlange bekommt (alle rclone-Aufrufe laufen nacheinander; gemessen standen KPI-Tabellen mit 15 s

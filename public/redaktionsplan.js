@@ -270,6 +270,13 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
   abstandHinweis.textContent = "0 = keine Grenze. Sonst wird kein Upload weiter als N Tage vom vorherigen entfernt geplant.";
   koerper.appendChild(abstandHinweis);
   const getMaxAbstand = () => Math.max(0, Math.floor(Number(abstandInput.value) || 0));
+  // v113 (N5): ein negativer Wert wurde still zu 0 (= keine Grenze) — jetzt sichtbar korrigiert und erklaert.
+  abstandInput.addEventListener("change", () => {
+    if (Number(abstandInput.value) < 0) {
+      abstandInput.value = "0";
+      abstandHinweis.textContent = "Negative Werte gibt es nicht — auf 0 gesetzt, das heißt: keine Grenze. Sonst wird kein Upload weiter als N Tage vom vorherigen entfernt geplant.";
+    }
+  });
 
   // ── Inhaltskategorien (v78 Phase D) ────────────────────────────────────
   // Aktiv/Prioritaet/Liste leben im Einstellungs-Tab „Kategorien & Ziele"; hier nur der %-Anteil je

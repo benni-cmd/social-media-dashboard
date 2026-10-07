@@ -66,6 +66,8 @@ const EMPFEHLUNG = {
 const PROMPT_REIHE = [
   ["system", "Gilt fuer JEDEN Text, den die KI fuer dich schreibt: Rolle, Arbeitsweise, Hausregeln, belegte Praxis. Marke und Zielgruppe kommen aus dem Firmenkontext."],
   ["ideen", "Anfang der Kette: „Idee von der KI“ schlaegt Themen vor, passend zu Kategorie, Zielgruppe und freien Upload-Slots."],
+  // v113 (N4, Owner 07.10.2026): fehlte in der Reihe — der Knopf mit dem Anlass-Namen in der ersten Spalte (v107).
+  ["anlass_ideen", "Kampagnen: schlaegt zu einem Anlass aus einer Kampagnen-Tabelle (z. B. Welternaehrungstag) Themen vor, die zum Datum passen."],
   ["recherche", "Schritt 1 einer Karte: sucht im Web, zieht belastbare Fakten heraus und schlaegt drei Blickwinkel (Fokus) vor."],
   ["hooks_verbal", "Schritt 2: drei gesprochene Einstiege genau zum gewaehlten Fokus."],
   ["hooks_visuell", "Schritt 3: drei Bild-Einstiege, die den gewaehlten Hook ohne Ton tragen."],
@@ -100,20 +102,31 @@ const postJson = (url, body) => sende(url, "POST", body);
 
 export async function leseStand() {
   const sicher = (p, leer = {}) => p.catch(() => leer);
-  const [driveE, verb, ollama, defaults, name] = await Promise.all([
+  const [driveE, verb, ollama, defaults, name, einr] = await Promise.all([
     sicher(holeJson("/api/drive/einrichtung")),
     sicher(holeJson("/api/verbindungen/status")),
     sicher(holeJson("/api/ai/ollama"), { laeuft: false, modelle: [] }),
     sicher(holeJson("/api/defaults")),
     sicher(holeJson("/api/board/name")),
+    sicher(holeJson("/api/einrichtung/stand")),
   ]);
+  // v113 (M4): bewusst auf spaeter gelegte Schritte dieses Rechners (heute nur Google) — sie oeffnen den
+  // Assistenten nicht mehr von selbst, bleiben aber als offen sichtbar.
+  const ausgelassen = (einr.lokal && Array.isArray(einr.lokal.ausgelassen) && einr.lokal.ausgelassen) || [];
   const ordnerOk = !!(driveE.root && driveE.erreichbar);
   // Was im Ordner liegt, nur lesen, wenn der Ordner erreichbar ist (sonst haengen die Aufrufe).
   const [kontext, prompts, plan] = ordnerOk
     ? await Promise.all([sicher(holeJson("/api/kontext")), sicher(holeJson("/api/prompts")), sicher(holeJson("/api/plan"))])
     : [{}, {}, {}];
-  return { drive: driveE, verb, ollama, defaults, name, kontext, prompts, plan, ordnerOk };
+  return { drive: driveE, verb, ollama, defaults, name, kontext, prompts, plan, ordnerOk, ausgelassen };
 }
+
+// v113 (M4, Owner 07.10.2026): „Später" bei diesen Schritten wird auf diesem Rechner gemerkt.
+const MERKBAR_SPAETER = new Set(["google"]);
+const istAusgelassen = (st, id) => !!(st && Array.isArray(st.ausgelassen) && st.ausgelassen.includes(id));
+// v113: Anmelde-Schritte, die der gewaehlte KI-Weg gar nicht braucht (Abschluss-Liste zeigt „nicht nötig").
+const nichtNoetig = (id, st) =>
+  id === "claude" ? !nutzt(st, "claude") : id === "chatgpt" ? !nutzt(st, "codex") : id === "ollama" ? !nutzt(st, "ollama") : false;
 
 const bestaetigtePrompts = (st) => (st.defaults && st.defaults.promptsBestaetigt) || {};
 // v96 (Owner 01.10.2026): erledigt ist ein Prompt, wenn sein Vorschlag einmal bestaetigt wurde ODER es eine eigene
@@ -246,9 +259,13 @@ const SCHRITTE = [
 ];
 
 // Welche Schritte sind offen? (Stand + Entwurf)
-export function offeneSchritte(st) {
+// v113 (M4): bewusst auf spaeter gelegte Schritte zaehlen fuer die Start-Entscheidung nicht als offen
+// (`mitAusgelassenen` zeigt sie trotzdem — fuer die Status-Datei und die Anzeige).
+export function offeneSchritte(st, { mitAusgelassenen = false } = {}) {
   const w = wirksam(st);
-  return SCHRITTE.map((s) => ({ s, ...s.pruefe(w) })).filter((x) => x.fehlt || x.gesperrt);
+  return SCHRITTE.map((s) => ({ s, ...s.pruefe(w) }))
+    .filter((x) => x.fehlt || x.gesperrt)
+    .filter((x) => mitAusgelassenen || !istAusgelassen(st, x.s.id));
 }
 
 // Beim Start: Stand lesen; fehlt etwas ODER liegt ein ungespeicherter Entwurf vor, Assistent oeffnen.
@@ -276,13 +293,27 @@ function zeigeSperre(text) {
 
 // Schreibt den echten Stand in beide Status-Dateien (Board-Schritte nach Drive, Anbindungen lokal).
 export async function schreibeStand(st) {
-  const offen = offeneSchritte(st).map((x) => x.s.id);
-  const lokalOffen = offen.filter((id) => LOKALE_SCHRITTE.has(id));
+  const offen = offeneSchritte(st, { mitAusgelassenen: true }).map((x) => x.s.id);
   const boardOffen = offen.filter((id) => !LOKALE_SCHRITTE.has(id));
   await postJson("/api/einrichtung/stand", {
-    lokal: { fertig: lokalOffen.length === 0, offen: lokalOffen },
+    lokal: lokalStand(st, offen),
     board: st.ordnerOk ? { fertig: boardOffen.length === 0, offen: boardOffen } : undefined,
   }).catch(() => {});
+}
+
+// v113 (M4): der lokale Teil — `offen` nennt alles Offene (auch bewusst Verschobenes), `fertig` zaehlt nur,
+// was NICHT bewusst auf spaeter gelegt ist. So kommt der Assistent wegen Google nicht bei jedem Start.
+function lokalStand(st, offen = offeneSchritte(st, { mitAusgelassenen: true }).map((x) => x.s.id)) {
+  const lokalOffen = offen.filter((id) => LOKALE_SCHRITTE.has(id));
+  const ausgelassen = (st.ausgelassen || []).filter((id) => lokalOffen.includes(id));
+  return { fertig: lokalOffen.every((id) => ausgelassen.includes(id)), offen: lokalOffen, ausgelassen };
+}
+
+// v113 (M4): „Später" bei Google sofort auf diesem Rechner merken (nur der lokale Teil — der Board-Teil haengt
+// am Entwurf und wird erst beim Speichern geschrieben).
+async function merkeAusgelassen(st, id) {
+  st.ausgelassen = [...new Set([...(st.ausgelassen || []), id])];
+  await postJson("/api/einrichtung/stand", { lokal: lokalStand(st) }).catch(() => {});
 }
 
 export async function startTor() {
@@ -301,7 +332,7 @@ export async function startTor() {
       sperre.weg();
       return;
     }
-    await starteEinrichtung(st); // der Assistent liegt jetzt selbst ueber dem Board
+    await starteEinrichtung(st, { vonSelbst: true }); // der Assistent liegt jetzt selbst ueber dem Board
     sperre.weg();
   } catch {
     sperre.weg(); // nie ein dauerhaft gesperrtes Board
@@ -313,7 +344,9 @@ export const einrichtungBeimStart = startTor;
 
 // --- Assistent ---------------------------------------------------------------
 
-export async function starteEinrichtung(stand = null) {
+// `vonSelbst` (v113 M4): beim Start geoeffnet — dann bleiben bewusst verschobene Schritte (Google) uebersprungen;
+// ueber Einstellungen → Einrichtung von Hand gestartet, bietet der Assistent sie wieder an.
+export async function starteEinrichtung(stand = null, { vonSelbst = false } = {}) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   const box = document.createElement("div");
@@ -331,7 +364,7 @@ export async function starteEinrichtung(stand = null) {
   fuss.className = "einr-fuss";
   box.append(kopf, leiste, inhalt, fuss);
 
-  const spaeter = new Set(); // in DIESER Sitzung uebersprungen
+  const spaeter = new Set(vonSelbst && stand ? stand.ausgelassen || [] : []); // in DIESER Sitzung uebersprungen
   let st = stand;
   let weiterAktion = null;
   const eff = () => wirksam(st);
@@ -378,7 +411,8 @@ export async function starteEinrichtung(stand = null) {
     return d;
   }
 
-  async function zeige(i) {
+  // `hinweis` (v113 M3): eine Zeile ueber dem Schritt, z. B. warum „Weiter" denselben Schritt erneut zeigt.
+  async function zeige(i, hinweis = "") {
     if (i < 0) return zeigeAbschluss();
     const s = SCHRITTE[i];
     try { localStorage.setItem(MERKER, s.id); } catch {}
@@ -391,17 +425,26 @@ export async function starteEinrichtung(stand = null) {
     zeichneLeiste(i);
     inhalt.innerHTML = "";
     weiterAktion = null;
-    s.baue(inhalt, { st: w, setzeWeiter: (f) => (weiterAktion = f), schliessen });
+    let weiterKnopf = null;
+    s.baue(inhalt, { st: w, setzeWeiter: (f) => (weiterAktion = f), schliessen, weiter: () => weiterKnopf && weiterKnopf.click() });
+    if (hinweis) inhalt.prepend(absatz(escape(hinweis), "einr-warn"));
 
     fuss.innerHTML = "";
     fuss.appendChild(entwurfHinweis());
     const rechts = document.createElement("div");
     rechts.className = "einr-fuss-rechts";
+    const merkbar = MERKBAR_SPAETER.has(s.id);
     rechts.appendChild(knopf("Später", {
-      titel: "Diesen Schritt jetzt überspringen — beim nächsten Start wird wieder gefragt",
-      klick: () => { spaeter.add(s.id); zeige(naechster(i + 1) >= 0 ? naechster(i + 1) : naechster(0)); },
+      titel: merkbar
+        ? "Auf später legen — der Assistent fragt deswegen nicht mehr von selbst; unter Einstellungen → Einrichtung bleibt es als offen sichtbar"
+        : "Diesen Schritt jetzt überspringen — beim nächsten Start wird wieder gefragt",
+      klick: async () => {
+        spaeter.add(s.id);
+        if (merkbar) await merkeAusgelassen(st, s.id); // v113 (M4, Owner 07.10.2026)
+        zeige(naechster(i + 1) >= 0 ? naechster(i + 1) : naechster(0));
+      },
     }));
-    rechts.appendChild(knopf("Weiter", {
+    rechts.appendChild(weiterKnopf = knopf("Weiter", {
       art: "haupt",
       klick: async (e) => {
         const b = e.currentTarget;
@@ -415,7 +458,8 @@ export async function starteEinrichtung(stand = null) {
             await s.nachpruefen(st).catch(() => {});
           }
           const nochOffen = s.pruefe(eff()).fehlt && !spaeter.has(s.id);
-          zeige(nochOffen ? i : naechster(0));
+          // v113 (M3): bis v112 erschien derselbe Schritt kommentarlos wieder (13 Klicks im Test, keine Erklaerung).
+          zeige(nochOffen ? i : naechster(0), nochOffen ? "Noch nicht erledigt — erst diesen Schritt abschließen oder „Später“ wählen." : "");
         } finally { b.disabled = false; }
       },
     }));
@@ -442,8 +486,12 @@ export async function starteEinrichtung(stand = null) {
     const zeilen = SCHRITTE.map((s) => {
       const p = s.pruefe(w);
       const erledigt = !p.fehlt && !p.gesperrt;
-      const grund = p.gesperrt ? ` — ${p.gesperrt}` : p.fehlt ? " — noch offen" : "";
-      return `<li class="${erledigt ? "ok" : "weg"}">${erledigt ? "✓" : "○"} ${escape(s.titel)}${escape(grund)}</li>`;
+      // v113: „✓ ChatGPT anmelden" stand auch da, wenn der gewaehlte KI-Weg ChatGPT gar nicht nutzt.
+      const unnoetig = erledigt && nichtNoetig(s.id, w);
+      const grund = p.gesperrt ? ` — ${p.gesperrt}`
+        : p.fehlt ? (istAusgelassen(st, s.id) ? " — bewusst auf später gelegt (fragt nicht mehr von selbst)" : " — noch offen")
+        : unnoetig ? " — für deinen KI-Weg nicht nötig" : "";
+      return `<li class="${erledigt ? "ok" : "weg"}">${unnoetig ? "–" : erledigt ? "✓" : "○"} ${escape(s.titel)}${escape(grund)}</li>`;
     });
     inhalt.appendChild(absatz(`<ul class="einr-liste">${zeilen.join("")}</ul>`));
     const log = altLog || document.createElement("div");
@@ -890,13 +938,14 @@ function baueFirma(el, { st, setzeWeiter }) {
 // Prompts: nur die noch nicht bestaetigten, einer nach dem anderen. Je Prompt der Vorschlag
 // (Standard) — und, falls vorhanden, die eigene Fassung zum Vergleich. „Weiter" speichert, was im
 // Feld steht: identisch mit dem Vorschlag = Standard (keine eigene Fassung), sonst eigene Fassung.
-function bauePrompts(el, { st, setzeWeiter }) {
+function bauePrompts(el, { st, setzeWeiter, weiter }) {
   const p = st.prompts;
   const nachId = Object.fromEntries((p.aufgaben || []).map((a) => [a.id, a]));
   const legende = { ...(p.system?.platzhalter || {}), ...((p.aufgaben || [])[0]?.platzhalter || {}) };
   const rolleName = Object.fromEntries((p.rollen || []).map((r) => [r.id, r.name]));
   const reihe = offenePrompts(st);
   let i = 0;
+  let alleUebernehmen = false; // v113 (N4): „Alle übrigen Vorschläge übernehmen"
 
   const zeichneEinen = () => {
     el.innerHTML = "";
@@ -924,6 +973,16 @@ function bauePrompts(el, { st, setzeWeiter }) {
     const warn = absatz("", "einr-warn");
     el.appendChild(warn);
 
+    // v113 (N4, Owner 07.10.2026): alle noch offenen Vorschlaege auf einmal bestaetigen. Der gerade angezeigte
+    // Prompt wird wie bei „Weiter" behandelt (angepasst = eigene Fassung); alle folgenden als Vorschlag bestaetigt.
+    if (i < reihe.length - 1 && weiter) {
+      const alle = knopf(`Alle übrigen ${reihe.length - i} Vorschläge übernehmen`, {
+        titel: "Bestätigt diesen und alle folgenden Vorschläge unverändert — einzeln anpassen geht später unter Einstellungen → Prompts",
+        klick: () => { alleUebernehmen = true; weiter(); },
+      });
+      el.appendChild(alle);
+    }
+
     setzeWeiter(async () => {
       // v94: Entwurf. Unveraenderter Vorschlag = nichts zu schreiben (nur bestaetigen); angepasst = eigene Fassung.
       const istVorschlag = texte.every((t, j) => t.value === vorschlag[j]);
@@ -931,8 +990,10 @@ function bauePrompts(el, { st, setzeWeiter }) {
       const promptsNeu = { ...(e.prompts || {}) };
       if (istVorschlag) delete promptsNeu[id];
       else promptsNeu[id] = id === "system" ? texte[0].value : (a.standard || []).map((s, j) => ({ ...s, prompt: texte[j].value }));
-      setzeEntwurf({ prompts: promptsNeu, promptsBestaetigt: { ...(e.promptsBestaetigt || {}), [id]: true } });
-      if (i < reihe.length - 1) { i++; zeichneEinen(); return false; } // naechster Prompt, Schritt bleibt
+      const bestaetigt = { ...(e.promptsBestaetigt || {}), [id]: true };
+      if (alleUebernehmen) for (const [rest] of reihe.slice(i + 1)) bestaetigt[rest] = true;
+      setzeEntwurf({ prompts: promptsNeu, promptsBestaetigt: bestaetigt });
+      if (!alleUebernehmen && i < reihe.length - 1) { i++; zeichneEinen(); return false; } // naechster Prompt, Schritt bleibt
       return true;
     });
   };
@@ -955,7 +1016,7 @@ function baueGoogle(el, { st }) {
     el.appendChild(absatz(
       "Einmalig braucht das Board eine Google-Cloud-App für Kalender und Tasks (dasselbe Projekt wie für Drive geht):<br>" +
       "1. <b>console.cloud.google.com</b> → <i>Google Calendar API</i> und <i>Google Tasks API</i> aktivieren.<br>" +
-      "2. Credentials → OAuth client ID → <b>Web application</b>, Redirect URI <code>https://localhost:4321/api/auth/google/callback</code>.<br>" +
+      "2. Credentials → OAuth client ID → <b>Web application</b>, Redirect URI <code>https://localhost:" + location.port + "/api/auth/google/callback</code>.<br>" +
       "3. Für Dauerbetrieb die App auf „In production“ stellen (im Modus „Testing“ läuft die Anmeldung nach 7 Tagen ab)."));
     const id = eingabe("", { platzhalter: "Client-ID (…apps.googleusercontent.com)" });
     const geheim = eingabe("", { typ: "password", platzhalter: "Client-Secret" });

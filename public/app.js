@@ -10,7 +10,8 @@ import { zeichneDetail, beiSchieben } from "./detail.js";
 import { fortschritt, einstellungenModal, meldung, sanduhr, wendeCursorModusAn, gecachterCursorModus, ladeCursorModusVomServer, icon, cacheZeit } from "./ui.js";
 // P27: eigene, kleine Imports statt die bestehende store.js/pipeline.js-Importzeile
 // anzufassen — haelt diese Ergaenzung unabhaengig von paralleler Arbeit an store.js.
-import { phaseIndex, faelligkeit } from "/lib/pipeline.js";
+import { phaseIndex } from "/lib/pipeline.js";
+import { zeitAmpel } from "./store.js";
 import { verdrahteDetailBreite } from "./detail-breite.js";
 import { verdrahteAnschluesse, alleAbgleichen, merkeDriveStufe } from "./anschluesse.js"; // v58: Anschluss-Leiste + Kopf-Satz
 import { startTor } from "./einrichtung.js"; // v101: Einrichtungsstand zuerst, Board erst danach bedienbar
@@ -108,8 +109,9 @@ beiSchieben(schiebe);
 // Dringlichkeit der Faelligkeit (ueberfaellig zuerst, dann je naeher am Termin). Karten ohne
 // gesetztes Datum zaehlen als mittel dringend, nicht als dringlichste — siehe Paket-Doc.
 function dringlichkeit(k) {
-  const f = faelligkeit(k);
-  if (f.tage == null) return 0;
+  // v113 (M1): dieselbe dringlichste Frist wie der Punkt auf der Kachel (zeitAmpel), nicht mehr faelligkeit().
+  const f = zeitAmpel(k).frist;
+  if (!f || f.tage == null) return 0;
   return f.tage < 0 ? -100000 + f.tage : f.tage;
 }
 function naechsteSinnvolleKarte() {

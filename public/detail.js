@@ -15,7 +15,6 @@ import {
   phase,
   phaseIndex,
   naechstePhase,
-  faelligkeit,
   tore,
   sperren,
   // rueckwaertsplan laeuft ab v26 ueber store.terminplan() — Workflow-Schalter
@@ -35,6 +34,7 @@ import {
   POSTZEITEN,
   projektPfad,
   parseJsonNachsichtig,
+  FORMAT_DATEINAMEN,
 } from "/lib/pipeline.js";
 import { fensterFuerTyp } from "/lib/scheduler.js";
 import { naechsterFreierUpload } from "/lib/uploadslots.js";
@@ -69,6 +69,8 @@ import {
   terminplan,
   schwebendeNeuBerechnen,
   ladeBoard,
+  zeitAmpel,
+  drehZuSpaet,
 } from "./store.js";
 import { modalDrehtermin } from "./drehtermine.js";
 import {
@@ -423,7 +425,7 @@ function blockStamm(k, merke) {
   const { d, box: mehr } = klappe("Weitere Angaben", offenFuer(k, "stamm-mehr", false), merkeKlapp(k, "stamm-mehr"));
   const reihe = document.createElement("div");
   reihe.className = "feld-reihe";
-  const serie = eingabe(k.serie, { platzhalter: "z. B. ProjectOasis" });
+  const serie = eingabe(k.serie, { platzhalter: "z. B. Name der Reihe" }); // v113 (N8): neutral
   serie.addEventListener("change", () => merke("serie", serie.value, true));
   const episode = eingabe(k.episode, { platzhalter: "01" });
   episode.addEventListener("change", () => merke("episode", episode.value, true));
@@ -483,6 +485,8 @@ function stammZusammenfassung(k) {
 // v97: Welcher echte Post gehoert zu dieser Karte? Eindeutige Treffer traegt das Board selbst ein (hoechstens
 // 3 Std. neben dem geplanten Upload, Format passt); im Zweifel fragt es hier nach. Ab der Zuordnung laufen die
 // KPI-Messungen ab der echten Post-Zeit. Paket: docs/packages/v97-upload-fest-und-kpi-zuordnung.md
+const NICHT_VERBUNDEN = "Weder Instagram noch LinkedIn ist verbunden — erst unter Einstellungen → Social Media verbinden, dann findet das Board die Posts.";
+
 function blockVeroeffentlicht(k) {
   const g = gruppeMitFarbe("veroeffentlicht", "Veröffentlicht", null, offenFuer(k, "veroeffentlicht", true), merkeKlapp(k, "veroeffentlicht"));
   const box = document.createElement("div");
@@ -542,6 +546,13 @@ function blockVeroeffentlicht(k) {
       b.disabled = true;
       b.textContent = "Sucht …";
       const r = await (await fetch("/api/zuordnung/pruefen", { method: "POST" })).json().catch(() => ({}));
+      // v113 (M9): ohne verbundene Plattform gibt es nichts zu suchen — das sagen statt „0 Posts geprüft".
+      if (!r.error && Array.isArray(r.verbunden) && !r.verbunden.length) {
+        await melde("hinweis", NICHT_VERBUNDEN);
+        b.disabled = false;
+        b.textContent = "Jetzt nach Posts suchen";
+        return;
+      }
       meldung(r.error ? `Suche fehlgeschlagen: ${r.error}` : `${r.posts || 0} Posts geprüft: ${r.auto || 0} zugeordnet, ${r.vorschlaege || 0} zum Bestätigen.`, r.error ? "fehler" : "erfolg");
       await ladeBoard();
       zeichne();
@@ -563,7 +574,9 @@ function blockVeroeffentlicht(k) {
       b.disabled = false;
       handBox.innerHTML = "";
       if (r.error || !(r.posts || []).length) {
-        handBox.textContent = r.error ? `Posts nicht ladbar: ${r.error}` : "Keine freien Posts gefunden (alle sind schon Karten zugeordnet).";
+        handBox.textContent = r.error ? `Posts nicht ladbar: ${r.error}`
+          : Array.isArray(r.verbunden) && !r.verbunden.length ? NICHT_VERBUNDEN // v113 (M9)
+          : "Keine freien Posts gefunden (alle sind schon Karten zugeordnet).";
         return;
       }
       const hinweis = document.createElement("p");
@@ -605,7 +618,10 @@ function blockTermine(k, merke) {
 
   if (istIdee) return blockTermineIdee(k, merke);
 
-  const f = faelligkeit(k);
+  // v113 (M1, Owner 07.10.2026): dieselbe dringlichste Frist wie der Punkt auf der Kachel. Bis v112 stand hier
+  // faelligkeit() — alter Zwischenspeicher card.dates[termin] und eigene Farbschwellen; bei 4 von 6 echten Karten in
+  // Dreh-Phasen hiess es „kein Datum gesetzt", obwohl ein Drehtermin zugeordnet war und der Punkt rot stand.
+  const f = zeitAmpel(k);
   const g = gruppeMitFarbe("termin", "Termin", null, offenFuer(k, "termin", true), merkeKlapp(k, "termin"));
   const box = document.createElement("div");
 
@@ -739,10 +755,12 @@ function blockDrehtermin(k) {
       const wahl = document.createElement("div");
       wahl.className = "dreh-wahl";
       for (const x of kommend) {
+        const zuSpaet = drehZuSpaet(k, x); // v113 (N13): vor dem Klick sichtbar
         const b = knopf(
-          `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})`,
+          `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})${zuSpaet ? " · zu spät" : ""}`,
           { zeichen: "kalender", klick: () => zuordnen(x.id) }
         );
+        if (zuSpaet) b.title = zuSpaet;
         b.classList.add("knopf-breit");
         wahl.appendChild(b);
       }
@@ -815,7 +833,9 @@ function blockTermineIdee(k, merke) {
     slotKachel.style.cursor = "wait";
     kacheln.appendChild(slotKachel);
 
-    ladePlan().then((plan) => {
+    // v113 (H3): den schon geladenen Plan nehmen — jedes Zeichnen lud ihn sonst neu (samt Kampagnen-Tabellen),
+    // und das anschliessende Neuzeichnen startete den naechsten Lauf (Endlosschleife, v112).
+    (S.plan ? Promise.resolve(S.plan) : ladePlan()).then((plan) => {
       // v89: eine Regel fuer alle Stellen — Format der Karte + machbarer Vorlauf (lib/uploadslots.js).
       const { slot: naechster, grund } = naechsterFreierUpload({
         plan, card: k, cards: S.cards, drehtermine: S.drehtermine,
@@ -1467,12 +1487,8 @@ function skriptLoop(k, box) {
 // Nicht-Kurzvideo-Formate durchlaufen in der Erstell-Phase ihren eigenen Flow: Format-Knopf →
 // rufeKi → strukturiertes Ergebnis (k.formate[task]) → bespoke, editierbarer Editor → nach Drive.
 
-const FORMAT_DATEINAME = {
-  Carousel: "10_slider.md",
-  Bildpost: "10_beitrag.md",
-  Story: "10_story.md",
-  Video: "10_konzept.md",
-};
+// v113: die Tabelle lebt in lib/pipeline.js — das Tor „Format-Datei" prueft genau diese Namen.
+const FORMAT_DATEINAME = FORMAT_DATEINAMEN;
 
 const fmtDaten = (k, task) => (k.formate || {})[task] || null;
 
@@ -1909,7 +1925,7 @@ function felderCaption(k, box, merke) {
 
   for (const pl of k.platforms || []) {
     const tags = ((c.hashtags || {})[pl] || []).join(" ");
-    const e = eingabe(tags, { platzhalter: "#WorldEdenEra #ProjectOasis" });
+    const e = eingabe(tags, { platzhalter: "#Marke #Thema" }); // v113 (N8): neutral statt WEE-Hashtags
     e.addEventListener("change", () => {
       const neu = { ...(k.caption.hashtags || {}) };
       neu[pl] = e.value.split(/\s+/).map((s) => s.trim()).filter(Boolean);
@@ -2219,8 +2235,8 @@ function loeschenEintrag(k) {
         "Ja, loeschen",
         async () => {
           try {
-            await loescheKarte(k.id);
-            meldung(k.driveName ? "Karte geloescht — der Drive-Ordner liegt im Papierkorb." : "Karte geloescht.", "erfolg");
+            const r = await loescheKarte(k.id);
+            meldung(r && r.getrasht ? "Karte geloescht — der Drive-Ordner liegt im Papierkorb." : "Karte geloescht.", "erfolg");
           } catch (e) {
             meldung(`Loeschen fehlgeschlagen, die Karte bleibt: ${e.message}`, "fehler");
           }
@@ -2356,6 +2372,11 @@ async function nachDrive(k, dateiname, inhalt, knopfEl, box) {
   if (knopfEl) knopfEl.disabled = true;
   try {
     const r = await driveSpeichern(k, dateiname, inhalt);
+    // v113 (H6): ohne eigenen Ordner legt der Server ihn jetzt regulaer an (freier Name) — den Namen festhalten.
+    if (r.name && k.driveName !== r.name) {
+      k.driveName = r.name;
+      await speichere();
+    }
     setStand(`Gespeichert: ${r.pfad}`);
     meldung("Datei in Drive gespeichert.", "erfolg");
     await driveScan(k, true).catch(() => {});
