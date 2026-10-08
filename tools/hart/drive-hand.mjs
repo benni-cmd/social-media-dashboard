@@ -137,6 +137,39 @@ export async function lauf({ port }) {
       t.gleich("von Hand verschoben: Board folgt Drive", ((await leseBoard(u)).cards.find((c) => c.id === k.id) || {}).column, "caption");
     }
 
+    // --- Drive-Wurzel ganz weg (wie ein geloeschter oder entzogener Board-Ordner in Google Drive) ----
+    // Der Schein-Drive legt einen fehlenden Ordner beim Schreiben neu an; echtes Drive meldet einen Fehler. Darum ersetzt
+    // der Test die Wurzel durch eine DATEI — dann scheitert jeder Zugriff wie bei echtem Drive.
+    {
+      const k = await neueKarte(u, { title: "TEST hart Wurzel", column: "skript" });
+      const vorher = await leseBoard(u);
+      const { driveRuhig } = await import("./umgebung.mjs");
+      await driveRuhig(u);
+      await rename(u.driveDir, u.driveDir + ".weg");
+      await writeFile(u.driveDir, "keine Wurzel");
+      const antworten = {
+        verschieben: await u.api("POST", "/api/drive/move", { card: k, ziel: "videodreh" }),
+        speichern: await u.api("POST", "/api/drive/save", { card: k, filename: "10_skript.txt", content: "x" }),
+        anlegen: await u.api("POST", "/api/drive/create", { id: "wurzelneu", title: "TEST hart Wurzel neu", column: "idee" }),
+        loeschen: await u.api("POST", "/api/karte/loeschen", k),
+        scan: await u.api("POST", "/api/drive/scan?frisch=1", k),
+        abgleich: await u.api("POST", "/api/drive/reconcile", {}),
+      };
+      const lebt = await u.lebt();
+      const nach = await leseBoard(u);
+      await rm(u.driveDir, { force: true });
+      await rename(u.driveDir + ".weg", u.driveDir);
+      const kurz = Object.fromEntries(Object.entries(antworten).map(([n, r]) => [n, `${r.status} ${((r.daten && (r.daten.satz || r.daten.error)) || r.text).slice(0, 90)}`]));
+      t.ok("Wurzel weg: Server lebt, kein Vorgang meldet Erfolg", lebt && ["verschieben", "speichern", "anlegen", "loeschen"].every((n) => antworten[n].status >= 400), kurz);
+      t.ok("Wurzel weg: Löschen scheitert sichtbar (Karte bleibt, Ordner bleibt)", antworten.loeschen.status >= 400 && /nicht erreichbar/.test((antworten.loeschen.daten && antworten.loeschen.daten.satz) || ""), kurz.loeschen);
+      t.ok("Wurzel weg: Meldungen deutsch, ohne rclone-Logzeile", Object.values(antworten).every((r) => !/\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}|ERROR :|Cannot |is not a function/.test((r.daten && (r.daten.satz || r.daten.error || JSON.stringify(r.daten.befunde || ""))) || r.text)), kurz);
+      t.ok("Wurzel weg: Scan meldet Störung statt „noch kein Ordner“", antworten.scan.daten && antworten.scan.daten.driveOk === false && /nicht erreichbar/.test(antworten.scan.daten.satz || ""), antworten.scan.daten);
+      t.ok("Wurzel weg: Karten im Board unverändert", nach.cards.length === vorher.cards.length && nach.cards.some((c) => c.id === k.id && c.column === "skript"), { vorher: vorher.cards.length, nach: nach.cards.length });
+      const heil = await u.api("POST", "/api/drive/reconcile", {});
+      const orte = await findeOrdner(u, "TEST hart Wurzel");
+      t.ok("Wurzel zurück: Abgleich 200, Karte und Ordner wie vorher", heil.status === 200 && orte.length === 1 && orte[0] === "In Bearbeitung/2 Skript/TEST hart Wurzel", { status: heil.status, orte });
+    }
+
     // --- Ziel nicht beschreibbar: Dateien bleiben, Meldung deutsch --------------------------------
     {
       const k = await neueKarte(u, { title: "TEST hart Ziel", column: "skript" });

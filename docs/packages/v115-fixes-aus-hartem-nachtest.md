@@ -119,10 +119,24 @@ wiederholbar belegt. Offen bleibt, was nur am echten System prüfbar ist (unten)
 
 ## Nur am echten System prüfbar (Owner)
 
-1. Live-Board neu starten (`Start-Board.cmd`), danach einmal „Alles abgleichen" — der erste Abgleich repariert vorhandene Karten mit falschen Typen und legt ggf. Sicherungen an.
-2. Drive-Wurzel kurz umbenennen, eine Karte verschieben, Meldung ansehen, zurückbenennen (Schein-Drive legt eine fehlende Wurzel neu an).
-3. Einen echten großen Rohmaterial-Ordner als ZIP laden.
-4. Unverändert aus v112: Drive-API-Funktionen (Umbenennen, Ordner-Link, geteilte Ablage, Kontowechsel), OAuth live, KPI, Codex-Weg.
+Stand 08.10.2026 nach Owner-Nachfrage („kannst du die restlichen Schritte nicht zuverlässig testen?"):
+
+- **Erledigt:** Live-Board neu gestartet und abgeglichen (Ben, 13:36/13:41 — Prozessstart nach Commit `300b001`, `board.json` geschrieben).
+- **Jetzt von mir getestet statt von Ben:** Drive-Wurzel weg — `tools/hart` ersetzt die Wurzel durch eine Datei, dann scheitert
+  jeder Zugriff wie bei echtem Drive. Das fand einen echten Fehler (unten, W1), jetzt behoben; 6 Prüfungen ok.
+- **Entfällt:** Codex-Weg — die Codex-CLI ist auf diesem Rechner nicht installiert, Ben nutzt „Claude + lokal".
+- **Kein eigener Schritt mehr:** großes echtes Rohmaterial-ZIP — ZIP64 ist mit 4,3/4,4 GB und zwei Entpackern belegt; am echten Drive
+  kommt nur die Download-Zeit dazu. Beim nächsten echten Bedarf nebenbei beobachten.
+- **Bleibt bei Ben (geht nur mit seinen Konten):** Drive-Funktionen über die Google-API (Board-Ordner umbenennen, „In Drive öffnen",
+  geteilte Ablage, Kontowechsel) und OAuth/KPI für Google, Instagram, LinkedIn. Grund: Der Zugriff auf Bens echtes Drive wurde vom
+  Berechtigungs-Wächter abgelehnt („Production Reads"), und Anmeldungen mit Passwort darf nur Ben selbst durchführen. Diese
+  Funktionen hat v113–v115 nicht verändert — es ist die einmalige Erstprüfung am echten System, kein Regressionsrisiko aus v115.
+
+**W1 (neu, behoben):** Fehlt der Board-Ordner in Drive (gelöscht, verschoben, Freigabe entzogen), meldet Drive für jeden Pfad „nicht
+gefunden". Das Board hielt das für „diese Karte hat keinen Ordner": Der Scan sagte „noch kein Ordner", **Löschen meldete Erfolg ohne
+Papierkorb** — der Browser nahm die Karte heraus, ihr Ordner blieb, und sobald Drive wieder erreichbar war, holte der Abgleich die
+gelöschte Karte zurück. Fix: `pruefeBoardOrdner()` in `lib/projects.js` — „kein Ordner" gilt nur, wenn der Ordner der ersten Phase
+erreichbar ist; sonst scheitert Löschen sichtbar (Karte bleibt) und der Scan meldet eine Störung. Beleg: `drive-hand` „Wurzel weg" 6/6.
 
 ## Definition of Done
 
@@ -130,4 +144,4 @@ wiederholbar belegt. Offen bleibt, was nur am echten System prüfbar ist (unten)
 - [x] `tools/hart` läuft ohne echte Daten und ohne echtes Drive und räumt hinter sich auf (0 Temp-Ordner übrig)
 - [x] Selbsttests grün, Doku synchron, Commit per Pfad + Push
 
-Geprueft gegen: `node tools/hart/lauf.mjs --zip-gross` (127 ok), unabhängige Gegenprüfung (7 Funde, behoben), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Live-Board-Neustart und Echt-Drive-Prüfungen (Owner, Liste oben)
+Geprueft gegen: `node tools/hart/lauf.mjs` (128 ok, 08.10. nach W1; `--zip-gross` zuvor 9/9), unabhängige Gegenprüfung (7 Funde, behoben), Simulation „Drive-Wurzel weg“ (W1 behoben), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Live-Board-Neustart und Echt-Drive-Prüfungen (Owner, Liste oben)

@@ -247,6 +247,7 @@ der nächste Abgleich heilt. Lesereihenfolge: Drive, bei Störung Cache (mit sic
 - **Hüllen:** Liegt ein Projektordner doppelt und enthält eine Kopie nur Board-Dateien (`projekt.json`, `Steckbrief.md`)
   und ist älter als die Kopie mit Inhalt, wandert sie in den Papierkorb (Owner 07.10.2026).
 - **ZIP64:** Rohmaterial über 4 GB lädt als gültiges ZIP (geprüft mit Windows-`tar` und .NET).
+- **Board-Ordner weg:** „kein Ordner" gilt nur, wenn der Board-Ordner selbst erreichbar ist — sonst scheitern Löschen und Scan sichtbar (vorher: Löschen ohne Papierkorb, Karte kam zurück).
 - **Upload:** Der Zielordner wird erst nach dem Hochladen unter der Karten-Sperre bestimmt — eine inzwischen verschobene Karte bekommt die Datei am neuen Ort.
 
 ---
