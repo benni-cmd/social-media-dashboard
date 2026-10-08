@@ -757,7 +757,7 @@ function blockDrehtermin(k) {
       for (const x of kommend) {
         const zuSpaet = drehZuSpaet(k, x); // v113 (N13): vor dem Klick sichtbar
         const b = knopf(
-          `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).length})${zuSpaet ? " · zu spät" : ""}`,
+          `${deutschesDatum(x.datum)}${x.zeit ? " · " + x.zeit : ""}${x.ort ? " · " + x.ort : ""} (${(x.karteIds || []).filter((kid) => karte(kid)).length})${zuSpaet ? " · zu spät" : ""}`,
           { zeichen: "kalender", klick: () => zuordnen(x.id) }
         );
         if (zuSpaet) b.title = zuSpaet;
@@ -1584,7 +1584,16 @@ function guidedFormat(k, box) {
       knopf("Inhalt nach Drive speichern", {
         art: "haupt",
         zeichen: "ordner",
-        klick: (e) => nachDrive(k, FORMAT_DATEINAME[fmt] || "10_inhalt.md", formatAlsText(k, fmt), e.currentTarget, box),
+        klick: (e) => {
+          // v115 (v114 N5): bei unbrauchbarem KI-Ergebnis stand nur „# Slider: Titel" in der Datei — und das Format-Tor
+          // galt trotzdem als erfuellt. Ohne Inhalt unter der Ueberschrift wird nichts gespeichert.
+          const text = formatAlsText(k, fmt);
+          if (!text.replace(/^#[^\n]*\n?/, "").trim()) {
+            melde("befund", "Das KI-Ergebnis ist leer oder ließ sich nicht lesen — erst neu erzeugen. Nach Drive gespeichert wurde nichts.");
+            return;
+          }
+          return nachDrive(k, FORMAT_DATEINAME[fmt] || "10_inhalt.md", text, e.currentTarget, box);
+        },
       })
     );
   }

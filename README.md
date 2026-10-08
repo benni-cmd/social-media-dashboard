@@ -98,7 +98,10 @@ feste Slots (`lib/scheduler.js`, v95):
 - Jede Woche dieselben Tage: 1 Post → Mi, 2 → Di + Do, 3 → Di, Mi, Do; mehr → zusätzlich Mo/Fr.
 - Wochenende nur, wenn die Hauptplattform es belegt (TikTok) oder bei vielen Stories.
 - Mehrere Formate verteilen sich über die Woche; teilen sie einen Tag, bekommt das zweite die zweite Uhrzeit.
-- Max-Abstand zieht einen Slot vor, aber nie auf Sa/So (dann auf den Freitag davor).
+- Max-Abstand zieht einen Slot vor, aber nie auf Sa/So (dann auf den Freitag davor). Seit v115 rechnen Kalender,
+  Upload-Vorschläge, Wochenziel und Drive-Datei dieselbe Kette (ab 01.01.2024) — vorher erschienen Termine an
+  Monatsgrenzen doppelt. Ein Abstand, den die Frequenz nicht schaffen kann, lässt sich nicht speichern; der Satz
+  nennt den kleinsten möglichen Wert (z. B. 3 Posts/Woche → mindestens 4 Tage).
 
 **Post ↔ Karte (v97):** Echte Posts von Instagram/LinkedIn ordnet das Board selbst zu, wenn Zeitpunkt (höchstens 3 Std.
 neben dem Plan) und Format eindeutig passen; Zweifelsfälle erscheinen in der Karte als „Ist das dieser Post?" zum Bestätigen.
@@ -175,4 +178,8 @@ erscheint als „Anmeldung abgelaufen", nie als grün. Claude lässt sich dort d
 | `lib/social.js`, `lib/kpi*.js` | Instagram/LinkedIn-Zahlen, Auswertungs-Tabellen. |
 | `lib/*store.js` | Einstellungen in Drive (Plan, Prompts, Defaults, Workflows, Board-Parameter, Kontext). |
 | `public/` | Oberfläche: `board`, `detail`, `redaktionsplan`, `auswertung`, `einrichtung`, Bausteine in `ui.js`, Zustand in `store.js`. |
+| `lib/fehlertext.js` | Eine Übersetzung technischer Fehler (rclone, Google-API, JS) in deutsche Sätze — Server und Browser. |
+| `lib/zip.js` | ZIP-Schreiber ohne Abhängigkeit, mit ZIP64 für Rohmaterial über 4 GB. |
+| `tools/hart/` | Harte Tests: `node tools/hart/lauf.mjs` (mit `--zip-gross` zusätzlich über 4 GB). Baut je Gruppe eine isolierte Kopie mit Schein-Drive auf (nie echtes Drive, nie Port 4321) und räumt sie weg. |
+| `tools/*-selbsttest.mjs` | Schnelle Selbsttests der reinen Module (Tore/Fristen/Planer, Kampagnen). |
 | `docs/packages/` | Arbeitspakete (Problem · Intent · Goal · Plan · Stand · DoD) — die Historie jeder Entscheidung. |

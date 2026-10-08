@@ -68,7 +68,7 @@ export async function starteUmgebung({ port = 4399, einrichten = true } = {}) {
     if (body !== undefined && typeof body !== "string" && !(body instanceof Uint8Array) && !(body instanceof ReadableStream)) {
       inhalt = JSON.stringify(body);
       headers["content-type"] ??= "application/json";
-    } else if (typeof body === "string") headers["content-type"] ??= "application/json";
+    } else if (typeof body === "string" || body instanceof ReadableStream) headers["content-type"] ??= "application/json";
     const res = await fetch(url + pfad, { method: methode, headers, body: inhalt, signal, ...(body instanceof ReadableStream ? { duplex: "half" } : {}) });
     if (roh) return res;
     const text = await res.text();
@@ -133,7 +133,14 @@ export async function neueKarte(u, felder, { mitOrdner = true } = {}) {
     const b2 = await leseBoard(u);
     await u.api("PUT", "/api/board", { cards: b2.cards.map((c) => (c.id === k.id ? { ...c, driveName: k.driveName } : c)), version: b2.version });
   }
+  await driveRuhig(u); // die Hintergrund-Spiegelung des Speicherns soll fertig sein, bevor ein Test Drive von Hand aendert
   return k;
+}
+
+// Wartet, bis der Server keinen Drive-Vorgang mehr laufen hat (Ereignis-Strom „aktiv.drive").
+export async function driveRuhig(u, ms = 15000) {
+  await schlaf(50);
+  await warteBis(async () => !(await u.api("GET", "/api/ereignisse?sektion=drive")).daten.aktiv.drive, { ms, takt: 100 });
 }
 
 // Alle Ordner unterhalb einer Wurzel, deren Name mit `praefix` beginnt (relativ zum Schein-Drive).

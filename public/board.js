@@ -53,6 +53,23 @@ function spalteDriveStatus(karten, id) {
 
 // --- Kachel ---------------------------------------------------------------
 
+// v115 (v114 H1): Eine Karte, die beim Zeichnen wirft (Daten, die das Board nicht lesen kann), legt nicht mehr das
+// ganze Board lahm — v114: eine Karte mit Skript als Liste, und es standen nur noch 4 von allen Karten da. Seit v115
+// bringt migriere() jedes Feld auf seinen Typ; das hier faengt ab, was trotzdem durchrutscht.
+function kachelSicher(k) {
+  try {
+    return kachel(k);
+  } catch (e) {
+    console.error(`Karte „${k && k.title}“ liess sich nicht zeichnen:`, e);
+    const el = document.createElement("article");
+    el.className = "eintrag eintrag-kaputt";
+    el.innerHTML =
+      `<div class="eintrag-titel">${escape(String((k && k.title) || "(ohne Titel)"))}</div>` +
+      `<div class="eintrag-status">${statusChip("befund")}<span>Diese Karte enthält Daten, die das Board nicht lesen kann. Der nächste Abgleich mit Drive repariert sie und sichert das Original als projekt.kaputt-….json.</span></div>`;
+    return el;
+  }
+}
+
 export function kachel(k) {
   const el = document.createElement("article");
   el.className = "eintrag" + (k.id === S.aktiv ? " aktiv" : "") + (spalteLive(k.column) ? "" : " eintrag-cache");
@@ -191,7 +208,7 @@ export function zeichneBoard(boardEl, lastEl) {
           : "Hier liegt nichts. Zieh eine Karte her.";
       liste.appendChild(l);
     }
-    for (const k of karten) liste.appendChild(kachel(k));
+    for (const k of karten) liste.appendChild(kachelSicher(k));
     spalte.appendChild(liste);
 
     // Karten entstehen nur am Kettenanfang: „Karte anlegen" und „Idee von der KI" gibt es

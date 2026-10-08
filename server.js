@@ -43,6 +43,8 @@ import * as claudeAuth from "./lib/claudeauth.js"; // v86: Claude-CLI im Board a
 import * as codexAuth from "./lib/codexauth.js"; // v103: ChatGPT ueber die Codex-CLI
 import * as zuordnung from "./lib/zuordnung.js"; // v97: Posts -> Karten
 import * as kampagnen from "./lib/kampagnen.js"; // v107: Kampagnen mit Drive-Tabelle
+import { verstaendlicherFehler } from "./lib/fehlertext.js"; // v115: deutsche Fehlersaetze
+import * as scheduler from "./lib/scheduler.js"; // v115: max. Abstand pruefen, bevor ein Plan gespeichert wird
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4321;
@@ -227,30 +229,32 @@ async function zuordnungPruefen() {
     try { posts.push(...zuordnung.postsAusLinkedin((await social.linkedinZahlen(tokens.linkedin)).posts || [])); } catch { /* LinkedIn optional */ }
   }
   if (!posts.length) return { auto: 0, vorschlaege: 0, posts: 0 };
-  const board = await leseBoard();
-  const { auto, vorschlaege } = zuordnung.ordneZu(board.cards, posts);
-  const geaendert = new Set();
-  for (const a of auto) {
-    const k = board.cards.find((c) => c.id === a.cardId);
-    k.published = { ...(k.published || {}), [a.plattform]: zuordnung.postEintrag(a.post, "auto", a.abweichungStunden) };
-    k.floatUpload = false; // veroeffentlicht = Datum steht fest
-    geaendert.add(k);
-  }
-  // Vorschlaege werden je Lauf neu gesetzt (alte, inzwischen zugeordnete fallen weg).
-  for (const k of board.cards) {
-    const neu = vorschlaege
-      .filter((v) => v.cardId === k.id && !((k.published || {})[v.plattform] || {}).id)
-      .map((v) => ({ plattform: v.plattform, post: zuordnung.postEintrag(v.post, "vorschlag"), grund: v.grund }));
-    if (JSON.stringify(neu) !== JSON.stringify(k.zuordnungVorschlag || [])) {
-      k.zuordnungVorschlag = neu;
+  // v115 (v114 M1): auf dem NEUESTEN Stand zuordnen und schreiben (Board-Reihe) — die Posts kamen vorher aus dem Netz.
+  let zahlen = { auto: [], vorschlaege: [] };
+  const { ergebnis } = await aendereBoard((board) => {
+    const { auto, vorschlaege } = zuordnung.ordneZu(board.cards, posts);
+    zahlen = { auto, vorschlaege };
+    const geaendert = new Set();
+    for (const a of auto) {
+      const k = board.cards.find((c) => c.id === a.cardId);
+      k.published = { ...(k.published || {}), [a.plattform]: zuordnung.postEintrag(a.post, "auto", a.abweichungStunden) };
+      k.floatUpload = false; // veroeffentlicht = Datum steht fest
       geaendert.add(k);
     }
-  }
-  if (geaendert.size) {
-    await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
-    for (const k of geaendert) if (k.driveName) projekte.spiegeleKarte(k).catch(() => {});
-  }
-  return { auto: auto.length, vorschlaege: vorschlaege.length, posts: posts.length };
+    // Vorschlaege werden je Lauf neu gesetzt (alte, inzwischen zugeordnete fallen weg).
+    for (const k of board.cards) {
+      const neu = vorschlaege
+        .filter((v) => v.cardId === k.id && !((k.published || {})[v.plattform] || {}).id)
+        .map((v) => ({ plattform: v.plattform, post: zuordnung.postEintrag(v.post, "vorschlag"), grund: v.grund }));
+      if (JSON.stringify(neu) !== JSON.stringify(k.zuordnungVorschlag || [])) {
+        k.zuordnungVorschlag = neu;
+        geaendert.add(k);
+      }
+    }
+    return geaendert.size ? { auto, vorschlaege, geaendert } : false;
+  });
+  if (ergebnis) for (const k of ergebnis.geaendert) if (k.driveName) projekte.spiegeleKarte(k).catch(() => {});
+  return { auto: zahlen.auto.length, vorschlaege: zahlen.vorschlaege.length, posts: posts.length };
 }
 
 async function leseBoard() {
@@ -263,7 +267,47 @@ async function leseBoard() {
   }
 }
 
-async function schreibeBoard(cards, version, drehtermine) {
+// v115 (v114 M1): EIN Schreiber fuer board.json zur Zeit. Bis v114 lasen zehn gleichzeitige Speicherungen dieselbe
+// Version, 3–6 meldeten „gespeichert", nur eine Aenderung ueberlebte, der Rest scheiterte mit EPERM/ENOENT an der
+// gemeinsamen Temp-Datei. Jetzt: Lesen, Versionspruefung und Schreiben laufen hintereinander in dieser Reihe —
+// nur der kurze Lese-/Schreib-Moment, nie ein Drive- oder Netzwerkaufruf, damit Speichern nie lange wartet.
+let boardKette = Promise.resolve();
+function boardReihe(f) {
+  const lauf = boardKette.then(f);
+  boardKette = lauf.then(() => {}, () => {});
+  return lauf;
+}
+function schreibeBoard(cards, version, drehtermine) {
+  return boardReihe(() => schreibeBoardRoh(cards, version, drehtermine));
+}
+// Liest den NEUESTEN Stand, laesst `aendere` ihn veraendern (kurz, ohne Netzwerk) und schreibt Version+1.
+// `aendere` gibt false (oder ein Objekt mit `nichts: true`) zurueck, wenn nichts zu schreiben ist. Liefert { board, ergebnis }.
+function aendereBoard(aendere) {
+  return boardReihe(async () => {
+    const board = await leseBoard();
+    const ergebnis = await aendere(board);
+    if (ergebnis === false || (ergebnis && ergebnis.nichts)) return { board, ergebnis };
+    board.version += 1;
+    await schreibeBoardRoh(board.cards, board.version, board.drehtermine);
+    return { board, ergebnis };
+  });
+}
+
+// v115 (v114 M1): Die KPI-Erfassung misst Sekunden bis Minuten im Netz. Bis v114 schrieb sie danach ihren
+// Startstand zurueck — was Ben in der Zeit am Board geaendert hatte, war weg. Sie aendert nur `kpiMessungen`;
+// genau das wird jetzt auf den neuesten Stand gelegt.
+async function kpiUebernehmen(gemessen) {
+  await aendereBoard((board) => {
+    let n = 0;
+    for (const c of gemessen) {
+      const k = board.cards.find((x) => x.id === c.id);
+      if (k && JSON.stringify(k.kpiMessungen || {}) !== JSON.stringify(c.kpiMessungen || {})) { k.kpiMessungen = c.kpiMessungen; n++; }
+    }
+    return n > 0;
+  });
+}
+
+async function schreibeBoardRoh(cards, version, drehtermine) {
   await mkdir(DATA_DIR, { recursive: true });
   // Aufrufer, die nur Karten schreiben (z.B. Drive-Reconcile), duerfen die Drehtermine
   // nicht verlieren: fehlt das Argument, bleiben die gespeicherten erhalten.
@@ -276,7 +320,7 @@ async function schreibeBoard(cards, version, drehtermine) {
     }
   }
   const inhalt = JSON.stringify({ version, cards, drehtermine }, null, 2);
-  const temp = BOARD_FILE + ".tmp";
+  const temp = `${BOARD_FILE}.${randomBytes(4).toString("hex")}.tmp`; // v115: nie zwei Schreiber auf einer Temp-Datei
   await writeFile(temp, inhalt, "utf8");
   await rename(temp, BOARD_FILE);
 }
@@ -353,7 +397,7 @@ const ROLLE_NAME = { userkomm: "Userkommunikation", recherche: "Recherche", kont
 // v51: onStufe(ereignis) meldet zusaetzlich die ECHTE Stufe als maschinenlesbares Objekt
 // {stufe, schritt, von, rolle, rolleName, modell, …} — `onStatus` bleibt daneben als
 // deutscher Satz erhalten, damit aeltere Anzeigen unveraendert weiterlaufen.
-async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, onDelta = () => {}, onStufe = () => {} }) {
+async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, onDelta = () => {}, onStufe = () => {}, signal }) {
   const c = card || {};
   // v51: Der Vorlauf (Prompts lesen, Firmen-/Projektkontext sammeln) dauerte in der Messung
   // vom 17.09.2026 allein 12,4 s, bevor ueberhaupt die erste Status-Zeile kam — bis dahin war
@@ -439,6 +483,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
     const userMsg = webBlock + "\n\n---\n\n" + stepPrompt + stilAnhang;
     const system = rolle === "userkomm" ? systemVorspann : "";
     const letzter = i === schritte.length - 1;
+    if (signal && signal.aborted) throw new ki.KiAbgebrochen(); // v115 (M6): Browser weg -> kein weiterer Schritt
 
     let text;
     if (konf.provider === "ollama") {
@@ -461,8 +506,9 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
         text = letzter
           ? await ki.runOllamaStream(system, userMsg, konf.ollamaModel, (d) => d && onDelta(d), {
               onErsterToken: meldeGeneriert,
+              signal,
             })
-          : await ki.runOllama(system, userMsg, konf.ollamaModel);
+          : await ki.runOllama(system, userMsg, konf.ollamaModel, { signal });
       } catch (e) {
         // Damit der Hinweistext zum Anbieter passt (bis v51 bekam ein Ollama-Fehler den
         // Claude-Hinweis, weil hinweisZuFehler ohne zweites Argument aufgerufen wurde).
@@ -475,7 +521,7 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
       // v103: ChatGPT ueber die Codex-CLI — kein Stream; die fertige Antwort geht als ein Stueck an die Anzeige.
       onStufe({ ...basis, stufe: "generiert" });
       try {
-        text = await ki.runCodex(system ? system + userMsg : userMsg, { modell: konf.codexModell || "" });
+        text = await ki.runCodex(system ? system + userMsg : userMsg, { modell: konf.codexModell || "", signal });
         if (letzter && text) onDelta(text);
       } catch (e) {
         e.provider = "codex";
@@ -486,8 +532,8 @@ async function laufePipeline({ task, card, rollenModelle, onStatus = () => {}, o
       onStufe({ ...basis, stufe: "generiert" });
       try {
         text = letzter
-          ? await ki.runClaudeStream(prompt, (d, st) => { if (d) onDelta(d); if (st) onStatus(st); }, { modell: konf.claudeModell })
-          : await ki.runClaude(prompt, { modell: konf.claudeModell });
+          ? await ki.runClaudeStream(prompt, (d, st) => { if (d) onDelta(d); if (st) onStatus(st); }, { modell: konf.claudeModell, signal })
+          : await ki.runClaude(prompt, { modell: konf.claudeModell, signal });
       } catch (e) {
         e.provider = "claude";
         throw e;
@@ -551,13 +597,14 @@ async function abgleichEinmal(onStufe) {
   // Speichervorgang loeschte sie endgueltig). Jetzt: die Aenderungen des Abgleichs werden auf den
   // NEUESTEN Stand gelegt. Hat der Mensch eine Karte seit dem Start selbst geaendert, gewinnt
   // seine Fassung — der naechste Abgleich holt die Drive-Seite nach.
-  const neuester = await leseBoard();
-  const { cards, zuSchreiben } = projekte.abgleichAufNeuesten(aktuell.cards, abgeglichen, neuester.cards);
-  let version = neuester.version;
-  if (geaendert && zuSchreiben) {
-    version = neuester.version + 1;
-    await schreibeBoard(cards, version);
-  }
+  // v115 (v114 M1): neuesten Stand lesen, zusammenlegen und schreiben als EIN Schritt der Board-Reihe.
+  const { cards, version } = await boardReihe(async () => {
+    const neuester = await leseBoard();
+    const z = projekte.abgleichAufNeuesten(aktuell.cards, abgeglichen, neuester.cards);
+    if (!(geaendert && z.zuSchreiben)) return { cards: z.cards, version: neuester.version };
+    await schreibeBoardRoh(z.cards, neuester.version + 1);
+    return { cards: z.cards, version: neuester.version + 1 };
+  });
   // v85-B: Steckbriefe (menschenlesbarer Stand je Projektordner) im Hintergrund nachziehen — die
   // Antwort wartet nicht darauf. Im Ruhezustand 3 md5sum-Aufrufe, geschrieben wird nur Abweichendes.
   // v98: 30 s spaeter — die Steckbriefe (13 + 5 s md5sum, gemessen) sollen keine Board-Anfrage aufhalten.
@@ -617,10 +664,75 @@ function sendJson(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+// v115 (N3): Obergrenze fuer JSON-Bodies. board.json liegt bei ~100 KB; 20 MB lassen viel Luft, verhindern aber,
+// dass eine Riesen-Anfrage den Prozess aufblaeht (v114: 600 MB -> 1,3 GB Speicher). Uploads streamen separat.
+const MAX_BODY_BYTES = 20 * 1024 * 1024;
+const anfrageFehler = (status, satz) => Object.assign(new Error(satz), { status, satz });
+
 async function readBody(req) {
   const chunks = [];
-  for await (const c of req) chunks.push(c);
+  let n = 0;
+  for await (const c of req) {
+    n += c.length;
+    if (n <= MAX_BODY_BYTES) chunks.push(c); // darueber: weiter lesen (sauberes 413), aber nichts mehr halten
+  }
+  if (n > MAX_BODY_BYTES) throw anfrageFehler(413, `Die Anfrage ist zu gross (${Math.round(n / 1048576)} MB, erlaubt sind 20 MB).`);
   return Buffer.concat(chunks).toString("utf8");
+}
+
+// v115 (v114 M4/N1): EIN Weg fuer JSON-Bodies. Kaputtes JSON, kein Objekt oder (ohne `optional`) ein leerer
+// Body enden mit 400 und einem Satz — vorher 500 mit „Unexpected end of JSON input" oder, schlimmer, 200 mit
+// einem geloeschten Redaktionsplan (`PUT /api/plan` mit `null`).
+async function leseJson(req, { optional = false } = {}) {
+  const text = await readBody(req);
+  if (!text.trim()) {
+    if (optional) return {};
+    throw anfrageFehler(400, "Die Anfrage hatte keinen Inhalt.");
+  }
+  let daten;
+  try { daten = JSON.parse(text); } catch { throw anfrageFehler(400, "Die Anfrage war kein gueltiges JSON."); }
+  if (!daten || typeof daten !== "object" || Array.isArray(daten)) throw anfrageFehler(400, "Die Anfrage muss ein Objekt mit Feldern sein.");
+  return daten;
+}
+
+// v115 (v114 M3): Schreibende Anfragen nur aus der eigenen Oberflaeche oder von lokalen Skripten (ohne Origin).
+// Eine fremde Webseite im selben Browser schickt immer `Origin` bzw. `Sec-Fetch-Site: cross-site` mit — sie konnte
+// bis v114 per einfachem POST (text/plain, ohne CORS-Vorabfrage) Karten loeschen oder den Server beenden.
+const ROH_BODY_PFADE = new Set(["/api/projekt/upload"]); // Datei-Upload: Body ist die Datei selbst
+function herkunftOk(req) {
+  const site = req.headers["sec-fetch-site"];
+  if (site && site !== "same-origin" && site !== "none") return false;
+  const origin = req.headers.origin;
+  if (origin && origin !== `https://localhost:${PORT}` && origin !== `https://127.0.0.1:${PORT}`) return false;
+  return true;
+}
+// v115 (v114 M6): Endet die Verbindung, bevor die Antwort fertig ist (Neuladen, Tab zu), feuert das Signal —
+// laufePipeline bricht dann den laufenden KI-Schritt ab und startet keinen weiteren.
+function kiAbbruchBeiVerbindungsende(res) {
+  const ctrl = new AbortController();
+  res.on("close", () => { if (!res.writableFinished) ctrl.abort(); });
+  return ctrl;
+}
+
+// v115: Fehler-Antwort eines Handlers mit eigenem try/catch. Ein Anfrage-Fehler (4xx, z. B. kaputtes JSON aus leseJson)
+// behaelt seinen Status — bis v114 wurde er pauschal zu 502; sonst der Standard-Status mit deutschem Satz (v114 N1).
+function fehlerAntwort(res, e, standard = 500) {
+  const status = e && e.status >= 400 && e.status < 500 ? e.status : standard;
+  const satz = status < 500 ? (e.satz || e.message) : verstaendlicherFehler(e && e.message);
+  sendJson(res, status, { error: satz, satz });
+}
+
+// v115: Karten-Endpunkte brauchen eine Karte mit id — ohne sie legte `/api/drive/create` bis v114 einen Ordner
+// „Ohne Titel" an und `/api/karte/loeschen` schob ihn in den Papierkorb.
+function karteAusBody(k) {
+  if (!k || typeof k !== "object" || Array.isArray(k) || typeof k.id !== "string" || !k.id.trim())
+    throw anfrageFehler(400, "Die Anfrage braucht eine Karte (mit id).");
+  return k;
+}
+function jsonTypOk(req, pfad) {
+  if (ROH_BODY_PFADE.has(pfad)) return true;
+  const hatBody = Number(req.headers["content-length"] || 0) > 0 || !!req.headers["transfer-encoding"];
+  return !hatBody || /^application\/json\b/i.test(req.headers["content-type"] || "");
 }
 
 const umleitung = (res, ziel) => {
@@ -698,6 +810,18 @@ async function handler(req, res) {
     const url = new URL(req.url, `https://localhost:${PORT}`);
     const pfad = url.pathname;
 
+    // v115 (v114 M3): schreibende Anfragen nur aus der eigenen Oberflaeche bzw. von lokalen Skripten.
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      if (!herkunftOk(req)) {
+        sendJson(res, 403, { error: "Fremde Herkunft.", satz: "Diese Anfrage kam nicht aus dem Board selbst und wurde abgelehnt." });
+        return;
+      }
+      if (!jsonTypOk(req, pfad)) {
+        sendJson(res, 415, { error: "Falscher Inhaltstyp.", satz: "Das Board nimmt hier nur JSON an (content-type: application/json)." });
+        return;
+      }
+    }
+
     // ---- Board ----------------------------------------------------------
 
     if (pfad === "/api/board" && req.method === "GET") {
@@ -714,13 +838,24 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/board" && req.method === "PUT") {
-      const { cards, version, drehtermine } = JSON.parse(await readBody(req));
+      const { cards, version, drehtermine } = await leseJson(req);
       if (!Array.isArray(cards)) {
         sendJson(res, 400, { error: "Das Board braucht eine Liste von Karten." });
         return;
       }
-      const aktuell = await leseBoard();
-      if (version != null && version !== aktuell.version) {
+      const neueKarten = cards.map(pipeline.migriere);
+      // v115 (v114 M1): Versionspruefung und Schreiben in EINEM Schritt der Board-Reihe.
+      const schritt = await boardReihe(async () => {
+        const aktuell = await leseBoard();
+        if (version != null && version !== aktuell.version) return { konflikt: true, aktuell };
+        // board.json ist der schnelle CACHE (v17). Zuerst schreiben, damit der Speichern-Weg nie
+        // an Drive haengt.
+        // drehtermine mitschreiben; fehlen sie im Body, bleiben die gespeicherten erhalten.
+        await schreibeBoardRoh(neueKarten, aktuell.version + 1, Array.isArray(drehtermine) ? drehtermine : undefined);
+        return { aktuell, neueVersion: aktuell.version + 1 };
+      });
+      const { aktuell, neueVersion } = schritt;
+      if (schritt.konflikt) {
         // Jemand anderes war schneller. Nicht ueberschreiben, sondern melden.
         sendJson(res, 409, {
           error: "Der Board-Stand hat sich zwischenzeitlich geaendert.",
@@ -729,16 +864,6 @@ async function handler(req, res) {
         });
         return;
       }
-      const neueVersion = aktuell.version + 1;
-      const neueKarten = cards.map(pipeline.migriere);
-      // board.json ist der schnelle CACHE (v17). Zuerst schreiben, damit der Speichern-Weg nie
-      // an Drive haengt.
-      // drehtermine mitschreiben; fehlen sie im Body, bleiben die gespeicherten erhalten.
-      await schreibeBoard(
-        neueKarten,
-        neueVersion,
-        Array.isArray(drehtermine) ? drehtermine : undefined
-      );
       // v32 C1: SOFORT antworten, sobald board.json (der schnelle Cache, die Wahrheit) steht.
       // Frueher wartete die Antwort auf ALLE Drive-Spiegelungen (je ein rclone-Aufruf pro
       // geaenderter Karte) — bei mehreren Karten sekundenlang. Die Spiegelung laeuft jetzt NACH
@@ -782,7 +907,7 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/defaults" && req.method === "PUT") {
-      const daten = JSON.parse(await readBody(req));
+      const daten = await leseJson(req);
       // v60: zuerst lokal (Cache), dann Drive spiegeln — feldweise verschmolzen.
       const neu = await defaultsStore.mische(daten);
       sendJson(res, 200, { ok: true, defaults: neu });
@@ -841,8 +966,21 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/plan" && req.method === "PUT") {
+      const roh = await leseJson(req);
+      // v115 (v114 M4): der Redaktionsplan wird immer vollstaendig gespeichert — ohne Content-Mix ist es kein Plan.
+      // Bis v114 ueberschrieb `null` oder `{}` die Wahrheit in Drive mit einem leeren Plan.
+      if (!Array.isArray(roh.typenmix)) {
+        sendJson(res, 400, { error: "Content-Mix fehlt.", satz: "Der Redaktionsplan braucht den Content-Mix (Formate je Woche) — nichts gespeichert." });
+        return;
+      }
+      // v115 (v114 M5, Owner 07.10.2026: „Speichern sperren"): ein max. Abstand, den die Frequenz nicht schaffen kann.
+      const abstand = scheduler.abstandPruefung(roh);
+      if (!abstand.ok) {
+        sendJson(res, 400, { error: abstand.satz, satz: abstand.satz, mindestTage: abstand.mindestTage });
+        return;
+      }
       // v107: Kampagnen behalten ihre Tabelle (der Browser schickt sie evtl. nicht mit).
-      const config = kampagnen.ordneTabellenZu(nurPlanConfig(JSON.parse(await readBody(req))), await planCacheLesen());
+      const config = kampagnen.ordneTabellenZu(nurPlanConfig(roh), await planCacheLesen());
       await planCacheSchreiben(config); // Cache zuerst — der Speichern-Weg haengt nie an Drive
       defaultsStore.mische({ planBestaetigt: true }).catch(() => {}); // v96: Speichern = bestaetigt (Einrichtung)
       let planAbgleich = { neuGerechnet: false, hinweis: "" };
@@ -887,15 +1025,16 @@ async function handler(req, res) {
     // ---- KI --------------------------------------------------------------
 
     if (pfad === "/api/ai" && req.method === "POST") {
-      const body = JSON.parse(await readBody(req));
+      const body = await leseJson(req);
       const { task, card } = body;
-      if (!ki.PROMPTS[task]) {
+      if (typeof task !== "string" || !Object.hasOwn(ki.PROMPTS, task)) { // v115 (N2)
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
       }
+      const abbruch = kiAbbruchBeiVerbindungsende(res); // v115 (M6)
       try {
         // v41: Die Aufgabe laeuft als Schritt-Pipeline (jeder Schritt auf dem Modell seiner Rolle).
-        const text = await laufePipeline({ task, card, rollenModelle: rollenAusBody(body) });
+        const text = await laufePipeline({ task, card, rollenModelle: rollenAusBody(body), signal: abbruch.signal });
         const data = ki.JSON_AUFGABEN.has(task) ? ki.parseJson(text) : null;
         sendJson(res, 200, { text, data });
       } catch (e) {
@@ -910,9 +1049,9 @@ async function handler(req, res) {
     //  schritt, von, rolle, rolleName, modell, sekunden?, treffer?}. Aeltere Clients
     // verschlucken unbekannte Typen still (store.js), der Zusatz ist also rueckwaertskompatibel.
     if (pfad === "/api/ai/stream" && req.method === "POST") {
-      const body = JSON.parse(await readBody(req));
+      const body = await leseJson(req);
       const { task, card } = body;
-      if (!ki.PROMPTS[task]) {
+      if (typeof task !== "string" || !Object.hasOwn(ki.PROMPTS, task)) { // v115 (N2)
         sendJson(res, 400, { error: `Unbekannte KI-Aufgabe: ${task}` });
         return;
       }
@@ -927,11 +1066,13 @@ async function handler(req, res) {
         if (res.writableEnded || res.destroyed) return;
         res.write(JSON.stringify(o) + "\n");
       };
+      const abbruch = kiAbbruchBeiVerbindungsende(res); // v115 (M6): Neuladen/Schliessen beendet den KI-Lauf
       try {
         const text = await laufePipeline({
           task,
           card,
           rollenModelle: rollenAusBody(body),
+          signal: abbruch.signal,
           onStatus: (t) => schreib({ t: "status", text: t }),
           onDelta: (d) => schreib({ t: "delta", text: d }),
           onStufe: (o) => schreib({ t: "stufe", ...o }),
@@ -962,7 +1103,7 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/kontext" && req.method === "PUT") {
-      const body = JSON.parse(await readBody(req));
+      const body = await leseJson(req);
       try {
         let stand;
         switch (body.was) {
@@ -996,7 +1137,7 @@ async function handler(req, res) {
         }
         sendJson(res, 200, stand);
       } catch (e) {
-        sendJson(res, 400, { error: e.message });
+        fehlerAntwort(res, e, 400);
       }
       return;
     }
@@ -1021,7 +1162,7 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/prompts" && req.method === "PUT") {
-      const { id, text, schritte, format } = JSON.parse(await readBody(req));
+      const { id, text, schritte, format } = await leseJson(req);
       // System = Text; Aufgabe = Schritt-Liste (v41). Faellt schritte weg, gilt text (alt/Migration).
       const wert = id === "system" ? text : schritte !== undefined ? schritte : text;
       try {
@@ -1029,7 +1170,7 @@ async function handler(req, res) {
         await prompts.setze(id, wert, format);
         sendJson(res, 200, await prompts.uebersicht());
       } catch (e) {
-        sendJson(res, 400, { error: e.message });
+        fehlerAntwort(res, e, 400);
       }
       return;
     }
@@ -1045,11 +1186,11 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/workflows" && req.method === "PUT") {
-      const { id, an, params } = JSON.parse(await readBody(req));
+      const { id, an, params } = await leseJson(req);
       try {
         sendJson(res, 200, { workflows: await workflows.setze(id, { an, params }) });
       } catch (e) {
-        sendJson(res, 400, { error: e.message });
+        fehlerAntwort(res, e, 400);
       }
       return;
     }
@@ -1066,19 +1207,24 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/boardparameter" && req.method === "PUT") {
-      const body = JSON.parse(await readBody(req));
+      const body = await leseJson(req);
+      // v115 (v114 M4): `null`/`{}` leerte bis v114 Kategorien und Ziele in Drive.
+      if (!Array.isArray(body.kategorien) || !Array.isArray(body.ziele)) {
+        sendJson(res, 400, { error: "Kategorien und Ziele fehlen.", satz: "Die Board-Parameter brauchen eine Liste von Kategorien und eine Liste von Zielen." });
+        return;
+      }
       try {
         const stand = await boardparam.schreib(body);
         pipeline.setzeBoardparameter(stand); // v78: ab sofort fuer Scheduler/KI/KPI gueltig
         sendJson(res, 200, stand);
       } catch (e) {
-        sendJson(res, 400, { error: e.message });
+        fehlerAntwort(res, e, 400);
       }
       return;
     }
 
     if (pfad === "/api/ai/ping-ollama" && req.method === "POST") {
-      const { model = "qwen2.5" } = JSON.parse(await readBody(req));
+      const { model = "qwen2.5" } = await leseJson(req);
       sendJson(res, 200, await ki.pingOllama(await ki.loeseOllamaModell(model)));
       return;
     }
@@ -1099,7 +1245,7 @@ async function handler(req, res) {
     }
     // v91 Einrichtung: Modell laden (ollama pull) — Fortschritt zeilenweise als NDJSON durchreichen.
     if (pfad === "/api/ai/ollama/pull" && req.method === "POST") {
-      const { model } = JSON.parse(await readBody(req));
+      const { model } = await leseJson(req);
       if (!/^[a-z0-9._-]+(:[a-z0-9._-]+)?$/i.test(model || "")) { sendJson(res, 400, { error: "Ungueltiger Modellname." }); return; }
       try {
         const r = await fetch("http://localhost:11434/api/pull", {
@@ -1142,7 +1288,7 @@ async function handler(req, res) {
 
     // Ist der Ordner (Link oder ID) brauchbar? Aendert nichts.
     if (pfad === "/api/drive/ordner/pruefen" && req.method === "POST") {
-      const { eingabe } = JSON.parse(await readBody(req));
+      const { eingabe } = await leseJson(req);
       const id = driveSetup.parseOrdnerId(eingabe);
       if (!id) { sendJson(res, 400, { error: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID.", satz: "Das ist weder ein Drive-Ordner-Link noch eine Ordner-ID." }); return; }
       try {
@@ -1159,7 +1305,7 @@ async function handler(req, res) {
 
     // Arbeitsordner wechseln: Board sichern, Caches leeren, ggf. Struktur anlegen.
     if (pfad === "/api/drive/ordner/setzen" && req.method === "POST") {
-      const { eingabe } = JSON.parse(await readBody(req));
+      const { eingabe } = await leseJson(req);
       const id = driveSetup.parseOrdnerId(eingabe);
       if (!id) { sendJson(res, 400, { error: "Ungueltiger Ordner.", satz: "Ungueltiger Ordner." }); return; }
       try {
@@ -1175,7 +1321,7 @@ async function handler(req, res) {
       // v93: mit {clientId, clientSecret} wird die Verbindung erst angelegt (Einrichtung, frischer Rechner).
       let neu = null;
       try {
-        const b = JSON.parse((await readBody(req)) || "{}");
+        const b = await leseJson(req, { optional: true });
         if (b.clientId && b.clientSecret) {
           // v103: Backslashes ergaenzt — seit v93 lehnte die Pruefung jede echte Client-ID ab ([w.-] statt [\w.-]).
           if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(b.clientId) || !/^[\w-]{10,}$/.test(b.clientSecret)) {
@@ -1223,7 +1369,7 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/drive/create" && req.method === "POST") {
-      const card = JSON.parse(await readBody(req));
+      const card = karteAusBody(await leseJson(req));
       sendJson(res, 200, await projekte.anlegen(card));
       return;
     }
@@ -1232,19 +1378,22 @@ async function handler(req, res) {
     // aus dem zurueckgelassenen Ordner wieder aufbaut. Der Client nimmt die Karte NUR bei Erfolg
     // aus dem Board.
     if (pfad === "/api/karte/loeschen" && req.method === "POST") {
-      const card = JSON.parse(await readBody(req));
+      const card = karteAusBody(await leseJson(req));
       sendJson(res, 200, await projekte.loesche(card));
       return;
     }
 
     if (pfad === "/api/drive/move" && req.method === "POST") {
-      const { card, ziel } = JSON.parse(await readBody(req));
+      const roh = await leseJson(req);
+      const card = karteAusBody(roh.card);
+      const ziel = roh.ziel;
+      if (!pipeline.PHASE_IDS.includes(ziel)) throw anfrageFehler(400, "Unbekannte Zielphase.");
       sendJson(res, 200, await projekte.verschiebe(card, ziel));
       return;
     }
 
     if (pfad === "/api/drive/scan" && req.method === "POST") {
-      const card = JSON.parse(await readBody(req));
+      const card = karteAusBody(await leseJson(req));
       // v32 C2: `frisch=1` umgeht den Scan-Cache (Client erzwingt eine frische Messung nach
       // eigenen Aenderungen); sonst darf der kurzlebige Cache in projects.js antworten.
       const frisch = url.searchParams.get("frisch") === "1";
@@ -1253,7 +1402,9 @@ async function handler(req, res) {
     }
 
     if (pfad === "/api/drive/save" && req.method === "POST") {
-      const { card, filename, content } = JSON.parse(await readBody(req));
+      const roh = await leseJson(req);
+      const card = karteAusBody(roh.card);
+      const { filename, content } = roh;
       // Der Dateiname kommt aus dem Browser — vorher ungeprueft, was in Drive echte
       // Ordner namens ".." erzeugte (Befund B3).
       if (!pipeline.pfadstueckOk(filename)) {
@@ -1523,12 +1674,12 @@ async function handler(req, res) {
     // (schon geloescht) werden geschluckt — Hauptsache der jeweils andere geht durch.
     if (pfad === "/api/gcal/loeschen" && req.method === "POST") {
       try {
-        const { eventId, taskId, calId } = JSON.parse(await readBody(req));
+        const { eventId, taskId, calId } = await leseJson(req);
         if (eventId) { try { await gcal.eventLoeschen(calId, eventId); } catch { /* schon weg */ } }
         if (taskId) { try { await gcal.taskLoeschen(taskId); } catch { /* schon weg */ } }
         sendJson(res, 200, { ok: true });
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
@@ -1542,7 +1693,7 @@ async function handler(req, res) {
         "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET",
         "TAVILY_API_KEY", // v40: optionaler Web-Such-Key der Recherche-Rolle
       ]);
-      const { key, value } = JSON.parse(await readBody(req));
+      const { key, value } = await leseJson(req);
       if (!ENV_ERLAUBT.has(key)) {
         sendJson(res, 400, { error: "Unbekannter Schluessel — nur bekannte Zugangs-Felder sind erlaubt." });
         return;
@@ -1694,7 +1845,7 @@ async function handler(req, res) {
       return;
     }
     if (pfad === "/api/einrichtung/stand" && req.method === "POST") {
-      const { lokal, board } = JSON.parse((await readBody(req)) || "{}");
+      const { lokal, board } = await leseJson(req, { optional: true });
       const jetzt = new Date().toISOString();
       const root = drive.aktuellerRoot() || null;
       const ergebnis = { lokal: false, board: false };
@@ -1716,7 +1867,7 @@ async function handler(req, res) {
     // ein Durchgang mit sichtbarem Log). Teil fuer Teil; jede Zeile NDJSON {teil, status, text, ms}.
     // Ein Fehler stoppt nicht die uebrigen Teile — der Assistent behaelt den fehlgeschlagenen Teil im Entwurf.
     if (pfad === "/api/einrichtung/speichern" && req.method === "POST") {
-      const e = JSON.parse((await readBody(req)) || "{}");
+      const e = await leseJson(req, { optional: true });
       res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache" });
       const zeile = (o) => res.write(JSON.stringify(o) + "\n");
       const teil = async (id, text, f) => {
@@ -1748,15 +1899,15 @@ async function handler(req, res) {
     // Google Kalender/Tasks, Instagram, LinkedIn und meldet die Claude-CLI ab; die Drive-Verbindung bleibt.
     if (pfad === "/api/board/zuruecksetzen" && req.method === "POST") {
       try {
-        const { anmeldungen = false } = JSON.parse((await readBody(req)) || "{}");
+        const { anmeldungen = false } = await leseJson(req, { optional: true });
         const alt = drive.aktuellerRoot();
         if (alt) await sichereBoardFuerRoot(alt).catch(() => {});
         drive.setzeRoot(null);
         for (const f of [SPALTEN_FILE, PLAN_FILE, DEFAULTS_FILE, PROMPTS_FILE, WORKFLOWS_FILE, BOARDPARAM_FILE, KONTEXT_FILE, EINRICHTUNG_LOKAL_FILE]) {
           try { await rm(f, { force: true }); } catch { /* egal */ }
         }
-        const aktuell = await leseBoard();
-        await schreibeBoard([], aktuell.version + 1, []); // offene Tabs laufen in den Versions-Lock und laden neu
+        // offene Tabs laufen in den Versions-Lock und laden neu (v115: Lesen + Schreiben in der Board-Reihe)
+        await aendereBoard((b) => { b.cards = []; b.drehtermine = []; });
         projekte.scanCacheLeeren();
         driveSetup.kontoCacheLeeren();
         if (anmeldungen) {
@@ -1782,10 +1933,10 @@ async function handler(req, res) {
     }
     if (pfad === "/api/board/name" && req.method === "PUT") {
       try {
-        const { name } = JSON.parse(await readBody(req));
+        const { name } = await leseJson(req);
         sendJson(res, 200, { name: await driveSetup.ordnerUmbenennen(name) });
       } catch (e) {
-        sendJson(res, 400, { error: e.message });
+        fehlerAntwort(res, e, 400);
       }
       return;
     }
@@ -1800,17 +1951,17 @@ async function handler(req, res) {
       try {
         sendJson(res, 200, await claudeAuth.starte());
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
     if (pfad === "/api/auth/claude/code" && req.method === "POST") {
       try {
-        const { code } = JSON.parse(await readBody(req));
+        const { code } = await leseJson(req);
         if (!code) { sendJson(res, 400, { error: "Code fehlt." }); return; }
         sendJson(res, 200, await claudeAuth.abschliessen(code));
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
@@ -1821,15 +1972,15 @@ async function handler(req, res) {
       return;
     }
     if (pfad === "/api/auth/chatgpt/start" && req.method === "POST") {
-      try { sendJson(res, 200, await codexAuth.starte()); } catch (e) { sendJson(res, 502, { error: e.message }); }
+      try { sendJson(res, 200, await codexAuth.starte()); } catch (e) { fehlerAntwort(res, e, 502); }
       return;
     }
     if (pfad === "/api/auth/chatgpt/schluessel" && req.method === "POST") {
       try {
-        const { schluessel } = JSON.parse(await readBody(req));
+        const { schluessel } = await leseJson(req);
         if (!schluessel || !String(schluessel).trim()) { sendJson(res, 400, { error: "Schlüssel fehlt." }); return; }
         sendJson(res, 200, await codexAuth.mitSchluessel(schluessel));
-      } catch (e) { sendJson(res, 502, { error: e.message }); }
+      } catch (e) { fehlerAntwort(res, e, 502); }
       return;
     }
     if (pfad === "/api/auth/chatgpt/trennen" && req.method === "POST") {
@@ -1852,7 +2003,7 @@ async function handler(req, res) {
     // Routing/Teilnehmer/Deadlines kommen in v16d-2. Bestehende IDs werden geupdatet.
     if (pfad === "/api/gcal/sync" && req.method === "POST") {
       try {
-        const { termin, karten, eventId, taskId, calId, mailen } = JSON.parse(await readBody(req));
+        const { termin, karten, eventId, taskId, calId, mailen } = await leseJson(req);
         if (!termin || !termin.datum) {
           sendJson(res, 400, { error: "termin.datum fehlt" });
           return;
@@ -1881,7 +2032,7 @@ async function handler(req, res) {
         else neuTaskId = await gcal.taskAnlegen({ titel, notiz: beschreibung, faellig: termin.datum });
         sendJson(res, 200, { eventId: neuEventId, taskId: neuTaskId });
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
@@ -2076,7 +2227,7 @@ async function handler(req, res) {
       try {
         sendJson(res, 200, { ...(await zuordnungPruefen()), verbunden: await verbundenePlattformen() });
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
@@ -2097,59 +2248,63 @@ async function handler(req, res) {
           .map((p) => ({ plattform: p.plattform, id: p.id, zeit: new Date(p.zeit).toISOString(), url: p.url, text: String(p.text || "").slice(0, 90), passt: !!p.passt(k.contenttyp) }));
         sendJson(res, 200, { posts: liste, verbunden: await verbundenePlattformen() });
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
     if (pfad === "/api/zuordnung/hand" && req.method === "POST") {
       try {
-        const { cardId, plattform, postId } = JSON.parse(await readBody(req));
+        const { cardId, plattform, postId } = await leseJson(req);
         const post = (await allePosts()).find((p) => p.plattform === plattform && p.id === postId);
         if (!post) { sendJson(res, 404, { error: "Post nicht gefunden." }); return; }
-        const board = await leseBoard();
-        const k = board.cards.find((c) => c.id === cardId);
-        if (!k) { sendJson(res, 404, { error: "Karte nicht gefunden." }); return; }
-        const schon = board.cards.find((c) => c !== k && Object.values(c.published || {}).some((v) => v && v.id === postId));
-        if (schon) { sendJson(res, 409, { error: `Der Post gehört schon zur Karte „${schon.title}“.` }); return; }
-        k.published = { ...(k.published || {}), [plattform]: zuordnung.postEintrag(post, "manuell") };
-        k.floatUpload = false;
-        // Karte ohne Termin: der echte Post-Zeitpunkt wird ihr Upload-Termin (Ortszeit des Boards).
-        if (!(k.dates && k.dates.upload)) {
-          const d = new Date(post.zeit);
-          const zwei = (n) => String(n).padStart(2, "0");
-          k.dates = { ...(k.dates || {}), upload: `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}` };
-          if (!k.uploadTime) k.uploadTime = `${zwei(d.getHours())}:${zwei(d.getMinutes())}`;
-        }
-        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
-        for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
-        await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
-        if (k.driveName) projekte.spiegeleKarte(k).catch(() => {});
-        sendJson(res, 200, { ok: true });
+        // v115 (v114 M1): Pruefen und Schreiben auf dem neuesten Stand, in der Board-Reihe.
+        const { ergebnis } = await aendereBoard((board) => {
+          const k = board.cards.find((c) => c.id === cardId);
+          if (!k) return { status: 404, antwort: { error: "Karte nicht gefunden." }, nichts: true };
+          const schon = board.cards.find((c) => c !== k && Object.values(c.published || {}).some((v) => v && v.id === postId));
+          if (schon) return { status: 409, antwort: { error: `Der Post gehört schon zur Karte „${schon.title}“.` }, nichts: true };
+          k.published = { ...(k.published || {}), [plattform]: zuordnung.postEintrag(post, "manuell") };
+          k.floatUpload = false;
+          // Karte ohne Termin: der echte Post-Zeitpunkt wird ihr Upload-Termin (Ortszeit des Boards).
+          if (!(k.dates && k.dates.upload)) {
+            const d = new Date(post.zeit);
+            const zwei = (n) => String(n).padStart(2, "0");
+            k.dates = { ...(k.dates || {}), upload: `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}` };
+            if (!k.uploadTime) k.uploadTime = `${zwei(d.getHours())}:${zwei(d.getMinutes())}`;
+          }
+          k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
+          for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
+          return { status: 200, antwort: { ok: true }, karte: k };
+        });
+        if (ergebnis.karte && ergebnis.karte.driveName) projekte.spiegeleKarte(ergebnis.karte).catch(() => {});
+        sendJson(res, ergebnis.status, ergebnis.antwort);
       } catch (e) {
-        sendJson(res, 502, { error: e.message });
+        fehlerAntwort(res, e, 502);
       }
       return;
     }
 
     // v97: Vorschlag bestaetigen (ja) oder ablehnen (nein — der Post wird dieser Karte nie wieder angeboten).
     if (pfad === "/api/zuordnung/entscheiden" && req.method === "POST") {
-      const { cardId, plattform, postId, ja } = JSON.parse(await readBody(req));
-      const board = await leseBoard();
-      const k = board.cards.find((c) => c.id === cardId);
-      const v = k && (k.zuordnungVorschlag || []).find((x) => x.plattform === plattform && x.post.id === postId);
-      if (!v) { sendJson(res, 404, { error: "Vorschlag nicht gefunden." }); return; }
-      if (ja) {
-        k.published = { ...(k.published || {}), [plattform]: { ...v.post, zuordnung: "bestaetigt" } };
-        k.floatUpload = false;
-        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
-        // derselbe Post darf keiner anderen Karte mehr vorgeschlagen werden
-        for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
-      } else {
-        k.zuordnungAbgelehnt = [...new Set([...(k.zuordnungAbgelehnt || []), postId])];
-        k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.post.id !== postId);
-      }
-      await schreibeBoard(board.cards, board.version + 1, board.drehtermine);
-      sendJson(res, 200, { ok: true });
+      const { cardId, plattform, postId, ja } = await leseJson(req);
+      // v115 (v114 M1): auf dem neuesten Stand, in der Board-Reihe.
+      const { ergebnis } = await aendereBoard((board) => {
+        const k = board.cards.find((c) => c.id === cardId);
+        const v = k && (k.zuordnungVorschlag || []).find((x) => x.plattform === plattform && x.post.id === postId);
+        if (!v) return { nichts: true, status: 404, antwort: { error: "Vorschlag nicht gefunden." } };
+        if (ja) {
+          k.published = { ...(k.published || {}), [plattform]: { ...v.post, zuordnung: "bestaetigt" } };
+          k.floatUpload = false;
+          k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.plattform !== plattform);
+          // derselbe Post darf keiner anderen Karte mehr vorgeschlagen werden
+          for (const c of board.cards) if (c !== k && c.zuordnungVorschlag) c.zuordnungVorschlag = c.zuordnungVorschlag.filter((x) => x.post.id !== postId);
+        } else {
+          k.zuordnungAbgelehnt = [...new Set([...(k.zuordnungAbgelehnt || []), postId])];
+          k.zuordnungVorschlag = (k.zuordnungVorschlag || []).filter((x) => x.post.id !== postId);
+        }
+        return { status: 200, antwort: { ok: true } };
+      });
+      sendJson(res, ergebnis.status, ergebnis.antwort);
       return;
     }
 
@@ -2159,10 +2314,7 @@ async function handler(req, res) {
       const tokens = await leseTokens();
       await boardparamSicher();
       const ergebnis = await kpi.sammle(board.cards, tokens);
-      if (ergebnis.gesammelt > 0) {
-        const neueVersion = board.version + 1;
-        await schreibeBoard(ergebnis.cards, neueVersion);
-      }
+      if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards); // v115 (M1): auf den neuesten Stand legen
       sendJson(res, 200, { gesammelt: ergebnis.gesammelt, bericht: ergebnis.bericht });
       return;
     }
@@ -2189,9 +2341,28 @@ async function handler(req, res) {
       res.end("Nicht gefunden.");
     }
   } catch (e) {
-    sendJson(res, 500, { error: e.message });
+    // v115 (v114 B1): Lief die Antwort schon (ZIP, Stream), warf ein zweites writeHead und beendete den ganzen
+    // Prozess (gemessen: Rohmaterial-ZIP ueber 4 GB, POST /api/einrichtung/speichern mit null). Jetzt: Verbindung
+    // schliessen, Fehler ins Server-Fenster, Board laeuft weiter.
+    if (res.headersSent) {
+      console.error(`[${new Date().toISOString()}] Fehler nach Antwortbeginn (${req.method} ${req.url}): ${e && e.stack ? e.stack : e}`);
+      res.destroy();
+      return;
+    }
+    if (e && e.status >= 400 && e.status < 500) {
+      sendJson(res, e.status, { error: e.satz || e.message, satz: e.satz || e.message });
+      return;
+    }
+    console.error(`[${new Date().toISOString()}] ${req.method} ${req.url}: ${e && e.stack ? e.stack : e}`);
+    const satz = verstaendlicherFehler(e && e.message);
+    sendJson(res, e && e.name === "DriveFehler" ? 502 : 500, { error: satz, satz, detail: String((e && e.message) || e).slice(0, 500) });
   }
 }
+
+// v115 (v114 B1): Ein Fehler, der trotzdem aus einem Handler entkommt, beendet nicht mehr das Board.
+process.on("unhandledRejection", (grund) => {
+  console.error(`[${new Date().toISOString()}] Unbehandelter Fehler (Board laeuft weiter): ${grund && grund.stack ? grund.stack : grund}`);
+});
 
 // --- Selbstsigniertes Zertifikat (Meta und LinkedIn verlangen https fuer Redirect-URIs) ---
 async function ladeTls() {
@@ -2287,10 +2458,8 @@ server.listen(PORT, "127.0.0.1", async () => {
     const board = await leseBoard();
     const tokens = await leseTokens();
     await boardparamSicher();
-      const ergebnis = await kpi.sammle(board.cards, tokens);
-    if (ergebnis.gesammelt > 0) {
-      await schreibeBoard(ergebnis.cards, board.version + 1);
-    }
+    const ergebnis = await kpi.sammle(board.cards, tokens);
+    if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards); // v115 (M1): auf den neuesten Stand legen
     const konto = ergebnis.bericht.some((b) => /^(kanal|demografie)/.test(b.status || ""));
     if (ergebnis.gesammelt > 0 || konto) {
       console.log(`KPI beim Start: ${ergebnis.gesammelt} Post-Messung(en)` + (konto ? " + Konto-Schnappschuss" : "") + " erfasst.");

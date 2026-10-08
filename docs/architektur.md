@@ -89,10 +89,17 @@ es spricht ausschließlich mit `/api/*` desselben Servers.
 
 ## 2. API-Oberfläche
 
-80 Handler auf 70 Pfaden (`grep -cE 'if \(pfad === "/api/' server.js` → 80, Stand v113). Alle ohne Anmeldung —
+80 Handler auf 70 Pfaden (`grep -cE 'if \(pfad === "/api/' server.js` → 80, Stand v115). Alle ohne Anmeldung —
 der Server vertraut jedem, der ihn erreicht (siehe 4 und 5); seit v113 lauscht er deshalb nur auf `127.0.0.1`
 (vorher im ganzen WLAN erreichbar). OAuth-Starts tragen einen einmal gültigen `state` (v113). Antworten JSON,
 außer wo „NDJSON"/„ZIP"/„302".
+
+**Eingang (v115):** Schreibende Anfragen (alles außer GET/HEAD) nur aus der eigenen Oberfläche oder von lokalen
+Skripten — eine fremde Herkunft (`Origin` ≠ `https://localhost:<PORT>`, `Sec-Fetch-Site: cross-site`) → 403;
+ein JSON-Endpunkt mit anderem Inhaltstyp → 415 (Ausnahme: `/api/projekt/upload`, dort ist der Body die Datei).
+Jeder JSON-Body geht durch `leseJson()`: kaputt, leer oder kein Objekt → 400 mit Satz; über 20 MB → 413.
+Fehler sprechen deutsch (`lib/fehlertext.js`, dieselbe Übersetzung im Browser). Ein Fehler nach Antwortbeginn
+(ZIP, Stream) schließt nur diese Verbindung — bis v114 beendete er den ganzen Server.
 
 **Board & Karten**
 
@@ -225,6 +232,21 @@ Board lädt nichts aus Drive und nennt den Grund.
 
 Schreibreihenfolge überall: **erst Cache, dann Drive** — ein Drive-Ausfall blockiert nie das Speichern;
 der nächste Abgleich heilt. Lesereihenfolge: Drive, bei Störung Cache (mit sichtbarem Hinweis).
+
+**Robustheit (v115, belegt mit `tools/hart`):**
+- **Typen:** `migriere()` bringt jedes Kartenfeld auf seinen Typ (auch eine Ebene tief, ISO-Daten). Hat eine
+  `projekt.json` in Drive falsche Typen oder ist sie kein gültiges JSON, sichert der Abgleich das Original als
+  `(AI only)/projekt.kaputt-<Zeit>.json`, bevor er korrigiert, und sagt es im Befund. Eine Drive-Störung beim
+  Lesen ändert nichts (vorher galt sie als „keine projekt.json" und der Board-Stand überschrieb Drive).
+- **Ein Vorgang je Karte:** Anlegen, Verschieben, Löschen, Datei speichern, Spiegeln und der Abgleich derselben
+  Karte laufen nacheinander (`mitKarte` in `projects.js`); der Abgleich schreibt nie in einen Ordner, der inzwischen
+  gewandert ist, und eine eben gelöschte Karte wird nicht neu angelegt (409). Das Spiegeln nach dem Speichern
+  schreibt nur in einen Ordner, der noch dort liegt.
+- **Ein Schreiber für `board.json`:** Versionsprüfung und Schreiben laufen in einer Reihe (`boardReihe`); Zuordnung
+  und KPI legen ihre Änderung auf den neuesten Stand statt ihren Startstand zurückzuschreiben.
+- **Hüllen:** Liegt ein Projektordner doppelt und enthält eine Kopie nur Board-Dateien (`projekt.json`, `Steckbrief.md`)
+  und ist älter als die Kopie mit Inhalt, wandert sie in den Papierkorb (Owner 07.10.2026).
+- **ZIP64:** Rohmaterial über 4 GB lädt als gültiges ZIP (geprüft mit Windows-`tar` und .NET).
 
 ---
 

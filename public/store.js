@@ -336,12 +336,18 @@ export const istGeloeschtInFlight = (id) => geloeschtInFlight.has(id);
 // Abgleich sieht Ordner und Karte gepaart (baut nichts wieder auf, lib/projects.js:361). Erst
 // wenn der Trash bestaetigt ist, wird die Karte dauerhaft entfernt. Scheitert der Trash, kommt
 // die Karte zurueck und der Aufruf wirft (der Aufrufer meldet den Bruch; kein Datenverlust).
+// v115 (v114 N4): Eine geloeschte Karte blieb in `karteIds` ihres Drehtermins — der Termin zeigte „(1)", die Liste war leer.
+function austragenAusDrehterminen(id) {
+  for (const t of S.drehtermine || []) if (Array.isArray(t.karteIds)) t.karteIds = t.karteIds.filter((x) => x !== id);
+}
+
 export async function loescheKarte(id) {
   const k = karte(id);
   if (!k) return;
   if (S.aktiv === id) S.aktiv = null;
   if (!k.driveName) {
     S.cards = S.cards.filter((c) => c.id !== id);
+    austragenAusDrehterminen(id);
     await speichere();
     zeichne();
     return { getrasht: false };
@@ -365,6 +371,7 @@ export async function loescheKarte(id) {
   // Trash bestaetigt: jetzt dauerhaft aus dem Board nehmen und sichern.
   geloeschtInFlight.delete(id);
   S.cards = S.cards.filter((c) => c.id !== id);
+  austragenAusDrehterminen(id);
   await speichere();
   zeichne();
   return ergebnis || { getrasht: false }; // v113: Meldung folgt dem, was wirklich passiert ist
@@ -423,6 +430,9 @@ export async function driveAnlegen(k) {
 }
 
 export async function driveVerschieben(k, ziel) {
+  // v115 (v114 M2): „Weiter zu …" scannt erst einige Sekunden — wurde die Karte in der Zeit geloescht, legte das
+  // spaete Verschieben ihren Ordner neu an. Eine geloeschte (oder nicht mehr im Board stehende) Karte bleibt liegen.
+  if (k._geloescht || !karte(k.id)) return { uebersprungen: true };
   const ergebnis = await hole("/api/drive/move", {
     method: "POST",
     headers: { "content-type": "application/json" },

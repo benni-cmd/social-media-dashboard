@@ -10,7 +10,7 @@ import {
   kategorieName,
   zielInfo,
 } from "/lib/pipeline.js";
-import { slotsForMonth, migriereTypenmix } from "/lib/scheduler.js";
+import { slotsForMonth, migriereTypenmix, abstandPruefung } from "/lib/scheduler.js";
 import { S, melde, setStand, zeichne, ladeAnstehende, ladeBoardparameter } from "./store.js";
 import { escape, knopf, sanduhr, modalX, driveOrt, befundZeile, bestaetigen } from "./ui.js";
 
@@ -432,6 +432,15 @@ function baueEinstellungen(plan, koerper, nachSpeichern) {
       zielgewichte: ZIELE.map((z) => ({ id: z.id, gewicht: zielGetters[z.id] ? zielGetters[z.id]() : 0 })),
       kampagnen: kampagnen.filter((k) => k.name.trim()),
     };
+
+    // v115 (v114 M5, Owner 07.10.2026: „Speichern sperren"): ein max. Abstand, den die Frequenz nicht schafft,
+    // wurde bis v114 still in Termin-Klumpen am Monatsanfang verwandelt. Der Server prueft dasselbe (400).
+    const abstand = abstandPruefung(neuerPlan);
+    if (!abstand.ok) {
+      fehlerEl.textContent = `${abstand.satz} Nichts gespeichert.`;
+      fehlerEl.style.display = "";
+      return;
+    }
 
     // 1) Sofort: Vorschau mit den neuen Werten neu zeichnen.
     currentPlan = neuerPlan;

@@ -98,7 +98,7 @@ export function zeichneDrehleiste() {
 }
 
 function kachel(t) {
-  const n = (t.karteIds || []).length;
+  const n = (t.karteIds || []).filter((kid) => karte(kid)).length; // v115 (N4): nur Karten, die es noch gibt
   const b = document.createElement("button");
   b.type = "button";
   b.className = "drehkachel" + (t.auto ? " auto" : "");

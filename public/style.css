@@ -4792,3 +4792,29 @@ a.drive-ort, .drive-ort { border-color: var(--linie); }
   overscroll-behavior: contain;
   padding: 2px 4px 6px 8px; /* Platz fuer den harten Schatten (-4px 4px) — overflow wuerde ihn sonst abschneiden */
 }
+
+/* ============================================================
+   v115 (v114 M7): Kopfzeile bei schmalem Fenster. Unter ~1 090 px schob sich der zentrierte Knopf
+   „Naechster Schritt" ueber den Reiter „Auswertung" (gemessen: 54 px bei 960 px = halber Bildschirm),
+   bei 375 px war die linke Kopfzeile abgeschnitten. Jetzt zweizeilig: oben Marke + Ansichten und System,
+   darunter die Hauptaktion ueber die volle Breite. Die Zoom-Knoepfe verdecken unten keine Spalten-Knoepfe mehr.
+   ============================================================ */
+@media (max-width: 1100px) {
+  .kopf {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "marke rechts" "mitte mitte";
+  }
+  .kopf-marke { grid-area: marke; padding: 8px 14px; flex-wrap: wrap; row-gap: 6px; }
+  .kopf-rechts { grid-area: rechts; padding: 8px 12px; }
+  .kopf-mitte { grid-area: mitte; justify-content: flex-start; padding: 8px 14px; border-top: 3px solid var(--linie); }
+}
+@media (max-width: 620px) {
+  /* Handybreite: die rechte Gruppe (Verbindungen, Einstellungen, Beenden) ist allein breiter als das Display —
+     darum drei Zeilen: Marke + Ansichten, System, Hauptaktion. */
+  .kopf { grid-template-columns: minmax(0, 1fr); grid-template-areas: "marke" "rechts" "mitte"; }
+  .kopf-titel { display: none; }
+  .kopf-rechts { gap: 8px; flex-wrap: wrap; border-left: 0; border-top: 3px solid var(--linie); }
+  .kopf-mitte { flex-wrap: wrap; row-gap: 8px; }
+  .spalte { padding-bottom: 64px; } /* Platz unter den Spalten-Knoepfen fuer die Zoom-Leiste */
+}

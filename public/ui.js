@@ -8,6 +8,7 @@
 // zieht ui.js nur dynamisch (store.js:130) — deshalb kein Zyklus.
 import { ROLLEN, ROLLEN_META, rolleKonfig, setzeRolleKonfig, stellschraube, setzeWorkflow, zeichne } from "./store.js";
 import { KATALOG, istAn, setzeAn } from "/lib/kartenhinweise.js";
+import { verstaendlicherFehler } from "/lib/fehlertext.js";
 
 // --- Icons (Lucide, 24x24, Strich) ---------------------------------------
 
@@ -2698,13 +2699,9 @@ export function meldung(text, typ = "erfolg") {
 // v82: Meldungen an Menschen schreiben, nicht an Entwickler — der rohe Dienst-Text
 // („rclone antwortet seit 20 Sekunden nicht.", „(?)" als fehlender Fehlercode) wird ein Satz.
 export function verstaendlich(satz) {
-  const roh = String(satz ?? "");
-  // v82 Nachtrag (05.10.2026): Zwei Drive-Fehler, die als roher rclone-Dump im Toast standen.
-  if (/unauthorized_client/i.test(roh)) return "Drive lehnt die Anmeldung ab: Die Client-ID passt nicht zum gespeicherten Zugang. Drive in den Einstellungen neu verbinden.";
-  if (/invalid_grant/i.test(roh)) return "Die Anmeldung bei Google ist abgelaufen. In den Einstellungen neu verbinden.";
-  // v113 (M6): roher rclone-Text stand so im Toast („CRITICAL: Failed to create file system … [config-schnappschuss …]").
-  if (/(didn't|couldn't) find section in config file/i.test(roh))
-    return "Drive ist auf diesem Rechner nicht verbunden (rclone kennt die Verbindung „gdrive“ nicht). Einstellungen → Google → Google Drive verbinden.";
+  // v82/v113: Anmelde- und Config-Fehler, v115 (v114 N1): rclone-Logzeilen, Google-API-Gruende und JS-Laufzeitfehler —
+  // EINE Uebersetzung fuer Server und Browser (lib/fehlertext.js).
+  const roh = verstaendlicherFehler(String(satz ?? ""));
   return roh
     .replace(/\s*\[config-schnappschuss:[^\]]*\]/g, "")
     .replace(/\s*\(\?\)/g, "")

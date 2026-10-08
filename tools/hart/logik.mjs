@@ -39,7 +39,7 @@ function typFehler(k) {
   if (!istObjekt(k.video) || !Number.isFinite(k.video.seconds)) f.push("video.seconds");
   if (typeof k.floatUpload !== "boolean") f.push("floatUpload");
   if (!(k.drehterminId === null || typeof k.drehterminId === "string")) f.push("drehterminId");
-  for (const n of OPTIONAL_TEXT) if (k[n] !== undefined && typeof k[n] !== "string") f.push(n);
+  for (const n of OPTIONAL_TEXT) if (k[n] != null && typeof k[n] !== "string") f.push(n); // null = nicht gesetzt
   for (const n of OPTIONAL_INDEX) if (k[n] != null && !(Number.isInteger(k[n]) && k[n] >= 0)) f.push(n);
   if (istObjekt(k.dates)) for (const [n, v] of Object.entries(k.dates)) if (v != null && v !== "" && !isoGueltig(v)) f.push(`dates.${n}`);
   if (!P.PHASE_IDS.includes(k.column)) f.push("column");

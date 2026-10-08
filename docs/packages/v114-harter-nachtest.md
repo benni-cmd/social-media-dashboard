@@ -3,6 +3,10 @@
 > Owner-Auftrag 07.10.2026: „Nutze deine neu gewonnene Detailtiefe und führe eine Überprüfung wie am Anfang
 > durch, aber mit wirklich harten Tests, um Eventualitäten und Fehler zu prüfen und die Funktionalität der Logik
 > sicherzustellen." Stand: Code `9f37ae3` (v113). Testen, belegen, Fix vorschlagen — Umbau nur nach Rückfrage.
+>
+> **Stand 08.10.2026:** Alle 22 Befunde sind in v115 behoben und mit `tools/hart` belegt —
+> `v115-fixes-aus-hartem-nachtest.md` (dort auch das aktuelle Launch-Urteil). Die Testskripte unten heißen jetzt
+> `tools/hart/*.mjs` im Repo.
 
 ## PIG
 
