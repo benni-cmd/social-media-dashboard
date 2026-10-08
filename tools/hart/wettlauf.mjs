@@ -74,6 +74,23 @@ export async function lauf({ port }) {
       t.ok(`M2 (${wie}) geloeschte Karte kehrt nach Abgleich nicht zurueck`, !(await leseBoard(u)).cards.some((c) => c.title === name));
     }
 
+    // --- Upload, waehrend die Karte verschoben wird (Pruefer v115) -------------------------------
+    {
+      const k = await neueKarte(u, { title: "TEST hart Upload", column: "videodreh" });
+      const stueck = new Uint8Array(256 * 1024).fill(65);
+      let n = 0;
+      const langsam = new ReadableStream({ async pull(c) { if (n++ < 6) { await schlaf(400); c.enqueue(stueck); } else c.close(); } });
+      const hoch = u.api("POST", `/api/projekt/upload?ziel=rohmaterial&karteId=${k.id}&name=clip-langsam.mp4`, langsam, { kopf: { "content-type": "application/octet-stream" } });
+      await schlaf(600); // Upload laeuft, Zielpfad (alt) war schon bestimmt
+      const b = await leseBoard(u);
+      await u.api("PUT", "/api/board", { cards: b.cards.map((c) => (c.id === k.id ? { ...c, column: "schnitt" } : c)), version: b.version });
+      const mov = await u.api("POST", "/api/drive/move", { card: { ...k, column: "videodreh" }, ziel: "schnitt" });
+      const r = await hoch;
+      const orte = inPhasen(await findeOrdner(u, "TEST hart Upload"));
+      const dateien = (await dateienIn(u, orte[0] || "x")) || [];
+      t.ok("Upload + Verschieben: genau ein Ordner, Datei am neuen Ort", r.status === 200 && mov.status === 200 && orte.length === 1 && orte[0].includes("4 Schnitt") && dateien.includes("Rohmaterial/clip-langsam.mp4"), { upload: r.status, move: mov.status, orte, dateien });
+    }
+
     // --- H3 Abgleich waehrend Verschieben ------------------------------------------------------
     // Deterministisch: 20 Fuellkarten, deren Board-Spalte nicht zu Drive passt, zwingen den Abgleich, nach dem
     // Auflisten Karte fuer Karte zu lesen. Genau dann (erste Stufe „drive-karte" im Abgleich-Strom) verschiebt

@@ -76,6 +76,19 @@ erwarteten Pfad — hatte Ben den Ordner in Drive von Hand verschoben oder gelö
 Hülle (bis zum nächsten Abgleich, bis zu 30 Minuten). Jetzt schreibt es nur in einen Ordner, der noch dort liegt
 (`drive-hand`, Fälle „von Hand gelöscht/umbenannt").
 
+**Unabhängige Gegenprüfung (08.10.2026, nach Commit `b41c3c3`):** Ein zweiter Prüfer las den ganzen Umbau gegen und
+fand sieben Stellen, die die Tests nicht erfassten. Alle sind behoben:
+
+| Fund | Fix | Beleg |
+|---|---|---|
+| Abbruch eines KI-Laufs mit großem Prompt konnte per EPIPE den Server beenden (kein `stdin`-Fehler-Listener) | `child.stdin.on("error")` in `ai.js` (3×), `drive.js`, `claudeauth.js`, `codexauth.js` | echte Claude-CLI, ~400-KB-Prompt, Abbruch nach 30 ms: „abgebrochen", kein Absturz |
+| Hülle in den Papierkorb ohne erneute Prüfung unter der Sperre — ein gleichzeitiges Verschieben konnte den vollen Ordner in den Papierkorb legen | Inhalt unter `mitKarte` erneut lesen, nur bei reinen Board-Dateien verschieben | Code-Prüfung (Zeitfenster nicht verlässlich nachstellbar) |
+| Ordnerwechsel außerhalb der Board-Reihe — ein Tab konnte danach das neue Board mit alten Karten überschreiben | Sichern, Lesen, Umstellen, Schreiben in einem Schritt von `boardReihe` | Code-Prüfung (Ordnerwechsel braucht die Drive-API) |
+| Zwei gleichzeitige KPI-Läufe konnten Messungen zurückdrehen | `kpiUebernehmen` hängt nur die in diesem Lauf neuen Messungen an (je Plattform und Intervall) | Einzeltest: beide Messungen bleiben erhalten |
+| Upload legte nach gleichzeitigem Verschieben einen Doppel-Ordner an | Zielordner erst nach dem Upload unter der Karten-Sperre frisch bestimmen | neuer Test `wettlauf`: gegen `b41c3c3` BEF (zwei Ordner), jetzt ok |
+| Eine Drive-Störung bei einer Karte brach den ganzen Abgleich ab | `ordnerDaOderBefund`: Befund für diese Karte, Rest läuft weiter | Code-Prüfung (Schein-Drive kennt keine Störung) |
+| `projekt.json` mit BOM galt als beschädigt; Mehrbyte-Zeichen an Blockgrenzen der rclone-Ausgabe | BOM vor dem Parsen entfernen; rclone-Ausgabe als UTF-8 dekodieren | neuer Test `drive-hand`: gegen `b41c3c3` BEF, jetzt ok |
+
 **Entschieden ohne Umbau:** Dark Mode gibt es weiterhin nicht (v114: nur Info, kein Befund).
 
 **Nur per Code geprüft, nicht im Test ausgelöst** (Vollständigkeits-Check 08.10.2026):
@@ -90,18 +103,18 @@ die Sicherung); Hüllen landen im Papierkorb wie gelöschte Karten. Ein automati
 
 ## Belege (Befehle)
 
-- `node tools/hart/lauf.mjs --zip-gross` → logik 43 · api 32 · wettlauf 18 · drive-hand 19 · zip 9 · ki 4 = **125 ok, 0 Befunde** (08.10.2026).
+- `node tools/hart/lauf.mjs --zip-gross` → logik 43 · api 32 · wettlauf 19 · drive-hand 20 · zip 9 · ki 4 = **127 ok, 0 Befunde** (08.10.2026, nach der Gegenprüfung).
 - `node tools/tore-selbsttest.mjs` → 22/22 · `node tools/kampagnen-selbsttest.mjs` → 40/40.
 - Bildschirmfotos (Edge headless gegen eine `tools/hart`-Kopie, Browser-Bereich lehnt das selbstsignierte Zertifikat ab): Board 1 440 px, Kopfzeile 960/375 px, Abstand-Sperre, leerer Slider, Drehtermin-Zähler.
 
 ## Launch-Urteil (08.10.2026, nach v115)
 
-**Aus Sicht aller Tests startklar.** Die 22 Befunde aus v114 und ein unterwegs gefundener sind behoben und
+**Aus Sicht aller Tests startklar.** Die 22 Befunde aus v114, ein unterwegs gefundener und sieben aus der unabhängigen Gegenprüfung sind behoben und
 wiederholbar belegt. Offen bleibt, was nur am echten System prüfbar ist (unten).
 
 ## Stand
 
-08.10.2026 — gebaut, mit `tools/hart` und Bildschirmfotos abgenommen, Doku nachgezogen (`docs/architektur.md`,
+08.10.2026 — gebaut, mit `tools/hart`, Bildschirmfotos und einer unabhängigen Gegenprüfung abgenommen, Doku nachgezogen (`docs/architektur.md`,
 `README.md`, v114-Bericht verweist hierher). Das Live-Board muss neu gestartet werden, damit v115 läuft.
 
 ## Nur am echten System prüfbar (Owner)
@@ -117,4 +130,4 @@ wiederholbar belegt. Offen bleibt, was nur am echten System prüfbar ist (unten)
 - [x] `tools/hart` läuft ohne echte Daten und ohne echtes Drive und räumt hinter sich auf (0 Temp-Ordner übrig)
 - [x] Selbsttests grün, Doku synchron, Commit per Pfad + Push
 
-Geprueft gegen: `node tools/hart/lauf.mjs --zip-gross` (125 ok), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Live-Board-Neustart und Echt-Drive-Prüfungen (Owner, Liste oben)
+Geprueft gegen: `node tools/hart/lauf.mjs --zip-gross` (127 ok), unabhängige Gegenprüfung (7 Funde, behoben), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Live-Board-Neustart und Echt-Drive-Prüfungen (Owner, Liste oben)

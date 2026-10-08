@@ -111,16 +111,22 @@ async function wechsleDriveOrdner(neuId) {
       if (pruef.art === "falsch") ereignisse.melde({ sektion: "drive", dienst: "Struktur", text: driveSetup.pruefSatz(pruef), status: "befund" });
       throw Object.assign(new Error(driveSetup.pruefSatz(pruef)), { status: 400 });
     }
-    await sichereBoardFuerRoot(alt);
-    const aktuell = await leseBoard();
-    drive.setzeRoot(neuId, pruef.ablage ? pruef.ablage.teamDrive : null); // v103: geteilte Ablage merkt rclone mit
-    // Alles, was am alten Ordner hing, ist ueberholt (die Caches regenerieren aus dem neuen Drive).
-    for (const f of [SPALTEN_FILE, PLAN_FILE]) { try { await rm(f, { force: true }); } catch { /* egal */ } }
-    projekte.scanCacheLeeren();
-    driveSetup.kontoCacheLeeren();
-    const sicherung = await ladeBoardSicherung(neuId);
-    const version = Math.max(aktuell.version, (sicherung && sicherung.version) || 1) + 1; // offene Tabs laufen in den Versions-Lock und laden neu
-    await schreibeBoard(sicherung ? (sicherung.cards || []) : [], version, sicherung ? sicherung.drehtermine || [] : []);
+    // v115 (Pruefer): Sichern, Lesen, Ordner umstellen und Schreiben als EIN Schritt der Board-Reihe (alles lokal, kein
+    // Drive-Aufruf) — sonst konnte ein Tab dazwischen speichern, bekam dieselbe Version wie das neue Board und
+    // ueberschrieb es danach mit den Karten des alten Ordners.
+    const sicherung = await boardReihe(async () => {
+      await sichereBoardFuerRoot(alt);
+      const aktuell = await leseBoard();
+      drive.setzeRoot(neuId, pruef.ablage ? pruef.ablage.teamDrive : null); // v103: geteilte Ablage merkt rclone mit
+      // Alles, was am alten Ordner hing, ist ueberholt (die Caches regenerieren aus dem neuen Drive).
+      for (const f of [SPALTEN_FILE, PLAN_FILE]) { try { await rm(f, { force: true }); } catch { /* egal */ } }
+      projekte.scanCacheLeeren();
+      driveSetup.kontoCacheLeeren();
+      const s = await ladeBoardSicherung(neuId);
+      const version = Math.max(aktuell.version, (s && s.version) || 1) + 1; // offene Tabs laufen in den Versions-Lock und laden neu
+      await schreibeBoardRoh(s ? (s.cards || []) : [], version, s ? s.drehtermine || [] : []);
+      return s;
+    });
     let struktur = null;
     if (pruef.art === "leer") struktur = await driveSetup.legeStrukturAn();
     return { art: pruef.art, boardWiederhergestellt: !!sicherung, struktur };
@@ -277,9 +283,6 @@ function boardReihe(f) {
   boardKette = lauf.then(() => {}, () => {});
   return lauf;
 }
-function schreibeBoard(cards, version, drehtermine) {
-  return boardReihe(() => schreibeBoardRoh(cards, version, drehtermine));
-}
 // Liest den NEUESTEN Stand, laesst `aendere` ihn veraendern (kurz, ohne Netzwerk) und schreibt Version+1.
 // `aendere` gibt false (oder ein Objekt mit `nichts: true`) zurueck, wenn nichts zu schreiben ist. Liefert { board, ergebnis }.
 function aendereBoard(aendere) {
@@ -296,12 +299,24 @@ function aendereBoard(aendere) {
 // v115 (v114 M1): Die KPI-Erfassung misst Sekunden bis Minuten im Netz. Bis v114 schrieb sie danach ihren
 // Startstand zurueck — was Ben in der Zeit am Board geaendert hatte, war weg. Sie aendert nur `kpiMessungen`;
 // genau das wird jetzt auf den neuesten Stand gelegt.
-async function kpiUebernehmen(gemessen) {
+// v115 (Pruefer): nur die in DIESEM Lauf neu angehaengten Messungen uebernehmen (je Plattform und Intervall) — ein
+// zweiter, gleichzeitiger Lauf drehte sonst fremde Messungen auf seinen alten Stand zurueck.
+const kpiStand = (cards) => new Map(cards.map((c) => [c.id, JSON.stringify(c.kpiMessungen || {})]));
+async function kpiUebernehmen(gemessen, vorher) {
   await aendereBoard((board) => {
     let n = 0;
     for (const c of gemessen) {
       const k = board.cards.find((x) => x.id === c.id);
-      if (k && JSON.stringify(k.kpiMessungen || {}) !== JSON.stringify(c.kpiMessungen || {})) { k.kpiMessungen = c.kpiMessungen; n++; }
+      if (!k) continue;
+      const alt = JSON.parse(vorher.get(c.id) || "{}");
+      for (const [pl, liste] of Object.entries(c.kpiMessungen || {})) {
+        const schon = new Set((alt[pl] || []).map((m) => JSON.stringify(m)));
+        const neu = (Array.isArray(liste) ? liste : []).filter((m) => !schon.has(JSON.stringify(m)));
+        if (!neu.length) continue;
+        if (!k.kpiMessungen || typeof k.kpiMessungen !== "object") k.kpiMessungen = {};
+        if (!Array.isArray(k.kpiMessungen[pl])) k.kpiMessungen[pl] = [];
+        for (const m of neu) if (!k.kpiMessungen[pl].some((x) => x && m && x.intervall === m.intervall)) { k.kpiMessungen[pl].push(m); n++; }
+      }
     }
     return n > 0;
   });
@@ -1485,7 +1500,15 @@ async function handler(req, res) {
       const tempDatei = join(tmp, name);
       try {
         await streamPipeline(req, createWriteStream(tempDatei));
-        await drive.kopiereDateiRauf(tempDatei, `${treffer.basis}/${ziel.unter}/${name}`);
+        // v115 (Pruefer): Der Upload kann Minuten dauern — die Karte kann inzwischen gewandert sein. Der Zielordner wird
+        // darum erst jetzt, unter der Sperre der Karte, frisch bestimmt; sonst entstand am alten Ort ein Doppel-Ordner.
+        const kopiert = await projekte.mitKarte(treffer.card.id, async () => {
+          const jetzt = await projekte.scan(treffer.card, true);
+          if (!jetzt.driveOk || !jetzt.vorhanden) return { fehler: jetzt.driveOk ? 409 : 502, satz: jetzt.driveOk ? "Der Projektordner ist gerade nicht auffindbar — Upload nicht abgelegt." : jetzt.satz };
+          await drive.kopiereDateiRauf(tempDatei, `${jetzt.pfad}/${ziel.unter}/${name}`);
+          return { ok: true };
+        });
+        if (kopiert.fehler) { sendJson(res, kopiert.fehler, { error: kopiert.satz, satz: kopiert.satz }); return; }
         sendJson(res, 200, { ok: true, satz: `„${name}" liegt jetzt im Ordner „${ziel.unter}".` });
       } finally {
         await rm(tmp, { recursive: true, force: true });
@@ -2313,8 +2336,9 @@ async function handler(req, res) {
       const board = await leseBoard();
       const tokens = await leseTokens();
       await boardparamSicher();
+      const vorher = kpiStand(board.cards); // v115: Stand vor dem Messen (sammle haengt an die Karten an)
       const ergebnis = await kpi.sammle(board.cards, tokens);
-      if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards); // v115 (M1): auf den neuesten Stand legen
+      if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards, vorher); // v115 (M1): auf den neuesten Stand legen
       sendJson(res, 200, { gesammelt: ergebnis.gesammelt, bericht: ergebnis.bericht });
       return;
     }
@@ -2458,8 +2482,9 @@ server.listen(PORT, "127.0.0.1", async () => {
     const board = await leseBoard();
     const tokens = await leseTokens();
     await boardparamSicher();
+    const vorher = kpiStand(board.cards); // v115: Stand vor dem Messen (sammle haengt an die Karten an)
     const ergebnis = await kpi.sammle(board.cards, tokens);
-    if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards); // v115 (M1): auf den neuesten Stand legen
+    if (ergebnis.gesammelt > 0) await kpiUebernehmen(ergebnis.cards, vorher); // v115 (M1): auf den neuesten Stand legen
     const konto = ergebnis.bericht.some((b) => /^(kanal|demografie)/.test(b.status || ""));
     if (ergebnis.gesammelt > 0 || konto) {
       console.log(`KPI beim Start: ${ergebnis.gesammelt} Post-Messung(en)` + (konto ? " + Konto-Schnappschuss" : "") + " erfasst.");

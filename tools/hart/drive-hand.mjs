@@ -69,6 +69,19 @@ export async function lauf({ port }) {
       t.ok("H2 Board-Karte: kaputte Datei gesichert, Board-Stand bleibt", ai.some((n) => /^projekt\.kaputt-/.test(n)) && nach && nach.notes === "Board-Notiz", { ai, notes: nach && nach.notes });
     }
 
+    // --- BOM in projekt.json (z. B. von PowerShell 5.1 geschrieben) ist kein Schaden ---------------
+    {
+      const k = await neueKarte(u, { title: "TEST hart BOM", column: "skript", notes: "Board-Notiz" });
+      await rename(u.d("In Bearbeitung/2 Skript/TEST hart BOM"), u.d("In Bearbeitung/3 Videodreh/TEST hart BOM"));
+      const p = u.d("In Bearbeitung/3 Videodreh/TEST hart BOM/(AI only)/projekt.json");
+      const j = JSON.parse(await readFile(p, "utf8"));
+      await writeFile(p, "﻿" + JSON.stringify({ ...j, notes: "Notiz aus Drive mit BOM" }));
+      const r = await abgleich();
+      const ai = await readdir(u.d("In Bearbeitung/3 Videodreh/TEST hart BOM/(AI only)"));
+      const nach = (await leseBoard(u)).cards.find((c) => c.id === k.id);
+      t.ok("BOM: keine Sicherung, Drive-Inhalt gelesen", !ai.some((n) => n.startsWith("projekt.kaputt-")) && nach && nach.notes === "Notiz aus Drive mit BOM", { ai, notes: nach && nach.notes, befunde: befundText(r).slice(0, 200) });
+    }
+
     // --- N8 von Hand umbenannt ------------------------------------------------------------------
     {
       const k = await neueKarte(u, { title: "TEST hart Name", column: "skript" });
