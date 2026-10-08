@@ -144,4 +144,4 @@ erreichbar ist; sonst scheitert Löschen sichtbar (Karte bleibt) und der Scan me
 - [x] `tools/hart` läuft ohne echte Daten und ohne echtes Drive und räumt hinter sich auf (0 Temp-Ordner übrig)
 - [x] Selbsttests grün, Doku synchron, Commit per Pfad + Push
 
-Geprueft gegen: `node tools/hart/lauf.mjs` (128 ok, 08.10. nach W1; `--zip-gross` zuvor 9/9), unabhängige Gegenprüfung (7 Funde, behoben), Simulation „Drive-Wurzel weg“ (W1 behoben), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Live-Board-Neustart und Echt-Drive-Prüfungen (Owner, Liste oben)
+Geprueft gegen: `node tools/hart/lauf.mjs` (128 ok, 08.10. nach W1; `--zip-gross` zuvor 9/9), unabhängige Gegenprüfung (7 Funde, behoben), Simulation „Drive-Wurzel weg“ (W1 behoben), Selbsttests 22/22 und 40/40, echte Claude-CLI, lokales Ollama, Bildschirmfotos 1 440/960/375 px · Offen: Erstprüfung der Google-API-Funktionen und OAuth/KPI mit Bens Konten (Owner, Liste oben)
